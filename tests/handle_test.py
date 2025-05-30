@@ -56,11 +56,11 @@ def test_proxy_handle_action_errors() -> None:
     with pytest.raises(AttributeError, match='null'):
         handle.action('null').result()
     with pytest.raises(AttributeError, match='null'):
-        handle.null()
+        handle.null()  # type: ignore[attr-defined]
 
     handle.behavior.foo = 1  # type: ignore[attr-defined]
     with pytest.raises(AttributeError, match='not a method'):
-        handle.foo()
+        handle.foo()  # type: ignore[attr-defined]
 
 
 def test_proxy_handle_closed_errors() -> None:

@@ -70,6 +70,14 @@ class Handle(Protocol[BehaviorT]):
     agent_id: AgentId[BehaviorT]
     mailbox_id: EntityId | None
 
+    def __getattr__(self, name: str) -> Any:
+        # This dummy method definition is required to signal to mypy that
+        # any attribute access is "valid" on a Handle type. This forces
+        # mypy into calling our mypy plugin (academy.mypy_plugin) which then
+        # validates the exact semantics of the attribute access depending
+        # on the concrete type for the BehaviorT that Handle is generic on.
+        ...
+
     def action(
         self,
         action: str,

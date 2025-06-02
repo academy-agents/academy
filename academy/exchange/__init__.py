@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import threading
 from types import TracebackType
 from typing import Any, Callable, get_args
 from typing import Protocol
@@ -8,20 +9,18 @@ from typing import runtime_checkable
 from typing import TypeVar
 import uuid
 
-from academy.agent import Agent
-from academy.exception import MailboxClosedError
-
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 from academy.behavior import Behavior
-from academy.handle import BoundRemoteHandle, ClientRemoteHandle, UnboundRemoteHandle
+from academy.handle import BoundRemoteHandle, UnboundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.identifier import EntityId
 from academy.message import Message, RequestMessage, ResponseMessage
+from academy.exception import MailboxClosedError
 
 __all__ = ['UnboundExchangeClient', 'BoundExchangeClient', 'ExchangeMixin']
 
@@ -44,9 +43,13 @@ class UnboundExchangeClient(Protocol):
         so that agents and remote clients can establish client connections
         to the same exchange.
     """
-    def bind(self, 
-             agent: Agent[BehaviorT] | None
-        ) -> BoundExchangeClient:
+
+    def bind(
+        self, 
+        mailbox_id: EntityId | None = None, 
+        name: str | None = None, 
+        handler: Callable[[RequestMessage], None] | None = None
+    ) -> BoundExchangeClient:
         ...
         """Bind exchange to client or agent.
 
@@ -84,6 +87,11 @@ class BoundExchangeClient(Protocol):
     @property
     def bound_handles(self) -> dict[uuid.UUID, BoundRemoteHandle[Any]]:
         """All handles bound to this exchange"""
+        ...
+
+    @property
+    def request_handler(self) -> Callable[[RequestMessage], None] | None:
+        """How to process a request coming to this mailbox."""
         ...
 
     def register_agent(
@@ -204,6 +212,22 @@ class BoundExchangeClient(Protocol):
         """
         ...
 
+    def listen(self: BoundExchangeClient) -> None:
+        """Listen for new messages in the mailbox and process them.
+
+        Request messages are processed via the `request_handler`, and response
+        messages are dispatched to the handle that created the corresponding
+        request.
+
+        Warning:
+            This method loops forever, until the mailbox is closed. Thus this
+            method is typically run inside of a thread.
+
+        Note:
+            Response messages intended for a handle that does not exist
+            will be logged and discarded.
+        """
+
     def clone(self) -> UnboundExchangeClient:
         ...
 
@@ -223,6 +247,7 @@ class ExchangeMixin:
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
+        self.close_bound_handles()
         self.close()
 
     def __repr__(self) -> str:
@@ -263,14 +288,23 @@ class ExchangeMixin:
         self.bound_handles[hdl.handle_id] = hdl
         return hdl
     
-    def _handle_request(self, request: RequestMessage) -> None:
-        response = request.error(
-            TypeError(
-                f'Client with {self.mailbox_id} cannot fulfill requests.',
-            ),
-        )
-        self.exchange.send(response.dest, response)
-    
+    def _handle_request(self: BoundExchangeClient, request: RequestMessage) -> None:
+        if self.request_handler is None:
+            response = request.error(
+                TypeError(
+                    f'Client with {self.mailbox_id} cannot fulfill requests.',
+                ),
+            )
+            self.send(response.dest, response)
+        else:
+            self.request_handler(request)
+
+    def close_bound_handles(self) -> None:
+        """Close all handles bound to this mailbox."""
+        for key in tuple(self.bound_handles):
+            handle = self.bound_handles.pop(key)
+            handle.close(wait_futures=False)
+        
     def _message_handler(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):
             self._handle_request(message)
@@ -306,3 +340,12 @@ class ExchangeMixin:
                 self._message_handler(message)
         except MailboxClosedError:
             pass
+
+def EMPTY_HANDLER(request: RequestMessage) -> None:
+    """Empty handler.
+    
+    This is a hack to be able to create mailboxes not associated
+    with a behavior that can receive arbitrary messages.
+    This is used primarily for testing.
+    """
+    return None

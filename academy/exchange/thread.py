@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 import pickle
-from typing import Any
+import threading
+from typing import Any, Callable
 from typing import TypeVar
+import uuid
 
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
@@ -11,39 +13,105 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeMixin
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
+from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.identifier import EntityId
-from academy.message import Message
+from academy.message import Message, RequestMessage
+from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 
-class ThreadExchange(ExchangeMixin):
+class ThreadExchange(NoPickleMixin):
     """Local process message exchange for threaded agents.
 
-    This exchange uses [`Queues`][queue.Queue] as mailboxes for agents
-    running as separate threads within the same process. This exchange
-    is helpful for local testing but not much more.
+    ThreadExchange is a special case of an exchange where the mailboxes
+    of the exchange live in process memory. This class stores the state
+    of the exchange. 
     """
 
     def __init__(self) -> None:
-        self._queues: dict[EntityId, Queue[Message]] = {}
-        self._behaviors: dict[AgentId[Any], type[Behavior]] = {}
+        self.queues: dict[EntityId, Queue[Message]] = {}
+        self.behaviors: dict[AgentId[Any], type[Behavior]] = {}
 
     def __getstate__(self) -> None:
         raise pickle.PicklingError(
             f'{type(self).__name__} cannot be safely pickled.',
         )
 
+class UnboundThreadExchangeClient:
+    def __init__(self, exchange_state: ThreadExchange | None = None):
+        if exchange_state is None:
+            exchange_state = ThreadExchange()
+
+        self._state = exchange_state
+
+    def bind(
+        self, 
+        mailbox_id: EntityId | None = None, 
+        name: str | None = None, 
+        handler: Callable[[RequestMessage], None] | None = None
+    ) -> BoundThreadExchangeClient:
+        """Bind exchange to client or agent.
+
+        If no agent is provided, exchange should create a new mailbox without
+        an associated behavior and bind to that. Otherwise, the exchange will 
+        bind to the mailbox associated with the provided agent.
+
+        Note:
+            This is intentionally restrictive. Each user or agent should only
+            bind to the exchange with a single address. This forces multiplexing
+            of handles to other agents and requests to this agents.
+        """
+
+        return BoundThreadExchangeClient(self._state, mailbox_id, name, handler)
+
+class BoundThreadExchangeClient(ExchangeMixin):
+
+    def __init__(self, 
+                 exchange_state : ThreadExchange, 
+                 entity_id: EntityId | None = None,
+                 name: str | None = None,
+                 handler: Callable[[RequestMessage], None] | None = None):
+        
+        self._state = exchange_state
+        self.bound_handles: dict[uuid.UUID, BoundRemoteHandle[Any]] = {}
+        
+        if entity_id is None:
+            cid = ClientId.new(name=name)
+            self._state.queues[cid] = Queue()
+            self.mailbox_id = cid
+            logger.debug('Registered %s in %s', cid, self)
+        else:
+            queue = self._state.queues.get(entity_id, None)
+            if queue is None:
+                raise BadEntityIdError(entity_id)
+            self.mailbox_id = entity_id
+
+        self._queue = self._state.queues[cid] 
+        self.request_handler = handler
+
+        if handler is None:
+            self._listener_thread = threading.Thread(
+                target=self.listen,
+                name=f'thread-exchange-{self.mailbox_id.uid}-listener',
+            )
+            self._listener_thread.start()
+
     def close(self) -> None:
         """Close the exchange.
 
         Unlike most exchange clients, this will close all of the mailboxes.
         """
-        for queue in self._queues.values():
+
+        # If does not process requests, terminate it.
+        if self.request_handler is None:
+            self.terminate(self.mailbox_id)
+
+        for queue in self._state.queues.values():
             queue.close()
         logger.debug('Closed exchange (%s)', self)
 
@@ -67,28 +135,11 @@ class ThreadExchange(ExchangeMixin):
             Unique identifier for the agent's mailbox.
         """
         aid = AgentId.new(name=name) if agent_id is None else agent_id
-        if aid not in self._queues or self._queues[aid].closed():
-            self._queues[aid] = Queue()
-            self._behaviors[aid] = behavior
+        if aid not in self._state.queues or self._state.queues[aid].closed():
+            self._state.queues[aid] = Queue()
+            self._state.behaviors[aid] = behavior
             logger.debug('Registered %s in %s', aid, self)
         return aid
-
-    def register_client(
-        self,
-        name: str | None = None,
-    ) -> ClientId:
-        """Create a new client identifier and associated mailbox.
-
-        Args:
-            name: Optional human-readable name for the client.
-
-        Returns:
-            Unique identifier for the client's mailbox.
-        """
-        cid = ClientId.new(name=name)
-        self._queues[cid] = Queue()
-        logger.debug('Registered %s in %s', cid, self)
-        return cid
 
     def terminate(self, uid: EntityId) -> None:
         """Close the mailbox for an entity from the exchange.
@@ -99,11 +150,11 @@ class ThreadExchange(ExchangeMixin):
         Args:
             uid: Entity identifier of the mailbox to close.
         """
-        queue = self._queues.get(uid, None)
+        queue = self._state.queues.get(uid, None)
         if queue is not None and not queue.closed():
             queue.close()
             if isinstance(uid, AgentId):
-                self._behaviors.pop(uid, None)
+                self._state.behaviors.pop(uid, None)
             logger.debug('Closed mailbox for %s (%s)', uid, self)
 
     def discover(
@@ -123,30 +174,13 @@ class ThreadExchange(ExchangeMixin):
             Tuple of agent IDs implementing the behavior.
         """
         found: list[AgentId[Any]] = []
-        for aid, type_ in self._behaviors.items():
+        for aid, type_ in self._state.behaviors.items():
             if behavior is type_ or (
                 allow_subclasses and issubclass(type_, behavior)
             ):
                 found.append(aid)
-        alive = tuple(aid for aid in found if not self._queues[aid].closed())
+        alive = tuple(aid for aid in found if not self._state.queues[aid].closed())
         return alive
-
-    def get_mailbox(self, uid: EntityId) -> ThreadMailbox:
-        """Get a client to a specific mailbox.
-
-        Args:
-            uid: EntityId of the mailbox.
-
-        Returns:
-            Mailbox client.
-
-        Raises:
-            BadEntityIdError: if a mailbox for `uid` does not exist.
-        """
-        queue = self._queues.get(uid, None)
-        if queue is None:
-            raise BadEntityIdError(uid)
-        return ThreadMailbox(uid, self, queue)
 
     def send(self, uid: EntityId, message: Message) -> None:
         """Send a message to a mailbox.
@@ -159,7 +193,7 @@ class ThreadExchange(ExchangeMixin):
             BadEntityIdError: if a mailbox for `uid` does not exist.
             MailboxClosedError: if the mailbox was closed.
         """
-        queue = self._queues.get(uid, None)
+        queue = self._state.queues.get(uid, None)
         if queue is None:
             raise BadEntityIdError(uid)
         try:
@@ -167,40 +201,6 @@ class ThreadExchange(ExchangeMixin):
             logger.debug('Sent %s to %s', type(message).__name__, uid)
         except QueueClosedError as e:
             raise MailboxClosedError(uid) from e
-
-
-class ThreadMailbox:
-    """Client protocol that listens to incoming messages to a mailbox."""
-
-    def __init__(
-        self,
-        uid: EntityId,
-        exchange: ThreadExchange,
-        queue: Queue[Message],
-    ) -> None:
-        self._uid = uid
-        self._exchange = exchange
-        self._queue = queue
-
-    @property
-    def exchange(self) -> ThreadExchange:
-        """Exchange client."""
-        return self._exchange
-
-    @property
-    def mailbox_id(self) -> EntityId:
-        """Mailbox address/identifier."""
-        return self._uid
-
-    def close(self) -> None:
-        """Close this mailbox client.
-
-        Warning:
-            This does not close the mailbox in the exchange. I.e., the exchange
-            will still accept new messages to this mailbox, but this client
-            will no longer be listening for them.
-        """
-        pass
 
     def recv(self, timeout: float | None = None) -> Message:
         """Receive the next message in the mailbox.
@@ -227,3 +227,6 @@ class ThreadMailbox:
             return message
         except QueueClosedError as e:
             raise MailboxClosedError(self.mailbox_id) from e
+        
+    def clone(self):
+        return UnboundThreadExchangeClient(self._state)

@@ -8,15 +8,16 @@ import pytest
 
 from academy.exchange.cloud.server import create_app
 from academy.exchange.cloud.server import serve_app
-from academy.exchange.thread import ThreadExchange
+from academy.exchange.thread import BoundThreadExchangeClient
+from academy.exchange.thread import UnboundThreadExchangeClient
 from academy.launcher import ThreadLauncher
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
 
 
 @pytest.fixture
-def exchange() -> Generator[ThreadExchange]:
-    with ThreadExchange() as exchange:
+def exchange() -> Generator[BoundThreadExchangeClient]:
+    with UnboundThreadExchangeClient().bind() as exchange:
         yield exchange
 
 

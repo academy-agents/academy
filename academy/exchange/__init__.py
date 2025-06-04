@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import abc
 import sys
 import threading
+import uuid
 from types import TracebackType
-from typing import Any, Callable, get_args
+from typing import Any
+from typing import Callable
+from typing import get_args
 from typing import Protocol
 from typing import runtime_checkable
 from typing import TypeVar
-import uuid
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -15,23 +18,27 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 from academy.behavior import Behavior
-from academy.handle import BoundRemoteHandle, UnboundRemoteHandle
+from academy.exception import MailboxClosedError
+from academy.handle import BoundRemoteHandle
+from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.identifier import EntityId
-from academy.message import Message, RequestMessage, ResponseMessage
-from academy.exception import MailboxClosedError
+from academy.message import Message
+from academy.message import RequestMessage
+from academy.message import ResponseMessage
 
-__all__ = ['UnboundExchangeClient', 'BoundExchangeClient', 'ExchangeMixin']
+__all__ = ['BoundExchangeClient', 'UnboundExchangeClient']
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
+
 
 @runtime_checkable
 class UnboundExchangeClient(Protocol):
     """Message exchange client protocol.
 
     A message exchange hosts mailboxes for each entity (i.e., agent or
-    client) in a multi-agent system. With 
+    client) in a multi-agent system. With
     [`BoundExchangeClient`][academy.exchange.BoundExchangeClient], This
     protocol defines the client interface to an arbitrary exchange.
     An unbound exchange is used to attach to an existing mailbox or create
@@ -45,30 +52,31 @@ class UnboundExchangeClient(Protocol):
     """
 
     def bind(
-        self, 
-        mailbox_id: EntityId | None = None, 
-        name: str | None = None, 
-        handler: Callable[[RequestMessage], None] | None = None
+        self,
+        mailbox_id: EntityId | None = None,
+        name: str | None = None,
+        handler: Callable[[RequestMessage], None] | None = None,
     ) -> BoundExchangeClient:
-        ...
         """Bind exchange to client or agent.
 
         If no agent is provided, exchange should create a new mailbox without
-        an associated behavior and bind to that. Otherwise, the exchange will 
+        an associated behavior and bind to that. Otherwise, the exchange will
         bind to the mailbox associated with the provided agent.
 
         Note:
             This is intentionally restrictive. Each user or agent should only
-            bind to the exchange with a single address. This forces multiplexing
-            of handles to other agents and requests to this agents.
+            bind to the exchange with a single address. This forces
+            multiplexing of handles to other agents and requests to this
+            agents.
         """
+        ...
 
-@runtime_checkable
-class BoundExchangeClient(Protocol):
+
+class BoundExchangeClient(abc.ABC):
     """Message exchange client protocol.
 
     A message exchange hosts mailboxes for each entity (i.e., agent or
-    client) in a multi-agent system. With 
+    client) in a multi-agent system. With
     [`UnboundExchangeClient`][academy.exchange.UnboundExchangeClient], This
     protocol defines the client interface to an arbitrary exchange.
 
@@ -77,23 +85,50 @@ class BoundExchangeClient(Protocol):
         listening to the same mailbox will lead to undefined behavior
         depending on the implementation of the exchange. Instead, clients
         should be bound to a new mailbox to be replicated.
+
+    Args:
+        mailbox_id: Identifier of the mailbox on the exchange. If there is
+            not an id provided, the exchange will create a new client mail-
+            box.
+        name: Display name of mailbox on exchange.
+        handler:  Callback to handler requests to this exchange.
+
     """
 
-    @property
-    def mailbox_id(self) -> EntityId:
-        """Mailbox address/identifier."""
-        ...
-    
-    @property
-    def bound_handles(self) -> dict[uuid.UUID, BoundRemoteHandle[Any]]:
-        """All handles bound to this exchange"""
+    def __init__(
+        self,
+        mailbox_id: EntityId | None,
+        name: str | None,
+        handler: Callable[[RequestMessage], None] | None,
+    ):
+        self.bound_handles: dict[uuid.UUID, BoundRemoteHandle[Any]] = {}
+        if mailbox_id is None:
+            self.mailbox_id: EntityId = self._register_client(name=name)
+        else:
+            # TODO: How can we check if mailbox id is valid?
+            self.mailbox_id = mailbox_id
+
+        self.request_handler = handler
+        if handler is None:
+            self._listener_thread = threading.Thread(
+                target=self.listen,
+                name=f'thread-exchange-{self.mailbox_id.uid}-listener',
+            )
+            self._listener_thread.start()
+
+    @abc.abstractmethod
+    def _register_client(self, *, name: str | None = None) -> ClientId:
+        """Create a new client identifier and associated mailbox.
+
+        Args:
+            name: Optional human-readable name for the client.
+
+        Returns:
+            Unique identifier for the client's mailbox.
+        """
         ...
 
-    @property
-    def request_handler(self) -> Callable[[RequestMessage], None] | None:
-        """How to process a request coming to this mailbox."""
-        ...
-
+    @abc.abstractmethod
     def register_agent(
         self,
         behavior: type[BehaviorT],
@@ -115,6 +150,7 @@ class BoundExchangeClient(Protocol):
         """
         ...
 
+    @abc.abstractmethod
     def terminate(self, uid: EntityId) -> None:
         """Close the mailbox for an entity from the exchange.
 
@@ -126,6 +162,7 @@ class BoundExchangeClient(Protocol):
         """
         ...
 
+    @abc.abstractmethod
     def discover(
         self,
         behavior: type[Behavior],
@@ -144,31 +181,7 @@ class BoundExchangeClient(Protocol):
         """
         ...
 
-    def get_handle(
-        self,
-        aid: AgentId[BehaviorT],
-    ) -> BoundRemoteHandle[BehaviorT]:
-        """Create a new handle to an agent.
-
-        A handle enables a client to invoke actions on the agent.
-
-        Note:
-            It is not possible to create a handle to a client since a handle
-            is essentially a new client of a specific agent.
-
-        Args:
-            aid: EntityId of the agent to create a handle to.
-
-        Returns:
-            Handle to the agent.
-
-        Raises:
-            BadEntityIdError: if a mailbox for `aid` does not exist.
-            TypeError: if `aid` is not an instance of
-                [`AgentId`][academy.identifier.AgentId].
-        """
-        ...
-
+    @abc.abstractmethod
     def send(self, uid: EntityId, message: Message) -> None:
         """Send a message to a mailbox.
 
@@ -182,6 +195,7 @@ class BoundExchangeClient(Protocol):
         """
         ...
 
+    @abc.abstractmethod
     def recv(self, timeout: float | None = None) -> Message:
         """Receive the next message in the mailbox.
 
@@ -199,6 +213,7 @@ class BoundExchangeClient(Protocol):
         """
         ...
 
+    @abc.abstractmethod
     def close(self) -> None:
         """Close the exchange client.
 
@@ -212,33 +227,12 @@ class BoundExchangeClient(Protocol):
         """
         ...
 
-    def listen(self: BoundExchangeClient) -> None:
-        """Listen for new messages in the mailbox and process them.
-
-        Request messages are processed via the `request_handler`, and response
-        messages are dispatched to the handle that created the corresponding
-        request.
-
-        Warning:
-            This method loops forever, until the mailbox is closed. Thus this
-            method is typically run inside of a thread.
-
-        Note:
-            Response messages intended for a handle that does not exist
-            will be logged and discarded.
-        """
-
+    @abc.abstractmethod
     def clone(self) -> UnboundExchangeClient:
+        """Shallow copy exchange to new, unbound version."""
         ...
 
-class ExchangeMixin:
-    """Mixin class that adds basic methods to an exchange implementation.
-
-    This adds a simple `repr`/`str`, context manager support, and the
-    `get_handle` method.
-    """
-
-    def __enter__(self: BoundExchangeClient) -> Self:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -247,7 +241,6 @@ class ExchangeMixin:
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self.close_bound_handles()
         self.close()
 
     def __repr__(self) -> str:
@@ -283,12 +276,15 @@ class ExchangeMixin:
                 f'Handle must be created from an {AgentId.__name__} '
                 f'but got identifier with type {type(aid).__name__}.',
             )
-        
+
         hdl = BoundRemoteHandle(self, aid, self.mailbox_id)
         self.bound_handles[hdl.handle_id] = hdl
         return hdl
-    
-    def _handle_request(self: BoundExchangeClient, request: RequestMessage) -> None:
+
+    def _handle_request(
+        self,
+        request: RequestMessage,
+    ) -> None:
         if self.request_handler is None:
             response = request.error(
                 TypeError(
@@ -304,7 +300,7 @@ class ExchangeMixin:
         for key in tuple(self.bound_handles):
             handle = self.bound_handles.pop(key)
             handle.close(wait_futures=False)
-        
+
     def _message_handler(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):
             self._handle_request(message)
@@ -317,8 +313,8 @@ class ExchangeMixin:
                 handle._process_response(message)
         else:
             raise AssertionError('Unreachable.')
-        
-    def listen(self: BoundExchangeClient) -> None:
+
+    def listen(self) -> None:
         """Listen for new messages in the mailbox and process them.
 
         Request messages are processed via the `request_handler`, and response
@@ -333,7 +329,6 @@ class ExchangeMixin:
             Response messages intended for a handle that does not exist
             will be logged and discarded.
         """
-
         try:
             while True:
                 message = self.recv()
@@ -341,11 +336,18 @@ class ExchangeMixin:
         except MailboxClosedError:
             pass
 
-def EMPTY_HANDLER(request: RequestMessage) -> None:
+
+def sentinel_handler(request: RequestMessage) -> None:
     """Empty handler.
-    
-    This is a hack to be able to create mailboxes not associated
-    with a behavior that can receive arbitrary messages.
+
+    By default a client exchange is created with a listener thread
+    that multiplexes messages to handles. This multiplexing is the expected
+    use case, but prevents an exchange from directly receiving arbitrary
+    messages. EMPTY_HANDLER is a hack to be able to create mailboxes not
+    associated with a behavior that can receive arbitrary messages.
     This is used primarily for testing.
     """
     return None
+
+
+EMPTY_HANDLER = sentinel_handler

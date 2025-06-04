@@ -8,7 +8,8 @@ import pytest
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import BoundExchangeClient, UnboundExchangeClient
+from academy.exchange import BoundExchangeClient
+from academy.exchange import UnboundExchangeClient
 from academy.exchange.thread import UnboundThreadExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import ClientId
@@ -26,15 +27,17 @@ def test_basic_usage() -> None:
         aid = exchange.register_agent(EmptyBehavior)
         exchange.register_agent(EmptyBehavior, agent_id=aid)
         assert isinstance(aid, AgentId)
-        
 
         for _ in range(3):
-            message = PingRequest(src=exchange.mailbox_id, dest=exchange.mailbox_id)
+            message = PingRequest(
+                src=exchange.mailbox_id,
+                dest=exchange.mailbox_id,
+            )
             exchange.send(exchange.mailbox_id, message)
             assert exchange.recv() == message
 
         exchange.terminate(aid)
-        exchange.terminate(aid) # Idempotency check
+        exchange.terminate(aid)  # Idempotency check
 
 
 def test_bad_identifier_error() -> None:
@@ -63,7 +66,7 @@ def test_get_handle_to_client() -> None:
 
 
 def test_non_pickleable() -> None:
-    with UnboundThreadExchangeClient().bind()  as exchange:
+    with UnboundThreadExchangeClient().bind() as exchange:
         with pytest.raises(pickle.PicklingError):
             pickle.dumps(exchange)
 
@@ -75,7 +78,7 @@ def test_discover() -> None:
 
     class C(B): ...
 
-    with UnboundThreadExchangeClient().bind()  as exchange:
+    with UnboundThreadExchangeClient().bind() as exchange:
         bid = exchange.register_agent(B)
         cid = exchange.register_agent(C)
         did = exchange.register_agent(C)
@@ -97,10 +100,15 @@ def test_exchange_clone() -> None:
 
     user2 = clone.bind()
     # Test user 1 exists in exchange 2
-    user2.send(user1.mailbox_id, PingRequest(src=user2.mailbox_id, dest=user1.mailbox_id))
+    user2.send(
+        user1.mailbox_id,
+        PingRequest(src=user2.mailbox_id, dest=user1.mailbox_id),
+    )
     # Test user 2 exists in exchange 1
-    user1.send(user2.mailbox_id, PingRequest(src=user1.mailbox_id, dest=user2.mailbox_id))
+    user1.send(
+        user2.mailbox_id,
+        PingRequest(src=user1.mailbox_id, dest=user2.mailbox_id),
+    )
 
     user1.close()
     user2.close()
-    

@@ -6,33 +6,31 @@ import logging
 import sys
 import threading
 import uuid
-from types import TracebackType
-from typing import Any, Callable
+from typing import Any
+from typing import Callable
 from typing import get_args
 from typing import TypeVar
 
-from academy.handle import BoundRemoteHandle
+from academy.exchange import BoundExchangeClient
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
+    pass
 else:  # pragma: <3.11 cover
-    from typing_extensions import Self
+    pass
 
-from academy.agent import Agent
 import redis
 
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import ExchangeMixin
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.identifier import EntityId
-from academy.message import BaseMessage, RequestMessage
+from academy.message import BaseMessage
 from academy.message import Message
-from academy.serialize import NoPickleMixin
+from academy.message import RequestMessage
 from academy.socket import address_by_hostname
 from academy.socket import address_by_interface
 from academy.socket import SimpleSocket
@@ -54,6 +52,7 @@ class _MailboxState(enum.Enum):
     ACTIVE = 'ACTIVE'
     INACTIVE = 'INACTIVE'
 
+
 class UnboundHybridExchangeClient:
     """Hybrid exchange.
 
@@ -74,7 +73,7 @@ class UnboundHybridExchangeClient:
     Raises:
         redis.exceptions.ConnectionError: If the Redis server is not reachable.
     """
-    
+
     def __init__(
         self,
         redis_host: str,
@@ -95,34 +94,36 @@ class UnboundHybridExchangeClient:
         self._redis_kwargs = redis_kwargs if redis_kwargs is not None else {}
 
     def bind(
-        self, 
-        mailbox_id: EntityId | None = None, 
-        name: str | None = None, 
-        handler: Callable[[RequestMessage], None] | None = None
+        self,
+        mailbox_id: EntityId | None = None,
+        name: str | None = None,
+        handler: Callable[[RequestMessage], None] | None = None,
     ) -> BoundHybridExchangeClient:
         """Bind exchange to client or agent.
 
         If no agent is provided, exchange should create a new mailbox without
-        an associated behavior and bind to that. Otherwise, the exchange will 
+        an associated behavior and bind to that. Otherwise, the exchange will
         bind to the mailbox associated with the provided agent.
 
         Note:
             This is intentionally restrictive. Each user or agent should only
-            bind to the exchange with a single address. This forces multiplexing
-            of handles to other agents and requests to this agents.
+            bind to the exchange with a single address. This forces
+            multiplexing of handles to other agents and requests to this
+            agents.
         """
         return BoundHybridExchangeClient(
             self._redis_host,
             self._redis_port,
-            interface = self._interface,
-            namespace = self._namespace,
+            interface=self._interface,
+            namespace=self._namespace,
             redis_kwargs=self._redis_kwargs,
             mailbox_id=mailbox_id,
             name=name,
             handler=handler,
         )
 
-class BoundHybridExchangeClient(ExchangeMixin):
+
+class BoundHybridExchangeClient(BoundExchangeClient):
     """Hybrid exchange.
 
     The hybrid exchange uses peer-to-peer communication via TCP and a
@@ -138,6 +139,12 @@ class BoundHybridExchangeClient(ExchangeMixin):
             generated.
         redis_kwargs: Extra keyword arguments to pass to
             [`redis.Redis()`][redis.Redis].
+        mailbox_id: Identifier of the mailbox on the exchange. If there is
+            not an id provided, the exchange will create a new client mail-
+            box.
+        name: Display name of mailbox on exchange.
+        handler:  Callback to handler requests to this exchange.
+
 
     Raises:
         redis.exceptions.ConnectionError: If the Redis server is not reachable.
@@ -158,7 +165,7 @@ class BoundHybridExchangeClient(ExchangeMixin):
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
-        port: int | None = None
+        port: int | None = None,
     ) -> None:
         self._namespace = (
             namespace
@@ -172,33 +179,8 @@ class BoundHybridExchangeClient(ExchangeMixin):
         self._port = port
 
         self._init_connections()
-
-        self.bound_handles: dict[uuid.UUID, BoundRemoteHandle[Any]] = {}
-        if mailbox_id is None:
-            cid = ClientId.new(name=name)
-            self._redis_client.set(
-                self._status_key(cid),
-                _MailboxState.ACTIVE.value,
-            )
-            self.mailbox_id = cid
-            logger.debug('Registered %s in %s', cid, self)
-        else:
-            status = self._redis_client.get(self._status_key(mailbox_id))
-            if status is None:
-                raise BadEntityIdError(mailbox_id)
-            self.mailbox_id = mailbox_id
-
-        self.request_handler = handler
-
+        super().__init__(mailbox_id, name, handler)
         self._start_mailbox_server()
-
-        if self.request_handler is None:
-            logger.debug('Staring result puller thread for hybrid exchange.')
-            self._listener_thread = threading.Thread(
-                target=self.listen,
-                name=f'redis-exchange-{self.mailbox_id.uid}-listener',
-            )
-            self._listener_thread.start()
 
     def _init_connections(self) -> None:
         self._address_cache = {}
@@ -211,20 +193,22 @@ class BoundHybridExchangeClient(ExchangeMixin):
         self._redis_client.ping()
         self._socket_pool = _SocketPool()
 
-    def __reduce__(self) -> tuple[
-        type[UnboundHybridExchangeClient], 
+    def __reduce__(
+        self,
+    ) -> tuple[
+        type[UnboundHybridExchangeClient],
         tuple[str, int],
-        dict[str, Any]
-     ] :
+        dict[str, Any],
+    ]:
         state = {
             '_redis_kwargs': self._redis_kwargs,
             '_interface': self._interface,
             '_namespace': self._namespace,
         }
         return (
-            UnboundHybridExchangeClient, 
+            UnboundHybridExchangeClient,
             (self._redis_host, self._redis_port),
-            state
+            state,
         )
 
     def __repr__(self) -> str:
@@ -291,6 +275,27 @@ class BoundHybridExchangeClient(ExchangeMixin):
         )
         logger.debug('Registered %s in %s', aid, self)
         return aid
+
+    def _register_client(
+        self,
+        *,
+        name: str | None = None,
+    ) -> ClientId:
+        """Create a new client identifier and associated mailbox.
+
+        Args:
+            name: Optional human-readable name for the client.
+
+        Returns:
+            Unique identifier for the client's mailbox.
+        """
+        cid = ClientId.new(name=name)
+        self._redis_client.set(
+            self._status_key(cid),
+            _MailboxState.ACTIVE.value,
+        )
+        logger.debug('Registered %s in %s', cid, self)
+        return cid
 
     def terminate(self, uid: EntityId) -> None:
         """Close the mailbox for an entity from the exchange.
@@ -426,7 +431,7 @@ class BoundHybridExchangeClient(ExchangeMixin):
                 uid,
             )
 
-    def _start_mailbox_server(self):
+    def _start_mailbox_server(self) -> None:
         self._messages: Queue[Message] = Queue()
 
         self._closed = threading.Event()
@@ -568,19 +573,23 @@ class BoundHybridExchangeClient(ExchangeMixin):
             TimeoutError: if a `timeout` was specified and exceeded.
         """
         try:
-            logger.debug(f"Getting message from queue for mailbox: {self.mailbox_id}")
+            logger.debug(
+                f'Getting message from queue for mailbox: {self.mailbox_id}',
+            )
             return self._messages.get(timeout=timeout)
         except QueueClosedError:
             raise MailboxClosedError(self.mailbox_id) from None
-        
+
     def clone(self) -> UnboundHybridExchangeClient:
+        """Shallow copy exchange to new, unbound version."""
         return UnboundHybridExchangeClient(
-            self._redis_host, 
-            self._redis_port, 
-            interface=self._interface, 
-            namespace=self._namespace, 
-            redis_kwargs=self._redis_kwargs
+            self._redis_host,
+            self._redis_port,
+            interface=self._interface,
+            namespace=self._namespace,
+            redis_kwargs=self._redis_kwargs,
         )
+
 
 class _SocketPool:
     def __init__(self) -> None:
@@ -612,6 +621,7 @@ class _SocketPool:
         except (SocketClosedError, OSError):
             self.close_socket(address)
             raise
+
 
 def base32_to_uuid(uid: str) -> uuid.UUID:
     """Parse a base32 string as a UUID."""

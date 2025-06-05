@@ -384,7 +384,7 @@ def spawn_http_exchange(
     *,
     level: int | str = logging.WARNING,
     timeout: float | None = None,
-) -> Generator[BoundExchangeClient]:
+) -> Generator[UnboundHttpExchangeClient]:
     """Context manager that spawns an HTTP exchange in a subprocess.
 
     This function spawns a new process (rather than forking) and wait to
@@ -421,12 +421,12 @@ def spawn_http_exchange(
     wait_connection(host, port, timeout=timeout)
     logger.info('Started exchange server!')
 
+    exchange = UnboundHttpExchangeClient(
+        host,
+        port,
+    )
     try:
-        with UnboundHttpExchangeClient(
-            host,
-            port,
-        ).bind_as_client() as exchange:
-            yield exchange
+        yield exchange
     finally:
         logger.info('Terminating exchange server...')
         wait = 5

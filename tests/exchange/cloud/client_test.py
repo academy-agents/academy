@@ -147,5 +147,6 @@ def test_spawn_http_exchange() -> None:
         open_port(),
         level=logging.ERROR,
         timeout=TEST_CONNECTION_TIMEOUT,
-    ) as exchange:
-        assert isinstance(exchange, BoundExchangeClient)
+    ) as unbound:
+        with unbound.bind_as_client() as exchange:
+            assert isinstance(exchange, BoundExchangeClient)

@@ -12,7 +12,6 @@ from proxystore.store import Store
 from proxystore.store.executor import ProxyAlways
 from proxystore.store.executor import ProxyNever
 
-from academy.exchange import EMPTY_HANDLER
 from academy.exchange.cloud.client import UnboundHttpExchangeClient
 from academy.exchange.proxystore import UnboundProxyStoreExchange
 from academy.exchange.thread import BoundThreadExchangeClient
@@ -55,11 +54,11 @@ def test_basic_usage(
         resolve_async=resolve_async,
     )
 
-    with wrapped_exchange_unbound.bind() as wrapped_exchange:
+    with wrapped_exchange_unbound.bind_as_client() as wrapped_exchange:
         src = wrapped_exchange.mailbox_id
         dest = wrapped_exchange.register_agent(EmptyBehavior)
 
-        mailbox = wrapped_exchange_unbound.bind(dest, handler=EMPTY_HANDLER)
+        mailbox = wrapped_exchange_unbound.bind_as_agent(agent_id=dest)
         assert mailbox.mailbox_id == dest
 
         ping = PingRequest(src=src, dest=dest)
@@ -118,7 +117,7 @@ def test_serialize(
         unbound_base_exchange,
         store,
         should_proxy=ProxyAlways(),
-    ).bind() as exchange:
+    ).bind_as_client() as exchange:
         dumped = pickle.dumps(exchange)
         reconstructed = pickle.loads(dumped)
         assert isinstance(reconstructed, UnboundProxyStoreExchange)

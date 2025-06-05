@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -10,9 +11,10 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import BoundExchangeClient
-from academy.exchange import EMPTY_HANDLER
+from academy.exchange.cloud.client import BoundHttpExchangeClient
 from academy.exchange.cloud.client import spawn_http_exchange
 from academy.exchange.cloud.client import UnboundHttpExchangeClient
+from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.message import PingRequest
 from academy.socket import open_port
@@ -23,14 +25,14 @@ from testing.constant import TEST_SLEEP
 
 def test_simple_exchange_repr(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
         assert isinstance(repr(exchange), str)
         assert isinstance(str(exchange), str)
 
 
 def test_create_terminate(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
         aid = exchange.register_agent(EmptyBehavior)
         exchange.register_agent(
             EmptyBehavior,
@@ -44,23 +46,22 @@ def test_create_mailbox_bad_identifier(
     http_exchange_server: tuple[str, int],
 ) -> None:
     host, port = http_exchange_server
-    cid = ClientId.new()
+    aid: AgentId[Any] = AgentId.new()
     with pytest.raises(BadEntityIdError):
-        UnboundHttpExchangeClient(host, port).bind(mailbox_id=cid)
+        UnboundHttpExchangeClient(host, port).bind_as_agent(agent_id=aid)
 
 
 def test_send_and_recv(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
         cid = exchange.mailbox_id
         aid = exchange.register_agent(EmptyBehavior)
 
         message = PingRequest(src=cid, dest=aid)
         exchange.send(aid, message)
 
-        with exchange.clone().bind(
-            mailbox_id=aid,
-            handler=EMPTY_HANDLER,
+        with exchange.clone().bind_as_agent(
+            agent_id=aid,
         ) as mailbox:
             assert mailbox.recv(timeout=TEST_CONNECTION_TIMEOUT) == message
 
@@ -68,7 +69,7 @@ def test_send_and_recv(http_exchange_server: tuple[str, int]) -> None:
 def test_send_bad_identifer(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
     cid = ClientId.new()
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
         message = PingRequest(src=exchange.mailbox_id, dest=cid)
         with pytest.raises(BadEntityIdError):
             exchange.send(cid, message)
@@ -76,7 +77,7 @@ def test_send_bad_identifer(http_exchange_server: tuple[str, int]) -> None:
 
 def test_send_mailbox_closed(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
         aid = exchange.register_agent(EmptyBehavior)
         exchange.terminate(aid)
         message = PingRequest(src=aid, dest=aid)
@@ -86,7 +87,9 @@ def test_send_mailbox_closed(http_exchange_server: tuple[str, int]) -> None:
 
 def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
+        assert isinstance(exchange, BoundHttpExchangeClient)
+
         with mock.patch.object(
             exchange._session,
             'get',
@@ -98,15 +101,11 @@ def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
 
 def test_recv_mailbox_closed(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
         aid = exchange.register_agent(EmptyBehavior)
         exchange.terminate(aid)
-        with exchange.clone().bind(
-            mailbox_id=aid,
-            handler=EMPTY_HANDLER,
-        ) as mailbox:
-            with pytest.raises(MailboxClosedError):
-                assert mailbox.recv(timeout=TEST_CONNECTION_TIMEOUT)
+        with pytest.raises(BadEntityIdError):
+            exchange.clone().bind_as_agent(agent_id=aid)
 
 
 class A(Behavior): ...
@@ -120,7 +119,7 @@ class C(B): ...
 
 def test_exchange_discover(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    with UnboundHttpExchangeClient(host, port).bind() as exchange:
+    with UnboundHttpExchangeClient(host, port).bind_as_client() as exchange:
         bid = exchange.register_agent(B)
         cid = exchange.register_agent(C)
         did = exchange.register_agent(C)
@@ -137,7 +136,8 @@ def test_additional_headers(http_exchange_server: tuple[str, int]) -> None:
         host,
         port,
         {'Authorization': 'fake auth'},
-    ).bind() as exchange:
+    ).bind_as_client() as exchange:
+        assert isinstance(exchange, BoundHttpExchangeClient)
         assert 'Authorization' in exchange._session.headers
 
 

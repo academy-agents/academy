@@ -18,7 +18,7 @@ from testing.behavior import EmptyBehavior
 
 
 def test_basic_usage() -> None:
-    with UnboundThreadExchangeClient().bind() as exchange:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
         assert isinstance(exchange, BoundExchangeClient)
         assert isinstance(repr(exchange), str)
         assert isinstance(str(exchange), str)
@@ -41,14 +41,14 @@ def test_basic_usage() -> None:
 
 
 def test_bad_identifier_error() -> None:
-    with UnboundThreadExchangeClient().bind() as exchange:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
         uid: AgentId[Any] = AgentId.new()
         with pytest.raises(BadEntityIdError):
             exchange.send(uid, PingRequest(src=exchange.mailbox_id, dest=uid))
 
 
 def test_mailbox_closed_error() -> None:
-    with UnboundThreadExchangeClient().bind() as exchange:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
         aid = exchange.register_agent(EmptyBehavior)
         exchange.terminate(aid)
         with pytest.raises(MailboxClosedError):
@@ -56,7 +56,7 @@ def test_mailbox_closed_error() -> None:
 
 
 def test_get_handle_to_client() -> None:
-    with UnboundThreadExchangeClient().bind() as exchange:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
         aid = exchange.register_agent(EmptyBehavior)
         handle = exchange.get_handle(aid)
         handle.close()
@@ -66,7 +66,7 @@ def test_get_handle_to_client() -> None:
 
 
 def test_non_pickleable() -> None:
-    with UnboundThreadExchangeClient().bind() as exchange:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
         with pytest.raises(pickle.PicklingError):
             pickle.dumps(exchange)
 
@@ -78,7 +78,7 @@ def test_discover() -> None:
 
     class C(B): ...
 
-    with UnboundThreadExchangeClient().bind() as exchange:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
         bid = exchange.register_agent(B)
         cid = exchange.register_agent(C)
         did = exchange.register_agent(C)
@@ -93,12 +93,12 @@ def test_exchange_clone() -> None:
     unbound_exchange = UnboundThreadExchangeClient()
     assert isinstance(unbound_exchange, UnboundExchangeClient)
 
-    user1 = unbound_exchange.bind()
+    user1 = unbound_exchange.bind_as_client()
 
     clone = user1.clone()
     assert isinstance(clone, UnboundExchangeClient)
 
-    user2 = clone.bind()
+    user2 = clone.bind_as_client()
     # Test user 1 exists in exchange 2
     user2.send(
         user1.mailbox_id,

@@ -15,6 +15,7 @@ from proxystore.store.utils import resolve_async
 
 from academy.behavior import Behavior
 from academy.exchange import BoundExchangeClient
+from academy.exchange import MailboxStatus
 from academy.exchange import UnboundExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import ClientId
@@ -63,7 +64,7 @@ def _proxy_mapping(
     return {key: _apply(item) for key, item in mapping.items()}
 
 
-class UnboundProxyStoreExchange:
+class UnboundProxyStoreExchange(UnboundExchangeClient):
     """Proxystore exchange not bound to mailbox.
 
     A proxystore exchange is used to wrap an underlying exchange so
@@ -83,11 +84,13 @@ class UnboundProxyStoreExchange:
         self.should_proxy = should_proxy
         self.resolve_async = resolve_async
 
-    def bind(
+    def _bind(
         self,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ) -> BoundProxyStoreExchangeClient:
         """Bind exchange to client or agent.
 
@@ -106,7 +109,12 @@ class UnboundProxyStoreExchange:
         assert self.store is not None
 
         return BoundProxyStoreExchangeClient(
-            self.exchange.bind(mailbox_id, name, handler),
+            self.exchange._bind(
+                mailbox_id,
+                name,
+                handler,
+                start_listener=start_listener,
+            ),
             self.store,
             self.should_proxy,
             resolve_async=self.resolve_async,
@@ -193,6 +201,10 @@ class BoundProxyStoreExchangeClient(BoundExchangeClient):
             This does not alter the state of the exchange.
         """
         self.exchange.close()
+
+    def status(self, mailbox_id: EntityId) -> MailboxStatus:
+        """Check status of mailbox on exchange."""
+        return self.exchange.status(mailbox_id)
 
     def register_agent(
         self,

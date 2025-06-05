@@ -139,7 +139,6 @@ class Launcher:
             agent_id=acb.agent_id,
             exchange=acb.exchange,
             config=AgentRunConfig(
-                close_exchange_on_exit=self._close_exchange,
                 terminate_on_error=acb.launch_count + 1 >= self._max_restarts,
             ),
         )

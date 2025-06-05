@@ -6,12 +6,15 @@ import logging
 import sys
 import threading
 import uuid
+from collections.abc import Iterable
 from typing import Any
 from typing import Callable
 from typing import get_args
 from typing import TypeVar
 
 from academy.exchange import BoundExchangeClient
+from academy.exchange import MailboxStatus
+from academy.exchange import UnboundExchangeClient
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     pass
@@ -53,7 +56,7 @@ class _MailboxState(enum.Enum):
     INACTIVE = 'INACTIVE'
 
 
-class UnboundHybridExchangeClient:
+class UnboundHybridExchangeClient(UnboundExchangeClient):
     """Hybrid exchange.
 
     The hybrid exchange uses peer-to-peer communication via TCP and a
@@ -74,7 +77,7 @@ class UnboundHybridExchangeClient:
         redis.exceptions.ConnectionError: If the Redis server is not reachable.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         redis_host: str,
         redis_port: int,
@@ -82,6 +85,7 @@ class UnboundHybridExchangeClient:
         interface: str | None = None,
         namespace: str | None = 'default',
         redis_kwargs: dict[str, Any] | None = None,
+        ports: Iterable[int] | None = None,
     ) -> None:
         self._namespace = (
             namespace
@@ -92,12 +96,15 @@ class UnboundHybridExchangeClient:
         self._redis_host = redis_host
         self._redis_port = redis_port
         self._redis_kwargs = redis_kwargs if redis_kwargs is not None else {}
+        self._ports = None if ports is None else iter(ports)
 
-    def bind(
+    def _bind(
         self,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ) -> BoundHybridExchangeClient:
         """Bind exchange to client or agent.
 
@@ -112,14 +119,12 @@ class UnboundHybridExchangeClient:
             agents.
         """
         return BoundHybridExchangeClient(
-            self._redis_host,
-            self._redis_port,
-            interface=self._interface,
-            namespace=self._namespace,
-            redis_kwargs=self._redis_kwargs,
+            self,
             mailbox_id=mailbox_id,
             name=name,
             handler=handler,
+            start_listener=start_listener,
+            port=None if self._ports is None else next(self._ports),
         )
 
 
@@ -154,32 +159,34 @@ class BoundHybridExchangeClient(BoundExchangeClient):
     _redis_client: redis.Redis
     _socket_pool: _SocketPool
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        redis_host: str,
-        redis_port: int,
-        *,
-        interface: str | None = None,
-        namespace: str | None = 'default',
-        redis_kwargs: dict[str, Any] | None = None,
+        unbound: UnboundHybridExchangeClient,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
         port: int | None = None,
     ) -> None:
-        self._namespace = (
-            namespace
-            if namespace is not None
-            else uuid_to_base32(uuid.uuid4())
-        )
-        self._interface = interface
-        self._redis_host = redis_host
-        self._redis_port = redis_port
-        self._redis_kwargs = redis_kwargs if redis_kwargs is not None else {}
+        self._namespace = unbound._namespace
+        self._interface = unbound._interface
+        self._redis_host = unbound._redis_host
+        self._redis_port = unbound._redis_port
+        self._redis_kwargs = unbound._redis_kwargs
+
+        # How can we pass the port through the bind method?
         self._port = port
 
         self._init_connections()
-        super().__init__(mailbox_id, name, handler)
+        self._messages: Queue[Message] = Queue()
+
+        super().__init__(
+            mailbox_id,
+            name,
+            handler,
+            start_listener=start_listener,
+        )
         self._start_mailbox_server()
 
     def _init_connections(self) -> None:
@@ -236,14 +243,26 @@ class BoundHybridExchangeClient(BoundExchangeClient):
 
     def close(self) -> None:
         """Close the exchange interface."""
-        # If does not process requests, terminate it.
-        if self.request_handler is None:
-            self.terminate(self.mailbox_id)
+        # This is necessary to get the listener thread to exit.
+        # This should be replaced in the async implementation
+        self._messages.close()
+
+        super().close()
 
         self._close_mailbox_server()
         self._redis_client.close()
         self._socket_pool.close()
         logger.debug('Closed exchange (%s)', self)
+
+    def status(self, mailbox_id: EntityId) -> MailboxStatus:
+        """Check status of mailbox on exchange."""
+        status = self._redis_client.get(self._status_key(mailbox_id))
+        if status is None:
+            return MailboxStatus.MISSING
+        elif status == _MailboxState.INACTIVE.value:
+            return MailboxStatus.TERMINATED
+        else:
+            return MailboxStatus.ACTIVE
 
     def register_agent(
         self,
@@ -432,8 +451,6 @@ class BoundHybridExchangeClient(BoundExchangeClient):
             )
 
     def _start_mailbox_server(self) -> None:
-        self._messages: Queue[Message] = Queue()
-
         self._closed = threading.Event()
         self._socket_poll_timeout_ms = _SOCKET_POLL_TIMEOUT_MS
 
@@ -516,7 +533,6 @@ class BoundHybridExchangeClient(BoundExchangeClient):
             )
         finally:
             self._server.stop_server_thread()
-            self._messages.close()
             logger.debug(
                 'Stopped redis watcher thread for %s',
                 self.mailbox_id,
@@ -553,8 +569,6 @@ class BoundHybridExchangeClient(BoundExchangeClient):
                 'Redis watcher thread failed to exit within '
                 f'{_THREAD_JOIN_TIMEOUT} seconds.',
             )
-
-        self._messages.close()
 
     def recv(self, timeout: float | None = None) -> Message:
         """Receive the next message in the mailbox.

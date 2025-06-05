@@ -72,7 +72,7 @@ def test_server_run() -> None:
                 config.host,
                 config.port,
                 scheme='http',
-            ).bind()
+            ).bind_as_client()
         except OSError:  # pragma: no cover
             time.sleep(0.01)
         else:
@@ -101,7 +101,7 @@ def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
                 config.port,
                 scheme='https',
                 ssl_verify=False,
-            ).bind()
+            ).bind_as_client()
         except OSError:  # pragma: no cover
             time.sleep(0.01)
         else:

@@ -5,7 +5,6 @@ import time
 import pytest
 
 from academy.exception import BadEntityIdError
-from academy.exchange import EMPTY_HANDLER
 from academy.exchange.thread import UnboundThreadExchangeClient
 from academy.launcher import ThreadLauncher
 from academy.manager import Manager
@@ -44,7 +43,7 @@ def test_reply_to_requests_with_error() -> None:
         exchange=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
-        with exchange.bind(handler=EMPTY_HANDLER) as client:
+        with exchange.bind_as_client(start_listener=False) as client:
             request = PingRequest(
                 src=client.mailbox_id,
                 dest=manager.mailbox_id,

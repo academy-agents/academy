@@ -113,14 +113,17 @@ class Agent(Generic[BehaviorT]):
     ) -> None:
         self.agent_id = agent_id
         self.behavior = behavior
-        self.exchange = exchange.bind(agent_id, handler=self._request_handler)
+        self.exchange = exchange.bind_as_agent(
+            agent_id,
+            handler=self._request_handler,
+        )
         self.config = config if config is not None else AgentRunConfig()
 
         self._actions = behavior.behavior_actions()
         self._loops = behavior.behavior_loops()
 
         self._shutdown = threading.Event()
-        self._expected_shutdown = True
+        self._expected_shutdown = False
         self._state_lock = threading.Lock()
         self._state = _AgentState.INITIALIZED
 

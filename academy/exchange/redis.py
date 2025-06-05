@@ -14,6 +14,8 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import BoundExchangeClient
+from academy.exchange import MailboxStatus
+from academy.exchange import UnboundExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.identifier import EntityId
@@ -33,7 +35,7 @@ class _MailboxState(enum.Enum):
     INACTIVE = 'INACTIVE'
 
 
-class UnboundRedisExchangeClient:
+class UnboundRedisExchangeClient(UnboundExchangeClient):
     """Redis-hosted message exchange interface.
 
     Args:
@@ -61,11 +63,13 @@ class UnboundRedisExchangeClient:
         self.timeout = timeout
         self._kwargs = kwargs
 
-    def bind(
+    def _bind(
         self,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ) -> BoundRedisExchangeClient:
         """Bind exchange to client or agent.
 
@@ -80,13 +84,11 @@ class UnboundRedisExchangeClient:
             agents.
         """
         return BoundRedisExchangeClient(
-            self.hostname,
-            self.port,
-            timeout=self.timeout,
+            self,
             mailbox_id=mailbox_id,
             name=name,
             handler=handler,
-            **self._kwargs,
+            start_listener=start_listener,
         )
 
 
@@ -94,12 +96,7 @@ class BoundRedisExchangeClient(BoundExchangeClient):
     """Redis-hosted message exchange interface.
 
     Args:
-        hostname: Redis server hostname.
-        port: Redis server port.
-        kwargs: Extra keyword arguments to pass to
-            [`redis.Redis()`][redis.Redis].
-        timeout: Timeout for waiting on the next message. If `None`, the
-            timeout will be set to one second but will loop indefinitely.
+        unbound: The unbound exchange to use to create this client
         mailbox_id: Identifier of the mailbox on the exchange. If there is
             not an id provided, the exchange will create a new client mail-
             box.
@@ -112,28 +109,31 @@ class BoundRedisExchangeClient(BoundExchangeClient):
 
     def __init__(
         self,
-        hostname: str,
-        port: int,
-        *,
-        timeout: int | None = None,
+        unbound: UnboundRedisExchangeClient,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
-        **kwargs: Any,
+        *,
+        start_listener: bool,
     ) -> None:
-        self.hostname = hostname
-        self.port = port
-        self.timeout = timeout
-        self._kwargs = kwargs
+        self.hostname = unbound.hostname
+        self.port = unbound.port
+        self.timeout = unbound.timeout
+        self._kwargs = unbound._kwargs
         self._client = redis.Redis(
-            host=hostname,
-            port=port,
+            host=self.hostname,
+            port=self.port,
             decode_responses=False,
-            **kwargs,
+            **self._kwargs,
         )
         self._client.ping()
 
-        super().__init__(mailbox_id, name, handler)
+        super().__init__(
+            mailbox_id,
+            name,
+            handler,
+            start_listener=start_listener,
+        )
 
     def __repr__(self) -> str:
         return (
@@ -171,12 +171,20 @@ class BoundRedisExchangeClient(BoundExchangeClient):
 
     def close(self) -> None:
         """Close the exchange interface."""
-        # If mailbox does not process requests, terminate it.
-        if self.request_handler is None:
-            self.terminate(self.mailbox_id)
+        super().close()
 
         self._client.close()
         logger.debug('Closed exchange (%s)', self)
+
+    def status(self, mailbox_id: EntityId) -> MailboxStatus:
+        """Check status of mailbox on exchange."""
+        status = self._client.get(self._active_key(mailbox_id))
+        if status is None:
+            return MailboxStatus.MISSING
+        elif status == _MailboxState.INACTIVE.value:
+            return MailboxStatus.TERMINATED
+        else:
+            return MailboxStatus.ACTIVE
 
     def register_agent(
         self,

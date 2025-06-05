@@ -12,6 +12,8 @@ from typing import Literal
 from typing import TypeVar
 
 from academy.exchange import BoundExchangeClient
+from academy.exchange import MailboxStatus
+from academy.exchange import UnboundExchangeClient
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     pass
@@ -32,6 +34,7 @@ from academy.identifier import ClientId
 from academy.identifier import EntityId
 from academy.message import BaseMessage
 from academy.message import Message
+from academy.message import PingRequest
 from academy.message import RequestMessage
 from academy.socket import wait_connection
 
@@ -40,7 +43,7 @@ logger = logging.getLogger(__name__)
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 
-class UnboundHttpExchangeClient:
+class UnboundHttpExchangeClient(UnboundExchangeClient):
     """Http exchange client.
 
     Args:
@@ -68,11 +71,13 @@ class UnboundHttpExchangeClient:
         self.scheme = scheme
         self.ssl_verify = ssl_verify
 
-    def bind(
+    def _bind(
         self,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ) -> BoundHttpExchangeClient:
         """Bind exchange to client or agent.
 
@@ -87,14 +92,11 @@ class UnboundHttpExchangeClient:
             agents.
         """
         return BoundHttpExchangeClient(
-            self.host,
-            self.port,
-            self.additional_headers,
-            self.scheme,
-            self.ssl_verify,
+            self,
             mailbox_id=mailbox_id,
             name=name,
             handler=handler,
+            start_listener=start_listener,
         )
 
 
@@ -114,28 +116,25 @@ class BoundHttpExchangeClient(BoundExchangeClient):
 
     def __init__(
         self,
-        host: str,
-        port: int,
-        additional_headers: dict[str, str] | None = None,
-        scheme: Literal['http', 'https'] = 'http',
-        ssl_verify: str | bool | None = None,
-        *,
+        unbound: UnboundHttpExchangeClient,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ) -> None:
-        self.host = host
-        self.port = port
-        self.additional_headers = additional_headers
-        self.scheme = scheme
-        self.ssl_verify = ssl_verify
+        self.host = unbound.host
+        self.port = unbound.port
+        self.additional_headers = unbound.additional_headers
+        self.scheme = unbound.scheme
+        self.ssl_verify = unbound.ssl_verify
 
         self._session = requests.Session()
-        if additional_headers is not None:
-            self._session.headers.update(additional_headers)
+        if self.additional_headers is not None:
+            self._session.headers.update(self.additional_headers)
 
-        if ssl_verify is not None:
-            self._session.verify = ssl_verify
+        if self.ssl_verify is not None:
+            self._session.verify = self.ssl_verify
 
         self._mailbox_url = f'{self.scheme}://{self.host}:{self.port}/mailbox'
         self._message_url = f'{self.scheme}://{self.host}:{self.port}/message'
@@ -143,7 +142,12 @@ class BoundHttpExchangeClient(BoundExchangeClient):
             f'{self.scheme}://{self.host}:{self.port}/discover'
         )
 
-        super().__init__(mailbox_id, name, handler)
+        super().__init__(
+            mailbox_id,
+            name,
+            handler,
+            start_listener=start_listener,
+        )
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}(host="{self.host}", port={self.port})'
@@ -176,12 +180,28 @@ class BoundHttpExchangeClient(BoundExchangeClient):
 
     def close(self) -> None:
         """Close this exchange client."""
-        # If mailbox does not process requests, terminate it.
-        if self.request_handler is None:
-            self.terminate(self.mailbox_id)
+        super().close()
 
         self._session.close()
         logger.debug('Closed exchange (%s)', self)
+
+    def status(self, mailbox_id: EntityId) -> MailboxStatus:
+        """Check status of mailbox on exchange."""
+        # TODO: Do we need to create a new endpoint to check status?
+        try:
+            self.send(
+                mailbox_id,
+                PingRequest(
+                    src=self.mailbox_id,
+                    dest=mailbox_id,
+                ),
+            )
+        except BadEntityIdError:
+            return MailboxStatus.MISSING
+        except MailboxClosedError:
+            return MailboxStatus.TERMINATED
+
+        return MailboxStatus.ACTIVE
 
     def register_agent(
         self,
@@ -364,7 +384,7 @@ def spawn_http_exchange(
     *,
     level: int | str = logging.WARNING,
     timeout: float | None = None,
-) -> Generator[BoundHttpExchangeClient]:
+) -> Generator[BoundExchangeClient]:
     """Context manager that spawns an HTTP exchange in a subprocess.
 
     This function spawns a new process (rather than forking) and wait to
@@ -402,7 +422,10 @@ def spawn_http_exchange(
     logger.info('Started exchange server!')
 
     try:
-        with UnboundHttpExchangeClient(host, port).bind() as exchange:
+        with UnboundHttpExchangeClient(
+            host,
+            port,
+        ).bind_as_client() as exchange:
             yield exchange
     finally:
         logger.info('Terminating exchange server...')

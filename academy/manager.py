@@ -79,7 +79,7 @@ class Manager(NoPickleMixin):
                 'use as the default.',
             )
 
-        self._exchange = exchange.bind()
+        self._exchange = exchange.bind_as_client()
         self._mailbox_id = self._exchange.mailbox_id
         self._launchers = launcher
         self._default_launcher = default_launcher

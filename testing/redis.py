@@ -64,5 +64,5 @@ class MockRedis:
 @pytest.fixture
 def mock_redis() -> Generator[None]:
     redis = MockRedis()
-    with mock.patch('redis.Redis', return_value=redis) as mock_redis:
+    with mock.patch('redis.Redis', return_value=redis):
         yield

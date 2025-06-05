@@ -12,7 +12,7 @@ from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import loop
 from academy.exchange import BoundExchangeClient
-from academy.exchange import EMPTY_HANDLER
+from academy.exchange.thread import UnboundThreadExchangeClient
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import UnboundRemoteHandle
@@ -84,6 +84,7 @@ def test_agent_shutdown_without_terminate(
         ),
     )
     agent.start()
+    agent._expected_shutdown = True
     agent.shutdown()
     # Verify mailbox is open
     exchange.send(agent_id, PingRequest(src=agent_id, dest=agent_id))
@@ -176,7 +177,6 @@ def test_agent_shutdown_message(exchange: BoundExchangeClient) -> None:
 
 
 def test_agent_ping_message(exchange: BoundExchangeClient) -> None:
-    exchange = exchange.clone().bind(handler=EMPTY_HANDLER)
     agent_id = exchange.register_agent(EmptyBehavior)
     client_id = exchange.mailbox_id
 
@@ -202,11 +202,8 @@ def test_agent_ping_message(exchange: BoundExchangeClient) -> None:
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
 
-    exchange.close()
-
 
 def test_agent_action_message(exchange: BoundExchangeClient) -> None:
-    exchange = exchange.clone().bind(handler=EMPTY_HANDLER)
     agent_id = exchange.register_agent(CounterBehavior)
     client_id = exchange.mailbox_id
 
@@ -244,11 +241,8 @@ def test_agent_action_message(exchange: BoundExchangeClient) -> None:
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
 
-    exchange.close()
-
 
 def test_agent_action_message_error(exchange: BoundExchangeClient) -> None:
-    exchange = exchange.clone().bind(handler=EMPTY_HANDLER)
     agent_id = exchange.register_agent(ErrorBehavior)
     client_id = exchange.mailbox_id
 
@@ -273,11 +267,8 @@ def test_agent_action_message_error(exchange: BoundExchangeClient) -> None:
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
 
-    exchange.close()
-
 
 def test_agent_action_message_unknown(exchange: BoundExchangeClient) -> None:
-    exchange = exchange.clone().bind(handler=EMPTY_HANDLER)
     agent_id = exchange.register_agent(EmptyBehavior)
     client_id = exchange.mailbox_id
 
@@ -301,8 +292,6 @@ def test_agent_action_message_unknown(exchange: BoundExchangeClient) -> None:
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
-
-    exchange.close()
 
 
 class HandleBindingBehavior(Behavior):
@@ -380,37 +369,38 @@ class DoubleBehavior(Behavior):
         return 2 * value
 
 
-def test_agent_to_handle_handles(exchange: BoundExchangeClient) -> None:
-    runner_id = exchange.register_agent(RunBehavior)
-    doubler_id = exchange.register_agent(DoubleBehavior)
+def test_agent_to_handle_handles() -> None:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
+        runner_id = exchange.register_agent(RunBehavior)
+        doubler_id = exchange.register_agent(DoubleBehavior)
 
-    runner_handle = exchange.get_handle(runner_id)
-    doubler_handle = exchange.get_handle(doubler_id)
+        runner_handle = exchange.get_handle(runner_id)
+        doubler_handle = exchange.get_handle(doubler_id)
 
-    runner_behavior = RunBehavior(doubler_handle)
-    doubler_behavior = DoubleBehavior()
+        runner_behavior = RunBehavior(doubler_handle)
+        doubler_behavior = DoubleBehavior()
 
-    runner_agent = Agent(
-        runner_behavior,
-        agent_id=runner_id,
-        exchange=exchange.clone(),
-    )
-    doubler_agent = Agent(
-        doubler_behavior,
-        agent_id=doubler_id,
-        exchange=exchange.clone(),
-    )
+        runner_agent = Agent(
+            runner_behavior,
+            agent_id=runner_id,
+            exchange=exchange.clone(),
+        )
+        doubler_agent = Agent(
+            doubler_behavior,
+            agent_id=doubler_id,
+            exchange=exchange.clone(),
+        )
 
-    runner_thread = threading.Thread(target=runner_agent)
-    doubler_thread = threading.Thread(target=doubler_agent)
+        runner_thread = threading.Thread(target=runner_agent)
+        doubler_thread = threading.Thread(target=doubler_agent)
 
-    runner_thread.start()
-    doubler_thread.start()
+        runner_thread.start()
+        doubler_thread.start()
 
-    future: Future[int] = runner_handle.action('run', 1)
-    assert future.result() == 2  # noqa: PLR2004
+        future: Future[int] = runner_handle.action('run', 1)
+        assert future.result() == 2  # noqa: PLR2004
 
-    runner_handle.shutdown()
+        runner_handle.shutdown()
 
-    runner_thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
-    doubler_thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
+        runner_thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
+        doubler_thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)

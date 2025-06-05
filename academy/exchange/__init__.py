@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import abc
+import enum
+import logging
 import sys
 import threading
 import uuid
@@ -18,6 +20,7 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 from academy.behavior import Behavior
+from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.handle import BoundRemoteHandle
 from academy.handle import UnboundRemoteHandle
@@ -30,11 +33,18 @@ from academy.message import ResponseMessage
 
 __all__ = ['BoundExchangeClient', 'UnboundExchangeClient']
 
+logger = logging.getLogger(__name__)
+
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 
-@runtime_checkable
-class UnboundExchangeClient(Protocol):
+class MailboxStatus(enum.Enum):
+    MISSING = 'MISSING'
+    ACTIVE = 'ACTIVE'
+    TERMINATED = 'TERMINATED'
+
+
+class UnboundExchangeClient(abc.ABC):
     """Message exchange client protocol.
 
     A message exchange hosts mailboxes for each entity (i.e., agent or
@@ -51,11 +61,14 @@ class UnboundExchangeClient(Protocol):
         to the same exchange.
     """
 
-    def bind(
+    @abc.abstractmethod
+    def _bind(
         self,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ) -> BoundExchangeClient:
         """Bind exchange to client or agent.
 
@@ -70,6 +83,51 @@ class UnboundExchangeClient(Protocol):
             agents.
         """
         ...
+
+    def bind_as_client(
+        self,
+        name: str | None = None,
+        start_listener: bool = True,
+    ) -> BoundExchangeClient:
+        """Bind exchange to client.
+
+        This method will create a new mailbox and enable this client to
+        message other entities on the exchange.
+
+        Args:
+            name: display name of the client on the exchange
+            start_listener: start a thread to receive messages and multiplex
+              to handles
+        """
+        return self._bind(
+            mailbox_id=None,
+            name=name,
+            handler=None,
+            start_listener=start_listener,
+        )
+
+    def bind_as_agent(
+        self,
+        agent_id: AgentId[Any],
+        name: str | None = None,
+        handler: Callable[[RequestMessage], None] | None = None,
+    ) -> BoundExchangeClient:
+        """Bind exchange to agent.
+
+        This method creates a exchange client bound to an agent ID.
+        The agent ID must be previously created on the exchange.
+
+        Args:
+            agent_id: ID of the mailbox to receive and send messages
+            name: display name of the client on the exchange
+            handler: Agent callback to process messages
+        """
+        return self._bind(
+            mailbox_id=agent_id,
+            name=name,
+            handler=handler,
+            start_listener=False,
+        )
 
 
 class BoundExchangeClient(abc.ABC):
@@ -100,21 +158,31 @@ class BoundExchangeClient(abc.ABC):
         mailbox_id: EntityId | None,
         name: str | None,
         handler: Callable[[RequestMessage], None] | None,
+        *,
+        start_listener: bool,
     ):
         self.bound_handles: dict[uuid.UUID, BoundRemoteHandle[Any]] = {}
         if mailbox_id is None:
             self.mailbox_id: EntityId = self._register_client(name=name)
         else:
-            # TODO: How can we check if mailbox id is valid?
             self.mailbox_id = mailbox_id
+            if self.status(mailbox_id) != MailboxStatus.ACTIVE:
+                raise BadEntityIdError(mailbox_id)
 
         self.request_handler = handler
-        if handler is None:
+
+        self.listener_started = start_listener
+        if start_listener:
             self._listener_thread = threading.Thread(
                 target=self.listen,
                 name=f'thread-exchange-{self.mailbox_id.uid}-listener',
             )
             self._listener_thread.start()
+
+    @abc.abstractmethod
+    def status(self, mailbox_id: EntityId) -> MailboxStatus:
+        """Check status of mailbox on exchange."""
+        ...
 
     @abc.abstractmethod
     def _register_client(self, *, name: str | None = None) -> ClientId:
@@ -225,7 +293,12 @@ class BoundExchangeClient(abc.ABC):
             will no longer be listening for them.
             This does not alter the state of the exchange.
         """
-        ...
+        if isinstance(self.mailbox_id, ClientId):
+            logger.debug(f'Terminating client mailbox {self.mailbox_id}')
+            self.terminate(self.mailbox_id)
+
+        if self.listener_started:
+            self._listener_thread.join()
 
     @abc.abstractmethod
     def clone(self) -> UnboundExchangeClient:
@@ -335,19 +408,3 @@ class BoundExchangeClient(abc.ABC):
                 self._message_handler(message)
         except MailboxClosedError:
             pass
-
-
-def sentinel_handler(request: RequestMessage) -> None:
-    """Empty handler.
-
-    By default a client exchange is created with a listener thread
-    that multiplexes messages to handles. This multiplexing is the expected
-    use case, but prevents an exchange from directly receiving arbitrary
-    messages. EMPTY_HANDLER is a hack to be able to create mailboxes not
-    associated with a behavior that can receive arbitrary messages.
-    This is used primarily for testing.
-    """
-    return None
-
-
-EMPTY_HANDLER = sentinel_handler

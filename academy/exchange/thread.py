@@ -10,6 +10,8 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import BoundExchangeClient
+from academy.exchange import MailboxStatus
+from academy.exchange import UnboundExchangeClient
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
@@ -42,7 +44,7 @@ class ThreadExchange(NoPickleMixin):
         )
 
 
-class UnboundThreadExchangeClient:
+class UnboundThreadExchangeClient(UnboundExchangeClient):
     """A unbound thread exchange.
 
     A thread exchange can be used to pass messages between agents
@@ -58,11 +60,13 @@ class UnboundThreadExchangeClient:
 
         self._state = exchange_state
 
-    def bind(
+    def _bind(
         self,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ) -> BoundThreadExchangeClient:
         """Bind exchange to client or agent.
 
@@ -81,6 +85,7 @@ class UnboundThreadExchangeClient:
             mailbox_id,
             name,
             handler,
+            start_listener=start_listener,
         )
 
 
@@ -105,22 +110,32 @@ class BoundThreadExchangeClient(BoundExchangeClient):
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
+        *,
+        start_listener: bool,
     ):
         self._state = exchange_state
-        super().__init__(mailbox_id, name, handler)
+        super().__init__(
+            mailbox_id,
+            name,
+            handler,
+            start_listener=start_listener,
+        )
 
     def close(self) -> None:
         """Close the exchange.
 
-        Unlike most exchange clients, this will close all of the mailboxes.
+        This will leave the queues in the state open.
         """
-        # If does not process requests, terminate it.
-        if self.request_handler is None:
-            self.terminate(self.mailbox_id)
-
-        for queue in self._state.queues.values():
-            queue.close()
+        super().close()
         logger.debug('Closed exchange (%s)', self)
+
+    def status(self, mailbox_id: EntityId) -> MailboxStatus:
+        """Check status of mailbox on exchange."""
+        if mailbox_id not in self._state.queues:
+            return MailboxStatus.MISSING
+        if self._state.queues[mailbox_id].closed():
+            return MailboxStatus.TERMINATED
+        return MailboxStatus.ACTIVE
 
     def register_agent(
         self,

@@ -68,6 +68,27 @@ def test_mailbox_closed_error(mock_redis) -> None:
                 mailbox.recv()
 
 
+def test_mailbox_terminated(mock_redis) -> None:
+    with UnboundRedisExchangeClient(
+        'localhost',
+        port=0,
+    ).bind_as_client() as exchange:
+        aid = exchange.register_agent(EmptyBehavior)
+        exchange.terminate(aid)
+        with pytest.raises(BadEntityIdError):
+            exchange.clone().bind_as_agent(agent_id=aid)
+
+
+def test_mailbox_non_existent(mock_redis) -> None:
+    with UnboundRedisExchangeClient(
+        'localhost',
+        port=0,
+    ).bind_as_client() as exchange:
+        aid: AgentId[Any] = AgentId.new()
+        with pytest.raises(BadEntityIdError):
+            exchange.clone().bind_as_agent(agent_id=aid)
+
+
 def test_get_handle_to_client(mock_redis) -> None:
     with UnboundRedisExchangeClient(
         'localhost',

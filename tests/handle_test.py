@@ -115,6 +115,8 @@ def test_unbound_remote_handle_errors(exchange: BoundExchangeClient) -> None:
     with pytest.raises(HandleNotBoundError):
         handle.ping()
     with pytest.raises(HandleNotBoundError):
+        handle.close()
+    with pytest.raises(HandleNotBoundError):
         handle.shutdown()
 
 

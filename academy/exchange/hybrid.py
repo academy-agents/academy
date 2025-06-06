@@ -181,12 +181,18 @@ class BoundHybridExchangeClient(BoundExchangeClient):
         self._init_connections()
         self._messages: Queue[Message] = Queue()
 
-        super().__init__(
-            mailbox_id,
-            name,
-            handler,
-            start_listener=start_listener,
-        )
+        try:
+            super().__init__(
+                mailbox_id,
+                name,
+                handler,
+                start_listener=start_listener,
+            )
+        except Exception as e:
+            self._redis_client.close()
+            self._socket_pool.close()
+            raise e
+
         self._start_mailbox_server()
 
     def _init_connections(self) -> None:

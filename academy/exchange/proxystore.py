@@ -244,7 +244,7 @@ class BoundProxyStoreExchangeClient(BoundExchangeClient):
         Returns:
             Unique identifier for the client's mailbox.
         """
-        return self.exchange._register_client(name=name)
+        raise RuntimeError('Unreachable private method.')  # pragma: no cover
 
     def terminate(self, uid: EntityId) -> None:
         """Close the mailbox for an entity from the exchange.

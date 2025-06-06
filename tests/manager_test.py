@@ -48,7 +48,7 @@ def test_reply_to_requests_with_error() -> None:
                 src=client.mailbox_id,
                 dest=manager.mailbox_id,
             )
-            manager.exchange.send(request.dest, request)
+            client.send(request.dest, request)
             response = client.recv()
             assert isinstance(response, PingResponse)
             assert isinstance(response.exception, TypeError)

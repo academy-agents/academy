@@ -22,7 +22,6 @@ from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.launcher import Launcher
-from academy.message import RequestMessage
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
@@ -125,14 +124,6 @@ class Manager(NoPickleMixin):
     def mailbox_id(self) -> EntityId:
         """EntityId of the mailbox used by this manager."""
         return self._mailbox_id
-
-    def _handle_request(self, request: RequestMessage) -> None:
-        response = request.error(
-            TypeError(
-                f'Client with {self.mailbox_id} cannot fulfill requests.',
-            ),
-        )
-        self.exchange.send(response.dest, response)
 
     def close(self) -> None:
         """Close the manager and cleanup resources.

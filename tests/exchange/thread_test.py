@@ -112,3 +112,18 @@ def test_exchange_clone() -> None:
 
     user1.close()
     user2.close()
+
+
+def test_mailbox_terminated() -> None:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
+        aid = exchange.register_agent(EmptyBehavior)
+        exchange.terminate(aid)
+        with pytest.raises(BadEntityIdError):
+            exchange.clone().bind_as_agent(agent_id=aid)
+
+
+def test_mailbox_non_existent() -> None:
+    with UnboundThreadExchangeClient().bind_as_client() as exchange:
+        aid: AgentId[Any] = AgentId.new()
+        with pytest.raises(BadEntityIdError):
+            exchange.clone().bind_as_agent(agent_id=aid)

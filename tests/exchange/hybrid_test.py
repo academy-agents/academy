@@ -133,7 +133,7 @@ def test_send_to_mailbox_indirect(mock_redis, caplog) -> None:
 
 
 @pytest.mark.skip(reason='Not implemented. Need async for implementation.')
-def test_mailbox_recv_closed(mock_redis) -> None:
+def test_mailbox_recv_closed(mock_redis) -> None:  # pragma: no cover
     with UnboundHybridExchangeClient(
         redis_host='localhost',
         redis_port=0,
@@ -145,6 +145,18 @@ def test_mailbox_recv_closed(mock_redis) -> None:
 
             with pytest.raises(MailboxClosedError):
                 mailbox.recv(timeout=TEST_SLEEP)
+
+
+def test_mailbox_create_terminated(mock_redis) -> None:
+    with UnboundHybridExchangeClient(
+        redis_host='localhost',
+        redis_port=0,
+    ).bind_as_client() as exchange:
+        aid = exchange.register_agent(EmptyBehavior)
+        exchange.terminate(aid)
+
+        with pytest.raises(BadEntityIdError):
+            exchange.clone().bind_as_agent(agent_id=aid)
 
 
 def test_mailbox_redis_error_logging(mock_redis, caplog) -> None:

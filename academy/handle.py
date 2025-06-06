@@ -351,6 +351,10 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
     def __str__(self) -> str:
         return f'{type(self).__name__}<agent: {self.agent_id}>'
 
+    def __getattr__(self, name: str) -> Any:
+        """Raises `AttributeError`."""
+        raise AttributeError(self, name=name)
+
     def bind_to_exchange(
         self,
         exchange: BoundExchangeClient,

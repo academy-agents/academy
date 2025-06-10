@@ -167,7 +167,7 @@ class Agent(Generic[BehaviorT]):
         ):
             return handle
 
-        assert isinstance(handle, UnboundRemoteHandle | BoundRemoteHandle)
+        assert isinstance(handle, (UnboundRemoteHandle, BoundRemoteHandle))
         bound = handle.bind_to_exchange(self.exchange)
         logger.debug(
             'Bound handle to %s to running agent with %s',
@@ -280,7 +280,7 @@ class Agent(Generic[BehaviorT]):
         1. Starts threads for all control loops defined on the agent's
            [`Behavior`][academy.behavior.Behavior].
         1. Starts a thread for listening to messages from the
-           [`Exchange`][academy.exchange.Exchange] (if provided).
+           [`Exchange`][academy.exchange.UnboundExchangeClient] (if provided).
 
         Raises:
             RuntimeError: If the agent has been shutdown.

@@ -104,14 +104,14 @@ class BoundHttpExchangeClient(BoundExchangeClient):
     """Http exchange client.
 
     Args:
-        host: Host name of the exchange server.
-        port: Port of the exchange server.
-        additional_headers: Any other information necessary to communicate
-            with the exchange. Used for passing the Globus bearer token
-        scheme: HTTP scheme, non-protected "http" by default.
-        ssl_verify: Same as requests.Session.verify. If the server's TLS
-            certificate should be validated. Should be true if using HTTPS
-            Only set to false for testing or local development.
+        unbound: Connection information for remote exchange.
+        mailbox_id: Identifier of the mailbox on the exchange. If there is
+            not an id provided, the exchange will create a new client mail-
+            box.
+        name: Display name of mailbox on exchange.
+        handler:  Callback to handler requests to this exchange.
+        start_listener: Start the listener thread to multiplex messages to
+            handles.
     """
 
     def __init__(

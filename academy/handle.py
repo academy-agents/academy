@@ -333,7 +333,6 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         to the remote agent.
 
     Args:
-        exchange: Message exchange used for agent communication.
         agent_id: EntityId of the agent.
     """
 
@@ -353,7 +352,9 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
 
     def __getattr__(self, name: str) -> Any:
         """Raises `AttributeError`."""
-        raise AttributeError(self, name=name)
+        raise AttributeError(
+            f'Attribute {name} cannot be found/called on unbound handle.',
+        )
 
     def bind_to_exchange(
         self,

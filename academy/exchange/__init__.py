@@ -97,7 +97,7 @@ class UnboundExchangeClient(abc.ABC):
         Args:
             name: display name of the client on the exchange
             start_listener: start a thread to receive messages and multiplex
-              to handles
+                to handles
         """
         return self._bind(
             mailbox_id=None,

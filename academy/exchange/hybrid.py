@@ -72,6 +72,8 @@ class UnboundHybridExchangeClient(UnboundExchangeClient):
             generated.
         redis_kwargs: Extra keyword arguments to pass to
             [`redis.Redis()`][redis.Redis].
+        ports: The ports that will be used for direct communication when
+            the exchange is bound.
 
     Raises:
         redis.exceptions.ConnectionError: If the Redis server is not reachable.
@@ -136,20 +138,17 @@ class BoundHybridExchangeClient(BoundExchangeClient):
     offline entities.
 
     Args:
-        redis_host: Redis server hostname.
-        redis_port: Redis server port.
-        interface: Network interface use for peer-to-peer communication. If
-            `None`, the hostname of the local host is used.
-        namespace: Redis key namespace. If `None` a random key prefix is
-            generated.
-        redis_kwargs: Extra keyword arguments to pass to
-            [`redis.Redis()`][redis.Redis].
+        unbound: An unbound exchange client containing information to
+            connect to the exchange.
         mailbox_id: Identifier of the mailbox on the exchange. If there is
             not an id provided, the exchange will create a new client mail-
             box.
         name: Display name of mailbox on exchange.
         handler:  Callback to handler requests to this exchange.
-
+        start_listener: Start the listener thread to multiplex messages to
+            handles.
+        port: What port to listen for direct messages on. If none, assigned
+            to any open port.
 
     Raises:
         redis.exceptions.ConnectionError: If the Redis server is not reachable.

@@ -28,7 +28,7 @@ Click on the plus (`+`) signs to learn more.
 
 ```python title="example.py" linenums="1"
 from academy.behavior import Behavior, action
-from academy.exchange.thread import ThreadExchange
+from academy.exchange.thread import UnboundThreadExchangeClient
 from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
 from academy.manager import Manager
@@ -42,7 +42,7 @@ def main() -> None:
     init_logging('INFO')
 
     with Manager(  # (3)!
-        exchange=ThreadExchange(),  # (4)!
+        exchange=UnboundThreadExchangeClient(),  # (4)!
         launcher=ThreadLauncher(),  # (5)!
     ) as manager:
         agent_handle = manager.launch(ExampleAgent())  # (6)!
@@ -59,10 +59,10 @@ if __name__ == '__main__':
 1. Running agents implement a [`Behavior`][academy.behavior.Behavior].
 2. Behavior methods decorated with [`@action`][academy.behavior.action] can be invoked remotely by clients and other agents. An agent can call action methods on itself as normal methods.
 3. The [`Manager`][academy.manager.Manager] is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.
-4. The [`ThreadExchange`][academy.exchange.thread.ThreadExchange] manages message passing between clients and agents running in different threads of a single process.
+4. The [`ThreadExchange`][academy.exchange.thread.UnboundThreadExchangeClient] manages message passing between clients and agents running in different threads of a single process.
 5. The [`ThreadLauncher`][academy.launcher.ThreadLauncher] launches agents in threads of the current process.
 6. An instantiated behavior (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
-7. Interact with running agents via a [`RemoteHandle`][academy.handle.RemoteHandle]. Invoking an action returns a future to the result.
+7. Interact with running agents via a [`BoundRemoteHandle`][academy.handle.BoundRemoteHandle]. Invoking an action returns a future to the result.
 8. Agents can be shutdown via a handle or the manager.
 
 Running this script with logging enabled produces the following output:
@@ -167,17 +167,17 @@ if __name__ == '__main__':
 
 The prior examples have launched agent in threads of the main process, but in practice agents are launched in different processes, possibly on the same node or remote nodes.
 The prior example can be executed in a distributed fashion by changing the launcher and exchange to implementations which support distributed execution.
-Below, a [Redis server](https://redis.io/){target=_blank} server (via the [`RedisExchange`][academy.exchange.redis.RedisExchange]) is used to support messaging between distributed agents executed with a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor] (via the [`Launcher`][academy.launcher.Launcher]).
+Below, a [Redis server](https://redis.io/){target=_blank} server (via the [`RedisExchange`][academy.exchange.redis.UnboundRedisExchangeClient]) is used to support messaging between distributed agents executed with a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor] (via the [`Launcher`][academy.launcher.Launcher]).
 
 ```python
 from concurrent.futures import ProcessPoolExecutor
-from academy.exchange.redis import RedisExchange
+from academy.exchange.redis import UnboundRedisExchangeClient
 from academy.launcher import Launcher
 
 def main() -> None:
     process_pool = ProcessPoolExecutor(max_processes=4)
     with Manager(
-        exchange=RedisExchange('<REDIS HOST>', port=6379),
+        exchange=UnboundRedisExchangeClient('<REDIS HOST>', port=6379),
         launcher=Launcher(process_pool),
     ) as manager:
         ...

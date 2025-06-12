@@ -142,7 +142,7 @@ plugins:
             - https://docs.proxystore.dev/main/objects.inv
             - https://extensions.proxystore.dev/main/objects.inv
             - https://docs.pydantic.dev/latest/objects.inv
-            - https://redis-py.readthedocs.io/en/stable/objects.inv
+            - https://redis.readthedocs.io/en/stable/objects.inv
             - https://parsl.readthedocs.io/en/stable/objects.inv
             - https://globus-compute.readthedocs.io/en/stable/objects.inv
             - https://globus-sdk-python.readthedocs.io/en/stable/objects.inv

@@ -11,8 +11,8 @@ from academy.agent import AgentRunConfig
 from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import loop
-from academy.exchange import BoundExchangeClient
-from academy.exchange.thread import UnboundThreadExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange.thread import ThreadExchangeFactory
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import UnboundRemoteHandle
@@ -50,7 +50,7 @@ class SignalingBehavior(Behavior):
         shutdown.wait()
 
 
-def test_agent_start_shutdown(exchange: BoundExchangeClient) -> None:
+def test_agent_start_shutdown(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(SignalingBehavior)
     agent = Agent(
         SignalingBehavior(),
@@ -71,7 +71,7 @@ def test_agent_start_shutdown(exchange: BoundExchangeClient) -> None:
 
 
 def test_agent_shutdown_without_terminate(
-    exchange: BoundExchangeClient,
+    exchange: ExchangeClient,
 ) -> None:
     agent_id = exchange.register_agent(SignalingBehavior)
     agent = Agent(
@@ -90,7 +90,7 @@ def test_agent_shutdown_without_terminate(
     exchange.send(agent_id, PingRequest(src=agent_id, dest=agent_id))
 
 
-def test_agent_shutdown_without_start(exchange: BoundExchangeClient) -> None:
+def test_agent_shutdown_without_start(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(SignalingBehavior)
     agent = Agent(
         SignalingBehavior(),
@@ -114,7 +114,7 @@ class LoopFailureBehavior(Behavior):
         raise RuntimeError('Loop failure 2.')
 
 
-def test_loop_failure_triggers_shutdown(exchange: BoundExchangeClient) -> None:
+def test_loop_failure_triggers_shutdown(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(LoopFailureBehavior)
     agent = Agent(
         LoopFailureBehavior(),
@@ -136,7 +136,7 @@ def test_loop_failure_triggers_shutdown(exchange: BoundExchangeClient) -> None:
             agent.shutdown()
 
 
-def test_agent_run_in_thread(exchange: BoundExchangeClient) -> None:
+def test_agent_run_in_thread(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(SignalingBehavior)
     agent = Agent(
         SignalingBehavior(),
@@ -157,7 +157,7 @@ def test_agent_run_in_thread(exchange: BoundExchangeClient) -> None:
     assert agent.behavior.shutdown_event.is_set()
 
 
-def test_agent_shutdown_message(exchange: BoundExchangeClient) -> None:
+def test_agent_shutdown_message(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(EmptyBehavior)
     client_id = exchange.mailbox_id
 
@@ -176,7 +176,7 @@ def test_agent_shutdown_message(exchange: BoundExchangeClient) -> None:
     assert not thread.is_alive()
 
 
-def test_agent_ping_message(exchange: BoundExchangeClient) -> None:
+def test_agent_ping_message(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(EmptyBehavior)
     client_id = exchange.mailbox_id
 
@@ -203,7 +203,7 @@ def test_agent_ping_message(exchange: BoundExchangeClient) -> None:
     assert not thread.is_alive()
 
 
-def test_agent_action_message(exchange: BoundExchangeClient) -> None:
+def test_agent_action_message(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(CounterBehavior)
     client_id = exchange.mailbox_id
 
@@ -242,7 +242,7 @@ def test_agent_action_message(exchange: BoundExchangeClient) -> None:
     assert not thread.is_alive()
 
 
-def test_agent_action_message_error(exchange: BoundExchangeClient) -> None:
+def test_agent_action_message_error(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(ErrorBehavior)
     client_id = exchange.mailbox_id
 
@@ -268,7 +268,7 @@ def test_agent_action_message_error(exchange: BoundExchangeClient) -> None:
     assert not thread.is_alive()
 
 
-def test_agent_action_message_unknown(exchange: BoundExchangeClient) -> None:
+def test_agent_action_message_unknown(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(EmptyBehavior)
     client_id = exchange.mailbox_id
 
@@ -323,7 +323,7 @@ class HandleBindingBehavior(Behavior):
         self.self_bound.close()
 
 
-def test_agent_run_bind_handles(exchange: BoundExchangeClient) -> None:
+def test_agent_run_bind_handles(exchange: ExchangeClient) -> None:
     agent_id = exchange.register_agent(HandleBindingBehavior)
     behavior = HandleBindingBehavior(
         unbound=UnboundRemoteHandle(
@@ -370,7 +370,7 @@ class DoubleBehavior(Behavior):
 
 
 def test_agent_to_handle_handles() -> None:
-    with UnboundThreadExchangeClient().bind_as_client() as exchange:
+    with ThreadExchangeFactory().bind_as_client() as exchange:
         runner_id = exchange.register_agent(RunBehavior)
         doubler_id = exchange.register_agent(DoubleBehavior)
 

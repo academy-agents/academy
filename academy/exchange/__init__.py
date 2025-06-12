@@ -31,7 +31,7 @@ from academy.message import Message
 from academy.message import RequestMessage
 from academy.message import ResponseMessage
 
-__all__ = ['BoundExchangeClient', 'UnboundExchangeClient']
+__all__ = ['ExchangeClient', 'ExchangeFactory']
 
 logger = logging.getLogger(__name__)
 
@@ -44,19 +44,19 @@ class MailboxStatus(enum.Enum):
     TERMINATED = 'TERMINATED'
 
 
-class UnboundExchangeClient(abc.ABC):
+class ExchangeFactory(abc.ABC):
     """Message exchange client protocol.
 
     A message exchange hosts mailboxes for each entity (i.e., agent or
     client) in a multi-agent system. With
-    [`BoundExchangeClient`][academy.exchange.BoundExchangeClient], This
+    [`ExchangeClient`][academy.exchange.ExchangeClient], This
     protocol defines the client interface to an arbitrary exchange.
     An unbound exchange is used to attach to an existing mailbox or create
     a new mailbox. No messages or commands can be sent till a client is
     bound to a mailbox.
 
     Warning:
-        Unbound exchange implementations should be efficiently pickleable
+        ExchangeFactory implementations should be efficiently pickleable
         so that agents and remote clients can establish client connections
         to the same exchange.
     """
@@ -69,14 +69,27 @@ class UnboundExchangeClient(abc.ABC):
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
         start_listener: bool,
-    ) -> BoundExchangeClient: ...
+    ) -> ExchangeClient:
+        """Bind exchange to client or agent.
+
+        If no agent is provided, exchange should create a new mailbox without
+        an associated behavior and bind to that. Otherwise, the exchange will
+        bind to the mailbox associated with the provided agent.
+
+        Note:
+            This is intentionally restrictive. Each user or agent should only
+            bind to the exchange with a single address. This forces
+            multiplexing of handles to other agents and requests to this
+            agents.
+        """
+        ...
 
     def bind_as_client(
         self,
         *,
         name: str | None = None,
         start_listener: bool = True,
-    ) -> BoundExchangeClient:
+    ) -> ExchangeClient:
         """Bind exchange to a new client mailbox.
 
         This method will create a new mailbox and enable this client to
@@ -100,7 +113,7 @@ class UnboundExchangeClient(abc.ABC):
         *,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
-    ) -> BoundExchangeClient:
+    ) -> ExchangeClient:
         """Bind exchange to an agent mailbox.
 
         This method creates a exchange client bound to an agent ID.
@@ -119,16 +132,21 @@ class UnboundExchangeClient(abc.ABC):
         )
 
 
-class BoundExchangeClient(abc.ABC):
+class ExchangeClient(abc.ABC):
     """Message exchange client protocol.
 
     A message exchange hosts mailboxes for each entity (i.e., agent or
     client) in a multi-agent system. With
-    [`UnboundExchangeClient`][academy.exchange.UnboundExchangeClient], This
+    [`ExchangeFactory`][academy.exchange.ExchangeFactory], This
     protocol defines the client interface to an arbitrary exchange.
 
+    Note:
+        When implementing this class super().__init__ should likely be the last
+        method called in the initializer. It relies on  "self._register_client"
+        or "self.status".
+
     Warning:
-        A `BoundExchangeClient` should not be replicated. Multiple clients
+        A `ExchangeClient` should not be replicated. Multiple clients
         listening to the same mailbox will lead to undefined behavior
         depending on the implementation of the exchange. Instead, clients
         should be bound to a new mailbox to be replicated.
@@ -271,7 +289,8 @@ class BoundExchangeClient(abc.ABC):
     def close(self) -> None:
         """Close the exchange client.
 
-        Stop listening for incoming messages.
+        Stop listening for incoming messages. This should be called before
+        concrete close actions to avoid errors on the listener thread.
 
         Warning:
             This does not alter the state of the mailbox in the exchange for
@@ -287,7 +306,7 @@ class BoundExchangeClient(abc.ABC):
             self._listener_thread.join()
 
     @abc.abstractmethod
-    def clone(self) -> UnboundExchangeClient:
+    def clone(self) -> ExchangeFactory:
         """Shallow copy exchange to new, unbound version."""
         ...
 
@@ -295,7 +314,7 @@ class BoundExchangeClient(abc.ABC):
         return self
 
     def __exit__(
-        self: BoundExchangeClient,
+        self: ExchangeClient,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
@@ -367,7 +386,12 @@ class BoundExchangeClient(abc.ABC):
             try:
                 handle = self.bound_handles[message.label]
             except KeyError:
-                pass
+                logger.exception(
+                    'Receieved a response message from %s but no handle to '
+                    'that agent is bound to %s.',
+                    message.src,
+                    self,
+                )
             else:
                 handle._process_response(message)
         else:

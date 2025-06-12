@@ -5,7 +5,7 @@ from concurrent.futures import Future
 
 from academy.behavior import action
 from academy.behavior import Behavior
-from academy.exchange.thread import UnboundThreadExchangeClient
+from academy.exchange.thread import ThreadExchangeFactory
 from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
 from academy.manager import Manager
@@ -30,7 +30,7 @@ def main() -> int:
     init_logging(logging.INFO)
 
     with Manager(
-        exchange=UnboundThreadExchangeClient(),
+        exchange=ThreadExchangeFactory(),
         launcher=ThreadLauncher(),
     ) as manager:
         behavior = Counter()

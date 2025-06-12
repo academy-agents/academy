@@ -17,7 +17,7 @@ from aiohttp.web import Request
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange.cloud.client import UnboundHttpExchangeClient
+from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.exceptions import ForbiddenError
@@ -68,7 +68,7 @@ def test_server_run() -> None:
 
     while True:
         try:
-            exchange = UnboundHttpExchangeClient(
+            exchange = HttpExchangeFactory(
                 config.host,
                 config.port,
                 scheme='http',
@@ -94,7 +94,7 @@ def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
 
     while True:
         try:
-            exchange = UnboundHttpExchangeClient(
+            exchange = HttpExchangeFactory(
                 config.host,
                 config.port,
                 scheme='https',

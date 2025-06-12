@@ -43,7 +43,7 @@ from academy.message import ShutdownResponse
 
 if TYPE_CHECKING:
     from academy.behavior import Behavior
-    from academy.exchange import BoundExchangeClient
+    from academy.exchange import ExchangeClient
 else:
     # Behavior is only used in the bounding of the BehaviorT TypeVar.
     Behavior = None
@@ -355,7 +355,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
 
     def bind_to_exchange(
         self,
-        exchange: BoundExchangeClient,
+        exchange: ExchangeClient,
     ) -> BoundRemoteHandle[BehaviorT]:
         """Bind the handle to an existing mailbox.
 
@@ -404,7 +404,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
 
     def __init__(
         self,
-        exchange: BoundExchangeClient,
+        exchange: ExchangeClient,
         agent_id: AgentId[BehaviorT],
         mailbox_id: EntityId | None = None,
     ) -> None:
@@ -643,7 +643,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
 
     def bind_to_exchange(
         self,
-        exchange: BoundExchangeClient,
+        exchange: ExchangeClient,
     ) -> BoundRemoteHandle[BehaviorT]:
         """Bind the handle to an existing mailbox.
 

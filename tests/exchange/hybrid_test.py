@@ -12,8 +12,8 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange.hybrid import base32_to_uuid
-from academy.exchange.hybrid import BoundHybridExchangeClient
-from academy.exchange.hybrid import UnboundHybridExchangeClient
+from academy.exchange.hybrid import HybridExchangeClient
+from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.hybrid import uuid_to_base32
 from academy.identifier import AgentId
 from academy.identifier import ClientId
@@ -26,7 +26,7 @@ from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 
 
 def test_open_close_exchange(mock_redis) -> None:
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:
@@ -35,24 +35,24 @@ def test_open_close_exchange(mock_redis) -> None:
 
 
 def test_serialize_exchange(mock_redis) -> None:
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:
         dumped = pickle.dumps(exchange)
         reconstructed = pickle.loads(dumped)
-        assert isinstance(reconstructed, UnboundHybridExchangeClient)
+        assert isinstance(reconstructed, HybridExchangeFactory)
 
 
 def test_key_namespaces(mock_redis) -> None:
     namespace = 'foo'
     uid = ClientId.new()
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
         namespace=namespace,
     ).bind_as_client() as exchange:
-        assert isinstance(exchange, BoundHybridExchangeClient)
+        assert isinstance(exchange, HybridExchangeClient)
 
         assert exchange._address_key(uid).startswith(f'{namespace}:')
         assert exchange._status_key(uid).startswith(f'{namespace}:')
@@ -61,7 +61,7 @@ def test_key_namespaces(mock_redis) -> None:
 
 def test_send_bad_identifier(mock_redis) -> None:
     uid = ClientId.new()
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:
@@ -71,7 +71,7 @@ def test_send_bad_identifier(mock_redis) -> None:
 
 
 def test_send_mailbox_closed(mock_redis) -> None:
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:
@@ -84,7 +84,7 @@ def test_send_mailbox_closed(mock_redis) -> None:
 
 def test_create_mailbox_bad_identifier(mock_redis) -> None:
     uid: AgentId[Any] = AgentId.new()
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:
@@ -93,7 +93,7 @@ def test_create_mailbox_bad_identifier(mock_redis) -> None:
 
 
 def test_send_to_mailbox_direct(mock_redis) -> None:
-    exchange = UnboundHybridExchangeClient(
+    exchange = HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     )
@@ -112,7 +112,7 @@ def test_send_to_mailbox_direct(mock_redis) -> None:
 
 def test_send_to_mailbox_indirect(mock_redis) -> None:
     messages = 3
-    exchange = UnboundHybridExchangeClient(
+    exchange = HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     )
@@ -130,7 +130,7 @@ def test_send_to_mailbox_indirect(mock_redis) -> None:
 
 @pytest.mark.skip(reason='Not implemented. Need async for implementation.')
 def test_mailbox_recv_closed(mock_redis) -> None:  # pragma: no cover
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:
@@ -144,7 +144,7 @@ def test_mailbox_recv_closed(mock_redis) -> None:  # pragma: no cover
 
 
 def test_mailbox_create_terminated(mock_redis) -> None:
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:
@@ -158,14 +158,14 @@ def test_mailbox_create_terminated(mock_redis) -> None:
 def test_mailbox_redis_error_logging(mock_redis, caplog) -> None:
     caplog.set_level(logging.ERROR)
     with mock.patch(
-        'academy.exchange.hybrid.BoundHybridExchangeClient._pull_messages_from_redis',
+        'academy.exchange.hybrid.HybridExchangeClient._pull_messages_from_redis',
         side_effect=RuntimeError('Mock thread error.'),
     ):
-        with UnboundHybridExchangeClient(
+        with HybridExchangeFactory(
             redis_host='localhost',
             redis_port=0,
         ).bind_as_client() as exchange:
-            assert isinstance(exchange, BoundHybridExchangeClient)
+            assert isinstance(exchange, HybridExchangeClient)
             exchange._redis_thread.join(TEST_THREAD_JOIN_TIMEOUT)
             assert any(
                 f'Error in redis watcher thread for {exchange.mailbox_id}'
@@ -177,15 +177,15 @@ def test_mailbox_redis_error_logging(mock_redis, caplog) -> None:
 
 def test_send_to_mailbox_bad_cached_address(mock_redis) -> None:
     port1, port2 = open_port(), open_port()
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as client1:
-        assert isinstance(client1, BoundHybridExchangeClient)
+        assert isinstance(client1, HybridExchangeClient)
 
         aid = client1.register_agent(EmptyBehavior)
 
-        with UnboundHybridExchangeClient(
+        with HybridExchangeFactory(
             redis_host='localhost',
             redis_port=0,
             ports=[port1],
@@ -203,7 +203,7 @@ def test_send_to_mailbox_bad_cached_address(mock_redis) -> None:
         socket = client1._socket_pool._sockets[address]
         socket.close()
 
-        with UnboundHybridExchangeClient(
+        with HybridExchangeFactory(
             redis_host='localhost',
             redis_port=0,
             ports=[port2],
@@ -224,7 +224,7 @@ class C(B): ...
 
 
 def test_exchange_discover(mock_redis) -> None:
-    with UnboundHybridExchangeClient(
+    with HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,
     ).bind_as_client() as exchange:

@@ -16,9 +16,9 @@ import redis
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import BoundExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange import UnboundExchangeClient
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
@@ -49,7 +49,7 @@ class _MailboxState(enum.Enum):
     INACTIVE = 'INACTIVE'
 
 
-class UnboundHybridExchangeClient(UnboundExchangeClient):
+class HybridExchangeFactory(ExchangeFactory):
     """Hybrid exchange.
 
     The hybrid exchange uses peer-to-peer communication via TCP and a
@@ -100,8 +100,8 @@ class UnboundHybridExchangeClient(UnboundExchangeClient):
         handler: Callable[[RequestMessage], None] | None = None,
         *,
         start_listener: bool,
-    ) -> BoundHybridExchangeClient:
-        return BoundHybridExchangeClient(
+    ) -> HybridExchangeClient:
+        return HybridExchangeClient(
             self,
             mailbox_id=mailbox_id,
             name=name,
@@ -111,7 +111,7 @@ class UnboundHybridExchangeClient(UnboundExchangeClient):
         )
 
 
-class BoundHybridExchangeClient(BoundExchangeClient):
+class HybridExchangeClient(ExchangeClient):
     """Hybrid exchange.
 
     The hybrid exchange uses peer-to-peer communication via TCP and a
@@ -141,7 +141,7 @@ class BoundHybridExchangeClient(BoundExchangeClient):
 
     def __init__(  # noqa: PLR0913
         self,
-        unbound: UnboundHybridExchangeClient,
+        unbound: HybridExchangeFactory,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
@@ -189,7 +189,7 @@ class BoundHybridExchangeClient(BoundExchangeClient):
     def __reduce__(
         self,
     ) -> tuple[
-        type[UnboundHybridExchangeClient],
+        type[HybridExchangeFactory],
         tuple[str, int],
         dict[str, Any],
     ]:
@@ -199,7 +199,7 @@ class BoundHybridExchangeClient(BoundExchangeClient):
             '_namespace': self._namespace,
         }
         return (
-            UnboundHybridExchangeClient,
+            HybridExchangeFactory,
             (self._redis_host, self._redis_port),
             state,
         )
@@ -580,9 +580,9 @@ class BoundHybridExchangeClient(BoundExchangeClient):
         except QueueClosedError:
             raise MailboxClosedError(self.mailbox_id) from None
 
-    def clone(self) -> UnboundHybridExchangeClient:
+    def clone(self) -> HybridExchangeFactory:
         """Shallow copy exchange to new, unbound version."""
-        return UnboundHybridExchangeClient(
+        return HybridExchangeFactory(
             self._redis_host,
             self._redis_port,
             interface=self._interface,

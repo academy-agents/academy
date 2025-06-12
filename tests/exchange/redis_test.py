@@ -8,9 +8,9 @@ import pytest
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import BoundExchangeClient
-from academy.exchange import UnboundExchangeClient
-from academy.exchange.redis import UnboundRedisExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
+from academy.exchange.redis import RedisExchangeFactory
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import ClientId
@@ -19,11 +19,11 @@ from testing.behavior import EmptyBehavior
 
 
 def test_basic_usage(mock_redis) -> None:
-    unbound_exchange = UnboundRedisExchangeClient('localhost', port=0)
-    assert isinstance(unbound_exchange, UnboundExchangeClient)
+    unbound_exchange = RedisExchangeFactory('localhost', port=0)
+    assert isinstance(unbound_exchange, ExchangeFactory)
 
     with unbound_exchange.bind_as_client() as exchange:
-        assert isinstance(exchange, BoundExchangeClient)
+        assert isinstance(exchange, ExchangeClient)
         assert isinstance(repr(exchange), str)
         assert isinstance(str(exchange), str)
 
@@ -45,7 +45,7 @@ def test_basic_usage(mock_redis) -> None:
 
 
 def test_bad_identifier_error(mock_redis) -> None:
-    with UnboundRedisExchangeClient(
+    with RedisExchangeFactory(
         'localhost',
         port=0,
     ).bind_as_client() as exchange:
@@ -55,7 +55,7 @@ def test_bad_identifier_error(mock_redis) -> None:
 
 
 def test_mailbox_closed_error(mock_redis) -> None:
-    with UnboundRedisExchangeClient(
+    with RedisExchangeFactory(
         'localhost',
         port=0,
     ).bind_as_client() as exchange:
@@ -69,7 +69,7 @@ def test_mailbox_closed_error(mock_redis) -> None:
 
 
 def test_mailbox_terminated(mock_redis) -> None:
-    with UnboundRedisExchangeClient(
+    with RedisExchangeFactory(
         'localhost',
         port=0,
     ).bind_as_client() as exchange:
@@ -80,7 +80,7 @@ def test_mailbox_terminated(mock_redis) -> None:
 
 
 def test_mailbox_non_existent(mock_redis) -> None:
-    with UnboundRedisExchangeClient(
+    with RedisExchangeFactory(
         'localhost',
         port=0,
     ).bind_as_client() as exchange:
@@ -90,7 +90,7 @@ def test_mailbox_non_existent(mock_redis) -> None:
 
 
 def test_get_handle_to_client(mock_redis) -> None:
-    with UnboundRedisExchangeClient(
+    with RedisExchangeFactory(
         'localhost',
         port=0,
     ).bind_as_client() as exchange:
@@ -103,7 +103,7 @@ def test_get_handle_to_client(mock_redis) -> None:
 
 
 def test_mailbox_timeout(mock_redis) -> None:
-    with UnboundRedisExchangeClient('localhost', port=0).bind_as_client(
+    with RedisExchangeFactory('localhost', port=0).bind_as_client(
         start_listener=False,
     ) as exchange:
         with pytest.raises(TimeoutError):
@@ -111,13 +111,13 @@ def test_mailbox_timeout(mock_redis) -> None:
 
 
 def test_exchange_serialization(mock_redis) -> None:
-    with UnboundRedisExchangeClient(
+    with RedisExchangeFactory(
         'localhost',
         port=0,
     ).bind_as_client() as exchange:
         pickled = pickle.dumps(exchange)
         reconstructed = pickle.loads(pickled)
-        assert isinstance(reconstructed, UnboundExchangeClient)
+        assert isinstance(reconstructed, ExchangeFactory)
 
 
 class A(Behavior): ...
@@ -130,7 +130,7 @@ class C(B): ...
 
 
 def test_exchange_discover(mock_redis) -> None:
-    with UnboundRedisExchangeClient(
+    with RedisExchangeFactory(
         'localhost',
         port=0,
     ).bind_as_client() as exchange:

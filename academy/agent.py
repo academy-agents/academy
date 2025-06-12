@@ -15,7 +15,7 @@ from typing import TypeVar
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import UnboundExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import ProxyHandle
@@ -69,7 +69,7 @@ class AgentRunConfig:
 def _agent_trampoline(
     behavior: BehaviorT,
     agent_id: AgentId[BehaviorT],
-    exchange: UnboundExchangeClient,
+    exchange: ExchangeFactory,
     config: AgentRunConfig,
 ) -> Agent[BehaviorT]:
     return Agent(
@@ -108,7 +108,7 @@ class Agent(Generic[BehaviorT]):
         behavior: BehaviorT,
         *,
         agent_id: AgentId[BehaviorT],
-        exchange: UnboundExchangeClient,
+        exchange: ExchangeFactory,
         config: AgentRunConfig | None = None,
     ) -> None:
         self.agent_id = agent_id

@@ -16,11 +16,11 @@ else:  # pragma: <3.11 cover
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import BoundExchangeClient
-from academy.exchange import UnboundExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
-from academy.identifier import EntityId
+from academy.identifier import ClientId
 from academy.launcher import Launcher
 from academy.serialize import NoPickleMixin
 
@@ -63,7 +63,7 @@ class Manager(NoPickleMixin):
 
     def __init__(
         self,
-        exchange: UnboundExchangeClient,
+        exchange: ExchangeFactory,
         launcher: Launcher | MutableMapping[str, Launcher],
         *,
         default_launcher: str | None = None,
@@ -79,7 +79,8 @@ class Manager(NoPickleMixin):
             )
 
         self._exchange = exchange.bind_as_client()
-        self._mailbox_id = self._exchange.mailbox_id
+        assert isinstance(self._exchange.mailbox_id, ClientId)
+        self._mailbox_id: ClientId = self._exchange.mailbox_id
         self._launchers = launcher
         self._default_launcher = default_launcher
 
@@ -116,12 +117,12 @@ class Manager(NoPickleMixin):
         return f'{type(self).__name__}<{self.mailbox_id}, {self._exchange}>'
 
     @property
-    def exchange(self) -> BoundExchangeClient:
+    def exchange(self) -> ExchangeClient:
         """Exchange interface."""
         return self._exchange
 
     @property
-    def mailbox_id(self) -> EntityId:
+    def mailbox_id(self) -> ClientId:
         """EntityId of the mailbox used by this manager."""
         return self._mailbox_id
 

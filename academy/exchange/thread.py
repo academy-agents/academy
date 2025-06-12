@@ -8,9 +8,9 @@ from typing import TypeVar
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import BoundExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange import UnboundExchangeClient
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 
-class ThreadExchange(NoPickleMixin):
+class ThreadExchangeState(NoPickleMixin):
     """Local process message exchange for threaded agents.
 
     ThreadExchange is a special case of an exchange where the mailboxes
@@ -38,7 +38,7 @@ class ThreadExchange(NoPickleMixin):
         self.behaviors: dict[AgentId[Any], type[Behavior]] = {}
 
 
-class UnboundThreadExchangeClient(UnboundExchangeClient):
+class ThreadExchangeFactory(ExchangeFactory):
     """A unbound thread exchange.
 
     A thread exchange can be used to pass messages between agents
@@ -48,9 +48,9 @@ class UnboundThreadExchangeClient(UnboundExchangeClient):
         exchange_state: The state of the queues used by the exchange
     """
 
-    def __init__(self, exchange_state: ThreadExchange | None = None):
+    def __init__(self, exchange_state: ThreadExchangeState | None = None):
         self._state = (
-            ThreadExchange() if exchange_state is None else exchange_state
+            ThreadExchangeState() if exchange_state is None else exchange_state
         )
 
     def _bind(
@@ -60,8 +60,8 @@ class UnboundThreadExchangeClient(UnboundExchangeClient):
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
         start_listener: bool,
-    ) -> BoundThreadExchangeClient:
-        return BoundThreadExchangeClient(
+    ) -> ThreadExchangeClient:
+        return ThreadExchangeClient(
             self._state,
             mailbox_id,
             name=name,
@@ -70,7 +70,7 @@ class UnboundThreadExchangeClient(UnboundExchangeClient):
         )
 
 
-class BoundThreadExchangeClient(BoundExchangeClient):
+class ThreadExchangeClient(ExchangeClient):
     """A thread exchange bound to a mailbox.
 
     A thread exchange can be used to pass messages between agents
@@ -86,7 +86,7 @@ class BoundThreadExchangeClient(BoundExchangeClient):
 
     def __init__(
         self,
-        exchange_state: ThreadExchange,
+        exchange_state: ThreadExchangeState,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
@@ -249,6 +249,6 @@ class BoundThreadExchangeClient(BoundExchangeClient):
         except QueueClosedError as e:
             raise MailboxClosedError(self.mailbox_id) from e
 
-    def clone(self) -> UnboundThreadExchangeClient:
+    def clone(self) -> ThreadExchangeFactory:
         """Shallow copy exchange to new, unbound version."""
-        return UnboundThreadExchangeClient(self._state)
+        return ThreadExchangeFactory(self._state)

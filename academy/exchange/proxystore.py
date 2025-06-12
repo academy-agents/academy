@@ -14,9 +14,9 @@ from proxystore.store import Store
 from proxystore.store.utils import resolve_async
 
 from academy.behavior import Behavior
-from academy.exchange import BoundExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange import UnboundExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.identifier import EntityId
@@ -64,7 +64,7 @@ def _proxy_mapping(
     return {key: _apply(item) for key, item in mapping.items()}
 
 
-class UnboundProxyStoreExchange(UnboundExchangeClient):
+class ProxyStoreExchangeFactory(ExchangeFactory):
     """Proxystore exchange not bound to mailbox.
 
     A proxystore exchange is used to wrap an underlying exchange so
@@ -73,7 +73,7 @@ class UnboundProxyStoreExchange(UnboundExchangeClient):
 
     def __init__(
         self,
-        exchange: UnboundExchangeClient,
+        exchange: ExchangeFactory,
         store: Store[Any] | None,
         should_proxy: Callable[[Any], bool],
         *,
@@ -91,12 +91,12 @@ class UnboundProxyStoreExchange(UnboundExchangeClient):
         handler: Callable[[RequestMessage], None] | None = None,
         *,
         start_listener: bool,
-    ) -> BoundProxyStoreExchangeClient:
+    ) -> ProxyStoreExchangeClient:
         # If store was none because of pickling,
         # the __setstate__ must be called before bind.
         assert self.store is not None
 
-        return BoundProxyStoreExchangeClient(
+        return ProxyStoreExchangeClient(
             self.exchange._bind(
                 mailbox_id,
                 name=name,
@@ -126,7 +126,7 @@ class UnboundProxyStoreExchange(UnboundExchangeClient):
         self.__dict__.update(state)
 
 
-class BoundProxyStoreExchangeClient(BoundExchangeClient):
+class ProxyStoreExchangeClient(ExchangeClient):
     """Wrap an Exchange with ProxyStore support.
 
     Sending large action payloads via the exchange can result in considerable
@@ -145,7 +145,7 @@ class BoundProxyStoreExchangeClient(BoundExchangeClient):
 
     def __init__(
         self,
-        exchange: BoundExchangeClient,
+        exchange: ExchangeClient,
         store: Store[Any],
         should_proxy: Callable[[Any], bool],
         *,
@@ -165,7 +165,7 @@ class BoundProxyStoreExchangeClient(BoundExchangeClient):
     def __reduce__(
         self,
     ) -> tuple[
-        type[UnboundProxyStoreExchange],
+        type[ProxyStoreExchangeFactory],
         tuple[Any, ...],
         dict[str, Any],
     ]:
@@ -177,7 +177,7 @@ class BoundProxyStoreExchangeClient(BoundExchangeClient):
         }
 
         return (
-            UnboundProxyStoreExchange,
+            ProxyStoreExchangeFactory,
             (self.exchange, None, self.should_proxy),
             state,
         )
@@ -325,9 +325,9 @@ class BoundProxyStoreExchangeClient(BoundExchangeClient):
             resolve_async(message.result)
         return message
 
-    def clone(self) -> UnboundProxyStoreExchange:
+    def clone(self) -> ProxyStoreExchangeFactory:
         """Shallow copy exchange to new, unbound version."""
-        return UnboundProxyStoreExchange(
+        return ProxyStoreExchangeFactory(
             self.exchange.clone(),
             self.store,
             self.should_proxy,

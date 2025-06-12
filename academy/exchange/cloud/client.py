@@ -15,9 +15,9 @@ import requests
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import BoundExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange import UnboundExchangeClient
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.server import _FORBIDDEN_CODE
 from academy.exchange.cloud.server import _NOT_FOUND_CODE
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 
-class UnboundHttpExchangeClient(UnboundExchangeClient):
+class HttpExchangeFactory(ExchangeFactory):
     """Http exchange client.
 
     Args:
@@ -71,8 +71,8 @@ class UnboundHttpExchangeClient(UnboundExchangeClient):
         handler: Callable[[RequestMessage], None] | None = None,
         *,
         start_listener: bool,
-    ) -> BoundHttpExchangeClient:
-        return BoundHttpExchangeClient(
+    ) -> HttpExchangeClient:
+        return HttpExchangeClient(
             self,
             mailbox_id=mailbox_id,
             name=name,
@@ -81,7 +81,7 @@ class UnboundHttpExchangeClient(UnboundExchangeClient):
         )
 
 
-class BoundHttpExchangeClient(BoundExchangeClient):
+class HttpExchangeClient(ExchangeClient):
     """Http exchange client.
 
     Args:
@@ -97,7 +97,7 @@ class BoundHttpExchangeClient(BoundExchangeClient):
 
     def __init__(
         self,
-        unbound: UnboundHttpExchangeClient,
+        unbound: HttpExchangeFactory,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
@@ -138,9 +138,9 @@ class BoundHttpExchangeClient(BoundExchangeClient):
 
     def __reduce__(
         self,
-    ) -> tuple[type[UnboundHttpExchangeClient], tuple[Any, ...]]:
+    ) -> tuple[type[HttpExchangeFactory], tuple[Any, ...]]:
         return (
-            UnboundHttpExchangeClient,
+            HttpExchangeFactory,
             (
                 self.host,
                 self.port,
@@ -338,9 +338,9 @@ class BoundHttpExchangeClient(BoundExchangeClient):
         )
         return message
 
-    def clone(self) -> UnboundHttpExchangeClient:
+    def clone(self) -> HttpExchangeFactory:
         """Shallow copy exchange to new, unbound version."""
-        return UnboundHttpExchangeClient(
+        return HttpExchangeFactory(
             self.host,
             self.port,
             self.additional_headers,
@@ -356,7 +356,7 @@ def spawn_http_exchange(
     *,
     level: int | str = logging.WARNING,
     timeout: float | None = None,
-) -> Generator[UnboundHttpExchangeClient]:
+) -> Generator[HttpExchangeFactory]:
     """Context manager that spawns an HTTP exchange in a subprocess.
 
     This function spawns a new process (rather than forking) and wait to
@@ -393,7 +393,7 @@ def spawn_http_exchange(
     wait_connection(host, port, timeout=timeout)
     logger.info('Started exchange server!')
 
-    exchange = UnboundHttpExchangeClient(
+    exchange = HttpExchangeFactory(
         host,
         port,
     )

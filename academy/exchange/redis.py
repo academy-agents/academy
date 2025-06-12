@@ -13,9 +13,9 @@ import redis
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import BoundExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange import UnboundExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import ClientId
 from academy.identifier import EntityId
@@ -35,7 +35,7 @@ class _MailboxState(enum.Enum):
     INACTIVE = 'INACTIVE'
 
 
-class UnboundRedisExchangeClient(UnboundExchangeClient):
+class RedisExchangeFactory(ExchangeFactory):
     """Redis-hosted message exchange interface.
 
     Args:
@@ -70,8 +70,8 @@ class UnboundRedisExchangeClient(UnboundExchangeClient):
         handler: Callable[[RequestMessage], None] | None = None,
         *,
         start_listener: bool,
-    ) -> BoundRedisExchangeClient:
-        return BoundRedisExchangeClient(
+    ) -> RedisExchangeClient:
+        return RedisExchangeClient(
             self,
             mailbox_id=mailbox_id,
             name=name,
@@ -80,7 +80,7 @@ class UnboundRedisExchangeClient(UnboundExchangeClient):
         )
 
 
-class BoundRedisExchangeClient(BoundExchangeClient):
+class RedisExchangeClient(ExchangeClient):
     """Redis-hosted message exchange interface.
 
     Args:
@@ -96,7 +96,7 @@ class BoundRedisExchangeClient(BoundExchangeClient):
 
     def __init__(
         self,
-        unbound: UnboundRedisExchangeClient,
+        unbound: RedisExchangeFactory,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
@@ -134,12 +134,12 @@ class BoundRedisExchangeClient(BoundExchangeClient):
     def __reduce__(
         self,
     ) -> tuple[
-        type[UnboundRedisExchangeClient],
+        type[RedisExchangeFactory],
         tuple[str, int],
         dict[str, Any],
     ]:
         return (
-            UnboundRedisExchangeClient,
+            RedisExchangeFactory,
             (self.hostname, self.port),
             {
                 'timeout': self.timeout,
@@ -347,9 +347,9 @@ class BoundRedisExchangeClient(BoundExchangeClient):
             )
             return message
 
-    def clone(self) -> UnboundRedisExchangeClient:
+    def clone(self) -> RedisExchangeFactory:
         """Shallow copy exchange to new, unbound version."""
-        return UnboundRedisExchangeClient(
+        return RedisExchangeFactory(
             self.hostname,
             self.port,
             timeout=self.timeout,

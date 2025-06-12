@@ -22,8 +22,8 @@ from academy.agent import Agent
 from academy.agent import AgentRunConfig
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
-from academy.exchange import BoundExchangeClient
-from academy.exchange import UnboundExchangeClient
+from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 
@@ -45,7 +45,7 @@ class _ACB(Generic[BehaviorT]):
     # Agent Control Block
     agent_id: AgentId[BehaviorT]
     behavior: BehaviorT
-    exchange: UnboundExchangeClient
+    exchange: ExchangeFactory
     done: threading.Event
     future: Future[None] | None = None
     launch_count: int = 0
@@ -167,7 +167,7 @@ class Launcher:
     def launch(
         self,
         behavior: BehaviorT,
-        exchange: BoundExchangeClient,
+        exchange: ExchangeClient,
         *,
         agent_id: AgentId[BehaviorT] | None = None,
         name: str | None = None,

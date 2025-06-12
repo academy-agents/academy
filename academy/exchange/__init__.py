@@ -65,39 +65,27 @@ class UnboundExchangeClient(abc.ABC):
     def _bind(
         self,
         mailbox_id: EntityId | None = None,
+        *,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
-        *,
         start_listener: bool,
-    ) -> BoundExchangeClient:
-        """Bind exchange to client or agent.
-
-        If no agent is provided, exchange should create a new mailbox without
-        an associated behavior and bind to that. Otherwise, the exchange will
-        bind to the mailbox associated with the provided agent.
-
-        Note:
-            This is intentionally restrictive. Each user or agent should only
-            bind to the exchange with a single address. This forces
-            multiplexing of handles to other agents and requests to this
-            agents.
-        """
-        ...
+    ) -> BoundExchangeClient: ...
 
     def bind_as_client(
         self,
+        *,
         name: str | None = None,
         start_listener: bool = True,
     ) -> BoundExchangeClient:
-        """Bind exchange to client.
+        """Bind exchange to a new client mailbox.
 
         This method will create a new mailbox and enable this client to
         message other entities on the exchange.
 
         Args:
-            name: display name of the client on the exchange
-            start_listener: start a thread to receive messages and multiplex
-                to handles
+            name: Display name of the client on the exchange.
+            start_listener: Start a thread to receive messages and multiplex
+                to handles.
         """
         return self._bind(
             mailbox_id=None,
@@ -109,18 +97,19 @@ class UnboundExchangeClient(abc.ABC):
     def bind_as_agent(
         self,
         agent_id: AgentId[Any],
+        *,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
     ) -> BoundExchangeClient:
-        """Bind exchange to agent.
+        """Bind exchange to an agent mailbox.
 
         This method creates a exchange client bound to an agent ID.
         The agent ID must be previously created on the exchange.
 
         Args:
-            agent_id: ID of the mailbox to receive and send messages
-            name: display name of the client on the exchange
-            handler: Agent callback to process messages
+            agent_id: ID of the mailbox to receive and send messages.
+            name: Display name of the client on the exchange.
+            handler: Agent callback to process messages.
         """
         return self._bind(
             mailbox_id=agent_id,
@@ -139,26 +128,24 @@ class BoundExchangeClient(abc.ABC):
     protocol defines the client interface to an arbitrary exchange.
 
     Warning:
-        BoundExchangeClient should not be replicated. Multiple clients
+        A `BoundExchangeClient` should not be replicated. Multiple clients
         listening to the same mailbox will lead to undefined behavior
         depending on the implementation of the exchange. Instead, clients
         should be bound to a new mailbox to be replicated.
 
     Args:
         mailbox_id: Identifier of the mailbox on the exchange. If there is
-            not an id provided, the exchange will create a new client mail-
-            box.
+            not an id provided, the exchange will create a new client mailbox.
         name: Display name of mailbox on exchange.
         handler:  Callback to handler requests to this exchange.
-
     """
 
     def __init__(
         self,
         mailbox_id: EntityId | None,
+        *,
         name: str | None,
         handler: Callable[[RequestMessage], None] | None,
-        *,
         start_listener: bool,
     ):
         self.bound_handles: dict[uuid.UUID, BoundRemoteHandle[Any]] = {}
@@ -175,13 +162,13 @@ class BoundExchangeClient(abc.ABC):
         if start_listener:
             self._listener_thread = threading.Thread(
                 target=self.listen,
-                name=f'thread-exchange-{self.mailbox_id.uid}-listener',
+                name=f'exchange-{self.mailbox_id.uid}-listener',
             )
             self._listener_thread.start()
 
     @abc.abstractmethod
     def status(self, mailbox_id: EntityId) -> MailboxStatus:
-        """Check status of mailbox on exchange."""
+        """Check status of a mailbox in the exchange."""
         ...
 
     @abc.abstractmethod
@@ -208,8 +195,7 @@ class BoundExchangeClient(abc.ABC):
 
         Args:
             behavior: Behavior type of the agent.
-            agent_id: Specify the ID of the agent. Randomly generated
-                default.
+            agent_id: Specify the ID of the agent. Randomly generated default.
             name: Optional human-readable name for the agent. Ignored if
                 `agent_id` is provided.
 
@@ -288,14 +274,14 @@ class BoundExchangeClient(abc.ABC):
         Stop listening for incoming messages.
 
         Warning:
-            This does not close the mailbox in the exchange. I.e., the exchange
-            will still accept new messages to this mailbox, but this client
-            will no longer be listening for them.
-            This does not alter the state of the exchange.
+            This does not alter the state of the mailbox in the exchange for
+            agent mailboxes. I.e., the exchange will still accept new messages
+            to this mailbox, but this client will no longer be listening for
+            them.
         """
         if isinstance(self.mailbox_id, ClientId):
-            logger.debug(f'Terminating client mailbox {self.mailbox_id}')
             self.terminate(self.mailbox_id)
+            logger.debug(f'Terminated client mailbox {self.mailbox_id}')
 
         if self.listener_started:
             self._listener_thread.join()
@@ -323,7 +309,7 @@ class BoundExchangeClient(abc.ABC):
         return f'{type(self).__name__}<{id(self)}>'
 
     def get_handle(
-        self: BoundExchangeClient,
+        self,
         aid: AgentId[BehaviorT],
     ) -> BoundRemoteHandle[BehaviorT]:
         """Create a new handle to an agent.

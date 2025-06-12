@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import logging
 import multiprocessing
-import sys
 import uuid
 from collections.abc import Generator
 from typing import Any
@@ -11,20 +10,14 @@ from typing import Callable
 from typing import Literal
 from typing import TypeVar
 
-from academy.exchange import BoundExchangeClient
-from academy.exchange import MailboxStatus
-from academy.exchange import UnboundExchangeClient
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    pass
-else:  # pragma: <3.11 cover
-    pass
-
 import requests
 
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
+from academy.exchange import BoundExchangeClient
+from academy.exchange import MailboxStatus
+from academy.exchange import UnboundExchangeClient
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.server import _FORBIDDEN_CODE
 from academy.exchange.cloud.server import _NOT_FOUND_CODE
@@ -79,18 +72,6 @@ class UnboundHttpExchangeClient(UnboundExchangeClient):
         *,
         start_listener: bool,
     ) -> BoundHttpExchangeClient:
-        """Bind exchange to client or agent.
-
-        If no agent is provided, exchange should create a new mailbox without
-        an associated behavior and bind to that. Otherwise, the exchange will
-        bind to the mailbox associated with the provided agent.
-
-        Note:
-            This is intentionally restrictive. Each user or agent should only
-            bind to the exchange with a single address. This forces
-            multiplexing of handles to other agents and requests to this
-            agents.
-        """
         return BoundHttpExchangeClient(
             self,
             mailbox_id=mailbox_id,
@@ -109,7 +90,7 @@ class BoundHttpExchangeClient(BoundExchangeClient):
             not an id provided, the exchange will create a new client mail-
             box.
         name: Display name of mailbox on exchange.
-        handler:  Callback to handler requests to this exchange.
+        handler: Callback to handler requests to this exchange.
         start_listener: Start the listener thread to multiplex messages to
             handles.
     """
@@ -118,9 +99,9 @@ class BoundHttpExchangeClient(BoundExchangeClient):
         self,
         unbound: UnboundHttpExchangeClient,
         mailbox_id: EntityId | None = None,
+        *,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
-        *,
         start_listener: bool,
     ) -> None:
         self.host = unbound.host
@@ -144,8 +125,8 @@ class BoundHttpExchangeClient(BoundExchangeClient):
 
         super().__init__(
             mailbox_id,
-            name,
-            handler,
+            name=name,
+            handler=handler,
             start_listener=start_listener,
         )
 
@@ -157,16 +138,7 @@ class BoundHttpExchangeClient(BoundExchangeClient):
 
     def __reduce__(
         self,
-    ) -> tuple[
-        type[UnboundHttpExchangeClient],
-        tuple[
-            str,
-            int,
-            dict[str, str] | None,
-            Literal['http', 'https'],
-            str | bool | None,
-        ],
-    ]:
+    ) -> tuple[type[UnboundHttpExchangeClient], tuple[Any, ...]]:
         return (
             UnboundHttpExchangeClient,
             (

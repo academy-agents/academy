@@ -155,11 +155,7 @@ class Agent(Generic[BehaviorT]):
         )
 
     def _bind_handle(self, handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
-        if isinstance(
-            handle,
-            (ProxyHandle),
-        ):  # pragma: no cover
-            # Ignore proxy handles and already bound client handles.
+        if isinstance(handle, ProxyHandle):  # pragma: no cover
             return handle
         if (
             isinstance(handle, BoundRemoteHandle)
@@ -279,8 +275,7 @@ class Agent(Generic[BehaviorT]):
         1. Calls [`Behavior.on_setup()`][academy.behavior.Behavior.on_setup].
         1. Starts threads for all control loops defined on the agent's
            [`Behavior`][academy.behavior.Behavior].
-        1. Starts a thread for listening to messages from the
-           [`Exchange`][academy.exchange.UnboundExchangeClient] (if provided).
+        1. Starts a thread for listening to messages from the exchange.
 
         Raises:
             RuntimeError: If the agent has been shutdown.

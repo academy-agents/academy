@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import enum
 import logging
-import sys
 import threading
 import uuid
 from collections.abc import Iterable
@@ -12,20 +11,14 @@ from typing import Callable
 from typing import get_args
 from typing import TypeVar
 
-from academy.exchange import BoundExchangeClient
-from academy.exchange import MailboxStatus
-from academy.exchange import UnboundExchangeClient
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    pass
-else:  # pragma: <3.11 cover
-    pass
-
 import redis
 
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
+from academy.exchange import BoundExchangeClient
+from academy.exchange import MailboxStatus
+from academy.exchange import UnboundExchangeClient
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
@@ -108,18 +101,6 @@ class UnboundHybridExchangeClient(UnboundExchangeClient):
         *,
         start_listener: bool,
     ) -> BoundHybridExchangeClient:
-        """Bind exchange to client or agent.
-
-        If no agent is provided, exchange should create a new mailbox without
-        an associated behavior and bind to that. Otherwise, the exchange will
-        bind to the mailbox associated with the provided agent.
-
-        Note:
-            This is intentionally restrictive. Each user or agent should only
-            bind to the exchange with a single address. This forces
-            multiplexing of handles to other agents and requests to this
-            agents.
-        """
         return BoundHybridExchangeClient(
             self,
             mailbox_id=mailbox_id,
@@ -162,9 +143,9 @@ class BoundHybridExchangeClient(BoundExchangeClient):
         self,
         unbound: UnboundHybridExchangeClient,
         mailbox_id: EntityId | None = None,
+        *,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
-        *,
         start_listener: bool,
         port: int | None = None,
     ) -> None:
@@ -183,8 +164,8 @@ class BoundHybridExchangeClient(BoundExchangeClient):
         try:
             super().__init__(
                 mailbox_id,
-                name,
-                handler,
+                name=name,
+                handler=handler,
                 start_listener=start_listener,
             )
         except Exception as e:

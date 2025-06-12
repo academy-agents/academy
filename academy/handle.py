@@ -325,7 +325,7 @@ class ProxyHandle(Generic[BehaviorT]):
 
 
 class UnboundRemoteHandle(Generic[BehaviorT]):
-    """Handle to a remote agent that is unbound.
+    """Handle to a remote agent that not bound to a mailbox.
 
     Warning:
         An unbound handle must be bound before use. Otherwise all methods
@@ -336,10 +336,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         agent_id: EntityId of the agent.
     """
 
-    def __init__(
-        self,
-        agent_id: AgentId[BehaviorT],
-    ) -> None:
+    def __init__(self, agent_id: AgentId[BehaviorT]) -> None:
         self.agent_id = agent_id
         self.mailbox_id = None
 
@@ -353,7 +350,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
     def __getattr__(self, name: str) -> Any:
         """Raises `AttributeError`."""
         raise AttributeError(
-            f'Attribute {name} cannot be found/called on unbound handle.',
+            'Actions cannot be invoked via an unbound handle.',
         )
 
     def bind_to_exchange(

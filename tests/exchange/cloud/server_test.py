@@ -76,10 +76,8 @@ def test_server_run() -> None:
         except OSError:  # pragma: no cover
             time.sleep(0.01)
         else:
-            # Coverage doesn't detect the singular break but it does
-            # get executed to break from the loop
             exchange.close()
-            break  # pragma: no cover
+            break
 
     process.terminate()
     process.join()
@@ -105,10 +103,9 @@ def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
         except OSError:  # pragma: no cover
             time.sleep(0.01)
         else:
-            # Coverage doesn't detect the singular break but it does
-            # get executed to break from the loop
             exchange.close()
-            break  # pragma: no cover
+            break
+
     process.terminate()
     process.join()
 

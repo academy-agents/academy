@@ -71,18 +71,6 @@ class UnboundRedisExchangeClient(UnboundExchangeClient):
         *,
         start_listener: bool,
     ) -> BoundRedisExchangeClient:
-        """Bind exchange to client or agent.
-
-        If no agent is provided, exchange should create a new mailbox without
-        an associated behavior and bind to that. Otherwise, the exchange will
-        bind to the mailbox associated with the provided agent.
-
-        Note:
-            This is intentionally restrictive. Each user or agent should only
-            bind to the exchange with a single address. This forces
-            multiplexing of handles to other agents and requests to this
-            agents.
-        """
         return BoundRedisExchangeClient(
             self,
             mailbox_id=mailbox_id,
@@ -96,12 +84,11 @@ class BoundRedisExchangeClient(BoundExchangeClient):
     """Redis-hosted message exchange interface.
 
     Args:
-        unbound: The unbound exchange to use to create this client
+        unbound: The unbound exchange to use to create this client.
         mailbox_id: Identifier of the mailbox on the exchange. If there is
-            not an id provided, the exchange will create a new client mail-
-            box.
+            not an id provided, the exchange will create a new client mailbox.
         name: Display name of mailbox on exchange.
-        handler:  Callback to handler requests to this exchange.
+        handler: Callback to handler requests to this exchange.
 
     Raises:
         redis.exceptions.ConnectionError: If the Redis server is not reachable.
@@ -111,9 +98,9 @@ class BoundRedisExchangeClient(BoundExchangeClient):
         self,
         unbound: UnboundRedisExchangeClient,
         mailbox_id: EntityId | None = None,
+        *,
         name: str | None = None,
         handler: Callable[[RequestMessage], None] | None = None,
-        *,
         start_listener: bool,
     ) -> None:
         self.hostname = unbound.hostname
@@ -130,8 +117,8 @@ class BoundRedisExchangeClient(BoundExchangeClient):
 
         super().__init__(
             mailbox_id,
-            name,
-            handler,
+            name=name,
+            handler=handler,
             start_listener=start_listener,
         )
 

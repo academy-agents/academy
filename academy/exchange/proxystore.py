@@ -92,18 +92,6 @@ class UnboundProxyStoreExchange(UnboundExchangeClient):
         *,
         start_listener: bool,
     ) -> BoundProxyStoreExchangeClient:
-        """Bind exchange to client or agent.
-
-        If no agent is provided, exchange should create a new mailbox without
-        an associated behavior and bind to that. Otherwise, the exchange will
-        bind to the mailbox associated with the provided agent.
-
-        Note:
-            This is intentionally restrictive. Each user or agent should only
-            bind to the exchange with a single address. This forces
-            multiplexing of handles to other agents and requests to this
-            agents.
-        """
         # If store was none because of pickling,
         # the __setstate__ must be called before bind.
         assert self.store is not None
@@ -111,8 +99,8 @@ class UnboundProxyStoreExchange(UnboundExchangeClient):
         return BoundProxyStoreExchangeClient(
             self.exchange._bind(
                 mailbox_id,
-                name,
-                handler,
+                name=name,
+                handler=handler,
                 start_listener=start_listener,
             ),
             self.store,
@@ -178,8 +166,8 @@ class BoundProxyStoreExchangeClient(BoundExchangeClient):
         self,
     ) -> tuple[
         type[UnboundProxyStoreExchange],
-        tuple[BoundExchangeClient, None, Callable[[Any], bool]],
-        dict[str, object],
+        tuple[Any, ...],
+        dict[str, Any],
     ]:
         state = {
             'exchange': self.exchange,

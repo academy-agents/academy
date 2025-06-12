@@ -92,9 +92,7 @@ def test_create_mailbox_bad_identifier(mock_redis) -> None:
             exchange.clone().bind_as_agent(agent_id=uid)
 
 
-def test_send_to_mailbox_direct(mock_redis, caplog) -> None:
-    caplog.set_level(logging.DEBUG)
-
+def test_send_to_mailbox_direct(mock_redis) -> None:
     exchange = UnboundHybridExchangeClient(
         redis_host='localhost',
         redis_port=0,
@@ -112,9 +110,7 @@ def test_send_to_mailbox_direct(mock_redis, caplog) -> None:
                 )
 
 
-def test_send_to_mailbox_indirect(mock_redis, caplog) -> None:
-    caplog.set_level(logging.DEBUG)
-
+def test_send_to_mailbox_indirect(mock_redis) -> None:
     messages = 3
     exchange = UnboundHybridExchangeClient(
         redis_host='localhost',

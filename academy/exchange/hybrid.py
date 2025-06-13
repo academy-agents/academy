@@ -65,8 +65,10 @@ class HybridExchangeFactory(ExchangeFactory):
             generated.
         redis_kwargs: Extra keyword arguments to pass to
             [`redis.Redis()`][redis.Redis].
-        ports: The ports that will be used for direct communication when
-            the exchange is bound.
+        ports: An iterable of ports to give each client a unique port from a
+            user defined set. A StopIteration exception will be raised in
+            bind_* methods if the number of clients in the process is greater
+            than the length of the iterable.
 
     Raises:
         redis.exceptions.ConnectionError: If the Redis server is not reachable.

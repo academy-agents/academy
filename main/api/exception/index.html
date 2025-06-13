@@ -1478,29 +1478,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../multiplex/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.multiplex
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../mypy_plugin/" class="md-nav__link">
         
   
@@ -2045,7 +2022,7 @@ to receive response messages.</p>
 <p>A handle must be bound to be used, either as a unique client with its own
 mailbox or as bound to a running agent where it shares a mailbox with that
 running agent. To create a client bound handle, use
-<code>handle.bind_as_client()</code>.</p>
+<code>handle.bind_to_exchange()</code>.</p>
 <p>Any agent behavior that has a handle to another agent as an instance
 attribute will be automatically bound to the agent when the agent begins
 running.</p>
@@ -2064,8 +2041,8 @@ running.</p>
 <span class="normal"><a href="#__codelineno-0-53">53</a></span>
 <span class="normal"><a href="#__codelineno-0-54">54</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="sa">f</span><span class="s1">&#39;Handle to </span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s1"> is not bound as a client nor to a running &#39;</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="s1">&#39;agent. See the exception docstring for troubleshooting.&#39;</span><span class="p">,</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="sa">f</span><span class="s1">&#39;Handle to </span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s1"> to an exchange. See the exception docstring &#39;</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>        <span class="s1">&#39;for troubleshooting.&#39;</span><span class="p">,</span>
 </span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
                   </details>

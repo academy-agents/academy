@@ -1471,29 +1471,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/multiplex/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.multiplex
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../api/mypy_plugin/" class="md-nav__link">
         
   
@@ -1877,7 +1854,7 @@ Click on the plus (<code>+</code>) signs to learn more.</p>
 <span class="normal"><a href="#__codelineno-3-25">25</a></span>
 <span class="normal"><a href="#__codelineno-3-26">26</a></span>
 <span class="normal"><a href="#__codelineno-3-27">27</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.behavior</span><span class="w"> </span><span class="kn">import</span> <span class="n">Behavior</span><span class="p">,</span> <span class="n">action</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.exchange.thread</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadExchange</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.exchange.thread</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadExchangeFactory</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.launcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadLauncher</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_logging</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manager</span>
@@ -1891,7 +1868,7 @@ Click on the plus (<code>+</code>) signs to learn more.</p>
 </span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13"></a>    <span class="n">init_logging</span><span class="p">(</span><span class="s1">&#39;INFO&#39;</span><span class="p">)</span>
 </span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14"></a>
 </span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15"></a>    <span class="k">with</span> <span class="n">Manager</span><span class="p">(</span>  <span class="c1"># (3)!</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16"></a>        <span class="n">exchange</span><span class="o">=</span><span class="n">ThreadExchange</span><span class="p">(),</span>  <span class="c1"># (4)!</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16"></a>        <span class="n">exchange</span><span class="o">=</span><span class="n">ThreadExchangeFactory</span><span class="p">(),</span>  <span class="c1"># (4)!</span>
 </span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17"></a>        <span class="n">launcher</span><span class="o">=</span><span class="n">ThreadLauncher</span><span class="p">(),</span>  <span class="c1"># (5)!</span>
 </span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18"></a>    <span class="p">)</span> <span class="k">as</span> <span class="n">manager</span><span class="p">:</span>
 </span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19"></a>        <span class="n">agent_handle</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">ExampleAgent</span><span class="p">())</span>  <span class="c1"># (6)!</span>
@@ -1908,10 +1885,10 @@ Click on the plus (<code>+</code>) signs to learn more.</p>
 <li>Running agents implement a <a class="autorefs autorefs-internal" title="            Behavior" href="../api/behavior/#academy.behavior.Behavior"><code>Behavior</code></a>.</li>
 <li>Behavior methods decorated with <a class="autorefs autorefs-internal" title="            action" href="../api/behavior/#academy.behavior.action"><code>@action</code></a> can be invoked remotely by clients and other agents. An agent can call action methods on itself as normal methods.</li>
 <li>The <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.</li>
-<li>The <a class="autorefs autorefs-internal" title="            ThreadExchange" href="../api/exchange/thread/#academy.exchange.thread.ThreadExchange"><code>ThreadExchange</code></a> manages message passing between clients and agents running in different threads of a single process.</li>
+<li>The <a class="autorefs autorefs-internal" title="            ThreadExchangeClient" href="../api/exchange/thread/#academy.exchange.thread.ThreadExchangeClient"><code>ThreadExchange</code></a> manages message passing between clients and agents running in different threads of a single process.</li>
 <li>The <a class="autorefs autorefs-internal" title="            ThreadLauncher" href="../api/launcher/#academy.launcher.ThreadLauncher"><code>ThreadLauncher</code></a> launches agents in threads of the current process.</li>
 <li>An instantiated behavior (here, <code>ExampleAgent</code>) can be launched with <a class="autorefs autorefs-internal" title="            launch" href="../api/manager/#academy.manager.Manager.launch"><code>Manager.launch()</code></a>, returning a handle to the remote agent.</li>
-<li>Interact with running agents via a <a class="autorefs autorefs-internal" title="            RemoteHandle" href="../api/handle/#academy.handle.RemoteHandle"><code>RemoteHandle</code></a>. Invoking an action returns a future to the result.</li>
+<li>Interact with running agents via a <a class="autorefs autorefs-internal" title="            BoundRemoteHandle" href="../api/handle/#academy.handle.BoundRemoteHandle"><code>BoundRemoteHandle</code></a>. Invoking an action returns a future to the result.</li>
 <li>Agents can be shutdown via a handle or the manager.</li>
 </ol>
 <p>Running this script with logging enabled produces the following output:
@@ -2000,15 +1977,15 @@ Here, a <code>Coordinator</code> is initialized with handles to two other agents
 <h2 id="distributed-execution">Distributed Execution<a class="headerlink" href="#distributed-execution" title="Permanent link">&para;</a></h2>
 <p>The prior examples have launched agent in threads of the main process, but in practice agents are launched in different processes, possibly on the same node or remote nodes.
 The prior example can be executed in a distributed fashion by changing the launcher and exchange to implementations which support distributed execution.
-Below, a <a href="https://redis.io/" target="_blank">Redis server</a> server (via the <a class="autorefs autorefs-internal" title="            RedisExchange" href="../api/exchange/redis/#academy.exchange.redis.RedisExchange"><code>RedisExchange</code></a>) is used to support messaging between distributed agents executed with a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a> (via the <a class="autorefs autorefs-internal" title="            Launcher" href="../api/launcher/#academy.launcher.Launcher"><code>Launcher</code></a>).</p>
+Below, a <a href="https://redis.io/" target="_blank">Redis server</a> server (via the <a class="autorefs autorefs-internal" title="            RedisExchangeClient" href="../api/exchange/redis/#academy.exchange.redis.RedisExchangeClient"><code>RedisExchange</code></a>) is used to support messaging between distributed agents executed with a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a> (via the <a class="autorefs autorefs-internal" title="            Launcher" href="../api/launcher/#academy.launcher.Launcher"><code>Launcher</code></a>).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.exchange.redis</span><span class="w"> </span><span class="kn">import</span> <span class="n">RedisExchange</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.exchange.redis</span><span class="w"> </span><span class="kn">import</span> <span class="n">RedisExchangeFactory</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.launcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">Launcher</span>
 </span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">process_pool</span> <span class="o">=</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_processes</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
 </span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="k">with</span> <span class="n">Manager</span><span class="p">(</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>        <span class="n">exchange</span><span class="o">=</span><span class="n">RedisExchange</span><span class="p">(</span><span class="s1">&#39;&lt;REDIS HOST&gt;&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">),</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>        <span class="n">exchange</span><span class="o">=</span><span class="n">RedisExchangeFactory</span><span class="p">(</span><span class="s1">&#39;&lt;REDIS HOST&gt;&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">),</span>
 </span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>        <span class="n">launcher</span><span class="o">=</span><span class="n">Launcher</span><span class="p">(</span><span class="n">process_pool</span><span class="p">),</span>
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="p">)</span> <span class="k">as</span> <span class="n">manager</span><span class="p">:</span>
 </span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>        <span class="o">...</span>

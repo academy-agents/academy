@@ -1504,29 +1504,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/multiplex/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.multiplex
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../api/mypy_plugin/" class="md-nav__link">
         
   
@@ -1951,17 +1928,18 @@ Handles translate method calls into a request messages sent via the exchange and
 The handle also listens for response messages and accordingly sets the result on the appropriate <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Future"><code>Futures</code></a>.</p>
 <h2 id="exchanges-and-mailboxes">Exchanges and Mailboxes<a class="headerlink" href="#exchanges-and-mailboxes" title="Permanent link">&para;</a></h2>
 <p>Entities communicate by sending and receiving messages to and from mailboxes.
-Mailboxes are managed by an <a class="autorefs autorefs-internal" title="            Exchange" href="../api/exchange/#academy.exchange.Exchange"><code>Exchange</code></a>, and this protocol defines methods for registering new agent or client mailboxes, sending and receiving messages, and creating handles to remote agents.
+Mailboxes are managed by an Exchange, and this protocol defines methods for registering new agent or client mailboxes, sending and receiving messages, and creating handles to remote agents.
+A ExchangeFactory is initially unbound. That is not attached to a mailbox. In this state it is not able to send or receive messages. In order to act on the exchange, the ExchangeFactory must <a class="autorefs autorefs-internal" title="            bind_as_client" href="../api/exchange/#academy.exchange.ExchangeFactory.bind_as_client"><code>bind</code></a> to a mailbox so it is able to receive responses to its actions.
 Registering an agent or client involves creating a unique ID for the entity, which is also the address of its mailbox, and initializing that mailbox within the exchange.</p>
 <p>A mailbox has two states: open and closed.
 Open indicates that the entity is accepting messages, even if, for example, an agent has not yet started or is temporarily offline.
 Closed indicates permanent termination of the entity and will cause <a class="autorefs autorefs-internal" title="            MailboxClosedError" href="../api/exception/#academy.exception.MailboxClosedError"><code>MailboxClosedError</code></a> to be raised by subsequent send or receive operations to that mailbox.</p>
 <p>Academy provides many exchange implementations for different scenarios, such as:</p>
 <ul>
-<li><a class="autorefs autorefs-internal" title="            ThreadExchange" href="../api/exchange/thread/#academy.exchange.thread.ThreadExchange"><code>ThreadExchange</code></a>: Uses thread-safe queues for single-process, multiple-agent scenarios. Useful for testing and development.</li>
-<li><a class="autorefs autorefs-internal" title="            HttpExchange" href="../api/exchange/cloud/client/#academy.exchange.cloud.client.HttpExchange"><code>HttpExchange</code></a>: Centralized service that maintains mailboxes and exposes a REST API. Lower performance but easy to extend with common authentication tools.</li>
-<li><a class="autorefs autorefs-internal" title="            RedisExchange" href="../api/exchange/redis/#academy.exchange.redis.RedisExchange"><code>RedisExchange</code></a>: Stores state and mailboxes in a Redis server. Use of Redis enables optional replication and cloud-hosting for improved resilience and availability.</li>
-<li><a class="autorefs autorefs-internal" title="            HybridExchange" href="../api/exchange/hybrid/#academy.exchange.hybrid.HybridExchange"><code>HybridExchange</code></a>: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).</li>
+<li><a class="autorefs autorefs-internal" title="            ThreadExchangeClient" href="../api/exchange/thread/#academy.exchange.thread.ThreadExchangeClient"><code>ThreadExchange</code></a>: Uses thread-safe queues for single-process, multiple-agent scenarios. Useful for testing and development.</li>
+<li><a class="autorefs autorefs-internal" title="            HttpExchangeClient" href="../api/exchange/cloud/client/#academy.exchange.cloud.client.HttpExchangeClient"><code>HttpExchange</code></a>: Centralized service that maintains mailboxes and exposes a REST API. Lower performance but easy to extend with common authentication tools.</li>
+<li><a class="autorefs autorefs-internal" title="            RedisExchangeClient" href="../api/exchange/redis/#academy.exchange.redis.RedisExchangeClient"><code>RedisExchange</code></a>: Stores state and mailboxes in a Redis server. Use of Redis enables optional replication and cloud-hosting for improved resilience and availability.</li>
+<li><a class="autorefs autorefs-internal" title="            HybridExchangeClient" href="../api/exchange/hybrid/#academy.exchange.hybrid.HybridExchangeClient"><code>HybridExchange</code></a>: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).</li>
 </ul>
 <h2 id="launcher">Launcher<a class="headerlink" href="#launcher" title="Permanent link">&para;</a></h2>
 <p>An agent can be run manually, but the intended method of execution is via the launcher, which manages the initialization and execution of agents on remote resources.

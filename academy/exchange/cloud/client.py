@@ -25,6 +25,8 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
+from academy.exchange import RegistrationInfo
+from academy.exchange import SimpleRegistrationInfo
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.server import _FORBIDDEN_CODE
 from academy.exchange.cloud.server import _NOT_FOUND_CODE
@@ -86,6 +88,7 @@ class HttpExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
+        registration_info: RegistrationInfo[Any] | None = None,
     ) -> HttpExchangeTransport:
         return HttpExchangeTransport.new(
             connection_info=self._info,
@@ -234,7 +237,7 @@ class HttpExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> AgentId[BehaviorT]:
+    ) -> RegistrationInfo[BehaviorT]:
         """Create a new agent identifier and associated mailbox.
 
         Args:
@@ -254,7 +257,7 @@ class HttpExchangeTransport(ExchangeTransport, NoPickleMixin):
             },
         )
         response.raise_for_status()
-        return aid
+        return SimpleRegistrationInfo(aid)
 
     def send(self, message: Message) -> None:
         response = self._session.put(

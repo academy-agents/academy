@@ -24,6 +24,8 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
+from academy.exchange import RegistrationInfo
+from academy.exchange import SimpleRegistrationInfo
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.exchange.redis import _MailboxState
@@ -101,6 +103,7 @@ class HybridExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
+        registration_info: RegistrationInfo[Any] | None = None,
     ) -> HybridExchangeTransport:
         return HybridExchangeTransport.new(
             interface=self._interface,
@@ -266,7 +269,7 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> AgentId[BehaviorT]:
+    ) -> SimpleRegistrationInfo[BehaviorT]:
         aid: AgentId[Any] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
@@ -278,7 +281,7 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
-        return aid
+        return SimpleRegistrationInfo(aid)
 
     def _send_direct(self, address: str, message: Message) -> None:
         self._socket_pool.send(address, message.model_serialize())

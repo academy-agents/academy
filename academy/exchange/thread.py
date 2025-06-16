@@ -17,6 +17,8 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
+from academy.exchange import RegistrationInfo
+from academy.exchange import SimpleRegistrationInfo
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
@@ -62,6 +64,7 @@ class ThreadExchangeFactory(ExchangeFactory, NoPickleMixin):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
+        registration_info: RegistrationInfo[Any] | None = None,
     ) -> ThreadExchangeTransport:
         return ThreadExchangeTransport.new(
             mailbox_id,
@@ -147,13 +150,13 @@ class ThreadExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> AgentId[BehaviorT]:
+    ) -> SimpleRegistrationInfo[BehaviorT]:
         aid: AgentId[BehaviorT] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
         self._state.queues[aid] = Queue()
         self._state.behaviors[aid] = behavior
-        return aid
+        return SimpleRegistrationInfo(aid)
 
     def send(self, message: Message) -> None:
         queue = self._state.queues.get(message.dest, None)

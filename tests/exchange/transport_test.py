@@ -44,14 +44,14 @@ def test_transport_create_factory(transport: ExchangeTransport) -> None:
 
 
 def test_transport_register_agent(transport: ExchangeTransport) -> None:
-    agent_id = transport.register_agent(EmptyBehavior)
-    assert transport.status(agent_id) == MailboxStatus.ACTIVE
+    agent_info = transport.register_agent(EmptyBehavior)
+    assert transport.status(agent_info.agent_id) == MailboxStatus.ACTIVE
 
 
 def test_transport_status(transport: ExchangeTransport) -> None:
     uid = UserId.new()
     assert transport.status(uid) == MailboxStatus.MISSING
-    aid = transport.register_agent(EmptyBehavior)
+    aid = transport.register_agent(EmptyBehavior).agent_id
     assert transport.status(aid) == MailboxStatus.ACTIVE
     transport.terminate(aid)
     transport.terminate(aid)  # Idempotency
@@ -77,7 +77,7 @@ def test_transport_send_bad_identifier_error(
 
 
 def test_transport_send_mailbox_closed(transport: ExchangeTransport) -> None:
-    aid = transport.register_agent(EmptyBehavior)
+    aid = transport.register_agent(EmptyBehavior).agent_id
     transport.terminate(aid)
     with pytest.raises(MailboxClosedError):
         transport.send(PingRequest(src=transport.mailbox_id, dest=aid))
@@ -109,9 +109,9 @@ class C(B): ...
 
 
 def test_transport_discover(transport: ExchangeTransport) -> None:
-    bid = transport.register_agent(B)
-    cid = transport.register_agent(C)
-    did = transport.register_agent(C)
+    bid = transport.register_agent(B).agent_id
+    cid = transport.register_agent(C).agent_id
+    did = transport.register_agent(C).agent_id
     transport.terminate(did)
 
     assert len(transport.discover(A)) == 0

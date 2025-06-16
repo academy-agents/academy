@@ -24,6 +24,7 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
+from academy.exchange import RegistrationInfo
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 
@@ -43,7 +44,7 @@ def _run_agent_on_worker(agent: Agent[Any]) -> None:
 @dataclasses.dataclass
 class _ACB(Generic[BehaviorT]):
     # Agent Control Block
-    agent_id: AgentId[BehaviorT]
+    agent_info: RegistrationInfo[BehaviorT]
     behavior: BehaviorT
     exchange: ExchangeFactory
     done: threading.Event
@@ -102,13 +103,22 @@ class Launcher:
 
         try:
             future.result()
-            logger.debug('Completed agent future (%s)', acb.agent_id)
+            logger.debug(
+                'Completed agent future (%s)',
+                acb.agent_info.agent_id,
+            )
         except CancelledError:  # pragma: no cover
-            logger.warning('Cancelled agent future (%s)', acb.agent_id)
+            logger.warning(
+                'Cancelled agent future (%s)',
+                acb.agent_info.agent_id,
+            )
         except Exception:  # pragma: no cover
-            logger.exception('Received agent exception (%s)', acb.agent_id)
+            logger.exception(
+                'Received agent exception (%s)',
+                acb.agent_info.agent_id,
+            )
             if acb.launch_count < self._max_restarts + 1:
-                self._launch(acb.agent_id)
+                self._launch(acb.agent_info.agent_id)
                 done = False
 
         if done:
@@ -136,7 +146,7 @@ class Launcher:
 
         agent = Agent(
             acb.behavior,
-            agent_id=acb.agent_id,
+            agent_info=acb.agent_info,
             exchange=acb.exchange,
             config=AgentRunConfig(
                 terminate_on_error=acb.launch_count + 1 >= self._max_restarts,
@@ -151,7 +161,7 @@ class Launcher:
         if acb.launch_count == 1:
             logger.debug(
                 'Launched agent (%s; %s)',
-                acb.agent_id,
+                acb.agent_info.agent_id,
                 acb.behavior,
             )
         else:
@@ -160,7 +170,7 @@ class Launcher:
                 'Restarted agent (%d/%d retries; %s; %s)',
                 restarts,
                 self._max_restarts,
-                acb.agent_id,
+                acb.agent_info.agent_id,
                 acb.behavior,
             )
 
@@ -185,14 +195,15 @@ class Launcher:
         Returns:
             Handle (unbound) used to interact with the agent.
         """
-        agent_id = (
-            exchange.register_agent(type(behavior), name=name)
-            if agent_id is None
-            else agent_id
+        agent_info = exchange.register_agent(
+            type(behavior),
+            name=name,
+            _agent_id=agent_id,
         )
+        agent_id = agent_info.agent_id
 
         acb = _ACB(
-            agent_id,
+            agent_info,
             behavior,
             exchange.factory(),
             done=threading.Event(),
@@ -212,7 +223,7 @@ class Launcher:
         running: set[AgentId[Any]] = set()
         for acb in self._acbs.values():
             if not acb.done.is_set():
-                running.add(acb.agent_id)
+                running.add(acb.agent_info.agent_id)
         return running
 
     def wait(
@@ -247,7 +258,7 @@ class Launcher:
         if not acb.done.wait(timeout):
             raise TimeoutError(
                 f'Agent did not complete within {timeout}s timeout '
-                f'({acb.agent_id})',
+                f'({acb.agent_info.agent_id})',
             )
 
         # The only time _ACB.future is None is between constructing the _ACB

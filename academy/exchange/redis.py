@@ -23,6 +23,8 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
+from academy.exchange import RegistrationInfo
+from academy.exchange import SimpleRegistrationInfo
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -71,6 +73,7 @@ class RedisExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
+        registration_info: RegistrationInfo[Any] | None = None,
     ) -> RedisExchangeTransport:
         return RedisExchangeTransport.new(
             mailbox_id=mailbox_id,
@@ -220,7 +223,7 @@ class RedisExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> AgentId[BehaviorT]:
+    ) -> RegistrationInfo[BehaviorT]:
         aid: AgentId[BehaviorT] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
@@ -229,7 +232,7 @@ class RedisExchangeTransport(ExchangeTransport, NoPickleMixin):
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
-        return aid
+        return SimpleRegistrationInfo(aid)
 
     def send(self, message: Message) -> None:
         status = self._client.get(self._active_key(message.dest))

@@ -10,8 +10,8 @@ Connect to the exchange through the client.
 from academy.exchange.cloud.client import HttpExchange
 
 with HttpExchange('localhost', 1234) as exchange:
-    aid = exchange.register_agent()
-    mailbox = exchange.get_mailbox(aid)
+    agent_info = exchange.register_agent()
+    mailbox = exchange.get_mailbox(agent_info.agent_id)
     ...
     mailbox.close()
 ```

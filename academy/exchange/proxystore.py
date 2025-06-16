@@ -18,6 +18,7 @@ from academy.behavior import Behavior
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
+from academy.exchange import RegistrationInfo
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
@@ -97,11 +98,16 @@ class ProxyStoreExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
+        registration_info: RegistrationInfo[Any] | None = None,
     ) -> ProxyStoreExchangeTransport:
         # If store was none because of pickling,
         # the __setstate__ must be called before bind.
         assert self.store is not None
-        transport = self.base._create_transport(mailbox_id, name=name)
+        transport = self.base._create_transport(
+            mailbox_id,
+            name=name,
+            registration_info=registration_info,
+        )
         return ProxyStoreExchangeTransport(
             transport,
             self.store,
@@ -190,7 +196,7 @@ class ProxyStoreExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> AgentId[BehaviorT]:
+    ) -> RegistrationInfo[BehaviorT]:
         return self.transport.register_agent(
             behavior,
             name=name,

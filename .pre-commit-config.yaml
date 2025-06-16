@@ -34,3 +34,4 @@ repos:
           - redis
           - requests
           - "tomli ; python_version<'3.11'"
+          - globus-sdk>=3.46.0,<4

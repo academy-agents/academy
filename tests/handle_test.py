@@ -86,8 +86,8 @@ def test_proxy_handle_agent_shutdown_errors() -> None:
 def test_unbound_remote_handle_serialize(
     exchange: UserExchangeClient,
 ) -> None:
-    agent_id = exchange.register_agent(EmptyBehavior)
-    handle = UnboundRemoteHandle(agent_id)
+    agent_info = exchange.register_agent(EmptyBehavior)
+    handle = UnboundRemoteHandle(agent_info.agent_id)
     assert isinstance(handle, Handle)
 
     dumped = pickle.dumps(handle)
@@ -98,16 +98,16 @@ def test_unbound_remote_handle_serialize(
 
 
 def test_unbound_remote_handle_bind(exchange: UserExchangeClient) -> None:
-    agent_id = exchange.register_agent(EmptyBehavior)
-    handle = UnboundRemoteHandle(agent_id)
+    agent_info = exchange.register_agent(EmptyBehavior)
+    handle = UnboundRemoteHandle(agent_info.agent_id)
     with handle.bind_to_exchange(exchange) as agent_bound:
         assert isinstance(agent_bound, BoundRemoteHandle)
 
 
 def test_unbound_remote_handle_errors(exchange: UserExchangeClient) -> None:
-    agent_id = exchange.register_agent(EmptyBehavior)
-    handle = UnboundRemoteHandle(agent_id)
-    request = PingRequest(src=exchange.user_id, dest=agent_id)
+    agent_info = exchange.register_agent(EmptyBehavior)
+    handle = UnboundRemoteHandle(agent_info.agent_id)
+    request = PingRequest(src=exchange.user_id, dest=agent_info.agent_id)
     with pytest.raises(HandleNotBoundError):
         handle._send_request(request)
     with pytest.raises(HandleNotBoundError):
@@ -121,10 +121,10 @@ def test_unbound_remote_handle_errors(exchange: UserExchangeClient) -> None:
 
 
 def test_remote_handle_closed_error(exchange: UserExchangeClient) -> None:
-    agent_id = exchange.register_agent(EmptyBehavior)
+    agent_info = exchange.register_agent(EmptyBehavior)
     handle = BoundRemoteHandle(
         exchange,
-        agent_id,
+        agent_info.agent_id,
         exchange.user_id,
     )
     handle.close()
@@ -139,8 +139,12 @@ def test_remote_handle_closed_error(exchange: UserExchangeClient) -> None:
 
 
 def test_agent_remote_handle_serialize(exchange: UserExchangeClient) -> None:
-    agent_id = exchange.register_agent(EmptyBehavior)
-    with BoundRemoteHandle(exchange, agent_id, exchange.user_id) as handle:
+    agent_info = exchange.register_agent(EmptyBehavior)
+    with BoundRemoteHandle(
+        exchange,
+        agent_info.agent_id,
+        exchange.user_id,
+    ) as handle:
         # Note: don't call pickle.dumps here because ThreadExchange
         # is not pickleable so we test __reduce__ directly.
         class_, args = handle.__reduce__()
@@ -152,16 +156,16 @@ def test_agent_remote_handle_serialize(exchange: UserExchangeClient) -> None:
 
 
 def test_agent_remote_handle_bind(exchange: UserExchangeClient) -> None:
-    agent_id = exchange.register_agent(EmptyBehavior)
+    agent_info = exchange.register_agent(EmptyBehavior)
     with exchange.factory().create_agent_client(
-        agent_id=agent_id,
+        agent_info=agent_info,
         request_handler=lambda _: None,
     ) as client:
         with pytest.raises(
             ValueError,
-            match=f'Cannot create handle to {agent_id}',
+            match=f'Cannot create handle to {agent_info.agent_id}',
         ):
-            client.get_handle(agent_id)
+            client.get_handle(agent_info.agent_id)
 
 
 def test_client_remote_handle_log_bad_response(

@@ -11,6 +11,8 @@ from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import get_args
+from typing import NamedTuple
+from typing import Protocol
 from typing import runtime_checkable
 from typing import TypeVar
 
@@ -54,6 +56,26 @@ class MailboxStatus(enum.Enum):
     """Mailbox was terminated and no longer accepts messages."""
 
 
+class RegistrationInfo(Protocol[BehaviorT]):
+    """Information returned from registering an agent.
+
+    Protocol definition for exchanges to return additional information
+    necessary to launch agent (i.e. auth information, or specific
+    addresses).
+    """
+
+    @property
+    def agent_id(self) -> AgentId[BehaviorT]:
+        """The id of the registered agent."""
+        ...
+
+
+class SimpleRegistrationInfo(NamedTuple, Generic[BehaviorT]):
+    """Minimum RegistrationInfo with only AgentId."""
+
+    agent_id: AgentId[BehaviorT]
+
+
 class ExchangeFactory(abc.ABC):
     """Exchange client factory.
 
@@ -74,11 +96,12 @@ class ExchangeFactory(abc.ABC):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
+        registration_info: RegistrationInfo[BehaviorT] | None = None,
     ) -> ExchangeTransport: ...
 
     def create_agent_client(
         self,
-        agent_id: AgentId[BehaviorT],
+        agent_info: RegistrationInfo[BehaviorT],
         request_handler: Callable[[RequestMessage], None],
     ) -> AgentExchangeClient[BehaviorT]:
         """Create a new agent exchange client.
@@ -93,20 +116,24 @@ class ExchangeFactory(abc.ABC):
         ```
 
         Args:
-            agent_id: ID of the agent to create a client for.
+            agent_info: Registration information created by the exchange
+                for this agent.
             request_handler: Agent request message handler.
 
         Raises:
             BadEntityIdError: If an agent with `agent_id` is not already
                 registered with the exchange.
         """
-        transport = self._create_transport(mailbox_id=agent_id)
-        assert transport.mailbox_id == agent_id
-        if transport.status(agent_id) != MailboxStatus.ACTIVE:
+        transport = self._create_transport(
+            mailbox_id=agent_info.agent_id,
+            registration_info=agent_info,
+        )
+        assert transport.mailbox_id == agent_info.agent_id
+        if transport.status(agent_info.agent_id) != MailboxStatus.ACTIVE:
             transport.close()
-            raise BadEntityIdError(agent_id)
+            raise BadEntityIdError(agent_info.agent_id)
         return AgentExchangeClient(
-            agent_id,
+            agent_info.agent_id,
             transport,
             request_handler=request_handler,
         )
@@ -237,7 +264,7 @@ class ExchangeTransport(abc.ABC):
         # close an agent mailbox and immediately re-register it. This will no
         # longer be needed after Issue #100 and can be removed.
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> AgentId[BehaviorT]:
+    ) -> RegistrationInfo[BehaviorT]:
         """Register a new agent and associated mailbox with the exchange.
 
         Args:
@@ -388,7 +415,7 @@ class ExchangeClient(abc.ABC):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> AgentId[BehaviorT]:
+    ) -> RegistrationInfo[BehaviorT]:
         """Register a new agent and associated mailbox with the exchange.
 
         Args:
@@ -398,13 +425,13 @@ class ExchangeClient(abc.ABC):
         Returns:
             Agent ID.
         """
-        agent_id = self._transport.register_agent(
+        agent_info = self._transport.register_agent(
             behavior,
             name=name,
             _agent_id=_agent_id,
         )
-        logger.info('Registered %s in exchange', agent_id)
-        return agent_id
+        logger.info('Registered %s in exchange', agent_info.agent_id)
+        return agent_info
 
     def send(self, message: Message) -> None:
         """Send a message to a mailbox.

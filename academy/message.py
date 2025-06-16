@@ -23,7 +23,7 @@ NO_RESULT = object()
 
 
 class BaseMessage(BaseModel):
-    """Base message type for messages between entities (agents or clients).
+    """Base message type for messages between entities (agents or users).
 
     Note:
         The [`hash()`][hash] of this type is a combination of the

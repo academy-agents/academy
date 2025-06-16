@@ -13,7 +13,7 @@ from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
 from academy.identifier import AgentId
-from academy.identifier import ClientId
+from academy.identifier import UserId
 from academy.message import PingRequest
 from testing.behavior import EmptyBehavior
 
@@ -49,7 +49,7 @@ def test_transport_register_agent(transport: ExchangeTransport) -> None:
 
 
 def test_transport_status(transport: ExchangeTransport) -> None:
-    uid = ClientId.new()
+    uid = UserId.new()
     assert transport.status(uid) == MailboxStatus.MISSING
     aid = transport.register_agent(EmptyBehavior)
     assert transport.status(aid) == MailboxStatus.ACTIVE

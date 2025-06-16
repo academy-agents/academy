@@ -25,8 +25,8 @@ from academy.exception import MailboxClosedError
 from academy.handle import BoundRemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
-from academy.identifier import ClientId
 from academy.identifier import EntityId
+from academy.identifier import UserId
 from academy.message import Message
 from academy.message import RequestMessage
 from academy.message import ResponseMessage
@@ -125,7 +125,7 @@ class ExchangeFactory(abc.ABC):
         """
         transport = self._create_transport(mailbox_id=None, name=name)
         user_id = transport.mailbox_id
-        assert isinstance(user_id, ClientId)
+        assert isinstance(user_id, UserId)
         return UserExchangeClient(
             user_id,
             transport,
@@ -543,7 +543,7 @@ class UserExchangeClient(ExchangeClient):
 
     def __init__(
         self,
-        user_id: ClientId,
+        user_id: UserId,
         transport: ExchangeTransport,
         *,
         start_listener: bool = True,
@@ -565,7 +565,7 @@ class UserExchangeClient(ExchangeClient):
         return f'{type(self).__name__}<{self.user_id}>'
 
     @property
-    def user_id(self) -> ClientId:
+    def user_id(self) -> UserId:
         """User ID."""
         return self._user_id
 

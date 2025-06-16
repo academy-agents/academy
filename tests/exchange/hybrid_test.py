@@ -9,7 +9,7 @@ from academy.exchange.hybrid import base32_to_uuid
 from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.hybrid import HybridExchangeTransport
 from academy.exchange.hybrid import uuid_to_base32
-from academy.identifier import ClientId
+from academy.identifier import UserId
 from academy.message import PingRequest
 from academy.socket import open_port
 from testing.behavior import EmptyBehavior
@@ -27,7 +27,7 @@ def test_factory_serialize(
 
 def test_key_namespaces(mock_redis) -> None:
     namespace = 'foo'
-    uid = ClientId.new()
+    uid = UserId.new()
     factory = HybridExchangeFactory(
         redis_host='localhost',
         redis_port=0,

@@ -159,7 +159,7 @@ def test_agent_run_in_thread(exchange: UserExchangeClient) -> None:
 
 def test_agent_shutdown_message(exchange: UserExchangeClient) -> None:
     agent_id = exchange.register_agent(EmptyBehavior)
-    client_id = exchange.user_id
+    user_id = exchange.user_id
 
     agent = Agent(
         EmptyBehavior(),
@@ -169,7 +169,7 @@ def test_agent_shutdown_message(exchange: UserExchangeClient) -> None:
     thread = threading.Thread(target=agent)
     thread.start()
 
-    shutdown = ShutdownRequest(src=client_id, dest=agent_id)
+    shutdown = ShutdownRequest(src=user_id, dest=agent_id)
     exchange.send(agent_id, shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
@@ -178,7 +178,7 @@ def test_agent_shutdown_message(exchange: UserExchangeClient) -> None:
 
 def test_agent_ping_message(exchange: UserExchangeClient) -> None:
     agent_id = exchange.register_agent(EmptyBehavior)
-    client_id = exchange.user_id
+    user_id = exchange.user_id
 
     agent = Agent(
         EmptyBehavior(),
@@ -191,12 +191,12 @@ def test_agent_ping_message(exchange: UserExchangeClient) -> None:
     thread = threading.Thread(target=agent)
     thread.start()
 
-    ping = PingRequest(src=client_id, dest=agent_id)
+    ping = PingRequest(src=user_id, dest=agent_id)
     exchange.send(agent_id, ping)
     message = exchange._transport.recv()
     assert isinstance(message, PingResponse)
 
-    shutdown = ShutdownRequest(src=client_id, dest=agent_id)
+    shutdown = ShutdownRequest(src=user_id, dest=agent_id)
     exchange.send(agent_id, shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
@@ -205,7 +205,7 @@ def test_agent_ping_message(exchange: UserExchangeClient) -> None:
 
 def test_agent_action_message(exchange: UserExchangeClient) -> None:
     agent_id = exchange.register_agent(CounterBehavior)
-    client_id = exchange.user_id
+    user_id = exchange.user_id
 
     agent = Agent(
         CounterBehavior(),
@@ -217,7 +217,7 @@ def test_agent_action_message(exchange: UserExchangeClient) -> None:
 
     value = 42
     request = ActionRequest(
-        src=client_id,
+        src=user_id,
         dest=agent_id,
         action='add',
         pargs=(value,),
@@ -228,14 +228,14 @@ def test_agent_action_message(exchange: UserExchangeClient) -> None:
     assert message.exception is None
     assert message.result is None
 
-    request = ActionRequest(src=client_id, dest=agent_id, action='count')
+    request = ActionRequest(src=user_id, dest=agent_id, action='count')
     exchange.send(agent_id, request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
     assert message.exception is None
     assert message.result == value
 
-    shutdown = ShutdownRequest(src=client_id, dest=agent_id)
+    shutdown = ShutdownRequest(src=user_id, dest=agent_id)
     exchange.send(agent_id, shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
@@ -244,7 +244,7 @@ def test_agent_action_message(exchange: UserExchangeClient) -> None:
 
 def test_agent_action_message_error(exchange: UserExchangeClient) -> None:
     agent_id = exchange.register_agent(ErrorBehavior)
-    client_id = exchange.user_id
+    user_id = exchange.user_id
 
     agent = Agent(
         ErrorBehavior(),
@@ -254,14 +254,14 @@ def test_agent_action_message_error(exchange: UserExchangeClient) -> None:
     thread = threading.Thread(target=agent)
     thread.start()
 
-    request = ActionRequest(src=client_id, dest=agent_id, action='fails')
+    request = ActionRequest(src=user_id, dest=agent_id, action='fails')
     exchange.send(agent_id, request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
     assert isinstance(message.exception, RuntimeError)
     assert 'This action always fails.' in str(message.exception)
 
-    shutdown = ShutdownRequest(src=client_id, dest=agent_id)
+    shutdown = ShutdownRequest(src=user_id, dest=agent_id)
     exchange.send(agent_id, shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
@@ -270,7 +270,7 @@ def test_agent_action_message_error(exchange: UserExchangeClient) -> None:
 
 def test_agent_action_message_unknown(exchange: UserExchangeClient) -> None:
     agent_id = exchange.register_agent(EmptyBehavior)
-    client_id = exchange.user_id
+    user_id = exchange.user_id
 
     agent = Agent(
         EmptyBehavior(),
@@ -280,14 +280,14 @@ def test_agent_action_message_unknown(exchange: UserExchangeClient) -> None:
     thread = threading.Thread(target=agent)
     thread.start()
 
-    request = ActionRequest(src=client_id, dest=agent_id, action='null')
+    request = ActionRequest(src=user_id, dest=agent_id, action='null')
     exchange.send(agent_id, request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
     assert isinstance(message.exception, AttributeError)
     assert 'null' in str(message.exception)
 
-    shutdown = ShutdownRequest(src=client_id, dest=agent_id)
+    shutdown = ShutdownRequest(src=user_id, dest=agent_id)
     exchange.send(agent_id, shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
@@ -346,7 +346,7 @@ def test_agent_run_bind_handles(exchange: UserExchangeClient) -> None:
     agent._bind_handles()  # Idempotency check
     agent.behavior.on_setup()
     agent.behavior.on_shutdown()
-    # The client-bound and self-bound remote handles should be ignored.
+    # The user-bound and self-bound remote handles should be ignored.
     assert len(agent.exchange._handles) == 2  # noqa: PLR2004
 
 

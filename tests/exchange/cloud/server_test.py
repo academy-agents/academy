@@ -35,7 +35,7 @@ from academy.exchange.cloud.server import _TIMEOUT_CODE
 from academy.exchange.cloud.server import _UNAUTHORIZED_CODE
 from academy.exchange.cloud.server import create_app
 from academy.identifier import AgentId
-from academy.identifier import ClientId
+from academy.identifier import UserId
 from academy.message import PingRequest
 from academy.socket import open_port
 from testing.ssl import SSLContextFixture
@@ -126,7 +126,7 @@ def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
 async def test_mailbox_manager_create_close() -> None:
     manager = _MailboxManager()
     user_id = str(uuid.uuid4())
-    uid = ClientId.new()
+    uid = UserId.new()
     # Should do nothing since mailbox doesn't exist
     await manager.terminate(user_id, uid)
     assert manager.check_mailbox(user_id, uid) == MailboxStatus.MISSING
@@ -151,7 +151,7 @@ async def test_mailbox_manager_send_recv() -> None:
     manager = _MailboxManager()
     user_id = str(uuid.uuid4())
     bad_user = str(uuid.uuid4())
-    uid = ClientId.new()
+    uid = UserId.new()
     manager.create_mailbox(user_id, uid)
 
     message = PingRequest(src=uid, dest=uid)
@@ -169,7 +169,7 @@ async def test_mailbox_manager_send_recv() -> None:
 @pytest.mark.asyncio
 async def test_mailbox_manager_bad_identifier() -> None:
     manager = _MailboxManager()
-    uid = ClientId.new()
+    uid = UserId.new()
     message = PingRequest(src=uid, dest=uid)
 
     with pytest.raises(BadEntityIdError):
@@ -182,7 +182,7 @@ async def test_mailbox_manager_bad_identifier() -> None:
 @pytest.mark.asyncio
 async def test_mailbox_manager_mailbox_closed() -> None:
     manager = _MailboxManager()
-    uid = ClientId.new()
+    uid = UserId.new()
     manager.create_mailbox(None, uid)
     await manager.terminate(None, uid)
     message = PingRequest(src=uid, dest=uid)
@@ -244,7 +244,7 @@ async def test_recv_mailbox_validation_error(cli) -> None:
 
     response = await cli.get(
         '/message',
-        json={'mailbox': ClientId.new().model_dump_json()},
+        json={'mailbox': UserId.new().model_dump_json()},
     )
     assert response.status == _NOT_FOUND_CODE
     assert await response.text() == 'Unknown mailbox ID'
@@ -252,7 +252,7 @@ async def test_recv_mailbox_validation_error(cli) -> None:
 
 @pytest.mark.asyncio
 async def test_recv_timeout_error(cli) -> None:
-    uid = ClientId.new()
+    uid = UserId.new()
     response = await cli.post(
         '/mailbox',
         json={'mailbox': uid.model_dump_json()},
@@ -277,7 +277,7 @@ async def test_null_auth_client() -> None:
 
         response = await client.get(
             '/message',
-            json={'mailbox': ClientId.new().model_dump_json()},
+            json={'mailbox': UserId.new().model_dump_json()},
         )
         assert response.status == _NOT_FOUND_CODE
         assert await response.text() == 'Unknown mailbox ID'
@@ -406,7 +406,7 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
 @pytest.mark.asyncio
 async def test_globus_auth_client_message(auth_client) -> None:
     aid: AgentId[Any] = AgentId.new(name='test')
-    cid = ClientId.new()
+    cid = UserId.new()
     message = PingRequest(src=cid, dest=aid)
 
     # Create agent

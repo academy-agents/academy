@@ -24,8 +24,8 @@ from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
 from academy.identifier import AgentId
-from academy.identifier import ClientId
 from academy.identifier import EntityId
+from academy.identifier import UserId
 from academy.message import BaseMessage
 from academy.message import Message
 from academy.serialize import NoPickleMixin
@@ -137,7 +137,7 @@ class RedisExchangeTransport(ExchangeTransport, NoPickleMixin):
         client.ping()
 
         if mailbox_id is None:
-            mailbox_id = ClientId.new(name=name)
+            mailbox_id = UserId.new(name=name)
             client.set(f'active:{mailbox_id.uid}', _MailboxState.ACTIVE.value)
             logger.info('Registered %s in exchange', mailbox_id)
         return cls(mailbox_id, client, redis_info=redis_info)

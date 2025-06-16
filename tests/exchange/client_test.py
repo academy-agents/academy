@@ -10,7 +10,7 @@ from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
 from academy.identifier import AgentId
-from academy.identifier import ClientId
+from academy.identifier import UserId
 from academy.message import PingRequest
 from academy.message import PingResponse
 from academy.message import RequestMessage
@@ -75,11 +75,11 @@ def test_client_get_handle(client: UserExchangeClient) -> None:
 
 def test_client_get_handle_type_error(client: UserExchangeClient) -> None:
     with pytest.raises(TypeError):
-        client.get_handle(ClientId.new())  # type: ignore[arg-type]
+        client.get_handle(UserId.new())  # type: ignore[arg-type]
 
 
 def test_client_get_status(client: UserExchangeClient) -> None:
-    uid = ClientId.new()
+    uid = UserId.new()
     assert client.status(uid) == MailboxStatus.MISSING
     aid = client.register_agent(EmptyBehavior)
     assert client.status(aid) == MailboxStatus.ACTIVE

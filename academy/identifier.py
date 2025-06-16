@@ -24,7 +24,7 @@ BehaviorT = TypeVar('BehaviorT')
 
 
 class AgentId(BaseModel, Generic[BehaviorT]):
-    """Unique identifier of an agent in a multi-agent system."""
+    """Unique identifier for an agent entity in a multi-agent system."""
 
     uid: uuid.UUID = Field()
     name: Optional[str] = Field(None)  # noqa: UP007
@@ -44,7 +44,7 @@ class AgentId(BaseModel, Generic[BehaviorT]):
 
     def __str__(self) -> str:
         name = self.name if self.name is not None else str(self.uid)[:8]
-        return f'AgentID<{name}>'
+        return f'AgentId<{name}>'
 
     @classmethod
     def new(cls, name: str | None = None) -> Self:
@@ -56,12 +56,12 @@ class AgentId(BaseModel, Generic[BehaviorT]):
         return cls(uid=uuid.uuid4(), name=name)
 
 
-class ClientId(BaseModel):
-    """Unique identifier of a client in a multi-agent system."""
+class UserId(BaseModel):
+    """Unique identifier for a user entity in a multi-agent system."""
 
     uid: uuid.UUID = Field()
     name: Optional[str] = Field(None)  # noqa: UP007
-    role: Literal['client'] = Field('client', repr=False)
+    role: Literal['user'] = Field('user', repr=False)
 
     model_config = ConfigDict(
         extra='forbid',
@@ -70,14 +70,14 @@ class ClientId(BaseModel):
     )
 
     def __eq__(self, other: object, /) -> bool:
-        return isinstance(other, ClientId) and self.uid == other.uid
+        return isinstance(other, UserId) and self.uid == other.uid
 
     def __hash__(self) -> int:
         return hash(self.role) + hash(self.uid)
 
     def __str__(self) -> str:
         name = self.name if self.name is not None else str(self.uid)[:8]
-        return f'ClientID<{name}>'
+        return f'UserId<{name}>'
 
     @classmethod
     def new(cls, name: str | None = None) -> Self:
@@ -89,5 +89,5 @@ class ClientId(BaseModel):
         return cls(uid=uuid.uuid4(), name=name)
 
 
-EntityId = Union[AgentId[Any], ClientId]
+EntityId = Union[AgentId[Any], UserId]
 """EntityId union type for type annotations."""

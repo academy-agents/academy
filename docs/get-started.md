@@ -57,9 +57,9 @@ if __name__ == '__main__':
 ```
 
 1. Running agents implement a [`Behavior`][academy.behavior.Behavior].
-2. Behavior methods decorated with [`@action`][academy.behavior.action] can be invoked remotely by clients and other agents. An agent can call action methods on itself as normal methods.
+2. Behavior methods decorated with [`@action`][academy.behavior.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
 3. The [`Manager`][academy.manager.Manager] is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.
-4. The [thread exchange][academy.exchange.thread.ThreadExchangeFactory] manages message passing between clients and agents running in different threads of a single process.
+4. The [thread exchange][academy.exchange.thread.ThreadExchangeFactory] manages message passing between users and agents running in different threads of a single process.
 5. The [`ThreadLauncher`][academy.launcher.ThreadLauncher] launches agents in threads of the current process.
 6. An instantiated behavior (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
 7. Interact with running agents via a [`BoundRemoteHandle`][academy.handle.BoundRemoteHandle]. Invoking an action returns a future to the result.
@@ -69,11 +69,11 @@ Running this script with logging enabled produces the following output:
 ```
 $ python example.py
 INFO (root) Configured logger (stdout-level=INFO, logfile=None, logfile-level=None)
-INFO (academy.manager) Initialized manager (ClientID<6e890226>; ThreadExchange<4401447664>)
+INFO (academy.manager) Initialized manager (UserId<6e890226>; ThreadExchange<4401447664>)
 INFO (academy.manager) Launched agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
 INFO (academy.agent) Running agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
 INFO (academy.agent) Shutdown agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
-INFO (academy.manager) Closed manager (ClientID<6e890226>)
+INFO (academy.manager) Closed manager (UserId<6e890226>)
 ```
 
 ## Control Loops

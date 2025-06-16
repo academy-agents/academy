@@ -3,17 +3,17 @@
 ## Architecture
 
 ![Architecture](static/architecture.jpg)
-> Agents and clients in Academy interact via handles to invoke actions asynchronously.
+> Agents and users in Academy interact via handles to invoke actions asynchronously.
 > Agents implement a behavior, defined by their actions, control loops, and state.
 > Academy decouples the control and data planes through the launcher and exchange components that manage spawning agents and communication, respectively.
 
-An Academy application includes one or more *agents* and zero or more *clients*.
+An Academy application includes one or more *agents* and zero or more *users*.
 An agent is a process that executes a *behavior*, where a behavior is defined by a *local state*, a set of *actions*, and a set of *control loops*.
 Agents are executed remotely using a *launcher*.
-Once running, an agent concurrently executes all of its control loops and listens for messages from clients, which can be other agents or programs.
+Once running, an agent concurrently executes all of its control loops and listens for messages from user programs or other agents.
 
-A client interacts with an agent through a *handle}*, which acts like a reference to the remote agent and translates method calls into action request messages.
-Each entity (i.e., client or agent) has an associated *mailbox* that maintains a queue of messages sent to that entity by other entities.
+A user program interacts with an agent through a *handle*, which acts like a reference to the remote agent and translates method calls into action request messages.
+Each entity (i.e., user or agent) has an associated *mailbox* that maintains a queue of messages sent to that entity by other entities.
 Mailboxes are maintained by an *exchange* such that any client with access to a given exchange can send messages to the mailbox of another agent in the exchange and receive a response through its own mailbox.
 
 ## Agents
@@ -22,7 +22,7 @@ In Academy, the concept of an "agent" is intentionally simple. The agent primiti
 
 * **Has state:** Maintains information about its current situation, past history, or internal variables.
 * **Performs actions:** Execute specific operations or tasks.
-* **Communicates:** Exchanges messages or data with other clients, agents, or the environment.
+* **Communicates:** Exchanges messages or data with other users, agents, or the environment.
 
 In essence, Academy agents can be thought of as building blocks for more complex or specialized agent-based systems.
 

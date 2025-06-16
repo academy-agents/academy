@@ -4,15 +4,15 @@ import uuid
 from typing import Any
 
 from academy.identifier import AgentId
-from academy.identifier import ClientId
+from academy.identifier import UserId
 
 
 def tests_identifier_equality() -> None:
     aid: AgentId[Any] = AgentId.new()
-    cid = ClientId.new()
+    cid = UserId.new()
 
     assert isinstance(aid, AgentId)
-    assert isinstance(cid, ClientId)
+    assert isinstance(cid, UserId)
 
     assert aid != cid
     assert hash(aid) != hash(cid)
@@ -20,7 +20,7 @@ def tests_identifier_equality() -> None:
     uid = uuid.uuid4()
     aid1: AgentId[Any] = AgentId(uid=uid)
     aid2: AgentId[Any] = AgentId(uid=uid)
-    cid1 = ClientId(uid=uid)
+    cid1 = UserId(uid=uid)
 
     assert aid1 == aid2
     assert str(aid1) == str(aid2)

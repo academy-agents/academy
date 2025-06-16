@@ -20,8 +20,8 @@ from academy.exchange import MailboxStatus
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
-from academy.identifier import ClientId
 from academy.identifier import EntityId
+from academy.identifier import UserId
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 
@@ -103,7 +103,7 @@ class ThreadExchangeTransport(ExchangeTransport, NoPickleMixin):
             An instantiated transport bound to a specific mailbox.
         """
         if mailbox_id is None:
-            mailbox_id = ClientId.new(name=name)
+            mailbox_id = UserId.new(name=name)
             state.queues[mailbox_id] = Queue()
             logger.info('Registered %s in exchange', mailbox_id)
         return cls(mailbox_id, state)

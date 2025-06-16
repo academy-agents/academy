@@ -29,8 +29,8 @@ from academy.exchange.queue import QueueClosedError
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
 from academy.identifier import AgentId
-from academy.identifier import ClientId
 from academy.identifier import EntityId
+from academy.identifier import UserId
 from academy.message import BaseMessage
 from academy.message import Message
 from academy.serialize import NoPickleMixin
@@ -192,7 +192,7 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
         client.ping()
 
         if mailbox_id is None:
-            mailbox_id = ClientId.new(name=name)
+            mailbox_id = UserId.new(name=name)
             client.set(
                 f'{namespace}:status:{uuid_to_base32(mailbox_id.uid)}',
                 _MailboxState.ACTIVE.value,

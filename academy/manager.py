@@ -20,7 +20,7 @@ from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
-from academy.identifier import ClientId
+from academy.identifier import UserId
 from academy.launcher import Launcher
 from academy.serialize import NoPickleMixin
 
@@ -121,7 +121,7 @@ class Manager(NoPickleMixin):
         return self._exchange
 
     @property
-    def mailbox_id(self) -> ClientId:
+    def mailbox_id(self) -> UserId:
         """EntityId of the mailbox used by this manager."""
         return self._mailbox_id
 

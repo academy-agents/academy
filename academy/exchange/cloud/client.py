@@ -31,8 +31,8 @@ from academy.exchange.cloud.server import _NOT_FOUND_CODE
 from academy.exchange.cloud.server import _run
 from academy.exchange.cloud.server import _TIMEOUT_CODE
 from academy.identifier import AgentId
-from academy.identifier import ClientId
 from academy.identifier import EntityId
+from academy.identifier import UserId
 from academy.message import BaseMessage
 from academy.message import Message
 from academy.serialize import NoPickleMixin
@@ -156,7 +156,7 @@ class HttpExchangeTransport(ExchangeTransport, NoPickleMixin):
                 connection_info.host,
                 connection_info.port,
             )
-            mailbox_id = ClientId.new(name=name)
+            mailbox_id = UserId.new(name=name)
             response = session.post(
                 f'{scheme}://{host}:{port}/mailbox',
                 json={'mailbox': mailbox_id.model_dump_json()},

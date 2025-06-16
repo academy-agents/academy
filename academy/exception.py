@@ -37,9 +37,9 @@ class HandleNotBoundError(Exception):
     identifier itself. Thus, the handle does not have a mailbox in the exchange
     to receive response messages.
 
-    A handle must be bound to be used, either as a unique client with its own
-    mailbox or as bound to a running agent where it shares a mailbox with that
-    running agent. To create a client bound handle, use
+    A handle must be bound to be used, either as a unique user program with its
+    own mailbox or as bound to a running agent where it shares a mailbox with
+    that running agent. To create a bound handle, use
     `handle.bind_to_exchange()`.
 
     Any agent behavior that has a handle to another agent as an instance

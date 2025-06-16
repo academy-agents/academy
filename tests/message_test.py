@@ -7,7 +7,7 @@ from typing import get_args
 import pytest
 
 from academy.identifier import AgentId
-from academy.identifier import ClientId
+from academy.identifier import UserId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import BaseMessage
@@ -23,9 +23,9 @@ from academy.message import ShutdownResponse
 def test_shutdown_dest_type() -> None:
     with pytest.raises(
         ValueError,
-        match='Destination identifier has the client role.',
+        match='Destination identifier has the user role.',
     ):
-        ShutdownRequest(src=AgentId.new(), dest=ClientId.new())
+        ShutdownRequest(src=AgentId.new(), dest=UserId.new())
 
 
 _src: AgentId[Any] = AgentId.new()

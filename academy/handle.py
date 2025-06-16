@@ -60,7 +60,7 @@ BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 class Handle(Protocol[BehaviorT]):
     """Agent handle protocol.
 
-    A handle enables a client or agent to invoke actions on another agent.
+    A handle enables an agent or user to invoke actions on another agent.
     """
 
     agent_id: AgentId[BehaviorT]

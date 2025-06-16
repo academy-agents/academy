@@ -103,7 +103,7 @@ def test_client_to_agent_message(factory: ExchangeFactory) -> None:
                 src=user_client.user_id,
                 dest=agent_client.agent_id,
             )
-            user_client.send(agent_client.agent_id, message)
+            user_client.send(message)
 
             received.wait(TEST_WAIT_TIMEOUT)
 
@@ -115,7 +115,7 @@ def test_client_reply_error_on_request(factory: ExchangeFactory) -> None:
     with factory.create_user_client(start_listener=False) as client1:
         with factory.create_user_client(start_listener=True) as client2:
             message = PingRequest(src=client1.user_id, dest=client2.user_id)
-            client1.send(client2.user_id, message)
+            client1.send(message)
             response = client1._transport.recv()
             assert isinstance(response, PingResponse)
             assert isinstance(response.exception, TypeError)

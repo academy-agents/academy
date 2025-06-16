@@ -64,7 +64,7 @@ def test_transport_send_recv(transport: ExchangeTransport) -> None:
             src=transport.mailbox_id,
             dest=transport.mailbox_id,
         )
-        transport.send(transport.mailbox_id, message)
+        transport.send(message)
         assert transport.recv() == message
 
 
@@ -73,14 +73,14 @@ def test_transport_send_bad_identifier_error(
 ) -> None:
     uid: AgentId[Any] = AgentId.new()
     with pytest.raises(BadEntityIdError):
-        transport.send(uid, PingRequest(src=transport.mailbox_id, dest=uid))
+        transport.send(PingRequest(src=transport.mailbox_id, dest=uid))
 
 
 def test_transport_send_mailbox_closed(transport: ExchangeTransport) -> None:
     aid = transport.register_agent(EmptyBehavior)
     transport.terminate(aid)
     with pytest.raises(MailboxClosedError):
-        transport.send(aid, PingRequest(src=transport.mailbox_id, dest=aid))
+        transport.send(PingRequest(src=transport.mailbox_id, dest=aid))
 
 
 def test_transport_recv_mailbox_closed(transport: ExchangeTransport) -> None:

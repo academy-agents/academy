@@ -67,7 +67,7 @@ def test_wrap_basic_transport_functionality(
         assert wrapped_transport2.mailbox_id == dest
 
         ping = PingRequest(src=src, dest=dest)
-        wrapped_transport1.send(dest, ping)
+        wrapped_transport1.send(ping)
         assert wrapped_transport2.recv() == ping
 
         request = ActionRequest(
@@ -77,7 +77,7 @@ def test_wrap_basic_transport_functionality(
             pargs=('value', 123),
             kargs={'foo': 'value', 'bar': 123},
         )
-        wrapped_transport1.send(dest, request)
+        wrapped_transport1.send(request)
 
         received = wrapped_transport2.recv()
         assert isinstance(received, ActionRequest)
@@ -94,9 +94,9 @@ def test_wrap_basic_transport_functionality(
             assert old == new
 
         response = request.response('result')
-        wrapped_transport1.send(dest, response)
+        wrapped_transport2.send(response)
 
-        received = wrapped_transport2.recv()
+        received = wrapped_transport1.recv()
         assert isinstance(received, ActionResponse)
         assert response.tag == received.tag
         assert (type(received.result) is Proxy) == should_proxy(

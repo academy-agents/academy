@@ -182,7 +182,7 @@ class Agent(Generic[BehaviorT]):
 
     def _send_response(self, response: ResponseMessage) -> None:
         try:
-            self.exchange.send(response.dest, response)
+            self.exchange.send(response)
         except (BadEntityIdError, MailboxClosedError):
             logger.warning(
                 'Failed to send response from %s to %s. '

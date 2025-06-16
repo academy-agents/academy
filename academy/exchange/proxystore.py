@@ -197,7 +197,7 @@ class ProxyStoreExchangeTransport(ExchangeTransport, NoPickleMixin):
             _agent_id=_agent_id,
         )
 
-    def send(self, uid: EntityId, message: Message) -> None:
+    def send(self, message: Message) -> None:
         if isinstance(message, ActionRequest):
             message.pargs = _proxy_iterable(
                 message.pargs,
@@ -216,7 +216,7 @@ class ProxyStoreExchangeTransport(ExchangeTransport, NoPickleMixin):
                 self.should_proxy,
             )
 
-        self.transport.send(uid, message)
+        self.transport.send(message)
 
     def status(self, uid: EntityId) -> MailboxStatus:
         return self.transport.status(uid)

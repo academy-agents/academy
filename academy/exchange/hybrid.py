@@ -289,8 +289,8 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
             address,
         )
 
-    def send(self, uid: EntityId, message: Message) -> None:
-        address = self._address_cache.get(uid, None)
+    def send(self, message: Message) -> None:
+        address = self._address_cache.get(message.dest, None)
         if address is not None:
             try:
                 # This is as optimistic as possible. If the address of the
@@ -300,17 +300,17 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
             except (SocketClosedError, OSError):
                 # Our optimism let us down so clear the cache and try the
                 # standard flow.
-                self._address_cache.pop(uid)
+                self._address_cache.pop(message.dest)
             else:
                 return
 
-        status = self._redis_client.get(self._status_key(uid))
+        status = self._redis_client.get(self._status_key(message.dest))
         if status is None:
-            raise BadEntityIdError(uid)
+            raise BadEntityIdError(message.dest)
         elif status == _MailboxState.INACTIVE.value:
-            raise MailboxClosedError(uid)
+            raise MailboxClosedError(message.dest)
 
-        maybe_address = self._redis_client.get(self._address_key(uid))
+        maybe_address = self._redis_client.get(self._address_key(message.dest))
         try:
             # This branching is a little odd. We want to fall back to
             # Redis for message sending on two conditions: direct send fails
@@ -323,18 +323,18 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
                     else maybe_address
                 )
                 self._send_direct(decoded_address, message)
-                self._address_cache[uid] = decoded_address
+                self._address_cache[message.dest] = decoded_address
             else:
                 raise TypeError('Did not active peer address in Redis.')
         except (TypeError, SocketClosedError, OSError):
             self._redis_client.rpush(
-                self._queue_key(uid),
+                self._queue_key(message.dest),
                 message.model_serialize(),
             )
             logger.debug(
                 'Sent %s to %s via redis',
                 type(message).__name__,
-                uid,
+                message.dest,
             )
 
     def status(self, uid: EntityId) -> MailboxStatus:

@@ -231,14 +231,17 @@ class RedisExchangeTransport(ExchangeTransport, NoPickleMixin):
         )
         return aid
 
-    def send(self, uid: EntityId, message: Message) -> None:
-        status = self._client.get(self._active_key(uid))
+    def send(self, message: Message) -> None:
+        status = self._client.get(self._active_key(message.dest))
         if status is None:
-            raise BadEntityIdError(uid)
+            raise BadEntityIdError(message.dest)
         elif status == _MailboxState.INACTIVE.value:
-            raise MailboxClosedError(uid)
+            raise MailboxClosedError(message.dest)
         else:
-            self._client.rpush(self._queue_key(uid), message.model_serialize())
+            self._client.rpush(
+                self._queue_key(message.dest),
+                message.model_serialize(),
+            )
 
     def status(self, uid: EntityId) -> MailboxStatus:
         status = self._client.get(self._active_key(uid))

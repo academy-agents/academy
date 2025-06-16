@@ -482,7 +482,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
             raise AssertionError('Unreachable.')
 
     def _send_request(self, request: RequestMessage) -> None:
-        self.exchange.send(request.dest, request)
+        self.exchange.send(request)
 
     def close(
         self,

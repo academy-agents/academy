@@ -173,7 +173,6 @@ def test_client_remote_handle_log_bad_response(
             assert handle.mailbox_id is not None
             # Should log but not crash
             handle.exchange.send(
-                handle.mailbox_id,
                 PingRequest(src=handle.agent_id, dest=handle.mailbox_id),
             )
             assert handle.ping() > 0

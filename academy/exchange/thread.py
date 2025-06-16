@@ -155,14 +155,14 @@ class ThreadExchangeTransport(ExchangeTransport, NoPickleMixin):
         self._state.behaviors[aid] = behavior
         return aid
 
-    def send(self, uid: EntityId, message: Message) -> None:
-        queue = self._state.queues.get(uid, None)
+    def send(self, message: Message) -> None:
+        queue = self._state.queues.get(message.dest, None)
         if queue is None:
-            raise BadEntityIdError(uid)
+            raise BadEntityIdError(message.dest)
         try:
             queue.put(message)
         except QueueClosedError as e:
-            raise MailboxClosedError(uid) from e
+            raise MailboxClosedError(message.dest) from e
 
     def status(self, uid: EntityId) -> MailboxStatus:
         if uid not in self._state.queues:

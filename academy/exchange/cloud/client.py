@@ -256,15 +256,15 @@ class HttpExchangeTransport(ExchangeTransport, NoPickleMixin):
         response.raise_for_status()
         return aid
 
-    def send(self, uid: EntityId, message: Message) -> None:
+    def send(self, message: Message) -> None:
         response = self._session.put(
             self._message_url,
             json={'message': message.model_dump_json()},
         )
         if response.status_code == _NOT_FOUND_CODE:
-            raise BadEntityIdError(uid)
+            raise BadEntityIdError(message.dest)
         elif response.status_code == _FORBIDDEN_CODE:
-            raise MailboxClosedError(uid)
+            raise MailboxClosedError(message.dest)
         response.raise_for_status()
 
     def status(self, uid: EntityId) -> MailboxStatus:

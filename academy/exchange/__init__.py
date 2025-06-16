@@ -250,15 +250,14 @@ class ExchangeTransport(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def send(self, uid: EntityId, message: Message) -> None:
+    def send(self, message: Message) -> None:
         """Send a message to a mailbox.
 
         Args:
-            uid: Destination mailbox address for the message.
             message: Message to send.
 
         Raises:
-            BadEntityIdError: If a mailbox for `uid` does not exist.
+            BadEntityIdError: If a mailbox for `message.dest` does not exist.
             MailboxClosedError: If the mailbox was closed.
         """
         ...
@@ -407,19 +406,18 @@ class ExchangeClient(abc.ABC):
         logger.info('Registered %s in exchange', agent_id)
         return agent_id
 
-    def send(self, uid: EntityId, message: Message) -> None:
+    def send(self, message: Message) -> None:
         """Send a message to a mailbox.
 
         Args:
-            uid: Destination mailbox address for the message.
             message: Message to send.
 
         Raises:
-            BadEntityIdError: If a mailbox for `uid` does not exist.
+            BadEntityIdError: If a mailbox for `message.dest` does not exist.
             MailboxClosedError: If the mailbox was closed.
         """
-        self._transport.send(uid, message)
-        logger.debug('Sent %s to %s', type(message).__name__, uid)
+        self._transport.send(message)
+        logger.debug('Sent %s to %s', type(message).__name__, message.dest)
 
     def status(self, uid: EntityId) -> MailboxStatus:
         """Check the status of a mailbox in the exchange.
@@ -587,7 +585,7 @@ class UserExchangeClient(ExchangeClient):
         if isinstance(message, get_args(RequestMessage)):
             error = TypeError(f'{self.user_id} cannot fulfill requests.')
             response = message.error(error)
-            self._transport.send(response.dest, response)
+            self._transport.send(response)
             logger.warning(
                 'Exchange client for %s received unexpected request message '
                 'from %s',

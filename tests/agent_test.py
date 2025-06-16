@@ -87,7 +87,7 @@ def test_agent_shutdown_without_terminate(
     agent._expected_shutdown = True
     agent.shutdown()
     # Verify mailbox is open
-    exchange.send(agent_id, PingRequest(src=agent_id, dest=agent_id))
+    exchange.send(PingRequest(src=agent_id, dest=agent_id))
 
 
 def test_agent_shutdown_without_start(exchange: UserExchangeClient) -> None:
@@ -170,7 +170,7 @@ def test_agent_shutdown_message(exchange: UserExchangeClient) -> None:
     thread.start()
 
     shutdown = ShutdownRequest(src=user_id, dest=agent_id)
-    exchange.send(agent_id, shutdown)
+    exchange.send(shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
@@ -192,12 +192,12 @@ def test_agent_ping_message(exchange: UserExchangeClient) -> None:
     thread.start()
 
     ping = PingRequest(src=user_id, dest=agent_id)
-    exchange.send(agent_id, ping)
+    exchange.send(ping)
     message = exchange._transport.recv()
     assert isinstance(message, PingResponse)
 
     shutdown = ShutdownRequest(src=user_id, dest=agent_id)
-    exchange.send(agent_id, shutdown)
+    exchange.send(shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
@@ -222,21 +222,21 @@ def test_agent_action_message(exchange: UserExchangeClient) -> None:
         action='add',
         pargs=(value,),
     )
-    exchange.send(agent_id, request)
+    exchange.send(request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
     assert message.exception is None
     assert message.result is None
 
     request = ActionRequest(src=user_id, dest=agent_id, action='count')
-    exchange.send(agent_id, request)
+    exchange.send(request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
     assert message.exception is None
     assert message.result == value
 
     shutdown = ShutdownRequest(src=user_id, dest=agent_id)
-    exchange.send(agent_id, shutdown)
+    exchange.send(shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
@@ -255,14 +255,14 @@ def test_agent_action_message_error(exchange: UserExchangeClient) -> None:
     thread.start()
 
     request = ActionRequest(src=user_id, dest=agent_id, action='fails')
-    exchange.send(agent_id, request)
+    exchange.send(request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
     assert isinstance(message.exception, RuntimeError)
     assert 'This action always fails.' in str(message.exception)
 
     shutdown = ShutdownRequest(src=user_id, dest=agent_id)
-    exchange.send(agent_id, shutdown)
+    exchange.send(shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()
@@ -281,14 +281,14 @@ def test_agent_action_message_unknown(exchange: UserExchangeClient) -> None:
     thread.start()
 
     request = ActionRequest(src=user_id, dest=agent_id, action='null')
-    exchange.send(agent_id, request)
+    exchange.send(request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
     assert isinstance(message.exception, AttributeError)
     assert 'null' in str(message.exception)
 
     shutdown = ShutdownRequest(src=user_id, dest=agent_id)
-    exchange.send(agent_id, shutdown)
+    exchange.send(shutdown)
 
     thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
     assert not thread.is_alive()

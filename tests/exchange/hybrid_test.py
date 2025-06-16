@@ -51,7 +51,7 @@ def test_send_to_mailbox_direct(
                 dest=transport2.mailbox_id,
             )
             for _ in range(3):
-                transport1.send(transport2.mailbox_id, message)
+                transport1.send(message)
                 assert (
                     transport2.recv(timeout=TEST_CONNECTION_TIMEOUT) == message
                 )
@@ -65,7 +65,7 @@ def test_send_to_mailbox_indirect(
         aid = transport1.register_agent(EmptyBehavior)
         message = PingRequest(src=transport1.mailbox_id, dest=aid)
         for _ in range(messages):
-            transport1.send(aid, message)
+            transport1.send(message)
 
     with hybrid_exchange_factory._create_transport(mailbox_id=aid) as mailbox:
         for _ in range(messages):
@@ -108,7 +108,7 @@ def test_send_to_mailbox_bad_cached_address(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
             )
-            transport1.send(transport2.mailbox_id, message)
+            transport1.send(message)
             assert transport2.recv(timeout=TEST_CONNECTION_TIMEOUT) == message
 
         # Address of mailbox is now in the exchanges cache but
@@ -125,7 +125,7 @@ def test_send_to_mailbox_bad_cached_address(
         with factory2._create_transport(mailbox_id=aid) as transport2:
             # This send will try the cached address, fail, catch the error,
             # and retry via redis.
-            transport1.send(transport2.mailbox_id, message)
+            transport1.send(message)
             assert transport2.recv(timeout=TEST_CONNECTION_TIMEOUT) == message
 
 

@@ -2571,7 +2571,7 @@ registered with the exchange.</p>
 </span><span id="__span-0-125"><a id="__codelineno-0-125" name="__codelineno-0-125"></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a>    <span class="n">transport</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_transport</span><span class="p">(</span><span class="n">mailbox_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 </span><span id="__span-0-127"><a id="__codelineno-0-127" name="__codelineno-0-127"></a>    <span class="n">user_id</span> <span class="o">=</span> <span class="n">transport</span><span class="o">.</span><span class="n">mailbox_id</span>
-</span><span id="__span-0-128"><a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">ClientId</span><span class="p">)</span>
+</span><span id="__span-0-128"><a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">UserId</span><span class="p">)</span>
 </span><span id="__span-0-129"><a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="k">return</span> <span class="n">UserExchangeClient</span><span class="p">(</span>
 </span><span id="__span-0-130"><a id="__codelineno-0-130" name="__codelineno-0-130"></a>        <span class="n">user_id</span><span class="p">,</span>
 </span><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a>        <span class="n">transport</span><span class="p">,</span>
@@ -5007,12 +5007,12 @@ longer be able to receive messages.</p>
 
 <a href="#academy.exchange.UserExchangeClient" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">UserExchangeClient</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">user_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ClientId
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">user_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            UserId
 
 
   
       pydantic-model
-   (academy.identifier.ClientId)" href="../identifier/#academy.identifier.ClientId">ClientId</a></span><span class="p">,</span>
+   (academy.identifier.UserId)" href="../identifier/#academy.identifier.UserId">UserId</a></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">transport</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeTransport (academy.exchange.ExchangeTransport)" href="#academy.exchange.ExchangeTransport">ExchangeTransport</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">start_listener</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">True</span>
@@ -5037,12 +5037,12 @@ longer be able to receive messages.</p>
     <ul>
         <li class="doc-section-item field-body">
             <b><code>user_id</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            ClientId
+              (<code><a class="autorefs autorefs-internal" title="            UserId
 
 
   
       pydantic-model
-   (academy.identifier.ClientId)" href="../identifier/#academy.identifier.ClientId">ClientId</a></code>)
+   (academy.identifier.UserId)" href="../identifier/#academy.identifier.UserId">UserId</a></code>)
           –
           <div class="doc-md-description">
             <p>User ID.</p>
@@ -5093,7 +5093,7 @@ longer be able to receive messages.</p>
 <span class="normal"><a href="#__codelineno-0-558">558</a></span>
 <span class="normal"><a href="#__codelineno-0-559">559</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a>    <span class="n">user_id</span><span class="p">:</span> <span class="n">ClientId</span><span class="p">,</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a>    <span class="n">user_id</span><span class="p">:</span> <span class="n">UserId</span><span class="p">,</span>
 </span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a>    <span class="n">transport</span><span class="p">:</span> <span class="n">ExchangeTransport</span><span class="p">,</span>
 </span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a>    <span class="n">start_listener</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -5133,12 +5133,12 @@ longer be able to receive messages.</p>
   </span>
 
 <a href="#academy.exchange.UserExchangeClient.user_id" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">user_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ClientId
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">user_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            UserId
 
 
   
       pydantic-model
-   (academy.identifier.ClientId)" href="../identifier/#academy.identifier.ClientId">ClientId</a></span>
+   (academy.identifier.UserId)" href="../identifier/#academy.identifier.UserId">UserId</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">

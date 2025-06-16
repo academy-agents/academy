@@ -1879,23 +1879,23 @@
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
 <p><img alt="Architecture" src="../static/architecture.jpg" /></p>
 <blockquote>
-<p>Agents and clients in Academy interact via handles to invoke actions asynchronously.
+<p>Agents and users in Academy interact via handles to invoke actions asynchronously.
 Agents implement a behavior, defined by their actions, control loops, and state.
 Academy decouples the control and data planes through the launcher and exchange components that manage spawning agents and communication, respectively.</p>
 </blockquote>
-<p>An Academy application includes one or more <em>agents</em> and zero or more <em>clients</em>.
+<p>An Academy application includes one or more <em>agents</em> and zero or more <em>users</em>.
 An agent is a process that executes a <em>behavior</em>, where a behavior is defined by a <em>local state</em>, a set of <em>actions</em>, and a set of <em>control loops</em>.
 Agents are executed remotely using a <em>launcher</em>.
-Once running, an agent concurrently executes all of its control loops and listens for messages from clients, which can be other agents or programs.</p>
-<p>A client interacts with an agent through a <em>handle}</em>, which acts like a reference to the remote agent and translates method calls into action request messages.
-Each entity (i.e., client or agent) has an associated <em>mailbox</em> that maintains a queue of messages sent to that entity by other entities.
+Once running, an agent concurrently executes all of its control loops and listens for messages from user programs or other agents.</p>
+<p>A user program interacts with an agent through a <em>handle</em>, which acts like a reference to the remote agent and translates method calls into action request messages.
+Each entity (i.e., user or agent) has an associated <em>mailbox</em> that maintains a queue of messages sent to that entity by other entities.
 Mailboxes are maintained by an <em>exchange</em> such that any client with access to a given exchange can send messages to the mailbox of another agent in the exchange and receive a response through its own mailbox.</p>
 <h2 id="agents">Agents<a class="headerlink" href="#agents" title="Permanent link">&para;</a></h2>
 <p>In Academy, the concept of an "agent" is intentionally simple. The agent primitive is, at its core, is an entity that:</p>
 <ul>
 <li><strong>Has state:</strong> Maintains information about its current situation, past history, or internal variables.</li>
 <li><strong>Performs actions:</strong> Execute specific operations or tasks.</li>
-<li><strong>Communicates:</strong> Exchanges messages or data with other clients, agents, or the environment.</li>
+<li><strong>Communicates:</strong> Exchanges messages or data with other users, agents, or the environment.</li>
 </ul>
 <p>In essence, Academy agents can be thought of as building blocks for more complex or specialized agent-based systems.</p>
 <h3 id="behaviors">Behaviors<a class="headerlink" href="#behaviors" title="Permanent link">&para;</a></h3>

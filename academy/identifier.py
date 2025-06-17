@@ -6,6 +6,7 @@ from typing import Any
 from typing import Generic
 from typing import Literal
 from typing import Optional
+from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
 
@@ -89,5 +90,14 @@ class UserId(BaseModel):
         return cls(uid=uuid.uuid4(), name=name)
 
 
-EntityId = Union[AgentId[Any], UserId]
-"""EntityId union type for type annotations."""
+if TYPE_CHECKING:
+    EntityId = Union[AgentId[Any], UserId]
+    """EntityId union type for type annotations."""
+else:
+    # Pydantic produces validation errors with Agent[Any] in versions
+    # prior to 2.10.0. We could require academy to use newer versions of
+    # pydantic but this could be a headache for third-party apps with
+    # stricter requirements.
+    # Issue: https://github.com/pydantic/pydantic/issues/9414
+    # Fix: https://github.com/pydantic/pydantic/pull/10666
+    EntityId = Union[AgentId, UserId]

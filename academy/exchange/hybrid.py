@@ -9,7 +9,6 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 from typing import get_args
-from typing import TypeAlias
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -44,13 +43,18 @@ from academy.socket import SocketClosedError
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-HybridAgentRegistration: TypeAlias = None
 
 _CLOSE_SENTINEL = b'<CLOSED>'
 _THREAD_START_TIMEOUT = 5
 _THREAD_JOIN_TIMEOUT = 5
 _SERVER_ACK = b'<ACK>'
 _SOCKET_POLL_TIMEOUT_MS = 50
+
+
+class HybridAgentRegistration:
+    """Agent registration for HybridExchange."""
+
+    pass
 
 
 class HybridExchangeFactory(ExchangeFactory[HybridAgentRegistration]):
@@ -284,7 +288,7 @@ class HybridExchangeTransport(
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
-        return (aid, None)
+        return (aid, HybridAgentRegistration())
 
     def _send_direct(self, address: str, message: Message) -> None:
         self._socket_pool.send(address, message.model_serialize())

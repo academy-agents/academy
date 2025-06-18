@@ -8,7 +8,6 @@ import uuid
 from typing import Any
 from typing import get_args
 from typing import NamedTuple
-from typing import TypeAlias
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -34,7 +33,6 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-RedisAgentRegistration: TypeAlias = None
 
 _CLOSE_SENTINEL = b'<CLOSED>'
 
@@ -48,6 +46,12 @@ class _RedisConnectionInfo(NamedTuple):
 class _MailboxState(enum.Enum):
     ACTIVE = 'ACTIVE'
     INACTIVE = 'INACTIVE'
+
+
+class RedisAgentRegistration:
+    """Agent registration for RedisExchange."""
+
+    pass
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisAgentRegistration]):
@@ -235,7 +239,7 @@ class RedisExchangeTransport(
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
-        return (aid, None)
+        return (aid, RedisAgentRegistration())
 
     def send(self, message: Message) -> None:
         status = self._client.get(self._active_key(message.dest))

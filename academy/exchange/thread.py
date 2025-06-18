@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import sys
 from typing import Any
-from typing import TypeAlias
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -29,7 +28,6 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-ThreadAgentRegistration: TypeAlias = None
 
 
 class _ThreadExchangeState(NoPickleMixin):
@@ -43,6 +41,12 @@ class _ThreadExchangeState(NoPickleMixin):
     def __init__(self) -> None:
         self.queues: dict[EntityId, Queue[Message]] = {}
         self.behaviors: dict[AgentId[Any], type[Behavior]] = {}
+
+
+class ThreadAgentRegistration:
+    """Agent registration for ThreadExchange."""
+
+    pass
 
 
 class ThreadExchangeFactory(
@@ -162,7 +166,7 @@ class ThreadExchangeTransport(
         )
         self._state.queues[aid] = Queue()
         self._state.behaviors[aid] = behavior
-        return (aid, None)
+        return (aid, ThreadAgentRegistration())
 
     def send(self, message: Message) -> None:
         queue = self._state.queues.get(message.dest, None)

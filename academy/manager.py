@@ -6,6 +6,7 @@ import sys
 from collections.abc import MutableMapping
 from types import TracebackType
 from typing import Any
+from typing import Generic
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -27,9 +28,10 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
+AgentRegistrationT = TypeVar('AgentRegistrationT')
 
 
-class Manager(NoPickleMixin):
+class Manager(Generic[AgentRegistrationT], NoPickleMixin):
     """Launch and manage running agents.
 
     The manager is provided as convenience to reduce common boilerplate code
@@ -63,7 +65,7 @@ class Manager(NoPickleMixin):
 
     def __init__(
         self,
-        exchange: ExchangeFactory,
+        exchange: ExchangeFactory[AgentRegistrationT],
         launcher: Launcher | MutableMapping[str, Launcher],
         *,
         default_launcher: str | None = None,
@@ -116,7 +118,7 @@ class Manager(NoPickleMixin):
         return f'{type(self).__name__}<{self.mailbox_id}, {self._exchange}>'
 
     @property
-    def exchange(self) -> ExchangeClient:
+    def exchange(self) -> ExchangeClient[AgentRegistrationT]:
         """Exchange interface."""
         return self._exchange
 

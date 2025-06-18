@@ -10,7 +10,6 @@ from collections.abc import Generator
 from typing import Any
 from typing import Literal
 from typing import NamedTuple
-from typing import TypeAlias
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -43,8 +42,6 @@ logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
-HttpAgentRegistration: TypeAlias = None
-
 
 class _HttpConnectionInfo(NamedTuple):
     host: str
@@ -52,6 +49,12 @@ class _HttpConnectionInfo(NamedTuple):
     additional_headers: dict[str, str] | None = None
     scheme: Literal['http', 'https'] = 'http'
     ssl_verify: str | bool | None = None
+
+
+class HttpAgentRegistration:
+    """Agent registration for HttpExchange."""
+
+    pass
 
 
 class HttpExchangeFactory(ExchangeFactory[HttpAgentRegistration]):
@@ -261,7 +264,7 @@ class HttpExchangeTransport(
             },
         )
         response.raise_for_status()
-        return (aid, None)
+        return (aid, HttpAgentRegistration())
 
     def send(self, message: Message) -> None:
         response = self._session.put(

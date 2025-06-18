@@ -29,7 +29,7 @@ def test_create_launcher() -> None:
     assert 'ThreadPoolExecutor' in str(launcher)
 
 
-def test_launch_agents_threads(exchange: ExchangeClient) -> None:
+def test_launch_agents_threads(exchange: ExchangeClient[Any]) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
     executor = ThreadPoolExecutor(max_workers=2)
     with Launcher(executor, close_exchange=False) as launcher:
@@ -75,7 +75,7 @@ def test_launch_agents_processes(
             handle2.close()
 
 
-def test_wait_bad_identifier(exchange: ExchangeClient) -> None:
+def test_wait_bad_identifier(exchange: ExchangeClient[Any]) -> None:
     executor = ThreadPoolExecutor(max_workers=1)
     with Launcher(executor) as launcher:
         agent_id: AgentId[Any] = AgentId.new()
@@ -135,7 +135,7 @@ def test_restart_on_error(caplog) -> None:
 @pytest.mark.parametrize('ignore_error', (True, False))
 def test_wait_ignore_agent_errors(
     ignore_error: bool,
-    exchange: ExchangeClient,
+    exchange: ExchangeClient[Any],
 ) -> None:
     behavior = FailOnStartupBehavior()
     executor = ThreadPoolExecutor(max_workers=1)

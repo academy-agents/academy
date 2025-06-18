@@ -6,6 +6,7 @@ import logging
 import sys
 import threading
 import uuid
+from dataclasses import dataclass
 from types import TracebackType
 from typing import Any
 from typing import Callable
@@ -70,7 +71,8 @@ class RegistrationInfo(Protocol[BehaviorT]):
         ...
 
 
-class SimpleRegistrationInfo(NamedTuple, Generic[BehaviorT]):
+@dataclass
+class SimpleRegistrationInfo(Generic[BehaviorT]):
     """Minimum RegistrationInfo with only AgentId."""
 
     agent_id: AgentId[BehaviorT]
@@ -111,8 +113,8 @@ class ExchangeFactory(abc.ABC):
         ```python
         factory = ExchangeFactory(...)
         user_client = factory.create_user_client()
-        agent_id = user_client.register_agent(...)
-        agent_client = factory.create_agent_client(agent_id, ...)
+        agent_info = user_client.register_agent(...)
+        agent_client = factory.create_agent_client(agent_info, ...)
         ```
 
         Args:
@@ -121,8 +123,8 @@ class ExchangeFactory(abc.ABC):
             request_handler: Agent request message handler.
 
         Raises:
-            BadEntityIdError: If an agent with `agent_id` is not already
-                registered with the exchange.
+            BadEntityIdError: If an agent with `agent_info.agent_id` is not
+                already registered with the exchange.
         """
         transport = self._create_transport(
             mailbox_id=agent_info.agent_id,

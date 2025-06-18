@@ -97,7 +97,7 @@ class Agent(Generic[BehaviorT]):
 
     Args:
         behavior: Behavior that the agent will exhibit.
-        agent_id: EntityId of this agent in a multi-agent system.
+        agent_info: RegistrationInfo of this agent created by the exchange.
         exchange: Message exchange of multi-agent system. The agent will close
             the exchange when it finished running.
         config: Agent execution parameters.

@@ -355,7 +355,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
 
     def bind_to_exchange(
         self,
-        exchange: ExchangeClient,
+        exchange: ExchangeClient[Any],
     ) -> BoundRemoteHandle[BehaviorT]:
         """Bind the handle to an existing mailbox.
 
@@ -404,7 +404,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
 
     def __init__(
         self,
-        exchange: ExchangeClient,
+        exchange: ExchangeClient[Any],
         agent_id: AgentId[BehaviorT],
         mailbox_id: EntityId | None = None,
     ) -> None:
@@ -643,7 +643,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
 
     def bind_to_exchange(
         self,
-        exchange: ExchangeClient,
+        exchange: ExchangeClient[Any],
     ) -> BoundRemoteHandle[BehaviorT]:
         """Bind the handle to an existing mailbox.
 

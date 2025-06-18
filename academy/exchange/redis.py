@@ -8,6 +8,7 @@ import uuid
 from typing import Any
 from typing import get_args
 from typing import NamedTuple
+from typing import TypeAlias
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -23,8 +24,6 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
-from academy.exchange import RegistrationInfo
-from academy.exchange import SimpleRegistrationInfo
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -35,6 +34,7 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
+RedisAgentRegistration: TypeAlias = None
 
 _CLOSE_SENTINEL = b'<CLOSED>'
 
@@ -50,7 +50,7 @@ class _MailboxState(enum.Enum):
     INACTIVE = 'INACTIVE'
 
 
-class RedisExchangeFactory(ExchangeFactory):
+class RedisExchangeFactory(ExchangeFactory[RedisAgentRegistration]):
     """Redis exchange client factory.
 
     Args:
@@ -73,7 +73,7 @@ class RedisExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: RegistrationInfo[Any] | None = None,
+        registration_info: RedisAgentRegistration | None = None,
     ) -> RedisExchangeTransport:
         return RedisExchangeTransport.new(
             mailbox_id=mailbox_id,
@@ -82,7 +82,10 @@ class RedisExchangeFactory(ExchangeFactory):
         )
 
 
-class RedisExchangeTransport(ExchangeTransport, NoPickleMixin):
+class RedisExchangeTransport(
+    ExchangeTransport[RedisAgentRegistration],
+    NoPickleMixin,
+):
     """Redis exchange transport bound to a specific mailbox."""
 
     def __init__(
@@ -223,7 +226,7 @@ class RedisExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> RegistrationInfo[BehaviorT]:
+    ) -> tuple[AgentId[BehaviorT], RedisAgentRegistration]:
         aid: AgentId[BehaviorT] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
@@ -232,7 +235,7 @@ class RedisExchangeTransport(ExchangeTransport, NoPickleMixin):
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
-        return SimpleRegistrationInfo(aid)
+        return (aid, None)
 
     def send(self, message: Message) -> None:
         status = self._client.get(self._active_key(message.dest))

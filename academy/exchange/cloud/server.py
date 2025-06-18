@@ -7,13 +7,11 @@ python -m academy.exchange.cloud --config exchange.yaml
 
 Connect to the exchange through the client.
 ```python
-from academy.exchange.cloud.client import HttpExchange
+from academy.exchange.cloud.client import HttpExchangeFactory
 
-with HttpExchange('localhost', 1234) as exchange:
-    agent_info = exchange.register_agent()
-    mailbox = exchange.get_mailbox(agent_info.agent_id)
+with HttpExchangeFactory('localhost', 1234).create_user_client() as exchange:
+    aid, agent_info = exchange.register_agent()
     ...
-    mailbox.close()
 ```
 """
 

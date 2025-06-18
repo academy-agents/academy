@@ -9,6 +9,7 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 from typing import get_args
+from typing import TypeAlias
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -24,8 +25,6 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
-from academy.exchange import RegistrationInfo
-from academy.exchange import SimpleRegistrationInfo
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
 from academy.exchange.redis import _MailboxState
@@ -45,6 +44,7 @@ from academy.socket import SocketClosedError
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
+HybridAgentRegistration: TypeAlias = None
 
 _CLOSE_SENTINEL = b'<CLOSED>'
 _THREAD_START_TIMEOUT = 5
@@ -53,7 +53,7 @@ _SERVER_ACK = b'<ACK>'
 _SOCKET_POLL_TIMEOUT_MS = 50
 
 
-class HybridExchangeFactory(ExchangeFactory):
+class HybridExchangeFactory(ExchangeFactory[HybridAgentRegistration]):
     """Hybrid exchange client factory.
 
     The hybrid exchange uses peer-to-peer communication via TCP and a
@@ -103,7 +103,7 @@ class HybridExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: RegistrationInfo[Any] | None = None,
+        registration_info: HybridAgentRegistration | None = None,
     ) -> HybridExchangeTransport:
         return HybridExchangeTransport.new(
             interface=self._interface,
@@ -115,7 +115,10 @@ class HybridExchangeFactory(ExchangeFactory):
         )
 
 
-class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
+class HybridExchangeTransport(
+    ExchangeTransport[HybridAgentRegistration],
+    NoPickleMixin,
+):
     """Hybrid exchange transport bound to a specific mailbox."""
 
     def __init__(  # noqa: PLR0913
@@ -269,7 +272,7 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> SimpleRegistrationInfo[BehaviorT]:
+    ) -> tuple[AgentId[BehaviorT], HybridAgentRegistration]:
         aid: AgentId[Any] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
@@ -281,7 +284,7 @@ class HybridExchangeTransport(ExchangeTransport, NoPickleMixin):
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
-        return SimpleRegistrationInfo(aid)
+        return (aid, None)
 
     def _send_direct(self, address: str, message: Message) -> None:
         self._socket_pool.send(address, message.model_serialize())

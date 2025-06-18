@@ -10,6 +10,7 @@ from collections.abc import Generator
 from typing import Any
 from typing import Literal
 from typing import NamedTuple
+from typing import TypeAlias
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -25,8 +26,6 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
-from academy.exchange import RegistrationInfo
-from academy.exchange import SimpleRegistrationInfo
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.server import _FORBIDDEN_CODE
 from academy.exchange.cloud.server import _NOT_FOUND_CODE
@@ -44,6 +43,8 @@ logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
+HttpAgentRegistration: TypeAlias = None
+
 
 class _HttpConnectionInfo(NamedTuple):
     host: str
@@ -53,7 +54,7 @@ class _HttpConnectionInfo(NamedTuple):
     ssl_verify: str | bool | None = None
 
 
-class HttpExchangeFactory(ExchangeFactory):
+class HttpExchangeFactory(ExchangeFactory[HttpAgentRegistration]):
     """Http exchange client factory.
 
     Args:
@@ -88,7 +89,7 @@ class HttpExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: RegistrationInfo[Any] | None = None,
+        registration_info: HttpAgentRegistration | None = None,
     ) -> HttpExchangeTransport:
         return HttpExchangeTransport.new(
             connection_info=self._info,
@@ -97,7 +98,10 @@ class HttpExchangeFactory(ExchangeFactory):
         )
 
 
-class HttpExchangeTransport(ExchangeTransport, NoPickleMixin):
+class HttpExchangeTransport(
+    ExchangeTransport[HttpAgentRegistration],
+    NoPickleMixin,
+):
     """Http exchange client.
 
     Args:
@@ -237,7 +241,7 @@ class HttpExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> RegistrationInfo[BehaviorT]:
+    ) -> tuple[AgentId[BehaviorT], HttpAgentRegistration]:
         """Create a new agent identifier and associated mailbox.
 
         Args:
@@ -257,7 +261,7 @@ class HttpExchangeTransport(ExchangeTransport, NoPickleMixin):
             },
         )
         response.raise_for_status()
-        return SimpleRegistrationInfo(aid)
+        return (aid, None)
 
     def send(self, message: Message) -> None:
         response = self._session.put(

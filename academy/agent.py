@@ -16,11 +16,11 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange import RegistrationInfo
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.handle import UnboundRemoteHandle
+from academy.identifier import AgentId
 from academy.message import ActionRequest
 from academy.message import PingRequest
 from academy.message import RequestMessage
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
+AgentRegistrationT = TypeVar('AgentRegistrationT')
 
 
 class _AgentState(enum.Enum):
@@ -68,14 +69,16 @@ class AgentRunConfig:
 # of the Agent constructor.
 def _agent_trampoline(
     behavior: BehaviorT,
-    agent_info: RegistrationInfo[BehaviorT],
-    exchange: ExchangeFactory,
+    agent_id: AgentId[BehaviorT],
+    exchange: ExchangeFactory[AgentRegistrationT],
+    agent_info: AgentRegistrationT,
     config: AgentRunConfig,
 ) -> Agent[BehaviorT]:
     return Agent(
         behavior,
-        agent_info=agent_info,
+        agent_id=agent_id,
         exchange=exchange,
+        agent_info=agent_info,
         config=config,
     )
 
@@ -97,9 +100,10 @@ class Agent(Generic[BehaviorT]):
 
     Args:
         behavior: Behavior that the agent will exhibit.
-        agent_info: RegistrationInfo of this agent created by the exchange.
+        agent_id: EntityId of this agent in a multi-agent system.
         exchange: Message exchange of multi-agent system. The agent will close
             the exchange when it finished running.
+        agent_info: RegistrationInfo of this agent created by the exchange.
         config: Agent execution parameters.
     """
 
@@ -107,13 +111,16 @@ class Agent(Generic[BehaviorT]):
         self,
         behavior: BehaviorT,
         *,
-        agent_info: RegistrationInfo[BehaviorT],
-        exchange: ExchangeFactory,
+        agent_id: AgentId[BehaviorT],
+        exchange: ExchangeFactory[AgentRegistrationT],
+        agent_info: AgentRegistrationT,
         config: AgentRunConfig | None = None,
     ) -> None:
+        self.agent_id = agent_id
         self.agent_info = agent_info
         self.behavior = behavior
         self.exchange = exchange.create_agent_client(
+            agent_id,
             agent_info,
             request_handler=self._request_handler,
         )
@@ -139,22 +146,23 @@ class Agent(Generic[BehaviorT]):
     def __repr__(self) -> str:
         name = type(self).__name__
         return (
-            f'{name}(agent_id={self.agent_info.agent_id!r}, '
-            f'behavior={self.behavior!r}, exchange={self.exchange!r})'
+            f'{name}(agent_id={self.agent_id!r}, behavior={self.behavior!r}, '
+            f'exchange={self.exchange!r})'
         )
 
     def __str__(self) -> str:
         name = type(self).__name__
         behavior = type(self.behavior).__name__
-        return f'{name}<{behavior}; {self.agent_info.agent_id}>'
+        return f'{name}<{behavior}; {self.agent_id}>'
 
     def __reduce__(self) -> Any:
         return (
             _agent_trampoline,
             (
                 self.behavior,
-                self.agent_info,
+                self.agent_id,
                 self.exchange.factory(),
+                self.agent_info,
                 self.config,
             ),
         )
@@ -164,7 +172,7 @@ class Agent(Generic[BehaviorT]):
             return handle
         if (
             isinstance(handle, BoundRemoteHandle)
-            and handle.mailbox_id == self.agent_info.agent_id
+            and handle.mailbox_id == self.agent_id
         ):
             return handle
 
@@ -173,7 +181,7 @@ class Agent(Generic[BehaviorT]):
         logger.debug(
             'Bound handle to %s to running agent with %s',
             handle.agent_id,
-            self.agent_info.agent_id,
+            self.agent_id,
         )
         return bound
 
@@ -188,7 +196,7 @@ class Agent(Generic[BehaviorT]):
                 'Failed to send response from %s to %s. '
                 'This likely means the destination mailbox was '
                 'removed from the exchange.',
-                self.agent_info.agent_id,
+                self.agent_id,
                 response.dest,
             )
 
@@ -213,10 +221,7 @@ class Agent(Generic[BehaviorT]):
                 lambda _: self._action_futures.pop(request),
             )
         elif isinstance(request, PingRequest):
-            logger.info(
-                'Ping request received by %s',
-                self.agent_info.agent_id,
-            )
+            logger.info('Ping request received by %s', self.agent_id)
             self._send_response(request.response())
         elif isinstance(request, ShutdownRequest):
             self.signal_shutdown()
@@ -248,11 +253,7 @@ class Agent(Generic[BehaviorT]):
             AttributeError: if an action with this name is not implemented by
                 the behavior of the agent.
         """
-        logger.debug(
-            'Invoking "%s" action on %s',
-            action,
-            self.agent_info.agent_id,
-        )
+        logger.debug('Invoking "%s" action on %s', action, self.agent_id)
         if action not in self._actions:
             raise AttributeError(
                 f'Agent[{type(self.behavior).__name__}] does not have an '
@@ -300,7 +301,7 @@ class Agent(Generic[BehaviorT]):
 
             logger.debug(
                 'Starting agent... (%s; %s)',
-                self.agent_info.agent_id,
+                self.agent_id,
                 self.behavior,
             )
             self._state = _AgentState.STARTING
@@ -325,11 +326,7 @@ class Agent(Generic[BehaviorT]):
 
             self._state = _AgentState.RUNNING
 
-            logger.info(
-                'Running agent (%s; %s)',
-                self.agent_info.agent_id,
-                self.behavior,
-            )
+            logger.info('Running agent (%s; %s)', self.agent_id, self.behavior)
 
     def shutdown(self) -> None:
         """Shutdown the agent.
@@ -357,7 +354,7 @@ class Agent(Generic[BehaviorT]):
             logger.debug(
                 'Shutting down agent... (expected: %s; %s; %s)',
                 self._expected_shutdown,
-                self.agent_info.agent_id,
+                self.agent_id,
                 self.behavior,
             )
             self._state = _AgentState.TERMINTATING
@@ -366,7 +363,7 @@ class Agent(Generic[BehaviorT]):
             # Cause the exchange message listener thread to exit by closing
             # the mailbox the exchange is listening to. This is done
             # first so we stop receiving new requests.
-            self.exchange.terminate(self.agent_info.agent_id)
+            self.exchange.terminate(self.agent_id)
             for future, name in self._loop_futures.items():
                 if name == '_exchange.listen':
                     future.result()
@@ -393,7 +390,7 @@ class Agent(Generic[BehaviorT]):
                 # closed.
                 self.exchange.register_agent(
                     type(self.behavior),
-                    _agent_id=self.agent_info.agent_id,
+                    _agent_id=self.agent_id,
                 )
 
             self.behavior.on_shutdown()
@@ -410,7 +407,7 @@ class Agent(Generic[BehaviorT]):
 
             logger.info(
                 'Shutdown agent (%s; %s)',
-                self.agent_info.agent_id,
+                self.agent_id,
                 self.behavior,
             )
 

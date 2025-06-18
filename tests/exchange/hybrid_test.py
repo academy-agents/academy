@@ -62,13 +62,13 @@ def test_send_to_mailbox_indirect(
 ) -> None:
     messages = 3
     with hybrid_exchange_factory._create_transport() as transport1:
-        a_info = transport1.register_agent(EmptyBehavior)
-        message = PingRequest(src=transport1.mailbox_id, dest=a_info.agent_id)
+        aid, info = transport1.register_agent(EmptyBehavior)
+        message = PingRequest(src=transport1.mailbox_id, dest=aid)
         for _ in range(messages):
             transport1.send(message)
 
     with hybrid_exchange_factory._create_transport(
-        mailbox_id=a_info.agent_id,
+        mailbox_id=aid,
     ) as mailbox:
         for _ in range(messages):
             assert mailbox.recv(timeout=TEST_CONNECTION_TIMEOUT) == message
@@ -98,7 +98,7 @@ def test_send_to_mailbox_bad_cached_address(
 ) -> None:
     port1, port2 = open_port(), open_port()
     with hybrid_exchange_factory._create_transport() as transport1:
-        a_info = transport1.register_agent(EmptyBehavior)
+        aid, info = transport1.register_agent(EmptyBehavior)
 
         factory1 = HybridExchangeFactory(
             redis_host='localhost',
@@ -106,7 +106,7 @@ def test_send_to_mailbox_bad_cached_address(
             ports=[port1],
         )
         with factory1._create_transport(
-            mailbox_id=a_info.agent_id,
+            mailbox_id=aid,
         ) as transport2:
             message = PingRequest(
                 src=transport1.mailbox_id,
@@ -127,7 +127,7 @@ def test_send_to_mailbox_bad_cached_address(
             ports=[port2],
         )
         with factory2._create_transport(
-            mailbox_id=a_info.agent_id,
+            mailbox_id=aid,
         ) as transport2:
             # This send will try the cached address, fail, catch the error,
             # and retry via redis.

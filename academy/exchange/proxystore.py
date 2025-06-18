@@ -18,7 +18,6 @@ from academy.behavior import Behavior
 from academy.exchange import ExchangeFactory
 from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
-from academy.exchange import RegistrationInfo
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
@@ -27,6 +26,7 @@ from academy.message import Message
 from academy.serialize import NoPickleMixin
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
+AgentRegistrationT = TypeVar('AgentRegistrationT')
 
 
 def _proxy_item(
@@ -65,7 +65,7 @@ def _proxy_mapping(
     return {key: _apply(item) for key, item in mapping.items()}
 
 
-class ProxyStoreExchangeFactory(ExchangeFactory):
+class ProxyStoreExchangeFactory(ExchangeFactory[AgentRegistrationT]):
     """ProxStore exchange client factory.
 
     A ProxyStore exchange is used to wrap an underlying exchange so
@@ -82,7 +82,7 @@ class ProxyStoreExchangeFactory(ExchangeFactory):
 
     def __init__(
         self,
-        base: ExchangeFactory,
+        base: ExchangeFactory[AgentRegistrationT],
         store: Store[Any] | None,
         should_proxy: Callable[[Any], bool],
         *,
@@ -98,8 +98,8 @@ class ProxyStoreExchangeFactory(ExchangeFactory):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: RegistrationInfo[Any] | None = None,
-    ) -> ProxyStoreExchangeTransport:
+        registration_info: AgentRegistrationT | None = None,
+    ) -> ProxyStoreExchangeTransport[AgentRegistrationT]:
         # If store was none because of pickling,
         # the __setstate__ must be called before bind.
         assert self.store is not None
@@ -133,12 +133,15 @@ class ProxyStoreExchangeFactory(ExchangeFactory):
         self.__dict__.update(state)
 
 
-class ProxyStoreExchangeTransport(ExchangeTransport, NoPickleMixin):
+class ProxyStoreExchangeTransport(
+    ExchangeTransport[AgentRegistrationT],
+    NoPickleMixin,
+):
     """ProxyStore exchange client bound to a specific mailbox."""
 
     def __init__(
         self,
-        transport: ExchangeTransport,
+        transport: ExchangeTransport[AgentRegistrationT],
         store: Store[Any],
         should_proxy: Callable[[Any], bool],
         *,
@@ -168,7 +171,7 @@ class ProxyStoreExchangeTransport(ExchangeTransport, NoPickleMixin):
             allow_subclasses=allow_subclasses,
         )
 
-    def factory(self) -> ProxyStoreExchangeFactory:
+    def factory(self) -> ProxyStoreExchangeFactory[AgentRegistrationT]:
         return ProxyStoreExchangeFactory(
             self.transport.factory(),
             self.store,
@@ -196,7 +199,7 @@ class ProxyStoreExchangeTransport(ExchangeTransport, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> RegistrationInfo[BehaviorT]:
+    ) -> tuple[AgentId[BehaviorT], AgentRegistrationT]:
         return self.transport.register_agent(
             behavior,
             name=name,

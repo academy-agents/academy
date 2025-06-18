@@ -24,13 +24,13 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
-from academy.exchange import RegistrationInfo
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
+AgentRegistrationT = TypeVar('AgentRegistrationT')
 
 
 def _run_agent_on_worker(agent: Agent[Any]) -> None:
@@ -42,11 +42,12 @@ def _run_agent_on_worker(agent: Agent[Any]) -> None:
 
 
 @dataclasses.dataclass
-class _ACB(Generic[BehaviorT]):
+class _ACB(Generic[BehaviorT, AgentRegistrationT]):
     # Agent Control Block
-    agent_info: RegistrationInfo[BehaviorT]
+    agent_id: AgentId[BehaviorT]
     behavior: BehaviorT
-    exchange: ExchangeFactory
+    exchange: ExchangeFactory[AgentRegistrationT]
+    agent_info: AgentRegistrationT
     done: threading.Event
     future: Future[None] | None = None
     launch_count: int = 0
@@ -77,8 +78,8 @@ class Launcher:
         self._executor = executor
         self._close_exchange = close_exchange
         self._max_restarts = max_restarts
-        self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
-        self._future_to_acb: dict[Future[None], _ACB[Any]] = {}
+        self._acbs: dict[AgentId[Any], _ACB[Any, Any]] = {}
+        self._future_to_acb: dict[Future[None], _ACB[Any, Any]] = {}
 
     def __enter__(self) -> Self:
         return self
@@ -103,22 +104,13 @@ class Launcher:
 
         try:
             future.result()
-            logger.debug(
-                'Completed agent future (%s)',
-                acb.agent_info.agent_id,
-            )
+            logger.debug('Completed agent future (%s)', acb.agent_id)
         except CancelledError:  # pragma: no cover
-            logger.warning(
-                'Cancelled agent future (%s)',
-                acb.agent_info.agent_id,
-            )
+            logger.warning('Cancelled agent future (%s)', acb.agent_id)
         except Exception:  # pragma: no cover
-            logger.exception(
-                'Received agent exception (%s)',
-                acb.agent_info.agent_id,
-            )
+            logger.exception('Received agent exception (%s)', acb.agent_id)
             if acb.launch_count < self._max_restarts + 1:
-                self._launch(acb.agent_info.agent_id)
+                self._launch(acb.agent_id)
                 done = False
 
         if done:
@@ -146,8 +138,9 @@ class Launcher:
 
         agent = Agent(
             acb.behavior,
-            agent_info=acb.agent_info,
+            agent_id=acb.agent_id,
             exchange=acb.exchange,
+            agent_info=acb.agent_info,
             config=AgentRunConfig(
                 terminate_on_error=acb.launch_count + 1 >= self._max_restarts,
             ),
@@ -159,25 +152,21 @@ class Launcher:
         future.add_done_callback(self._callback)
 
         if acb.launch_count == 1:
-            logger.debug(
-                'Launched agent (%s; %s)',
-                acb.agent_info.agent_id,
-                acb.behavior,
-            )
+            logger.debug('Launched agent (%s; %s)', acb.agent_id, acb.behavior)
         else:
             restarts = acb.launch_count - 1
             logger.debug(
                 'Restarted agent (%d/%d retries; %s; %s)',
                 restarts,
                 self._max_restarts,
-                acb.agent_info.agent_id,
+                acb.agent_id,
                 acb.behavior,
             )
 
     def launch(
         self,
         behavior: BehaviorT,
-        exchange: ExchangeClient,
+        exchange: ExchangeClient[AgentRegistrationT],
         *,
         agent_id: AgentId[BehaviorT] | None = None,
         name: str | None = None,
@@ -195,17 +184,17 @@ class Launcher:
         Returns:
             Handle (unbound) used to interact with the agent.
         """
-        agent_info = exchange.register_agent(
+        agent_id, agent_info = exchange.register_agent(
             type(behavior),
             name=name,
             _agent_id=agent_id,
         )
-        agent_id = agent_info.agent_id
 
         acb = _ACB(
-            agent_info,
+            agent_id,
             behavior,
             exchange.factory(),
+            agent_info,
             done=threading.Event(),
         )
         self._acbs[agent_id] = acb
@@ -223,7 +212,7 @@ class Launcher:
         running: set[AgentId[Any]] = set()
         for acb in self._acbs.values():
             if not acb.done.is_set():
-                running.add(acb.agent_info.agent_id)
+                running.add(acb.agent_id)
         return running
 
     def wait(
@@ -258,7 +247,7 @@ class Launcher:
         if not acb.done.wait(timeout):
             raise TimeoutError(
                 f'Agent did not complete within {timeout}s timeout '
-                f'({acb.agent_info.agent_id})',
+                f'({acb.agent_id})',
             )
 
         # The only time _ACB.future is None is between constructing the _ACB

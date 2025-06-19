@@ -12,8 +12,8 @@ from academy.exchange.cloud.server import create_app
 from academy.exchange.cloud.server import serve_app
 from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.redis import RedisExchangeFactory
-from academy.exchange.thread import ThreadAgentRegistration
 from academy.exchange.thread import ThreadExchangeFactory
+from academy.exchange.thread import ThreadExchangeTransport
 from academy.launcher import ThreadLauncher
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
@@ -43,7 +43,7 @@ def thread_exchange_factory() -> ThreadExchangeFactory:
 
 
 @pytest.fixture
-def exchange() -> Generator[UserExchangeClient[ThreadAgentRegistration]]:
+def exchange() -> Generator[UserExchangeClient[ThreadExchangeTransport]]:
     with ThreadExchangeFactory().create_user_client(
         start_listener=False,
     ) as client:

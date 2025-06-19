@@ -3,6 +3,7 @@ from __future__ import annotations
 import pickle
 from collections.abc import Generator
 from typing import Any
+from typing import TypeVar
 
 import pytest
 
@@ -10,12 +11,18 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange import ExchangeTransport
 from academy.exchange import MailboxStatus
+from academy.exchange.transport import AgentRegistration
+from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
 from testing.behavior import EmptyBehavior
+
+AgentRegistrationT = TypeVar(
+    'AgentRegistrationT',
+    bound=AgentRegistration[Any],
+)
 
 # These fixtures are defined in testing/exchange.py
 EXCHANGE_FACTORY_FIXTURES = (
@@ -27,38 +34,48 @@ EXCHANGE_FACTORY_FIXTURES = (
 
 
 @pytest.fixture(params=EXCHANGE_FACTORY_FIXTURES)
-def transport(request) -> Generator[ExchangeTransport[Any]]:
+def transport(request) -> Generator[ExchangeTransport[AgentRegistrationT]]:
     factory = request.getfixturevalue(request.param)
     with factory._create_transport() as transport:
         yield transport
 
 
-def test_transport_repr(transport: ExchangeTransport[Any]) -> None:
+def test_transport_repr(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
     assert isinstance(repr(transport), str)
     assert isinstance(str(transport), str)
 
 
-def test_transport_create_factory(transport: ExchangeTransport[Any]) -> None:
+def test_transport_create_factory(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
     new_factory = transport.factory()
     assert isinstance(new_factory, ExchangeFactory)
 
 
-def test_transport_register_agent(transport: ExchangeTransport[Any]) -> None:
-    agent_id, _ = transport.register_agent(EmptyBehavior)
-    assert transport.status(agent_id) == MailboxStatus.ACTIVE
+def test_transport_register_agent(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
+    registration = transport.register_agent(EmptyBehavior)
+    assert transport.status(registration.agent_id) == MailboxStatus.ACTIVE
 
 
-def test_transport_status(transport: ExchangeTransport[Any]) -> None:
+def test_transport_status(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
     uid = UserId.new()
     assert transport.status(uid) == MailboxStatus.MISSING
-    aid, _ = transport.register_agent(EmptyBehavior)
-    assert transport.status(aid) == MailboxStatus.ACTIVE
-    transport.terminate(aid)
-    transport.terminate(aid)  # Idempotency
-    assert transport.status(aid) == MailboxStatus.TERMINATED
+    registration = transport.register_agent(EmptyBehavior)
+    assert transport.status(registration.agent_id) == MailboxStatus.ACTIVE
+    transport.terminate(registration.agent_id)
+    transport.terminate(registration.agent_id)  # Idempotency
+    assert transport.status(registration.agent_id) == MailboxStatus.TERMINATED
 
 
-def test_transport_send_recv(transport: ExchangeTransport[Any]) -> None:
+def test_transport_send_recv(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
     for _ in range(3):
         message = PingRequest(
             src=transport.mailbox_id,
@@ -69,7 +86,7 @@ def test_transport_send_recv(transport: ExchangeTransport[Any]) -> None:
 
 
 def test_transport_send_bad_identifier_error(
-    transport: ExchangeTransport[Any],
+    transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     uid: AgentId[Any] = AgentId.new()
     with pytest.raises(BadEntityIdError):
@@ -77,28 +94,34 @@ def test_transport_send_bad_identifier_error(
 
 
 def test_transport_send_mailbox_closed(
-    transport: ExchangeTransport[Any],
+    transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    aid, _ = transport.register_agent(EmptyBehavior)
-    transport.terminate(aid)
+    registration = transport.register_agent(EmptyBehavior)
+    transport.terminate(registration.agent_id)
     with pytest.raises(MailboxClosedError):
-        transport.send(PingRequest(src=transport.mailbox_id, dest=aid))
+        transport.send(
+            PingRequest(src=transport.mailbox_id, dest=registration.agent_id),
+        )
 
 
 def test_transport_recv_mailbox_closed(
-    transport: ExchangeTransport[Any],
+    transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     transport.terminate(transport.mailbox_id)
     with pytest.raises(MailboxClosedError):
         transport.recv()
 
 
-def test_transport_recv_timeout(transport: ExchangeTransport[Any]) -> None:
+def test_transport_recv_timeout(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
     with pytest.raises(TimeoutError):
         assert transport.recv(timeout=0.001)
 
 
-def test_transport_non_pickleable(transport: ExchangeTransport[Any]) -> None:
+def test_transport_non_pickleable(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
     with pytest.raises(pickle.PicklingError):
         pickle.dumps(transport)
 
@@ -112,10 +135,12 @@ class B(Behavior): ...
 class C(B): ...
 
 
-def test_transport_discover(transport: ExchangeTransport[Any]) -> None:
-    bid, _ = transport.register_agent(B)
-    cid, _ = transport.register_agent(C)
-    did, _ = transport.register_agent(C)
+def test_transport_discover(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
+    bid = transport.register_agent(B).agent_id
+    cid = transport.register_agent(C).agent_id
+    did = transport.register_agent(C).agent_id
     transport.terminate(did)
 
     assert len(transport.discover(A)) == 0

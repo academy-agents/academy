@@ -62,7 +62,7 @@ def test_send_to_mailbox_indirect(
 ) -> None:
     messages = 3
     with hybrid_exchange_factory._create_transport() as transport1:
-        aid, info = transport1.register_agent(EmptyBehavior)
+        aid = transport1.register_agent(EmptyBehavior).agent_id
         message = PingRequest(src=transport1.mailbox_id, dest=aid)
         for _ in range(messages):
             transport1.send(message)
@@ -96,7 +96,7 @@ def test_send_to_mailbox_bad_cached_address(
 ) -> None:
     port1, port2 = open_port(), open_port()
     with hybrid_exchange_factory._create_transport() as transport1:
-        aid, info = transport1.register_agent(EmptyBehavior)
+        aid = transport1.register_agent(EmptyBehavior).agent_id
 
         factory1 = HybridExchangeFactory(
             redis_host='localhost',

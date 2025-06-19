@@ -24,16 +24,25 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
+from academy.exchange.transport import AgentRegistration
+from academy.exchange.transport import ExchangeTransport
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-AgentRegistrationT = TypeVar('AgentRegistrationT')
+AgentRegistrationT = TypeVar(
+    'AgentRegistrationT',
+    bound=AgentRegistration[Any],
+)
+ExchangeTransportT = TypeVar(
+    'ExchangeTransportT',
+    bound=ExchangeTransport[Any],
+)
 
 
-def _run_agent_on_worker(agent: Agent[Any]) -> None:
+def _run_agent_on_worker(agent: Agent[AgentRegistrationT, BehaviorT]) -> None:
     # Agent implements __call__ so we could submit the agent directly
     # to Executor.submit() as the function to run. However, some executors
     # serialize code differently from arguments so avoid that we add
@@ -42,12 +51,12 @@ def _run_agent_on_worker(agent: Agent[Any]) -> None:
 
 
 @dataclasses.dataclass
-class _ACB(Generic[BehaviorT, AgentRegistrationT]):
+class _ACB(Generic[AgentRegistrationT, BehaviorT, ExchangeTransportT]):
     # Agent Control Block
     agent_id: AgentId[BehaviorT]
-    agent_info: AgentRegistrationT
     behavior: BehaviorT
-    exchange: ExchangeFactory[AgentRegistrationT]
+    exchange_factory: ExchangeFactory[ExchangeTransportT]
+    registration: AgentRegistrationT
     done: threading.Event
     future: Future[None] | None = None
     launch_count: int = 0
@@ -78,8 +87,8 @@ class Launcher:
         self._executor = executor
         self._close_exchange = close_exchange
         self._max_restarts = max_restarts
-        self._acbs: dict[AgentId[Any], _ACB[Any, Any]] = {}
-        self._future_to_acb: dict[Future[None], _ACB[Any, Any]] = {}
+        self._acbs: dict[AgentId[Any], _ACB[Any, Any, Any]] = {}
+        self._future_to_acb: dict[Future[None], _ACB[Any, Any, Any]] = {}
 
     def __enter__(self) -> Self:
         return self
@@ -138,12 +147,11 @@ class Launcher:
 
         agent = Agent(
             acb.behavior,
-            agent_id=acb.agent_id,
-            agent_info=acb.agent_info,
-            exchange=acb.exchange,
             config=AgentRunConfig(
                 terminate_on_error=acb.launch_count + 1 >= self._max_restarts,
             ),
+            exchange_factory=acb.exchange_factory,
+            registration=acb.registration,
         )
         future = self._executor.submit(_run_agent_on_worker, agent)
         acb.launch_count += 1
@@ -166,7 +174,7 @@ class Launcher:
     def launch(
         self,
         behavior: BehaviorT,
-        exchange: ExchangeClient[AgentRegistrationT],
+        exchange: ExchangeClient[ExchangeTransportT],
         *,
         agent_id: AgentId[BehaviorT] | None = None,
         name: str | None = None,
@@ -184,17 +192,18 @@ class Launcher:
         Returns:
             Handle (unbound) used to interact with the agent.
         """
-        agent_id, agent_info = exchange.register_agent(
+        registration = exchange.register_agent(
             type(behavior),
             name=name,
             _agent_id=agent_id,
         )
+        agent_id = registration.agent_id
 
         acb = _ACB(
-            agent_id,
-            agent_info,
-            behavior,
-            exchange.factory(),
+            agent_id=agent_id,
+            behavior=behavior,
+            exchange_factory=exchange.factory(),
+            registration=registration,
             done=threading.Event(),
         )
         self._acbs[agent_id] = acb

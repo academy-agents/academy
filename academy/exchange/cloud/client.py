@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import logging
 import multiprocessing
 import sys
 import uuid
 from collections.abc import Generator
 from typing import Any
+from typing import Generic
 from typing import Literal
 from typing import NamedTuple
 from typing import TypeVar
@@ -23,13 +25,13 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange import ExchangeTransport
-from academy.exchange import MailboxStatus
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.server import _FORBIDDEN_CODE
 from academy.exchange.cloud.server import _NOT_FOUND_CODE
 from academy.exchange.cloud.server import _run
 from academy.exchange.cloud.server import _TIMEOUT_CODE
+from academy.exchange.transport import ExchangeTransportMixin
+from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -51,60 +53,15 @@ class _HttpConnectionInfo(NamedTuple):
     ssl_verify: str | bool | None = None
 
 
-class HttpAgentRegistration:
-    """Agent registration for HttpExchange."""
+@dataclasses.dataclass
+class HttpAgentRegistration(Generic[BehaviorT]):
+    """Agent registration for Http exchanges."""
 
-    pass
-
-
-class HttpExchangeFactory(ExchangeFactory[HttpAgentRegistration]):
-    """Http exchange client factory.
-
-    Args:
-        host: Host name of the exchange server.
-        port: Port of the exchange server.
-        additional_headers: Any other information necessary to communicate
-            with the exchange. Used for passing the Globus bearer token
-        scheme: HTTP scheme, non-protected "http" by default.
-        ssl_verify: Same as requests.Session.verify. If the server's TLS
-            certificate should be validated. Should be true if using HTTPS
-            Only set to false for testing or local development.
-    """
-
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        additional_headers: dict[str, str] | None = None,
-        scheme: Literal['http', 'https'] = 'http',
-        ssl_verify: str | bool | None = None,
-    ) -> None:
-        self._info = _HttpConnectionInfo(
-            host=host,
-            port=port,
-            additional_headers=additional_headers,
-            scheme=scheme,
-            ssl_verify=ssl_verify,
-        )
-
-    def _create_transport(
-        self,
-        mailbox_id: EntityId | None = None,
-        *,
-        name: str | None = None,
-        registration: HttpAgentRegistration | None = None,
-    ) -> HttpExchangeTransport:
-        return HttpExchangeTransport.new(
-            connection_info=self._info,
-            mailbox_id=mailbox_id,
-            name=name,
-        )
+    agent_id: AgentId[BehaviorT]
+    """Unique identifier for the agent created by the exchange."""
 
 
-class HttpExchangeTransport(
-    ExchangeTransport[HttpAgentRegistration],
-    NoPickleMixin,
-):
+class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     """Http exchange client.
 
     Args:
@@ -244,17 +201,7 @@ class HttpExchangeTransport(
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> tuple[AgentId[BehaviorT], HttpAgentRegistration]:
-        """Create a new agent identifier and associated mailbox.
-
-        Args:
-            behavior: Type of the behavior this agent will implement.
-            name: Optional human-readable name for the agent. Ignored if
-                `agent_id` is provided.
-
-        Returns:
-            Unique identifier for the agent's mailbox.
-        """
+    ) -> HttpAgentRegistration[BehaviorT]:
         aid = AgentId.new(name=name) if _agent_id is None else _agent_id
         response = self._session.post(
             self._mailbox_url,
@@ -264,7 +211,7 @@ class HttpExchangeTransport(
             },
         )
         response.raise_for_status()
-        return (aid, HttpAgentRegistration())
+        return HttpAgentRegistration(agent_id=aid)
 
     def send(self, message: Message) -> None:
         response = self._session.put(
@@ -291,6 +238,50 @@ class HttpExchangeTransport(
             json={'mailbox': uid.model_dump_json()},
         )
         response.raise_for_status()
+
+
+class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
+    """Http exchange client factory.
+
+    Args:
+        host: Host name of the exchange server.
+        port: Port of the exchange server.
+        additional_headers: Any other information necessary to communicate
+            with the exchange. Used for passing the Globus bearer token
+        scheme: HTTP scheme, non-protected "http" by default.
+        ssl_verify: Same as requests.Session.verify. If the server's TLS
+            certificate should be validated. Should be true if using HTTPS
+            Only set to false for testing or local development.
+    """
+
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        additional_headers: dict[str, str] | None = None,
+        scheme: Literal['http', 'https'] = 'http',
+        ssl_verify: str | bool | None = None,
+    ) -> None:
+        self._info = _HttpConnectionInfo(
+            host=host,
+            port=port,
+            additional_headers=additional_headers,
+            scheme=scheme,
+            ssl_verify=ssl_verify,
+        )
+
+    def _create_transport(
+        self,
+        mailbox_id: EntityId | None = None,
+        *,
+        name: str | None = None,
+        registration: HttpAgentRegistration[Any] | None = None,  # type: ignore[override]
+    ) -> HttpExchangeTransport:
+        return HttpExchangeTransport.new(
+            connection_info=self._info,
+            mailbox_id=mailbox_id,
+            name=name,
+        )
 
 
 @contextlib.contextmanager

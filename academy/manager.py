@@ -19,6 +19,7 @@ from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
+from academy.exchange.transport import ExchangeTransport
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
@@ -28,10 +29,13 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-AgentRegistrationT = TypeVar('AgentRegistrationT')
+ExchangeTransportT = TypeVar(
+    'ExchangeTransportT',
+    bound=ExchangeTransport[Any],
+)
 
 
-class Manager(Generic[AgentRegistrationT], NoPickleMixin):
+class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     """Launch and manage running agents.
 
     The manager is provided as convenience to reduce common boilerplate code
@@ -65,7 +69,7 @@ class Manager(Generic[AgentRegistrationT], NoPickleMixin):
 
     def __init__(
         self,
-        exchange: ExchangeFactory[AgentRegistrationT],
+        exchange: ExchangeFactory[ExchangeTransportT],
         launcher: Launcher | MutableMapping[str, Launcher],
         *,
         default_launcher: str | None = None,
@@ -118,7 +122,7 @@ class Manager(Generic[AgentRegistrationT], NoPickleMixin):
         return f'{type(self).__name__}<{self.mailbox_id}, {self._exchange}>'
 
     @property
-    def exchange(self) -> ExchangeClient[AgentRegistrationT]:
+    def exchange(self) -> ExchangeClient[ExchangeTransportT]:
         """Exchange interface."""
         return self._exchange
 

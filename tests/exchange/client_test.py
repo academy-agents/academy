@@ -48,10 +48,9 @@ def test_create_user_client(factory: ExchangeFactory[Any]) -> None:
 
 def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
     with factory.create_user_client(start_listener=False) as client:
-        aid, info = client.register_agent(EmptyBehavior)
+        registration = client.register_agent(EmptyBehavior)
         with factory.create_agent_client(
-            aid,
-            info,
+            registration,
             lambda _: None,
         ) as agent_client:
             assert isinstance(repr(agent_client), str)
@@ -62,15 +61,15 @@ def test_create_agent_client_unregistered(
     factory: ExchangeFactory[Any],
 ) -> None:
     with factory.create_user_client(start_listener=False) as client:
-        _, info = client.register_agent(EmptyBehavior)
-        aid: AgentId[EmptyBehavior] = AgentId.new()
+        registration = client.register_agent(EmptyBehavior)
+        registration.agent_id = AgentId.new()
         with pytest.raises(BadEntityIdError):
-            factory.create_agent_client(aid, info, lambda _: None)
+            factory.create_agent_client(registration, lambda _: None)
 
 
 def test_client_discover(client: UserExchangeClient[Any]) -> None:
-    aid, _ = client.register_agent(EmptyBehavior)
-    assert client.discover(EmptyBehavior) == (aid,)
+    registration = client.register_agent(EmptyBehavior)
+    assert client.discover(EmptyBehavior) == (registration.agent_id,)
 
 
 def test_client_get_factory(client: UserExchangeClient[Any]) -> None:
@@ -78,8 +77,8 @@ def test_client_get_factory(client: UserExchangeClient[Any]) -> None:
 
 
 def test_client_get_handle(client: UserExchangeClient[Any]) -> None:
-    aid, _ = client.register_agent(EmptyBehavior)
-    with client.get_handle(aid):
+    registration = client.register_agent(EmptyBehavior)
+    with client.get_handle(registration.agent_id):
         pass
 
 
@@ -91,10 +90,10 @@ def test_client_get_handle_type_error(client: UserExchangeClient[Any]) -> None:
 def test_client_get_status(client: UserExchangeClient[Any]) -> None:
     uid = UserId.new()
     assert client.status(uid) == MailboxStatus.MISSING
-    aid, info = client.register_agent(EmptyBehavior)
-    assert client.status(aid) == MailboxStatus.ACTIVE
-    client.terminate(aid)
-    assert client.status(aid) == MailboxStatus.TERMINATED
+    registration = client.register_agent(EmptyBehavior)
+    assert client.status(registration.agent_id) == MailboxStatus.ACTIVE
+    client.terminate(registration.agent_id)
+    assert client.status(registration.agent_id) == MailboxStatus.TERMINATED
 
 
 def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
@@ -104,8 +103,11 @@ def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
         received.set()
 
     with factory.create_user_client(start_listener=False) as user_client:
-        aid, info = user_client.register_agent(EmptyBehavior)
-        with factory.create_agent_client(aid, info, _handler) as agent_client:
+        registration = user_client.register_agent(EmptyBehavior)
+        with factory.create_agent_client(
+            registration,
+            _handler,
+        ) as agent_client:
             thread = threading.Thread(target=agent_client._listen_for_messages)
             thread.start()
 
@@ -117,7 +119,7 @@ def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
 
             received.wait(TEST_WAIT_TIMEOUT)
 
-            user_client.terminate(aid)
+            user_client.terminate(registration.agent_id)
             thread.join(TEST_THREAD_JOIN_TIMEOUT)
 
 

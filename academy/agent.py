@@ -16,11 +16,12 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
+from academy.exchange.transport import AgentRegistration
+from academy.exchange.transport import ExchangeTransport
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.handle import UnboundRemoteHandle
-from academy.identifier import AgentId
 from academy.message import ActionRequest
 from academy.message import PingRequest
 from academy.message import RequestMessage
@@ -31,7 +32,14 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-AgentRegistrationT = TypeVar('AgentRegistrationT')
+AgentRegistrationT = TypeVar(
+    'AgentRegistrationT',
+    bound=AgentRegistration[Any],
+)
+ExchangeTransportT = TypeVar(
+    'ExchangeTransportT',
+    bound=ExchangeTransport[Any],
+)
 
 
 class _AgentState(enum.Enum):
@@ -69,21 +77,19 @@ class AgentRunConfig:
 # of the Agent constructor.
 def _agent_trampoline(
     behavior: BehaviorT,
-    agent_id: AgentId[BehaviorT],
-    agent_info: AgentRegistrationT,
-    exchange: ExchangeFactory[AgentRegistrationT],
+    exchange_factory: ExchangeFactory[ExchangeTransportT],
+    registration: AgentRegistrationT,
     config: AgentRunConfig,
-) -> Agent[BehaviorT]:
+) -> Agent[AgentRegistrationT, BehaviorT]:
     return Agent(
         behavior,
-        agent_id=agent_id,
-        exchange=exchange,
-        agent_info=agent_info,
+        exchange_factory=exchange_factory,
+        registration=registration,
         config=config,
     )
 
 
-class Agent(Generic[BehaviorT]):
+class Agent(Generic[AgentRegistrationT, BehaviorT]):
     """Executable agent.
 
     An agent executes predefined [`Behavior`][academy.behavior.Behavior]. An
@@ -100,30 +106,26 @@ class Agent(Generic[BehaviorT]):
 
     Args:
         behavior: Behavior that the agent will exhibit.
-        agent_id: Unique ID of this agent in a multi-agent system.
-        agent_info: Registration info for this agent returned by the exchange.
-        exchange: Message exchange of multi-agent system. The agent will close
-            the exchange when it finished running.
         config: Agent execution parameters.
+        exchange_factory: Message exchange factory.
+        registration: Agent registration info returned by the exchange.
     """
 
     def __init__(
         self,
         behavior: BehaviorT,
         *,
-        agent_id: AgentId[BehaviorT],
-        agent_info: AgentRegistrationT,
-        exchange: ExchangeFactory[AgentRegistrationT],
+        exchange_factory: ExchangeFactory[ExchangeTransportT],
+        registration: AgentRegistrationT,
         config: AgentRunConfig | None = None,
     ) -> None:
-        self.agent_id = agent_id
-        self.agent_info = agent_info
+        self.agent_id = registration.agent_id
         self.behavior = behavior
-        self.exchange = exchange.create_agent_client(
-            agent_id,
-            agent_info,
+        self.exchange = exchange_factory.create_agent_client(
+            registration,
             request_handler=self._request_handler,
         )
+        self.registration = registration
         self.config = config if config is not None else AgentRunConfig()
 
         self._actions = behavior.behavior_actions()
@@ -161,9 +163,8 @@ class Agent(Generic[BehaviorT]):
             (
                 # The order of these must match the __init__ params!
                 self.behavior,
-                self.agent_id,
-                self.agent_info,
                 self.exchange.factory(),
+                self.registration,
                 self.config,
             ),
         )

@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from collections.abc import Mapping
 from typing import Any
 from typing import Callable
+from typing import Generic
 from typing import TypeVar
 
 from proxystore.proxy import Proxy
@@ -16,8 +17,10 @@ from proxystore.store.utils import resolve_async
 
 from academy.behavior import Behavior
 from academy.exchange import ExchangeFactory
-from academy.exchange import ExchangeTransport
-from academy.exchange import MailboxStatus
+from academy.exchange.transport import AgentRegistration
+from academy.exchange.transport import ExchangeTransport
+from academy.exchange.transport import ExchangeTransportMixin
+from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
@@ -25,8 +28,15 @@ from academy.message import ActionResponse
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 
+AgentRegistrationT = TypeVar(
+    'AgentRegistrationT',
+    bound=AgentRegistration[Any],
+)
 BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-AgentRegistrationT = TypeVar('AgentRegistrationT')
+ExchangeTransportT = TypeVar(
+    'ExchangeTransportT',
+    bound=ExchangeTransport[Any],
+)
 
 
 def _proxy_item(
@@ -65,83 +75,16 @@ def _proxy_mapping(
     return {key: _apply(item) for key, item in mapping.items()}
 
 
-class ProxyStoreExchangeFactory(ExchangeFactory[AgentRegistrationT]):
-    """ProxStore exchange client factory.
-
-    A ProxyStore exchange is used to wrap an underlying exchange so
-    large objects may be passed by reference.
-
-    Args:
-        base: Base exchange factory.
-        store: Store to use for proxying data.
-        should_proxy: A callable that returns `True` if an object should be
-            proxied. This is applied to every positional and keyword argument
-            and result value.
-        resolve_async: Resolve proxies asynchronously when received.
-    """
-
-    def __init__(
-        self,
-        base: ExchangeFactory[AgentRegistrationT],
-        store: Store[Any] | None,
-        should_proxy: Callable[[Any], bool],
-        *,
-        resolve_async: bool = False,
-    ) -> None:
-        self.base = base
-        self.store = store
-        self.should_proxy = should_proxy
-        self.resolve_async = resolve_async
-
-    def _create_transport(
-        self,
-        mailbox_id: EntityId | None = None,
-        *,
-        name: str | None = None,
-        registration: AgentRegistrationT | None = None,
-    ) -> ProxyStoreExchangeTransport[AgentRegistrationT]:
-        # If store was none because of pickling,
-        # the __setstate__ must be called before bind.
-        assert self.store is not None
-        transport = self.base._create_transport(
-            mailbox_id,
-            name=name,
-            registration=registration,
-        )
-        return ProxyStoreExchangeTransport(
-            transport,
-            self.store,
-            self.should_proxy,
-            resolve_async=self.resolve_async,
-        )
-
-    def __getstate__(self) -> dict[str, Any]:
-        assert self.store is not None
-
-        return {
-            'base': self.base,
-            'store_config': self.store.config(),
-            'resolve_async': self.resolve_async,
-            'should_proxy': self.should_proxy,
-        }
-
-    def __setstate__(self, state: dict[str, Any]) -> None:
-        self.store = get_or_create_store(
-            state.pop('store_config'),
-            register=True,
-        )
-        self.__dict__.update(state)
-
-
 class ProxyStoreExchangeTransport(
-    ExchangeTransport[AgentRegistrationT],
+    ExchangeTransportMixin,
     NoPickleMixin,
+    Generic[ExchangeTransportT],
 ):
     """ProxyStore exchange client bound to a specific mailbox."""
 
     def __init__(
         self,
-        transport: ExchangeTransport[AgentRegistrationT],
+        transport: ExchangeTransportT,
         store: Store[Any],
         should_proxy: Callable[[Any], bool],
         *,
@@ -171,7 +114,7 @@ class ProxyStoreExchangeTransport(
             allow_subclasses=allow_subclasses,
         )
 
-    def factory(self) -> ProxyStoreExchangeFactory[AgentRegistrationT]:
+    def factory(self) -> ProxyStoreExchangeFactory[ExchangeTransportT]:
         return ProxyStoreExchangeFactory(
             self.transport.factory(),
             self.store,
@@ -199,7 +142,7 @@ class ProxyStoreExchangeTransport(
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> tuple[AgentId[BehaviorT], AgentRegistrationT]:
+    ) -> AgentRegistration[BehaviorT]:
         return self.transport.register_agent(
             behavior,
             name=name,
@@ -232,3 +175,73 @@ class ProxyStoreExchangeTransport(
 
     def terminate(self, uid: EntityId) -> None:
         self.transport.terminate(uid)
+
+
+class ProxyStoreExchangeFactory(
+    ExchangeFactory[ProxyStoreExchangeTransport[ExchangeTransportT]],
+):
+    """ProxStore exchange client factory.
+
+    A ProxyStore exchange is used to wrap an underlying exchange so
+    large objects may be passed by reference.
+
+    Args:
+        base: Base exchange factory.
+        store: Store to use for proxying data.
+        should_proxy: A callable that returns `True` if an object should be
+            proxied. This is applied to every positional and keyword argument
+            and result value.
+        resolve_async: Resolve proxies asynchronously when received.
+    """
+
+    def __init__(
+        self,
+        base: ExchangeFactory[ExchangeTransportT],
+        store: Store[Any] | None,
+        should_proxy: Callable[[Any], bool],
+        *,
+        resolve_async: bool = False,
+    ) -> None:
+        self.base = base
+        self.store = store
+        self.should_proxy = should_proxy
+        self.resolve_async = resolve_async
+
+    def _create_transport(
+        self,
+        mailbox_id: EntityId | None = None,
+        *,
+        name: str | None = None,
+        registration: AgentRegistrationT | None = None,
+    ) -> ProxyStoreExchangeTransport[ExchangeTransportT]:
+        # If store was none because of pickling,
+        # the __setstate__ must be called before bind.
+        assert self.store is not None
+        transport = self.base._create_transport(
+            mailbox_id,
+            name=name,
+            registration=registration,
+        )
+        return ProxyStoreExchangeTransport(
+            transport,
+            self.store,
+            self.should_proxy,
+            resolve_async=self.resolve_async,
+        )
+
+    def __getstate__(self) -> dict[str, Any]:
+        assert self.store is not None
+
+        return {
+            'base': self.base,
+            'store_config': self.store.config(),
+            'resolve_async': self.resolve_async,
+            'should_proxy': self.should_proxy,
+        }
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        self.store = get_or_create_store(
+            state.pop('store_config'),
+            register=True,
+        )
+        self.__dict__.update(state)

@@ -1,9 +1,11 @@
 # ruff: noqa: D102
 from __future__ import annotations
 
+import dataclasses
 import logging
 import sys
 from typing import Any
+from typing import Generic
 from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -15,10 +17,10 @@ from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange import ExchangeTransport
-from academy.exchange import MailboxStatus
 from academy.exchange.queue import Queue
 from academy.exchange.queue import QueueClosedError
+from academy.exchange.transport import ExchangeTransportMixin
+from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -43,47 +45,15 @@ class _ThreadExchangeState(NoPickleMixin):
         self.behaviors: dict[AgentId[Any], type[Behavior]] = {}
 
 
-class ThreadAgentRegistration:
-    """Agent registration for ThreadExchange."""
+@dataclasses.dataclass
+class ThreadAgentRegistration(Generic[BehaviorT]):
+    """Agent registration for thread exchanges."""
 
-    pass
-
-
-class ThreadExchangeFactory(
-    ExchangeFactory[ThreadAgentRegistration],
-    NoPickleMixin,
-):
-    """Local exchange client factory.
-
-    A thread exchange can be used to pass messages between agents running
-    in separate threads of a single process.
-    """
-
-    def __init__(
-        self,
-        *,
-        _state: _ThreadExchangeState | None = None,
-    ):
-        self._state = _ThreadExchangeState() if _state is None else _state
-
-    def _create_transport(
-        self,
-        mailbox_id: EntityId | None = None,
-        *,
-        name: str | None = None,
-        registration: ThreadAgentRegistration | None = None,
-    ) -> ThreadExchangeTransport:
-        return ThreadExchangeTransport.new(
-            mailbox_id,
-            name=name,
-            state=self._state,
-        )
+    agent_id: AgentId[BehaviorT]
+    """Unique identifier for the agent created by the exchange."""
 
 
-class ThreadExchangeTransport(
-    ExchangeTransport[ThreadAgentRegistration],
-    NoPickleMixin,
-):
+class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     """Thread exchange client bound to a specific mailbox."""
 
     def __init__(
@@ -160,13 +130,13 @@ class ThreadExchangeTransport(
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> tuple[AgentId[BehaviorT], ThreadAgentRegistration]:
+    ) -> ThreadAgentRegistration[BehaviorT]:
         aid: AgentId[BehaviorT] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
         self._state.queues[aid] = Queue()
         self._state.behaviors[aid] = behavior
-        return (aid, ThreadAgentRegistration())
+        return ThreadAgentRegistration(agent_id=aid)
 
     def send(self, message: Message) -> None:
         queue = self._state.queues.get(message.dest, None)
@@ -190,3 +160,34 @@ class ThreadExchangeTransport(
             queue.close()
             if isinstance(uid, AgentId):
                 self._state.behaviors.pop(uid, None)
+
+
+class ThreadExchangeFactory(
+    ExchangeFactory[ThreadExchangeTransport],
+    NoPickleMixin,
+):
+    """Local exchange client factory.
+
+    A thread exchange can be used to pass messages between agents running
+    in separate threads of a single process.
+    """
+
+    def __init__(
+        self,
+        *,
+        _state: _ThreadExchangeState | None = None,
+    ):
+        self._state = _ThreadExchangeState() if _state is None else _state
+
+    def _create_transport(
+        self,
+        mailbox_id: EntityId | None = None,
+        *,
+        name: str | None = None,
+        registration: ThreadAgentRegistration[Any] | None = None,  # type: ignore[override]
+    ) -> ThreadExchangeTransport:
+        return ThreadExchangeTransport.new(
+            mailbox_id,
+            name=name,
+            state=self._state,
+        )

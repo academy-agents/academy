@@ -60,7 +60,7 @@ def test_wrap_basic_transport_functionality(
         assert isinstance(new_factory, ProxyStoreExchangeFactory)
 
         src = wrapped_transport1.mailbox_id
-        dest, _ = wrapped_transport1.register_agent(EmptyBehavior)
+        dest = wrapped_transport1.register_agent(EmptyBehavior).agent_id
         assert wrapped_transport1.status(dest) == MailboxStatus.ACTIVE
 
         wrapped_transport2 = wrapped_factory._create_transport(mailbox_id=dest)

@@ -107,7 +107,7 @@ class HybridExchangeFactory(ExchangeFactory[HybridAgentRegistration]):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: HybridAgentRegistration | None = None,
+        registration: HybridAgentRegistration | None = None,
     ) -> HybridExchangeTransport:
         return HybridExchangeTransport.new(
             interface=self._interface,

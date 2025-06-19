@@ -67,9 +67,7 @@ def test_send_to_mailbox_indirect(
         for _ in range(messages):
             transport1.send(message)
 
-    with hybrid_exchange_factory._create_transport(
-        mailbox_id=aid,
-    ) as mailbox:
+    with hybrid_exchange_factory._create_transport(mailbox_id=aid) as mailbox:
         for _ in range(messages):
             assert mailbox.recv(timeout=TEST_CONNECTION_TIMEOUT) == message
 
@@ -105,9 +103,7 @@ def test_send_to_mailbox_bad_cached_address(
             redis_port=0,
             ports=[port1],
         )
-        with factory1._create_transport(
-            mailbox_id=aid,
-        ) as transport2:
+        with factory1._create_transport(mailbox_id=aid) as transport2:
             message = PingRequest(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,

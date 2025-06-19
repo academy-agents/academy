@@ -6,14 +6,11 @@ import logging
 import sys
 import threading
 import uuid
-from dataclasses import dataclass
 from types import TracebackType
 from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import get_args
-from typing import NamedTuple
-from typing import Protocol
 from typing import runtime_checkable
 from typing import TypeVar
 
@@ -78,7 +75,7 @@ class ExchangeFactory(abc.ABC, Generic[AgentRegistrationT]):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: AgentRegistrationT | None = None,
+        registration: AgentRegistrationT | None = None,
     ) -> ExchangeTransport[AgentRegistrationT]: ...
 
     def create_agent_client(
@@ -110,7 +107,7 @@ class ExchangeFactory(abc.ABC, Generic[AgentRegistrationT]):
         """
         transport = self._create_transport(
             mailbox_id=agent_id,
-            registration_info=agent_info,
+            registration=agent_info,
         )
         assert transport.mailbox_id == agent_id
         if transport.status(agent_id) != MailboxStatus.ACTIVE:
@@ -256,7 +253,7 @@ class ExchangeTransport(abc.ABC, Generic[AgentRegistrationT]):
             name: Optional display name for the agent.
 
         Returns:
-            Agent ID, Agent Registration.
+            Agent ID and registration info.
         """
         ...
 
@@ -410,7 +407,7 @@ class ExchangeClient(abc.ABC, Generic[AgentRegistrationT]):
             name: Optional display name for the agent.
 
         Returns:
-            Agent Registration.
+            Agent ID and registration info.
         """
         agent_id, agent_info = self._transport.register_agent(
             behavior,

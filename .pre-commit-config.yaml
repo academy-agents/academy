@@ -29,9 +29,9 @@ repos:
       - id: mypy
         additional_dependencies:
           - aiohttp
+          - globus-sdk>=3.46.0,<4
           - proxystore>=0.8.0
           - pydantic>=2,<3
           - redis
           - requests
           - "tomli ; python_version<'3.11'"
-          - globus-sdk>=3.46.0,<4

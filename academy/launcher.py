@@ -45,9 +45,9 @@ def _run_agent_on_worker(agent: Agent[Any]) -> None:
 class _ACB(Generic[BehaviorT, AgentRegistrationT]):
     # Agent Control Block
     agent_id: AgentId[BehaviorT]
+    agent_info: AgentRegistrationT
     behavior: BehaviorT
     exchange: ExchangeFactory[AgentRegistrationT]
-    agent_info: AgentRegistrationT
     done: threading.Event
     future: Future[None] | None = None
     launch_count: int = 0
@@ -139,8 +139,8 @@ class Launcher:
         agent = Agent(
             acb.behavior,
             agent_id=acb.agent_id,
-            exchange=acb.exchange,
             agent_info=acb.agent_info,
+            exchange=acb.exchange,
             config=AgentRunConfig(
                 terminate_on_error=acb.launch_count + 1 >= self._max_restarts,
             ),
@@ -192,9 +192,9 @@ class Launcher:
 
         acb = _ACB(
             agent_id,
+            agent_info,
             behavior,
             exchange.factory(),
-            agent_info,
             done=threading.Event(),
         )
         self._acbs[agent_id] = acb

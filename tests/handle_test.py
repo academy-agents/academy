@@ -145,11 +145,7 @@ def test_agent_remote_handle_serialize(
     exchange: UserExchangeClient[Any],
 ) -> None:
     agent_id, agent_info = exchange.register_agent(EmptyBehavior)
-    with BoundRemoteHandle(
-        exchange,
-        agent_id,
-        exchange.user_id,
-    ) as handle:
+    with BoundRemoteHandle(exchange, agent_id, exchange.user_id) as handle:
         # Note: don't call pickle.dumps here because ThreadExchange
         # is not pickleable so we test __reduce__ directly.
         class_, args = handle.__reduce__()

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import threading
-import typing
 from collections.abc import Generator
 from typing import Any
 
@@ -59,15 +58,14 @@ def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
             assert isinstance(str(agent_client), str)
 
 
-@typing.no_type_check
 def test_create_agent_client_unregistered(
     factory: ExchangeFactory[Any],
 ) -> None:
-    # TODO: This test will break with different registration infos
-    aid: AgentId[Any] = AgentId.new()
-    info = None  # This type needs to be specific to the factory.
-    with pytest.raises(BadEntityIdError):
-        factory.create_agent_client(aid, info, lambda _: None)
+    with factory.create_user_client(start_listener=False) as client:
+        _, info = client.register_agent(EmptyBehavior)
+        aid: AgentId[EmptyBehavior] = AgentId.new()
+        with pytest.raises(BadEntityIdError):
+            factory.create_agent_client(aid, info, lambda _: None)
 
 
 def test_client_discover(client: UserExchangeClient[Any]) -> None:

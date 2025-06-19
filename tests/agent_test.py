@@ -90,9 +90,7 @@ def test_agent_shutdown_without_terminate(
     agent._expected_shutdown = True
     agent.shutdown()
     # Verify mailbox is open
-    exchange.send(
-        PingRequest(src=agent_id, dest=agent_id),
-    )
+    exchange.send(PingRequest(src=agent_id, dest=agent_id))
 
 
 def test_agent_shutdown_without_start(
@@ -243,11 +241,7 @@ def test_agent_action_message(exchange: UserExchangeClient[Any]) -> None:
     assert message.exception is None
     assert message.result is None
 
-    request = ActionRequest(
-        src=user_id,
-        dest=agent_id,
-        action='count',
-    )
+    request = ActionRequest(src=user_id, dest=agent_id, action='count')
     exchange.send(request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)
@@ -307,11 +301,7 @@ def test_agent_action_message_unknown(
     thread = threading.Thread(target=agent)
     thread.start()
 
-    request = ActionRequest(
-        src=user_id,
-        dest=agent_id,
-        action='null',
-    )
+    request = ActionRequest(src=user_id, dest=agent_id, action='null')
     exchange.send(request)
     message = exchange._transport.recv()
     assert isinstance(message, ActionResponse)

@@ -92,7 +92,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpAgentRegistration]):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: HttpAgentRegistration | None = None,
+        registration: HttpAgentRegistration | None = None,
     ) -> HttpExchangeTransport:
         return HttpExchangeTransport.new(
             connection_info=self._info,

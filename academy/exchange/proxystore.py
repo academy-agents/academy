@@ -98,7 +98,7 @@ class ProxyStoreExchangeFactory(ExchangeFactory[AgentRegistrationT]):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: AgentRegistrationT | None = None,
+        registration: AgentRegistrationT | None = None,
     ) -> ProxyStoreExchangeTransport[AgentRegistrationT]:
         # If store was none because of pickling,
         # the __setstate__ must be called before bind.
@@ -106,7 +106,7 @@ class ProxyStoreExchangeFactory(ExchangeFactory[AgentRegistrationT]):
         transport = self.base._create_transport(
             mailbox_id,
             name=name,
-            registration_info=registration_info,
+            registration=registration,
         )
         return ProxyStoreExchangeTransport(
             transport,

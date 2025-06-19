@@ -71,7 +71,7 @@ class ThreadExchangeFactory(
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: ThreadAgentRegistration | None = None,
+        registration: ThreadAgentRegistration | None = None,
     ) -> ThreadExchangeTransport:
         return ThreadExchangeTransport.new(
             mailbox_id,

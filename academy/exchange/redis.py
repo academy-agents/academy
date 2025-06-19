@@ -77,7 +77,7 @@ class RedisExchangeFactory(ExchangeFactory[RedisAgentRegistration]):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration_info: RedisAgentRegistration | None = None,
+        registration: RedisAgentRegistration | None = None,
     ) -> RedisExchangeTransport:
         return RedisExchangeTransport.new(
             mailbox_id=mailbox_id,

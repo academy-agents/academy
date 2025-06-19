@@ -70,8 +70,8 @@ class AgentRunConfig:
 def _agent_trampoline(
     behavior: BehaviorT,
     agent_id: AgentId[BehaviorT],
-    exchange: ExchangeFactory[AgentRegistrationT],
     agent_info: AgentRegistrationT,
+    exchange: ExchangeFactory[AgentRegistrationT],
     config: AgentRunConfig,
 ) -> Agent[BehaviorT]:
     return Agent(
@@ -100,10 +100,10 @@ class Agent(Generic[BehaviorT]):
 
     Args:
         behavior: Behavior that the agent will exhibit.
-        agent_id: EntityId of this agent in a multi-agent system.
+        agent_id: Unique ID of this agent in a multi-agent system.
+        agent_info: Registration info for this agent returned by the exchange.
         exchange: Message exchange of multi-agent system. The agent will close
             the exchange when it finished running.
-        agent_info: RegistrationInfo of this agent created by the exchange.
         config: Agent execution parameters.
     """
 
@@ -112,8 +112,8 @@ class Agent(Generic[BehaviorT]):
         behavior: BehaviorT,
         *,
         agent_id: AgentId[BehaviorT],
-        exchange: ExchangeFactory[AgentRegistrationT],
         agent_info: AgentRegistrationT,
+        exchange: ExchangeFactory[AgentRegistrationT],
         config: AgentRunConfig | None = None,
     ) -> None:
         self.agent_id = agent_id
@@ -159,10 +159,11 @@ class Agent(Generic[BehaviorT]):
         return (
             _agent_trampoline,
             (
+                # The order of these must match the __init__ params!
                 self.behavior,
                 self.agent_id,
-                self.exchange.factory(),
                 self.agent_info,
+                self.exchange.factory(),
                 self.config,
             ),
         )

@@ -3560,7 +3560,7 @@ to the remote agent.</p>
 
 <a href="#academy.handle.UnboundRemoteHandle.bind_to_exchange" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">bind_to_exchange</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            BoundRemoteHandle (academy.handle.BoundRemoteHandle)" href="#academy.handle.BoundRemoteHandle">BoundRemoteHandle</a></span><span class="p">[</span><span class="n"><span title="academy.handle.BehaviorT">BehaviorT</span></span><span class="p">]</span>
 </span></code></pre></div>
 
@@ -3573,7 +3573,7 @@ to the remote agent.</p>
     <ul>
         <li class="doc-section-item field-body">
             <b><code>exchange</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Client exchange to associate with handle</p>
@@ -3610,7 +3610,7 @@ to the remote agent.</p>
 <span class="normal"><a href="#__codelineno-0-367">367</a></span>
 <span class="normal"><a href="#__codelineno-0-368">368</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-356"><a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="k">def</span><span class="w"> </span><span class="nf">bind_to_exchange</span><span class="p">(</span>
 </span><span id="__span-0-357"><a id="__codelineno-0-357" name="__codelineno-0-357"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-358"><a id="__codelineno-0-358" name="__codelineno-0-358"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">,</span>
+</span><span id="__span-0-358"><a id="__codelineno-0-358" name="__codelineno-0-358"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
 </span><span id="__span-0-359"><a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoundRemoteHandle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]:</span>
 </span><span id="__span-0-360"><a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Bind the handle to an existing mailbox.</span>
 </span><span id="__span-0-361"><a id="__codelineno-0-361" name="__codelineno-0-361"></a>
@@ -3775,7 +3775,7 @@ to the remote agent.</p>
 
 <a href="#academy.handle.BoundRemoteHandle" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BoundRemoteHandle</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">agent_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentId
 
 
@@ -3803,7 +3803,7 @@ to the remote agent.</p>
     <ul>
         <li class="doc-section-item field-body">
             <b><code>exchange</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Message exchange used for agent communication.</p>
@@ -3870,7 +3870,7 @@ to the remote agent.</p>
 <span class="normal"><a href="#__codelineno-0-425">425</a></span>
 <span class="normal"><a href="#__codelineno-0-426">426</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-405"><a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span id="__span-0-406"><a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">,</span>
+</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
 </span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a>    <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">],</span>
 </span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="n">mailbox_id</span><span class="p">:</span> <span class="n">EntityId</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -4519,7 +4519,7 @@ typically indicates the agent shutdown for another reason
 
 <a href="#academy.handle.BoundRemoteHandle.bind_to_exchange" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">bind_to_exchange</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            BoundRemoteHandle (academy.handle.BoundRemoteHandle)" href="#academy.handle.BoundRemoteHandle">BoundRemoteHandle</a></span><span class="p">[</span><span class="n"><span title="academy.handle.BehaviorT">BehaviorT</span></span><span class="p">]</span>
 </span></code></pre></div>
 
@@ -4532,7 +4532,7 @@ typically indicates the agent shutdown for another reason
     <ul>
         <li class="doc-section-item field-body">
             <b><code>exchange</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Client exchange to associate with handle</p>
@@ -4569,7 +4569,7 @@ typically indicates the agent shutdown for another reason
 <span class="normal"><a href="#__codelineno-0-655">655</a></span>
 <span class="normal"><a href="#__codelineno-0-656">656</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-644"><a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="k">def</span><span class="w"> </span><span class="nf">bind_to_exchange</span><span class="p">(</span>
 </span><span id="__span-0-645"><a id="__codelineno-0-645" name="__codelineno-0-645"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-646"><a id="__codelineno-0-646" name="__codelineno-0-646"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">,</span>
+</span><span id="__span-0-646"><a id="__codelineno-0-646" name="__codelineno-0-646"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
 </span><span id="__span-0-647"><a id="__codelineno-0-647" name="__codelineno-0-647"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BoundRemoteHandle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]:</span>
 </span><span id="__span-0-648"><a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Bind the handle to an existing mailbox.</span>
 </span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a>

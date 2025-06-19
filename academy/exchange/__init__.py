@@ -21,10 +21,11 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 from academy.behavior import Behavior
+from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange.transport import AgentRegistration
-from academy.exchange.transport import ExchangeTransport
+from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
 from academy.handle import BoundRemoteHandle
 from academy.handle import UnboundRemoteHandle
@@ -43,12 +44,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-ExchangeTransportT = TypeVar(
-    'ExchangeTransportT',
-    bound=ExchangeTransport[Any],
-)
 
 
 class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):

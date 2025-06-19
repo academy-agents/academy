@@ -7,19 +7,18 @@ from collections.abc import MutableMapping
 from types import TracebackType
 from typing import Any
 from typing import Generic
-from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.behavior import Behavior
+from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
-from academy.exchange.transport import ExchangeTransport
+from academy.exchange.transport import ExchangeTransportT
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
@@ -27,12 +26,6 @@ from academy.launcher import Launcher
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
-
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-ExchangeTransportT = TypeVar(
-    'ExchangeTransportT',
-    bound=ExchangeTransport[Any],
-)
 
 
 class Manager(Generic[ExchangeTransportT], NoPickleMixin):

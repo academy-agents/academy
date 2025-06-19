@@ -34,6 +34,7 @@ P = ParamSpec('P')
 R = TypeVar('R')
 R_co = TypeVar('R_co', covariant=True)
 BehaviorT = TypeVar('BehaviorT', bound='Behavior')
+"""Type variable bound to [`Behavior`][academy.behavior.Behavior]."""
 
 logger = logging.getLogger(__name__)
 

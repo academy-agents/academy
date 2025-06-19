@@ -12,12 +12,12 @@ from typing import Any
 from typing import Generic
 from typing import TypeVar
 
-from academy.behavior import Behavior
+from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange.transport import AgentRegistration
-from academy.exchange.transport import ExchangeTransport
+from academy.exchange.transport import AgentRegistrationT
+from academy.exchange.transport import ExchangeTransportT
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import ProxyHandle
@@ -31,15 +31,6 @@ from academy.message import ShutdownRequest
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-AgentRegistrationT = TypeVar(
-    'AgentRegistrationT',
-    bound=AgentRegistration[Any],
-)
-ExchangeTransportT = TypeVar(
-    'ExchangeTransportT',
-    bound=ExchangeTransport[Any],
-)
 
 
 class _AgentState(enum.Enum):

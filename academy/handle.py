@@ -42,18 +42,17 @@ from academy.message import ShutdownRequest
 from academy.message import ShutdownResponse
 
 if TYPE_CHECKING:
-    from academy.behavior import Behavior
+    from academy.behavior import BehaviorT
     from academy.exchange import ExchangeClient
 else:
     # Behavior is only used in the bounding of the BehaviorT TypeVar.
-    Behavior = None
+    BehaviorT = TypeVar('BehaviorT')
 
 logger = logging.getLogger(__name__)
 
 K = TypeVar('K')
 P = ParamSpec('P')
 R = TypeVar('R')
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 
 @runtime_checkable

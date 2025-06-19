@@ -16,14 +16,13 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 from academy.behavior import Behavior
+from academy.behavior import BehaviorT
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import Message
 
 if TYPE_CHECKING:
     from academy.exchange import ExchangeFactory
-
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 
 class MailboxStatus(enum.Enum):
@@ -48,6 +47,11 @@ class AgentRegistration(Protocol[BehaviorT]):
     agent_id: AgentId[BehaviorT]
 
 
+AgentRegistrationT = TypeVar(
+    'AgentRegistrationT',
+    bound=AgentRegistration[Any],
+)
+"""Type variable bound [`AgentRegistration`][academy.exchange.transport.AgentRegistration]."""  # noqa: E501
 AgentRegistrationT_co = TypeVar('AgentRegistrationT_co', covariant=True)
 
 
@@ -193,6 +197,7 @@ ExchangeTransportT = TypeVar(
     'ExchangeTransportT',
     bound=ExchangeTransport[Any],
 )
+"""Type variable bound [`ExchangeTransport`][academy.exchange.transport.ExchangeTransport]."""  # noqa: E501
 
 
 class ExchangeTransportMixin:

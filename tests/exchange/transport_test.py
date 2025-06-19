@@ -3,7 +3,6 @@ from __future__ import annotations
 import pickle
 from collections.abc import Generator
 from typing import Any
-from typing import TypeVar
 
 import pytest
 
@@ -12,17 +11,12 @@ from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange.transport import AgentRegistration
+from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
 from testing.behavior import EmptyBehavior
-
-AgentRegistrationT = TypeVar(
-    'AgentRegistrationT',
-    bound=AgentRegistration[Any],
-)
 
 # These fixtures are defined in testing/exchange.py
 EXCHANGE_FACTORY_FIXTURES = (

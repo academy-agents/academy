@@ -10,7 +10,6 @@ from typing import Any
 from typing import Generic
 from typing import get_args
 from typing import NamedTuple
-from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -20,6 +19,7 @@ else:  # pragma: <3.11 cover
 import redis
 
 from academy.behavior import Behavior
+from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
@@ -33,8 +33,6 @@ from academy.message import Message
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
-
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 
 _CLOSE_SENTINEL = b'<CLOSED>'
 

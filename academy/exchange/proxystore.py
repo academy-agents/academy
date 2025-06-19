@@ -7,7 +7,6 @@ from collections.abc import Mapping
 from typing import Any
 from typing import Callable
 from typing import Generic
-from typing import TypeVar
 
 from proxystore.proxy import Proxy
 from proxystore.store import get_or_create_store
@@ -16,10 +15,12 @@ from proxystore.store import Store
 from proxystore.store.utils import resolve_async
 
 from academy.behavior import Behavior
+from academy.behavior import BehaviorT
 from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
-from academy.exchange.transport import ExchangeTransport
+from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportMixin
+from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -27,16 +28,6 @@ from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import Message
 from academy.serialize import NoPickleMixin
-
-AgentRegistrationT = TypeVar(
-    'AgentRegistrationT',
-    bound=AgentRegistration[Any],
-)
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
-ExchangeTransportT = TypeVar(
-    'ExchangeTransportT',
-    bound=ExchangeTransport[Any],
-)
 
 
 def _proxy_item(

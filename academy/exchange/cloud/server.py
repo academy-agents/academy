@@ -29,7 +29,6 @@ from collections.abc import Awaitable
 from collections.abc import Sequence
 from typing import Any
 from typing import Callable
-from typing import TypeVar
 
 from aiohttp.web import AppKey
 from aiohttp.web import Application
@@ -43,7 +42,6 @@ from aiohttp.web import TCPSite
 from pydantic import TypeAdapter
 from pydantic import ValidationError
 
-from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import MailboxStatus
@@ -63,7 +61,6 @@ from academy.message import Message
 
 logger = logging.getLogger(__name__)
 
-BehaviorT = TypeVar('BehaviorT', bound=Behavior)
 _OKAY_CODE = 200
 _BAD_REQUEST_CODE = 400
 _UNAUTHORIZED_CODE = 401

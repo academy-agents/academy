@@ -30,10 +30,10 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 
-class _ThreadExchangeState(NoPickleMixin):
-    """Local process message exchange for threaded agents.
+class _LocalExchangeState(NoPickleMixin):
+    """Local process message exchange.
 
-    ThreadExchange is a special case of an exchange where the mailboxes
+    LocalExchange is a special case of an exchange where the mailboxes
     of the exchange live in process memory. This class stores the state
     of the exchange.
     """
@@ -44,20 +44,20 @@ class _ThreadExchangeState(NoPickleMixin):
 
 
 @dataclasses.dataclass
-class ThreadAgentRegistration(Generic[BehaviorT]):
+class LocalAgentRegistration(Generic[BehaviorT]):
     """Agent registration for thread exchanges."""
 
     agent_id: AgentId[BehaviorT]
     """Unique identifier for the agent created by the exchange."""
 
 
-class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
-    """Thread exchange client bound to a specific mailbox."""
+class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
+    """Local exchange client bound to a specific mailbox."""
 
     def __init__(
         self,
         mailbox_id: EntityId,
-        state: _ThreadExchangeState,
+        state: _LocalExchangeState,
     ) -> None:
         self._mailbox_id = mailbox_id
         self._state = state
@@ -68,7 +68,7 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        state: _ThreadExchangeState,
+        state: _LocalExchangeState,
     ) -> Self:
         """Instantiate a new transport.
 
@@ -113,8 +113,8 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
         return alive
 
-    def factory(self) -> ThreadExchangeFactory:
-        return ThreadExchangeFactory(_state=self._state)
+    def factory(self) -> LocalExchangeFactory:
+        return LocalExchangeFactory(_state=self._state)
 
     async def recv(self, timeout: float | None = None) -> Message:
         queue = self._state.queues[self.mailbox_id]
@@ -129,13 +129,13 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
-    ) -> ThreadAgentRegistration[BehaviorT]:
+    ) -> LocalAgentRegistration[BehaviorT]:
         aid: AgentId[BehaviorT] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
         self._state.queues[aid] = AsyncQueue()
         self._state.behaviors[aid] = behavior
-        return ThreadAgentRegistration(agent_id=aid)
+        return LocalAgentRegistration(agent_id=aid)
 
     async def send(self, message: Message) -> None:
         queue = self._state.queues.get(message.dest, None)
@@ -161,8 +161,8 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 self._state.behaviors.pop(uid, None)
 
 
-class ThreadExchangeFactory(
-    ExchangeFactory[ThreadExchangeTransport],
+class LocalExchangeFactory(
+    ExchangeFactory[LocalExchangeTransport],
     NoPickleMixin,
 ):
     """Local exchange client factory.
@@ -174,18 +174,18 @@ class ThreadExchangeFactory(
     def __init__(
         self,
         *,
-        _state: _ThreadExchangeState | None = None,
+        _state: _LocalExchangeState | None = None,
     ):
-        self._state = _ThreadExchangeState() if _state is None else _state
+        self._state = _LocalExchangeState() if _state is None else _state
 
     async def _create_transport(
         self,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
-        registration: ThreadAgentRegistration[Any] | None = None,  # type: ignore[override]
-    ) -> ThreadExchangeTransport:
-        return ThreadExchangeTransport.new(
+        registration: LocalAgentRegistration[Any] | None = None,  # type: ignore[override]
+    ) -> LocalExchangeTransport:
+        return LocalExchangeTransport.new(
             mailbox_id,
             name=name,
             state=self._state,

@@ -4,11 +4,11 @@ import pickle
 
 import pytest
 
-from academy.exchange.thread import ThreadExchangeFactory
+from academy.exchange.local import LocalExchangeFactory
 
 
 def test_factory_serialize_error(
-    thread_exchange_factory: ThreadExchangeFactory,
+    local_exchange_factory: LocalExchangeFactory,
 ) -> None:
     with pytest.raises(pickle.PicklingError):
-        pickle.dumps(thread_exchange_factory)
+        pickle.dumps(local_exchange_factory)

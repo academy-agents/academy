@@ -13,8 +13,8 @@ from proxystore.store.executor import ProxyAlways
 from proxystore.store.executor import ProxyNever
 
 from academy.exchange import MailboxStatus
+from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.proxystore import ProxyStoreExchangeFactory
-from academy.exchange.thread import ThreadExchangeFactory
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import PingRequest
@@ -46,10 +46,10 @@ async def test_wrap_basic_transport_functionality(
     should_proxy: Callable[[Any], bool],
     resolve_async: bool,
     store: Store[LocalConnector],
-    thread_exchange_factory: ThreadExchangeFactory,
+    local_exchange_factory: LocalExchangeFactory,
 ) -> None:
     wrapped_factory = ProxyStoreExchangeFactory(
-        base=thread_exchange_factory,
+        base=local_exchange_factory,
         store=store,
         should_proxy=should_proxy,
         resolve_async=resolve_async,

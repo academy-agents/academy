@@ -13,9 +13,9 @@ from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.server import create_app
 from academy.exchange.hybrid import HybridExchangeFactory
+from academy.exchange.local import LocalExchangeFactory
+from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.redis import RedisExchangeFactory
-from academy.exchange.thread import ThreadExchangeFactory
-from academy.exchange.thread import ThreadExchangeTransport
 from academy.exchange.transport import AgentRegistrationT
 from academy.launcher import ThreadLauncher
 from academy.socket import open_port
@@ -41,15 +41,15 @@ def redis_exchange_factory(mock_redis) -> RedisExchangeFactory:
 
 
 @pytest.fixture
-def thread_exchange_factory() -> ThreadExchangeFactory:
-    return ThreadExchangeFactory()
+def local_exchange_factory() -> LocalExchangeFactory:
+    return LocalExchangeFactory()
 
 
 EXCHANGE_FACTORY_TYPES = (
     HttpExchangeFactory,
     HybridExchangeFactory,
     RedisExchangeFactory,
-    ThreadExchangeFactory,
+    LocalExchangeFactory,
 )
 
 
@@ -74,7 +74,7 @@ async def get_factory(
             return factory_type(redis_host='localhost', redis_port=0)
         elif factory_type is RedisExchangeFactory:
             return factory_type(hostname='localhost', port=0)
-        elif factory_type is ThreadExchangeFactory:
+        elif factory_type is LocalExchangeFactory:
             return factory_type()
         else:
             raise AssertionError('Unsupported factory type.')
@@ -83,8 +83,8 @@ async def get_factory(
 
 
 @pytest.fixture
-def exchange() -> Generator[UserExchangeClient[ThreadExchangeTransport]]:
-    with ThreadExchangeFactory().create_user_client(
+def exchange() -> Generator[UserExchangeClient[LocalExchangeTransport]]:
+    with LocalExchangeFactory().create_user_client(
         start_listener=False,
     ) as client:
         yield client

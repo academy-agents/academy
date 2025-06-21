@@ -19,12 +19,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import contextlib
 import logging
 import ssl
 import sys
 import uuid
-from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
 from collections.abc import Sequence
 from typing import Any
@@ -32,13 +30,11 @@ from typing import Callable
 
 from aiohttp.web import AppKey
 from aiohttp.web import Application
-from aiohttp.web import AppRunner
 from aiohttp.web import json_response
 from aiohttp.web import middleware
 from aiohttp.web import Request
 from aiohttp.web import Response
 from aiohttp.web import run_app
-from aiohttp.web import TCPSite
 from pydantic import TypeAdapter
 from pydantic import ValidationError
 
@@ -418,31 +414,6 @@ def create_app(
     app.router.add_get('/discover', _discover_route)
 
     return app
-
-
-@contextlib.asynccontextmanager
-async def serve_app(
-    app: Application,
-    host: str,
-    port: int,
-) -> AsyncGenerator[None]:
-    """Serve an application as a context manager.
-
-    Args:
-        app: Application to run.
-        host: Host to bind to.
-        port: Port to bind to.
-    """
-    runner = AppRunner(app)
-    try:
-        await runner.setup()
-        site = TCPSite(runner, host, port)
-        await site.start()
-        logger.info('Exchange listening on %s:%s', host, port)
-        yield
-    finally:
-        await runner.cleanup()
-        logger.info('Exchange closed!')
 
 
 def _run(

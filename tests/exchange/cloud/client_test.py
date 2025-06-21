@@ -5,7 +5,6 @@ import pickle
 from unittest import mock
 
 import pytest
-import requests
 
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.client import HttpExchangeTransport
@@ -23,36 +22,50 @@ def test_factory_serialize(
     assert isinstance(reconstructed, HttpExchangeFactory)
 
 
-def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
+@pytest.mark.asyncio
+async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
     factory = HttpExchangeFactory(host, port)
-    with factory._create_transport() as transport:
-        response = requests.Response()
-        response.status_code = _TIMEOUT_CODE
+
+    class MockResponse:
+        status = _TIMEOUT_CODE
+
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+    async with await factory._create_transport() as transport:
+        response = MockResponse()
         with mock.patch.object(
             transport._session,
             'get',
             return_value=response,
         ):
             with pytest.raises(TimeoutError):
-                transport.recv()
+                await transport.recv()
 
 
-def test_additional_headers(http_exchange_server: tuple[str, int]) -> None:
+@pytest.mark.asyncio
+async def test_additional_headers(
+    http_exchange_server: tuple[str, int],
+) -> None:
     host, port = http_exchange_server
     headers = {'Authorization': 'fake auth'}
     factory = HttpExchangeFactory(host, port, headers)
-    with factory._create_transport() as transport:
+    async with await factory._create_transport() as transport:
         assert isinstance(transport, HttpExchangeTransport)
         assert 'Authorization' in transport._session.headers
 
 
-def test_spawn_http_exchange() -> None:
+@pytest.mark.asyncio
+async def test_spawn_http_exchange() -> None:
     with spawn_http_exchange(
         'localhost',
         open_port(),
         level=logging.ERROR,
         timeout=TEST_CONNECTION_TIMEOUT,
     ) as factory:
-        with factory._create_transport() as transport:
+        async with await factory._create_transport() as transport:
             assert isinstance(transport, HttpExchangeTransport)

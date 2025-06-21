@@ -29,7 +29,6 @@ dependencies = [
     "proxystore>=0.8.0",
     "pydantic>=2,<3",
     "redis",
-    "requests",
     "tomli ; python_version<'3.11'",
     "typing-extensions>=4.3.0 ; python_version<'3.11'",
 ]
@@ -46,7 +45,7 @@ dev = [
     "mypy",
     "pre-commit",
     "pytest",
-    "pytest-asyncio",
+    "pytest-asyncio>=1",
     "pytest-cov",
     "ruff>=0.2.0",
     "tox",
@@ -116,6 +115,7 @@ allow_untyped_defs = true
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 79

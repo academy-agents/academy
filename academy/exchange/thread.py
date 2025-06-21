@@ -17,7 +17,7 @@ from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange.queue import Queue
+from academy.exchange.queue import AsyncQueue
 from academy.exchange.queue import QueueClosedError
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
@@ -39,7 +39,7 @@ class _ThreadExchangeState(NoPickleMixin):
     """
 
     def __init__(self) -> None:
-        self.queues: dict[EntityId, Queue[Message]] = {}
+        self.queues: dict[EntityId, AsyncQueue[Message]] = {}
         self.behaviors: dict[AgentId[Any], type[Behavior]] = {}
 
 
@@ -85,7 +85,7 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         """
         if mailbox_id is None:
             mailbox_id = UserId.new(name=name)
-            state.queues[mailbox_id] = Queue()
+            state.queues[mailbox_id] = AsyncQueue()
             logger.info('Registered %s in exchange', mailbox_id)
         return cls(mailbox_id, state)
 
@@ -93,10 +93,10 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def mailbox_id(self) -> EntityId:
         return self._mailbox_id
 
-    def close(self) -> None:
+    async def close(self) -> None:
         pass
 
-    def discover(
+    async def discover(
         self,
         behavior: type[Behavior],
         *,
@@ -116,13 +116,14 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def factory(self) -> ThreadExchangeFactory:
         return ThreadExchangeFactory(_state=self._state)
 
-    def recv(self, timeout: float | None = None) -> Message:
+    async def recv(self, timeout: float | None = None) -> Message:
+        queue = self._state.queues[self.mailbox_id]
         try:
-            return self._state.queues[self.mailbox_id].get(timeout=timeout)
+            return await queue.get(timeout=timeout)
         except QueueClosedError as e:
             raise MailboxClosedError(self.mailbox_id) from e
 
-    def register_agent(
+    async def register_agent(
         self,
         behavior: type[BehaviorT],
         *,
@@ -132,30 +133,30 @@ class ThreadExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         aid: AgentId[BehaviorT] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
-        self._state.queues[aid] = Queue()
+        self._state.queues[aid] = AsyncQueue()
         self._state.behaviors[aid] = behavior
         return ThreadAgentRegistration(agent_id=aid)
 
-    def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> None:
         queue = self._state.queues.get(message.dest, None)
         if queue is None:
             raise BadEntityIdError(message.dest)
         try:
-            queue.put(message)
+            await queue.put(message)
         except QueueClosedError as e:
             raise MailboxClosedError(message.dest) from e
 
-    def status(self, uid: EntityId) -> MailboxStatus:
+    async def status(self, uid: EntityId) -> MailboxStatus:
         if uid not in self._state.queues:
             return MailboxStatus.MISSING
         if self._state.queues[uid].closed():
             return MailboxStatus.TERMINATED
         return MailboxStatus.ACTIVE
 
-    def terminate(self, uid: EntityId) -> None:
+    async def terminate(self, uid: EntityId) -> None:
         queue = self._state.queues.get(uid, None)
         if queue is not None and not queue.closed():
-            queue.close()
+            await queue.close()
             if isinstance(uid, AgentId):
                 self._state.behaviors.pop(uid, None)
 
@@ -177,7 +178,7 @@ class ThreadExchangeFactory(
     ):
         self._state = _ThreadExchangeState() if _state is None else _state
 
-    def _create_transport(
+    async def _create_transport(
         self,
         mailbox_id: EntityId | None = None,
         *,

@@ -2,25 +2,28 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from collections.abc import AsyncGenerator
 from collections.abc import Generator
 
 import pytest
+import pytest_asyncio
+from aiohttp.web import TCPSite, AppRunner
 
 from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.server import create_app
-from academy.exchange.cloud.server import serve_app
 from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.redis import RedisExchangeFactory
 from academy.exchange.thread import ThreadExchangeFactory
 from academy.exchange.thread import ThreadExchangeTransport
+from academy.exchange.transport import AgentRegistrationT
 from academy.launcher import ThreadLauncher
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
 
 
-@pytest.fixture
-def http_exchange_factory(
+@pytest_asyncio.fixture
+async def http_exchange_factory(
     http_exchange_server: tuple[str, int],
 ) -> HttpExchangeFactory:
     host, port = http_exchange_server
@@ -42,6 +45,43 @@ def thread_exchange_factory() -> ThreadExchangeFactory:
     return ThreadExchangeFactory()
 
 
+EXCHANGE_FACTORY_TYPES = (
+    HttpExchangeFactory,
+    HybridExchangeFactory,
+    RedisExchangeFactory,
+    ThreadExchangeFactory,
+)
+
+
+@pytest_asyncio.fixture
+async def get_factory(
+    http_exchange_server: tuple[str, int],
+    mock_redis,
+) -> Callable[[type[ExchangeTransportT]], ExchangeTransportT]:
+    # Typically we would parameterize fixtures on a list of the
+    # factory fixtures defined above. However, request.getfixturevalue does
+    # not work with async fixtures, of which we have a mix, so we need to set
+    # them up manually. Instead, we have a fixture that returns a function
+    # that can create the factories from a parameterized list of factory types.
+    # See: https://github.com/pytest-dev/pytest-asyncio/issues/976
+    def _get_factory_for_testing(
+        factory_type: type[ExchangeFactoryT],
+    ) -> ExchangeFactoryT:
+        if factory_type is HttpExchangeFactory:
+            host, port = http_exchange_server
+            return factory_type(host, port)
+        elif factory_type is HybridExchangeFactory:
+            return factory_type(redis_host='localhost', redis_port=0)
+        elif factory_type is RedisExchangeFactory:
+            return factory_type(hostname='localhost', port=0)
+        elif factory_type is ThreadExchangeFactory:
+            return factory_type()
+        else:
+            raise AssertionError('Unsupported factory type.')
+    
+    return _get_factory_for_testing
+
+
 @pytest.fixture
 def exchange() -> Generator[UserExchangeClient[ThreadExchangeTransport]]:
     with ThreadExchangeFactory().create_user_client(
@@ -56,35 +96,17 @@ def launcher() -> Generator[ThreadLauncher]:
         yield launcher
 
 
-@pytest.fixture
-def http_exchange_server() -> Generator[tuple[str, int]]:
+@pytest_asyncio.fixture
+async def http_exchange_server() -> AsyncGenerator[tuple[str, int]]:
     host, port = 'localhost', open_port()
     app = create_app()
-    loop = asyncio.new_event_loop()
-    started = threading.Event()
-    stop = loop.create_future()
 
-    async def _run() -> None:
-        async with serve_app(app, host, port):
-            started.set()
-            await stop
+    runner = AppRunner(app)
+    await runner.setup()
 
-    def _target() -> None:
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(_run())
-        loop.close()
-
-    handle = threading.Thread(target=_target, name='http-exchange-fixture')
-    handle.start()
-
-    started.wait(TEST_CONNECTION_TIMEOUT)
-
-    yield host, port
-
-    loop.call_soon_threadsafe(stop.set_result, None)
-    handle.join(timeout=TEST_CONNECTION_TIMEOUT)
-    if handle.is_alive():  # pragma: no cover
-        raise TimeoutError(
-            'Server thread did not gracefully exit within '
-            f'{TEST_CONNECTION_TIMEOUT} seconds.',
-        )
+    try:
+        site = TCPSite(runner, host, port)
+        await site.start()
+        yield host, port
+    finally:
+        await runner.cleanup()

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import enum
 import sys
 from types import TracebackType
@@ -72,13 +71,11 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
     """
 
     @property
-    @abc.abstractmethod
     def mailbox_id(self) -> EntityId:
         """ID of the mailbox this client is bound to."""
         ...
 
-    @abc.abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the exchange client.
 
         Note:
@@ -87,8 +84,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
-    @abc.abstractmethod
-    def discover(
+    async def discover(
         self,
         behavior: type[Behavior],
         *,
@@ -110,13 +106,11 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
-    @abc.abstractmethod
     def factory(self) -> ExchangeFactory[Self]:
         """Get an exchange factory."""
         ...
 
-    @abc.abstractmethod
-    def recv(self, timeout: float | None = None) -> Message:
+    async def recv(self, timeout: float | None = None) -> Message:
         """Receive the next message sent to the mailbox.
 
         This blocks until the next message is received, there is a timeout, or
@@ -133,8 +127,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
-    @abc.abstractmethod
-    def register_agent(
+    async def register_agent(
         self,
         behavior: type[BehaviorT],
         *,
@@ -155,8 +148,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
-    @abc.abstractmethod
-    def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> None:
         """Send a message to a mailbox.
 
         Args:
@@ -168,8 +160,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
-    @abc.abstractmethod
-    def status(self, uid: EntityId) -> MailboxStatus:
+    async def status(self, uid: EntityId) -> MailboxStatus:
         """Check the status of a mailbox in the exchange.
 
         Args:
@@ -177,8 +168,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
-    @abc.abstractmethod
-    def terminate(self, uid: EntityId) -> None:
+    async def terminate(self, uid: EntityId) -> None:
         """Terminate a mailbox in the exchange.
 
         Terminating a mailbox means that the corresponding entity will no
@@ -212,13 +202,13 @@ class ExchangeTransportMixin:
     def __str__(self: ExchangeTransportT) -> str:
         return f'{type(self).__name__}<{self.mailbox_id}>'
 
-    def __enter__(self: ExchangeTransportT) -> ExchangeTransportT:
+    async def __aenter__(self: ExchangeTransportT) -> ExchangeTransportT:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self: ExchangeTransportT,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()

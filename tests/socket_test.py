@@ -1,199 +1,225 @@
 from __future__ import annotations
 
+import asyncio
 import random
 import socket
 import string
 import sys
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from unittest import mock
 
 import pytest
+import pytest_asyncio
 
 from academy.socket import _BAD_FILE_DESCRIPTOR_ERRNO
 from academy.socket import _make_header
-from academy.socket import _recv_from_socket
 from academy.socket import address_by_hostname
 from academy.socket import address_by_interface
 from academy.socket import MESSAGE_CHUNK_SIZE
+from academy.socket import open_port
 from academy.socket import SimpleSocket
 from academy.socket import SimpleSocketServer
 from academy.socket import SocketClosedError
 from academy.socket import SocketOpenError
+from academy.socket import SocketPool
 from academy.socket import wait_connection
-from testing.constant import TEST_CONNECTION_TIMEOUT
 
 
-@mock.patch('socket.create_connection')
-def test_create_simple_socket(mock_create_connection) -> None:
-    with SimpleSocket('localhost', 0) as socket:
-        assert 'localhost' in repr(socket)
-        assert 'localhost' in str(socket)
+@pytest_asyncio.fixture(loop_scope='module')
+async def echo_server() -> AsyncGenerator[tuple[str, int]]:
+    async def _handler(
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+    ) -> None:
+        data = await reader.read(100)
+        writer.write(data)
+        await writer.drain()
+        writer.close()
+        await writer.wait_closed()
+
+    host, port = 'localhost', open_port()
+    server = await asyncio.start_server(_handler, host, port)
+
+    async with server:
+        await server.start_serving()
+        yield host, port
 
 
-@mock.patch('socket.create_connection')
-def test_create_simple_socket_error(mock_create_connection) -> None:
-    mock_create_connection.side_effect = OSError()
-    with pytest.raises(SocketOpenError):
-        SimpleSocket('localhost', 0)
+@pytest.mark.asyncio(loop_scope='module')
+async def test_create_simple_socket(echo_server: tuple[str, int]) -> None:
+    host, port = echo_server
+    async with await SimpleSocket.connect(host, port) as socket:
+        assert isinstance(repr(socket), str)
+        assert isinstance(str(socket), str)
+
+        await socket.close()
 
 
-@mock.patch('socket.create_connection')
-def test_simple_socket_close_idempotency(mock_create_connection) -> None:
-    socket = SimpleSocket('localhost', 0)
-    socket.close()
-    socket.close()
+@pytest.mark.asyncio
+async def test_create_simple_socket_error() -> None:
+    with mock.patch('asyncio.open_connection', side_effect=OSError()):
+        with pytest.raises(SocketOpenError):
+            await SimpleSocket.connect('localhost', 0)
 
 
-@mock.patch('socket.create_connection')
-def test_simple_socket_send(mock_create_connection) -> None:
-    mock_socket = mock.MagicMock()
-    mock_create_connection.return_value = mock_socket
-    with SimpleSocket('localhost', 0) as socket:
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_send_recv(echo_server: tuple[str, int]) -> None:
+    host, port = echo_server
+    async with await SimpleSocket.connect(host, port) as socket:
         # Should be a no-op
-        socket.send(b'')
+        await socket.send(b'')
 
-        socket.send_string('hello, world!')
-        # Called once for header and once for payload
-        assert mock_socket.sendall.call_count == 2  # noqa: PLR2004
+        message = 'hello, world!'
+        await socket.send_string(message)
+        assert await socket.recv_string() == message
 
-        mock_socket.sendall.side_effect = OSError('Mocked.')
-        with pytest.raises(OSError, match='Mocked.'):
-            socket.send_string('hello, again!')
-
-        mock_socket.sendall.side_effect = OSError(
-            _BAD_FILE_DESCRIPTOR_ERRNO,
-            'Bad file descriptor.',
-        )
-        with pytest.raises(SocketClosedError):
-            socket.send_string('hello, again!')
+        error = OSError(_BAD_FILE_DESCRIPTOR_ERRNO, 'Bad file descriptor.')
+        with mock.patch.object(socket.writer, 'write', side_effect=error):
+            with pytest.raises(OSError, match='Bad file descriptor.'):
+                await socket.send_string('hello, again!')
 
 
-@mock.patch('socket.create_connection')
-def test_simple_socket_send_multipart(mock_create_connection) -> None:
-    mock_socket = mock.MagicMock()
-    mock_create_connection.return_value = mock_socket
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_send_multipart(
+    echo_server: tuple[str, int],
+) -> None:
+    host, port = echo_server
     size = int(2.5 * MESSAGE_CHUNK_SIZE)
     message = ''.join(
         [random.choice(string.ascii_uppercase) for _ in range(size)],
     )
-    with SimpleSocket('localhost', 0) as socket:
-        socket.send_string(message)
-        assert mock_socket.sendall.call_count == 4  # noqa: PLR2004
+    async with await SimpleSocket.connect(host, port) as socket:
+        with mock.patch.object(socket.writer, 'write') as mock_write:
+            await socket.send_string(message)
+            assert mock_write.call_count == 4  # noqa: PLR2004
 
 
-@mock.patch('socket.create_connection')
-@mock.patch('academy.socket._recv_from_socket')
-def test_simple_socket_recv_multipart(
-    mock_recv,
-    mock_create_connection,
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_recv_multipart(
+    echo_server: tuple[str, int],
 ) -> None:
-    messages = [b'hello, world!', b'part2']
-    # Mock received parts to include two messages split across three parts
-    # followed by a socket close event.
-    mock_recv.side_effect = [
-        _make_header(messages[0]),
-        b'hello, ',
-        b'world!',
-        _make_header(messages[1]),
-        messages[1],
-        SocketClosedError(),
-    ]
-    with SimpleSocket('localhost', 0) as socket:
-        assert socket.recv_string() == 'hello, world!'
-        assert socket.recv_string() == 'part2'
-        with pytest.raises(SocketClosedError):
-            assert socket.recv_string()
+    host, port = echo_server
+    async with await SimpleSocket.connect(host, port) as socket:
+        messages = [b'hello, world!', b'part2']
+        with mock.patch.object(socket.reader, 'readexactly') as mock_read:
+            # Mock received parts to include two messages split across three
+            # parts followed by a socket close event.
+            mock_read.side_effect = [
+                _make_header(messages[0]),
+                b'hello, ',
+                b'world!',
+                _make_header(messages[1]),
+                messages[1],
+                SocketClosedError(),
+            ]
+
+            assert await socket.recv_string() == 'hello, world!'
+            assert await socket.recv_string() == 'part2'
+            with pytest.raises(SocketClosedError):
+                assert await socket.recv_string()
 
 
-def test_recv_from_socket_nonblocking() -> None:
-    message = b'hello, world!'
-    socket = mock.MagicMock()
-    socket.recv.side_effect = [BlockingIOError, BlockingIOError, message]
-    assert _recv_from_socket(socket) == message
+@pytest.mark.asyncio(loop_scope='module')
+async def test_socket_pool_send_and_reuse_socket(
+    echo_server: tuple[str, int],
+) -> None:
+    host, port = echo_server
+    address = f'{host}:{port}'
+
+    pool = SocketPool()
+    message = b'hello'
+
+    await pool.send(address, message)
+    await pool.send(address, message)
+
+    assert address in pool._sockets
+    assert len(pool._sockets) == 1
+
+    await pool.close()
 
 
-def test_recv_from_socket_close_on_empty_string() -> None:
-    socket = mock.MagicMock()
-    socket.recv.return_value = b''
-    with pytest.raises(SocketClosedError):
-        _recv_from_socket(socket)
+@pytest.mark.asyncio(loop_scope='module')
+async def test_socket_pool_close_removes_socket(echo_server: tuple[str, int]):
+    host, port = echo_server
+    address = f'{host}:{port}'
+
+    pool = SocketPool()
+    await pool.send(address, b'ping')
+
+    assert address in pool._sockets
+
+    await pool.close_socket(address)
+    assert address not in pool._sockets
 
 
-def test_recv_from_socket_os_error() -> None:
-    socket = mock.MagicMock()
-    socket.recv.side_effect = OSError('Mocked.')
-    with pytest.raises(OSError, match='Mocked.'):
-        _recv_from_socket(socket)
+@pytest.mark.asyncio(loop_scope='module')
+async def test_pool_close_closes_all(echo_server: tuple[str, int]):
+    host, port = echo_server
+    address = f'{host}:{port}'
+
+    pool = SocketPool()
+    await pool.send(address, b'ping')
+    await pool.close()
+
+    assert len(pool._sockets) == 0
 
 
-def test_recv_from_socket_bad_file_descriptor() -> None:
-    socket = mock.MagicMock()
-    socket.recv.side_effect = OSError(
-        _BAD_FILE_DESCRIPTOR_ERRNO,
-        'Bad file descriptor.',
-    )
-    with pytest.raises(SocketClosedError):
-        _recv_from_socket(socket)
+@pytest_asyncio.fixture(loop_scope='module')
+async def simple_socket_server() -> AsyncGenerator[SimpleSocketServer]:
+    async def _identity(x: bytes) -> bytes:
+        return x
+
+    server = SimpleSocketServer(handler=_identity, host='localhost', port=None)
+    async with server.serve():
+        yield server
 
 
-@pytest.fixture
-def simple_socket_server() -> Generator[SimpleSocketServer]:
-    server = SimpleSocketServer(
-        handler=lambda s: s,
-        host='localhost',
-        port=None,
-        timeout=TEST_CONNECTION_TIMEOUT,
-    )
-
-    server.start_server_thread()
-    yield server
-    server.stop_server_thread()
-
-
-def test_simple_socket_server_connect(
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_server_connect(
     simple_socket_server: SimpleSocketServer,
 ) -> None:
     for _ in range(3):
-        with SimpleSocket(
+        async with await SimpleSocket.connect(
             simple_socket_server.host,
             simple_socket_server.port,
-            timeout=TEST_CONNECTION_TIMEOUT,
         ):
             pass
 
 
-def test_simple_socket_server_ping_pong(
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_server_ping_pong(
     simple_socket_server: SimpleSocketServer,
 ) -> None:
     message = 'hello, world!'
-    with SimpleSocket(
+    async with await SimpleSocket.connect(
         simple_socket_server.host,
         simple_socket_server.port,
-        timeout=TEST_CONNECTION_TIMEOUT,
     ) as socket:
         for _ in range(3):
-            socket.send_string(message)
-            assert socket.recv_string() == message
+            await socket.send_string(message)
+            assert await socket.recv_string() == message
 
 
-def test_simple_socket_server_packed(
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_server_packed(
     simple_socket_server: SimpleSocketServer,
 ) -> None:
     # Pack many messages into one buffer to be send
     messages = [b'first message', b'seconds message', b'third message']
     buffer = b''.join(_make_header(m) + m for m in messages)
 
-    with SimpleSocket(
+    async with await SimpleSocket.connect(
         simple_socket_server.host,
         simple_socket_server.port,
-        timeout=TEST_CONNECTION_TIMEOUT,
     ) as socket:
-        socket.socket.sendall(buffer)
+        socket.writer.write(buffer)
+        await socket.writer.drain()
         for expected in messages:
-            assert socket.recv() == expected
+            assert await socket.recv() == expected
 
 
-def test_simple_socket_server_multipart(
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_server_multipart(
     simple_socket_server: SimpleSocketServer,
 ) -> None:
     # Generate >1024 bytes of data since _recv_from_socket reads in 1kB
@@ -212,24 +238,24 @@ def test_simple_socket_server_multipart(
         second_part,
     ]
 
-    with SimpleSocket(
+    async with await SimpleSocket.connect(
         simple_socket_server.host,
         simple_socket_server.port,
-        timeout=TEST_CONNECTION_TIMEOUT,
     ) as socket:
         for part in parts:
-            socket.socket.sendall(part)
-        assert socket.recv() == first_expected
-        assert socket.recv() == second_part
+            socket.writer.write(part)
+        await socket.writer.drain()
+        assert await socket.recv() == first_expected
+        assert await socket.recv() == second_part
 
 
-def test_simple_socket_server_client_disconnect_early(
+@pytest.mark.asyncio(loop_scope='module')
+async def test_simple_socket_server_client_disconnect_early(
     simple_socket_server: SimpleSocketServer,
 ) -> None:
-    with SimpleSocket(
+    async with await SimpleSocket.connect(
         simple_socket_server.host,
         simple_socket_server.port,
-        timeout=TEST_CONNECTION_TIMEOUT,
     ):
         # Client disconnects without sending anything
         pass

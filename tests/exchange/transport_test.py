@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pickle
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
+import pytest_asyncio
 
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
@@ -17,57 +18,62 @@ from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
 from testing.behavior import EmptyBehavior
-
-# These fixtures are defined in testing/exchange.py
-EXCHANGE_FACTORY_FIXTURES = (
-    'http_exchange_factory',
-    'hybrid_exchange_factory',
-    'redis_exchange_factory',
-    'thread_exchange_factory',
-)
+from testing.fixture import EXCHANGE_FACTORY_TYPES
 
 
-@pytest.fixture(params=EXCHANGE_FACTORY_FIXTURES)
-def transport(request) -> Generator[ExchangeTransport[AgentRegistrationT]]:
-    factory = request.getfixturevalue(request.param)
-    with factory._create_transport() as transport:
+@pytest_asyncio.fixture(params=EXCHANGE_FACTORY_TYPES)
+async def transport(
+    request,
+    get_factory,
+) -> AsyncGenerator[ExchangeTransport[AgentRegistrationT]]:
+    factory = get_factory(request.param)
+    async with await factory._create_transport() as transport:
         yield transport
 
 
-def test_transport_repr(
+@pytest.mark.asyncio
+async def test_transport_repr(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     assert isinstance(repr(transport), str)
     assert isinstance(str(transport), str)
 
 
-def test_transport_create_factory(
+@pytest.mark.asyncio
+async def test_transport_create_factory(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     new_factory = transport.factory()
     assert isinstance(new_factory, ExchangeFactory)
 
 
-def test_transport_register_agent(
+@pytest.mark.asyncio
+async def test_transport_register_agent(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    registration = transport.register_agent(EmptyBehavior)
-    assert transport.status(registration.agent_id) == MailboxStatus.ACTIVE
+    registration = await transport.register_agent(EmptyBehavior)
+    status = await transport.status(registration.agent_id)
+    assert status == MailboxStatus.ACTIVE
 
 
-def test_transport_status(
+@pytest.mark.asyncio
+async def test_transport_status(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     uid = UserId.new()
-    assert transport.status(uid) == MailboxStatus.MISSING
-    registration = transport.register_agent(EmptyBehavior)
-    assert transport.status(registration.agent_id) == MailboxStatus.ACTIVE
-    transport.terminate(registration.agent_id)
-    transport.terminate(registration.agent_id)  # Idempotency
-    assert transport.status(registration.agent_id) == MailboxStatus.TERMINATED
+    status = await transport.status(uid)
+    assert status == MailboxStatus.MISSING
+    registration = await transport.register_agent(EmptyBehavior)
+    status = await transport.status(registration.agent_id)
+    assert status == MailboxStatus.ACTIVE
+    await transport.terminate(registration.agent_id)
+    await transport.terminate(registration.agent_id)  # Idempotency
+    status = await transport.status(registration.agent_id)
+    assert status == MailboxStatus.TERMINATED
 
 
-def test_transport_send_recv(
+@pytest.mark.asyncio
+async def test_transport_send_recv(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     for _ in range(3):
@@ -75,45 +81,50 @@ def test_transport_send_recv(
             src=transport.mailbox_id,
             dest=transport.mailbox_id,
         )
-        transport.send(message)
-        assert transport.recv() == message
+        await transport.send(message)
+        assert await transport.recv() == message
 
 
-def test_transport_send_bad_identifier_error(
+@pytest.mark.asyncio
+async def test_transport_send_bad_identifier_error(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     uid: AgentId[Any] = AgentId.new()
     with pytest.raises(BadEntityIdError):
-        transport.send(PingRequest(src=transport.mailbox_id, dest=uid))
+        await transport.send(PingRequest(src=transport.mailbox_id, dest=uid))
 
 
-def test_transport_send_mailbox_closed(
+@pytest.mark.asyncio
+async def test_transport_send_mailbox_closed(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    registration = transport.register_agent(EmptyBehavior)
-    transport.terminate(registration.agent_id)
+    registration = await transport.register_agent(EmptyBehavior)
+    await transport.terminate(registration.agent_id)
     with pytest.raises(MailboxClosedError):
-        transport.send(
+        await transport.send(
             PingRequest(src=transport.mailbox_id, dest=registration.agent_id),
         )
 
 
-def test_transport_recv_mailbox_closed(
+@pytest.mark.asyncio
+async def test_transport_recv_mailbox_closed(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    transport.terminate(transport.mailbox_id)
+    await transport.terminate(transport.mailbox_id)
     with pytest.raises(MailboxClosedError):
-        transport.recv()
+        await transport.recv()
 
 
-def test_transport_recv_timeout(
+@pytest.mark.asyncio
+async def test_transport_recv_timeout(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     with pytest.raises(TimeoutError):
-        assert transport.recv(timeout=0.001)
+        await transport.recv(timeout=0.001)
 
 
-def test_transport_non_pickleable(
+@pytest.mark.asyncio
+async def test_transport_non_pickleable(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     with pytest.raises(pickle.PicklingError):
@@ -129,14 +140,18 @@ class B(Behavior): ...
 class C(B): ...
 
 
-def test_transport_discover(
+@pytest.mark.asyncio
+async def test_transport_discover(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    bid = transport.register_agent(B).agent_id
-    cid = transport.register_agent(C).agent_id
-    did = transport.register_agent(C).agent_id
-    transport.terminate(did)
+    bid = (await transport.register_agent(B)).agent_id
+    cid = (await transport.register_agent(C)).agent_id
+    did = (await transport.register_agent(C)).agent_id
+    await transport.terminate(did)
 
-    assert len(transport.discover(A)) == 0
-    assert transport.discover(B, allow_subclasses=False) == (bid,)
-    assert transport.discover(B, allow_subclasses=True) == (bid, cid)
+    found = await transport.discover(A)
+    assert len(found) == 0
+    found = await transport.discover(B, allow_subclasses=False)
+    assert found == (bid,)
+    found = await transport.discover(B, allow_subclasses=True)
+    assert found == (bid, cid)

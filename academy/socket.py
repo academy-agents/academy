@@ -8,8 +8,10 @@ import platform
 import socket
 import struct
 import sys
-import threading
 import time
+from collections.abc import AsyncGenerator
+from collections.abc import Awaitable
+from contextlib import asynccontextmanager
 from types import TracebackType
 from typing import Callable
 
@@ -41,80 +43,93 @@ class SocketOpenError(Exception):
 class SimpleSocket:
     """Simple socket wrapper.
 
-    Configures a client connection using a blocking TCP socket over IPv4.
+    Configures a client connection using a non-blocking TCP socket over IPv4.
     The send and recv methods handle byte encoding, message delimiters, and
     partial message buffering.
 
     Note:
-        This class can be used as a context manager.
+        This class can be used as an async context manager.
 
     Args:
-        host: Host address to connect to.
-        port: Port to connect to.
-        timeout: Connection establish timeout.
-
-    Raises:
-        SocketOpenError: if creating the socket fails. The `__cause__` of
-            the exception will be set to the underlying `OSError`.
+        reader: Socket reader interface.
+        writer: Socket writer interface.
+        timeout: Optional timeout for socket operations.
     """
 
     def __init__(
         self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        *,
+        timeout: float | None = None,
+    ) -> None:
+        self.reader = reader
+        self.writer = writer
+        self.timeout = timeout
+        self.closed = False
+
+    @classmethod
+    async def connect(
+        cls,
         host: str,
         port: int,
         *,
         timeout: float | None = None,
-    ) -> None:
-        self.host = host
-        self.port = port
-        self.timeout = timeout
-        self.closed = False
+    ) -> Self:
+        """Establish a new TCP connection.
+
+        Args:
+            host: Host address to connect to.
+            port: Port to connect to.
+            timeout: Connection establish timeout.
+
+        Raises:
+            SocketOpenError: If creating the socket fails. The `__cause__` of
+                the exception will be set to the underlying `OSError`.
+        """
         try:
-            self.socket = socket.create_connection(
-                (self.host, self.port),
-                timeout=self.timeout,
-            )
+            coro = asyncio.open_connection(host, port)
+            if timeout is not None:
+                reader, writer = await asyncio.wait_for(coro, timeout)
+            else:
+                reader, writer = await coro
         except OSError as e:
             raise SocketOpenError() from e
 
-    def __enter__(self) -> Self:
+        return cls(reader, writer, timeout=timeout)
+
+    async def __aenter__(self) -> Self:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: TracebackType | None,
+        traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}(host={self.host}, port={self.port})'
+        return f'{type(self).__name__}({self.reader!r}, {self.writer!r})'
 
     def __str__(self) -> str:
-        return f'{type(self).__name__}<{self.host}:{self.port}>'
+        return f'{type(self).__name__}<{self.reader}, {self.writer}>'
 
-    def close(self, shutdown: bool = True) -> None:
-        """Close the socket."""
+    async def close(self, shutdown: bool = True) -> None:
+        """Close the socket.
+
+        Args:
+            shutdown: Write EOF to the socket.
+        """
         if self.closed:
             return
-        if shutdown:  # pragma: no branch
-            with contextlib.suppress(OSError):
-                # Some platforms may raise ENOTCONN here
-                self.socket.shutdown(socket.SHUT_RDWR)
-        self.socket.close()
         self.closed = True
+        if shutdown and not self.writer.is_closing():
+            self.writer.write_eof()
+        self.writer.close()
+        await self.writer.wait_closed()
 
-    def _send_with_error_wrapping(self, message: bytes) -> None:
-        try:
-            self.socket.sendall(message)
-        except OSError as e:
-            if e.errno == _BAD_FILE_DESCRIPTOR_ERRNO:
-                raise SocketClosedError() from e
-            else:
-                raise
-
-    def send(self, message: bytes) -> None:
+    async def send(self, message: bytes) -> None:
         """Send bytes to the socket.
 
         Note:
@@ -124,23 +139,29 @@ class SimpleSocket:
             message: Message to send.
 
         Raises:
-            SocketClosedError: if the socket was closed.
-            OSError: if an error occurred.
+            SocketClosedError: If the socket was closed.
+            OSError: If an error occurred.
         """
-        message_size = len(message)
-        if message_size == 0:
+        if self.closed or self.writer.is_closing():
+            raise SocketClosedError()
+
+        if not message:
             return
+
         header = _make_header(message)
-        self._send_with_error_wrapping(header)
+        self.writer.write(header)
+        await self.writer.drain()
 
         sent_size = 0
+        message_size = len(message)
         while sent_size < message_size:
             nbytes = min(message_size - sent_size, MESSAGE_CHUNK_SIZE)
             chunk = message[sent_size : sent_size + nbytes]
-            self._send_with_error_wrapping(chunk)
+            self.writer.write(chunk)
+            await self.writer.drain()
             sent_size += len(chunk)
 
-    def send_string(self, message: str) -> None:
+    async def send_string(self, message: str) -> None:
         """Send a string to the socket.
 
         Strings are encoded with UTF-8.
@@ -152,9 +173,9 @@ class SimpleSocket:
             SocketClosedError: if the socket was closed.
             OSError: if an error occurred.
         """
-        self.send(message.encode('utf-8'))
+        await self.send(message.encode('utf-8'))
 
-    def recv(self) -> bytes | bytearray:
+    async def recv(self) -> bytes:
         """Receive the next message from the socket.
 
         Returns:
@@ -164,21 +185,23 @@ class SimpleSocket:
             SocketClosedError: if the socket was closed.
             OSError: if an error occurred.
         """
-        header = _recv_from_socket(self.socket, MESSAGE_HEADER_SIZE)
+        if self.closed:
+            raise SocketClosedError()
+
+        header = await self.reader.readexactly(MESSAGE_HEADER_SIZE)
         message_size = _get_size_from_header(header)
 
         buffer = bytearray(message_size)
         received = 0
         while received < message_size:
             nbytes = min(message_size - received, MESSAGE_CHUNK_SIZE)
-            chunk = _recv_from_socket(self.socket, nbytes)
-            # buffer.extend(chunk)
+            chunk = await self.reader.readexactly(nbytes)
             buffer[received : received + len(chunk)] = chunk
             received += len(chunk)
 
         return buffer
 
-    def recv_string(self) -> str:
+    async def recv_string(self) -> str:
         """Receive the next message from the socket.
 
         Returns:
@@ -188,7 +211,48 @@ class SimpleSocket:
             SocketClosedError: if the socket was closed.
             OSError: if an error occurred.
         """
-        return self.recv().decode('utf-8')
+        return (await self.recv()).decode('utf-8')
+
+
+class SocketPool:
+    """Simple socket pool."""
+
+    def __init__(self) -> None:
+        self._sockets: dict[str, SimpleSocket] = {}
+        self._lock = asyncio.Lock()
+
+    async def close(self) -> None:
+        """Close all the sockets in the pool."""
+        for address in tuple(self._sockets.keys()):
+            await self.close_socket(address)
+
+    async def close_socket(self, address: str) -> None:
+        """Close the socket for the given address."""
+        async with self._lock:
+            conn = self._sockets.pop(address, None)
+        if conn is not None:  # pragma: no branch
+            await conn.close(shutdown=True)
+
+    async def get_socket(self, address: str) -> SimpleSocket:
+        """Get or create a socket for a given address."""
+        async with self._lock:
+            try:
+                return self._sockets[address]
+            except KeyError:
+                parts = address.split(':')
+                host, port = parts[0], int(parts[1])
+                conn = await SimpleSocket.connect(host, port)
+                self._sockets[address] = conn
+                return conn
+
+    async def send(self, address: str, message: bytes) -> None:
+        """Send a message to a given address."""
+        conn = await self.get_socket(address)
+        try:
+            await conn.send(message)
+        except (SocketClosedError, OSError):
+            await self.close_socket(address)
+            raise
 
 
 class SimpleSocketServer:
@@ -200,26 +264,18 @@ class SimpleSocketServer:
             handler so it should not perform any heavy/blocking operations.
         host: Host to bind to.
         port: Port to bind to. If `None`, a random port is bound to.
-        timeout: Seconds to wait for the server to startup and shutdown.
     """
 
     def __init__(
         self,
-        handler: Callable[[bytes], bytes | None],
+        handler: Callable[[bytes], Awaitable[bytes | None]],
         *,
         host: str = '0.0.0.0',
         port: int | None = None,
-        timeout: float | None = 5,
     ) -> None:
         self.host = host
         self.port = port if port is not None else open_port()
         self.handler = handler
-        self.timeout = timeout
-        self._started = threading.Event()
-        self._signal_stop: asyncio.Future[None] | None = None
-        self._loop: asyncio.AbstractEventLoop | None = None
-        self._thread: threading.Thread | None = None
-        self._lock = threading.Lock()
         self._client_tasks: set[asyncio.Task[None]] = set()
 
     async def _read_message(
@@ -276,7 +332,7 @@ class SimpleSocketServer:
                 else:
                     if len(message) == 0:  # pragma: no cover
                         break
-                    response = self.handler(message)
+                    response = await self.handler(message)
                     if response is not None:  # pragma: no break
                         await self._write_message(writer, response)
         except Exception:  # pragma: no cover
@@ -295,25 +351,20 @@ class SimpleSocketServer:
         self._client_tasks.add(task)
         task.add_done_callback(self._client_tasks.discard)
 
-    async def serve_forever(self, stop: asyncio.Future[None]) -> None:
-        """Accept and handles connections forever.
-
-        Args:
-            stop: An asyncio future that this method blocks on. Can be used
-                to signal externally that the coroutine should exit.
-        """
-        self._signal_stop = stop
+    @asynccontextmanager
+    async def serve(self) -> AsyncGenerator[Self]:
+        """Serve in a context manager."""
         server = await asyncio.start_server(
             self._register_client_task,
             host=self.host,
             port=self.port,
         )
         logger.debug('TCP server listening at %s:%s', self.host, self.port)
-        self._started.set()
 
         async with server:
             await server.start_serving()
-            await self._signal_stop
+
+            yield self
 
             for task in tuple(self._client_tasks):
                 task.cancel('Server has been closed.')
@@ -322,43 +373,7 @@ class SimpleSocketServer:
 
         if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
             server.close_clients()
-        self._started.clear()
         logger.debug('TCP server finished at %s:%s', self.host, self.port)
-
-    def start_server_thread(self) -> None:
-        """Start the server in a new thread."""
-        with self._lock:
-            loop = asyncio.new_event_loop()
-            stop = loop.create_future()
-
-            def _target() -> None:
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(self.serve_forever(stop))
-                loop.close()
-
-            self._loop = loop
-            self._thread = threading.Thread(
-                target=_target,
-                name='socket-server',
-            )
-            self._thread.start()
-            self._started.wait(self.timeout)
-
-    def stop_server_thread(self) -> None:
-        """Stop the server thread."""
-        with self._lock:
-            if self._loop is None or self._thread is None:
-                return
-            assert self._signal_stop is not None
-            self._loop.call_soon_threadsafe(self._signal_stop.set_result, None)
-            self._thread.join(timeout=self.timeout)
-            if self._thread.is_alive():  # pragma: no cover
-                raise TimeoutError(
-                    'Server thread did not gracefully exit '
-                    f'within {self.timeout}s.',
-                )
-            self._loop = None
-            self._thread = None
 
 
 def _get_size_from_header(header: bytes) -> int:
@@ -367,27 +382,6 @@ def _get_size_from_header(header: bytes) -> int:
 
 def _make_header(message: bytes | bytearray) -> bytes:
     return struct.pack(MESSAGE_HEADER_FORMAT, len(message))
-
-
-def _recv_from_socket(
-    socket: socket.socket,
-    nbytes: int = MESSAGE_CHUNK_SIZE,
-) -> bytes:
-    while True:
-        try:
-            payload = socket.recv(nbytes)
-        except BlockingIOError:
-            continue
-        except OSError as e:
-            if e.errno == _BAD_FILE_DESCRIPTOR_ERRNO:
-                raise SocketClosedError() from e
-            else:
-                raise
-
-        if payload == b'':
-            raise SocketClosedError()
-
-        return payload
 
 
 def address_by_hostname() -> str:

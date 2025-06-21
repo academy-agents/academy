@@ -13,7 +13,6 @@ from proxystore.store.executor import ProxyAlways
 from proxystore.store.executor import ProxyNever
 
 from academy.exchange import MailboxStatus
-from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.proxystore import ProxyStoreExchangeFactory
 from academy.exchange.thread import ThreadExchangeFactory
 from academy.message import ActionRequest
@@ -33,6 +32,7 @@ def store() -> Generator[Store[LocalConnector], None, None]:
         yield store
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ('should_proxy', 'resolve_async'),
     (
@@ -42,7 +42,7 @@ def store() -> Generator[Store[LocalConnector], None, None]:
         (lambda x: isinstance(x, str), True),
     ),
 )
-def test_wrap_basic_transport_functionality(
+async def test_wrap_basic_transport_functionality(
     should_proxy: Callable[[Any], bool],
     resolve_async: bool,
     store: Store[LocalConnector],
@@ -55,20 +55,24 @@ def test_wrap_basic_transport_functionality(
         resolve_async=resolve_async,
     )
 
-    with wrapped_factory._create_transport() as wrapped_transport1:
+    async with await wrapped_factory._create_transport() as wrapped_transport1:
         new_factory = wrapped_transport1.factory()
         assert isinstance(new_factory, ProxyStoreExchangeFactory)
 
         src = wrapped_transport1.mailbox_id
-        dest = wrapped_transport1.register_agent(EmptyBehavior).agent_id
-        assert wrapped_transport1.status(dest) == MailboxStatus.ACTIVE
+        dest = (
+            await wrapped_transport1.register_agent(EmptyBehavior)
+        ).agent_id
+        assert await wrapped_transport1.status(dest) == MailboxStatus.ACTIVE
 
-        wrapped_transport2 = wrapped_factory._create_transport(mailbox_id=dest)
+        wrapped_transport2 = await wrapped_factory._create_transport(
+            mailbox_id=dest,
+        )
         assert wrapped_transport2.mailbox_id == dest
 
         ping = PingRequest(src=src, dest=dest)
-        wrapped_transport1.send(ping)
-        assert wrapped_transport2.recv() == ping
+        await wrapped_transport1.send(ping)
+        assert await wrapped_transport2.recv() == ping
 
         request = ActionRequest(
             src=src,
@@ -77,9 +81,9 @@ def test_wrap_basic_transport_functionality(
             pargs=('value', 123),
             kargs={'foo': 'value', 'bar': 123},
         )
-        wrapped_transport1.send(request)
+        await wrapped_transport1.send(request)
 
-        received = wrapped_transport2.recv()
+        received = await wrapped_transport2.recv()
         assert isinstance(received, ActionRequest)
         assert request.tag == received.tag
 
@@ -94,9 +98,9 @@ def test_wrap_basic_transport_functionality(
             assert old == new
 
         response = request.response('result')
-        wrapped_transport2.send(response)
+        await wrapped_transport2.send(response)
 
-        received = wrapped_transport1.recv()
+        received = await wrapped_transport1.recv()
         assert isinstance(received, ActionResponse)
         assert response.tag == received.tag
         assert (type(received.result) is Proxy) == should_proxy(
@@ -104,21 +108,19 @@ def test_wrap_basic_transport_functionality(
         )
         assert response.result == received.result
 
-        assert wrapped_transport1.discover(EmptyBehavior) == (dest,)
+        assert await wrapped_transport1.discover(EmptyBehavior) == (dest,)
 
-        wrapped_transport1.terminate(wrapped_transport1.mailbox_id)
-        wrapped_transport2.close()
+        await wrapped_transport1.terminate(wrapped_transport1.mailbox_id)
+        await wrapped_transport2.close()
 
 
-def test_serialize_factory(
-    http_exchange_server: tuple[str, int],
+@pytest.mark.asyncio
+async def test_serialize_factory(
+    http_exchange_factory,
     store: Store[LocalConnector],
 ) -> None:
-    host, port = http_exchange_server
-
-    factory = HttpExchangeFactory(host, port)
     wrapped_factory = ProxyStoreExchangeFactory(
-        base=factory,
+        base=http_exchange_factory,
         store=store,
         should_proxy=ProxyAlways(),
     )

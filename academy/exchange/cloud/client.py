@@ -1,6 +1,7 @@
 # ruff: noqa: D102
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import dataclasses
 import logging
@@ -18,7 +19,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-import requests
+import aiohttp
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
@@ -72,7 +73,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def __init__(
         self,
         mailbox_id: EntityId,
-        session: requests.Session,
+        session: aiohttp.ClientSession,
         connection_info: _HttpConnectionInfo,
     ) -> None:
         self._mailbox_id = mailbox_id
@@ -89,7 +90,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._discover_url = f'{scheme}://{host}:{port}/discover'
 
     @classmethod
-    def new(
+    async def new(
         cls,
         *,
         connection_info: _HttpConnectionInfo,
@@ -109,11 +110,12 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         Returns:
             An instantiated transport bound to a specific mailbox.
         """
-        session = requests.Session()
-        if connection_info.additional_headers is not None:
-            session.headers.update(connection_info.additional_headers)
-        if connection_info.ssl_verify is not None:
-            session.verify = connection_info.ssl_verify
+        session = aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(
+                verify_ssl=connection_info.ssl_verify,
+            ),
+            headers=connection_info.additional_headers,
+        )
 
         if mailbox_id is None:
             scheme, host, port = (
@@ -122,11 +124,11 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 connection_info.port,
             )
             mailbox_id = UserId.new(name=name)
-            response = session.post(
+            async with session.post(
                 f'{scheme}://{host}:{port}/mailbox',
                 json={'mailbox': mailbox_id.model_dump_json()},
-            )
-            response.raise_for_status()
+            ) as response:
+                response.raise_for_status()
             logger.info('Registered %s in exchange', mailbox_id)
 
         return cls(mailbox_id, session, connection_info)
@@ -135,29 +137,26 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def mailbox_id(self) -> EntityId:
         return self._mailbox_id
 
-    def close(self) -> None:
-        self._session.close()
+    async def close(self) -> None:
+        await self._session.close()
 
-    def discover(
+    async def discover(
         self,
         behavior: type[Behavior],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         behavior_str = f'{behavior.__module__}.{behavior.__name__}'
-        response = self._session.get(
+        async with self._session.get(
             self._discover_url,
             json={
                 'behavior': behavior_str,
                 'allow_subclasses': allow_subclasses,
             },
-        )
-        response.raise_for_status()
-        agent_ids = [
-            aid
-            for aid in response.json()['agent_ids'].split(',')
-            if len(aid) > 0
-        ]
+        ) as response:
+            response.raise_for_status()
+            agent_ids_str = (await response.json())['agent_ids']
+        agent_ids = [aid for aid in agent_ids_str.split(',') if len(aid) > 0]
         return tuple(AgentId(uid=uuid.UUID(aid)) for aid in agent_ids)
 
     def factory(self) -> HttpExchangeFactory:
@@ -169,31 +168,32 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ssl_verify=self._info.ssl_verify,
         )
 
-    def recv(self, timeout: float | None = None) -> Message:
+    async def recv(self, timeout: float | None = None) -> Message:
         try:
-            response = self._session.get(
+            async with self._session.get(
                 self._message_url,
                 json={
                     'mailbox': self.mailbox_id.model_dump_json(),
                     'timeout': timeout,
                 },
                 timeout=timeout,
-            )
-        except requests.exceptions.Timeout as e:
+            ) as response:
+                if response.status == _FORBIDDEN_CODE:
+                    raise MailboxClosedError(self.mailbox_id)
+                elif response.status == _TIMEOUT_CODE:
+                    raise TimeoutError()
+                response.raise_for_status()
+                message_raw = (await response.json()).get('message')
+        except asyncio.TimeoutError as e:
+            # In older versions of Python, ayncio.TimeoutError and TimeoutError
+            # are different types.
             raise TimeoutError(
                 f'Failed to receive response in {timeout} seconds.',
             ) from e
-        if response.status_code == _FORBIDDEN_CODE:
-            raise MailboxClosedError(self.mailbox_id)
-        elif response.status_code == _TIMEOUT_CODE:
-            raise TimeoutError()
 
-        response.raise_for_status()
+        return BaseMessage.model_from_json(message_raw)
 
-        message = BaseMessage.model_from_json(response.json().get('message'))
-        return message
-
-    def register_agent(
+    async def register_agent(
         self,
         behavior: type[BehaviorT],
         *,
@@ -201,41 +201,42 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         _agent_id: AgentId[BehaviorT] | None = None,
     ) -> HttpAgentRegistration[BehaviorT]:
         aid = AgentId.new(name=name) if _agent_id is None else _agent_id
-        response = self._session.post(
+        async with self._session.post(
             self._mailbox_url,
             json={
                 'mailbox': aid.model_dump_json(),
                 'behavior': ','.join(behavior.behavior_mro()),
             },
-        )
-        response.raise_for_status()
+        ) as response:
+            response.raise_for_status()
         return HttpAgentRegistration(agent_id=aid)
 
-    def send(self, message: Message) -> None:
-        response = self._session.put(
+    async def send(self, message: Message) -> None:
+        async with self._session.put(
             self._message_url,
             json={'message': message.model_dump_json()},
-        )
-        if response.status_code == _NOT_FOUND_CODE:
-            raise BadEntityIdError(message.dest)
-        elif response.status_code == _FORBIDDEN_CODE:
-            raise MailboxClosedError(message.dest)
-        response.raise_for_status()
+        ) as response:
+            if response.status == _NOT_FOUND_CODE:
+                raise BadEntityIdError(message.dest)
+            elif response.status == _FORBIDDEN_CODE:
+                raise MailboxClosedError(message.dest)
+            response.raise_for_status()
 
-    def status(self, uid: EntityId) -> MailboxStatus:
-        response = self._session.get(
+    async def status(self, uid: EntityId) -> MailboxStatus:
+        async with self._session.get(
             self._mailbox_url,
             json={'mailbox': uid.model_dump_json()},
-        )
-        response.raise_for_status()
-        return MailboxStatus(response.json()['status'])
+        ) as response:
+            response.raise_for_status()
+            status = (await response.json())['status']
+            return MailboxStatus(status)
 
-    def terminate(self, uid: EntityId) -> None:
-        response = self._session.delete(
+    async def terminate(self, uid: EntityId) -> None:
+        async with self._session.delete(
             self._mailbox_url,
             json={'mailbox': uid.model_dump_json()},
-        )
-        response.raise_for_status()
+        ) as response:
+            response.raise_for_status()
 
 
 class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
@@ -268,14 +269,14 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             ssl_verify=ssl_verify,
         )
 
-    def _create_transport(
+    async def _create_transport(
         self,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
         registration: HttpAgentRegistration[Any] | None = None,  # type: ignore[override]
     ) -> HttpExchangeTransport:
-        return HttpExchangeTransport.new(
+        return await HttpExchangeTransport.new(
             connection_info=self._info,
             mailbox_id=mailbox_id,
             name=name,

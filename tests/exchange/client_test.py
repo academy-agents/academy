@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import threading
-from collections.abc import Generator
+import asyncio
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
+import pytest_asyncio
 
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeFactory
@@ -16,40 +17,47 @@ from academy.message import PingRequest
 from academy.message import PingResponse
 from academy.message import RequestMessage
 from testing.behavior import EmptyBehavior
-from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 from testing.constant import TEST_WAIT_TIMEOUT
-
-# These fixtures are defined in testing/exchange.py
-EXCHANGE_FACTORY_FIXTURES = (
-    'http_exchange_factory',
-    'hybrid_exchange_factory',
-    'redis_exchange_factory',
-    'thread_exchange_factory',
-)
+from testing.fixture import EXCHANGE_FACTORY_TYPES
 
 
-@pytest.fixture(params=EXCHANGE_FACTORY_FIXTURES)
-def factory(request) -> ExchangeFactory[Any]:
-    return request.getfixturevalue(request.param)
+@pytest_asyncio.fixture(params=EXCHANGE_FACTORY_TYPES)
+async def factory(
+    request,
+    get_factory,
+) -> AsyncGenerator[ExchangeFactory[Any]]:
+    return get_factory(request.param)
 
 
-@pytest.fixture(params=EXCHANGE_FACTORY_FIXTURES)
-def client(request) -> Generator[UserExchangeClient[Any]]:
-    factory = request.getfixturevalue(request.param)
-    with factory.create_user_client(start_listener=False) as client:
+@pytest_asyncio.fixture(params=EXCHANGE_FACTORY_TYPES)
+async def client(
+    request,
+    get_factory,
+) -> AsyncGenerator[ExchangeFactory[Any]]:
+    factory = get_factory(request.param)
+    client = await factory.create_user_client(start_listener=False)
+    try:
         yield client
+    finally:
+        await client.close()
 
 
-def test_create_user_client(factory: ExchangeFactory[Any]) -> None:
-    with factory.create_user_client(start_listener=False) as client:
+@pytest.mark.asyncio
+async def test_create_user_client(factory: ExchangeFactory[Any]) -> None:
+    async with await factory.create_user_client(
+        start_listener=False,
+    ) as client:
         assert isinstance(repr(client), str)
         assert isinstance(str(client), str)
 
 
-def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
-    with factory.create_user_client(start_listener=False) as client:
-        registration = client.register_agent(EmptyBehavior)
-        with factory.create_agent_client(
+@pytest.mark.asyncio
+async def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
+    async with await factory.create_user_client(
+        start_listener=False,
+    ) as client:
+        registration = await client.register_agent(EmptyBehavior)
+        async with await factory.create_agent_client(
             registration,
             lambda _: None,
         ) as agent_client:
@@ -57,77 +65,97 @@ def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
             assert isinstance(str(agent_client), str)
 
 
-def test_create_agent_client_unregistered(
+@pytest.mark.asyncio
+async def test_create_agent_client_unregistered(
     factory: ExchangeFactory[Any],
 ) -> None:
-    with factory.create_user_client(start_listener=False) as client:
-        registration = client.register_agent(EmptyBehavior)
+    async with await factory.create_user_client(
+        start_listener=False,
+    ) as client:
+        registration = await client.register_agent(EmptyBehavior)
         registration.agent_id = AgentId.new()
         with pytest.raises(BadEntityIdError):
-            factory.create_agent_client(registration, lambda _: None)
+            await factory.create_agent_client(registration, lambda _: None)
 
 
-def test_client_discover(client: UserExchangeClient[Any]) -> None:
-    registration = client.register_agent(EmptyBehavior)
-    assert client.discover(EmptyBehavior) == (registration.agent_id,)
+@pytest.mark.asyncio
+async def test_client_discover(client: UserExchangeClient[Any]) -> None:
+    registration = await client.register_agent(EmptyBehavior)
+    assert await client.discover(EmptyBehavior) == (registration.agent_id,)
 
 
-def test_client_get_factory(client: UserExchangeClient[Any]) -> None:
+@pytest.mark.asyncio
+async def test_client_get_factory(client: UserExchangeClient[Any]) -> None:
     assert isinstance(client.factory(), ExchangeFactory)
 
 
-def test_client_get_handle(client: UserExchangeClient[Any]) -> None:
-    registration = client.register_agent(EmptyBehavior)
+@pytest.mark.asyncio
+async def test_client_get_handle(client: UserExchangeClient[Any]) -> None:
+    registration = await client.register_agent(EmptyBehavior)
     with client.get_handle(registration.agent_id):
         pass
 
 
-def test_client_get_handle_type_error(client: UserExchangeClient[Any]) -> None:
+@pytest.mark.asyncio
+async def test_client_get_handle_type_error(
+    client: UserExchangeClient[Any],
+) -> None:
     with pytest.raises(TypeError):
         client.get_handle(UserId.new())  # type: ignore[arg-type]
 
 
-def test_client_get_status(client: UserExchangeClient[Any]) -> None:
+@pytest.mark.asyncio
+async def test_client_get_status(client: UserExchangeClient[Any]) -> None:
     uid = UserId.new()
-    assert client.status(uid) == MailboxStatus.MISSING
-    registration = client.register_agent(EmptyBehavior)
-    assert client.status(registration.agent_id) == MailboxStatus.ACTIVE
-    client.terminate(registration.agent_id)
-    assert client.status(registration.agent_id) == MailboxStatus.TERMINATED
+    assert await client.status(uid) == MailboxStatus.MISSING
+    registration = await client.register_agent(EmptyBehavior)
+    agent_id = registration.agent_id
+    assert await client.status(agent_id) == MailboxStatus.ACTIVE
+    await client.terminate(agent_id)
+    assert await client.status(agent_id) == MailboxStatus.TERMINATED
 
 
-def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
-    received = threading.Event()
+@pytest.mark.asyncio
+async def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
+    received = asyncio.Event()
 
-    def _handler(_: RequestMessage) -> None:
+    async def _handler(_: RequestMessage) -> None:
         received.set()
 
-    with factory.create_user_client(start_listener=False) as user_client:
-        registration = user_client.register_agent(EmptyBehavior)
-        with factory.create_agent_client(
+    async with await factory.create_user_client(
+        start_listener=False,
+    ) as user_client:
+        registration = await user_client.register_agent(EmptyBehavior)
+        async with await factory.create_agent_client(
             registration,
             _handler,
         ) as agent_client:
-            thread = threading.Thread(target=agent_client._listen_for_messages)
-            thread.start()
+            task = asyncio.Task(agent_client._listen_for_messages())
 
             message = PingRequest(
                 src=user_client.user_id,
                 dest=agent_client.agent_id,
             )
-            user_client.send(message)
+            await user_client.send(message)
 
-            received.wait(TEST_WAIT_TIMEOUT)
+            await asyncio.wait_for(received.wait(), timeout=TEST_WAIT_TIMEOUT)
 
-            user_client.terminate(registration.agent_id)
-            thread.join(TEST_THREAD_JOIN_TIMEOUT)
+            await user_client.terminate(registration.agent_id)
+            await task
 
 
-def test_client_reply_error_on_request(factory: ExchangeFactory[Any]) -> None:
-    with factory.create_user_client(start_listener=False) as client1:
-        with factory.create_user_client(start_listener=True) as client2:
+@pytest.mark.asyncio
+async def test_client_reply_error_on_request(
+    factory: ExchangeFactory[Any],
+) -> None:
+    async with await factory.create_user_client(
+        start_listener=False,
+    ) as client1:
+        async with await factory.create_user_client(
+            start_listener=True,
+        ) as client2:
             message = PingRequest(src=client1.user_id, dest=client2.user_id)
-            client1.send(message)
-            response = client1._transport.recv()
+            await client1.send(message)
+            response = await client1._transport.recv()
             assert isinstance(response, PingResponse)
             assert isinstance(response.exception, TypeError)

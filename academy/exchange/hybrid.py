@@ -1,11 +1,12 @@
 # ruff: noqa: D102
 from __future__ import annotations
 
+import asyncio
 import base64
+import contextlib
 import dataclasses
 import logging
 import sys
-import threading
 import uuid
 from collections.abc import Iterable
 from typing import Any
@@ -17,14 +18,14 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-import redis
+import redis.asyncio
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange.queue import Queue
+from academy.exchange.queue import AsyncQueue
 from academy.exchange.queue import QueueClosedError
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
@@ -38,9 +39,10 @@ from academy.message import Message
 from academy.serialize import NoPickleMixin
 from academy.socket import address_by_hostname
 from academy.socket import address_by_interface
-from academy.socket import SimpleSocket
+from academy.socket import open_port
 from academy.socket import SimpleSocketServer
 from academy.socket import SocketClosedError
+from academy.socket import SocketPool
 
 logger = logging.getLogger(__name__)
 
@@ -65,25 +67,41 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def __init__(  # noqa: PLR0913
         self,
         mailbox_id: EntityId,
-        redis_client: redis.Redis,
+        redis_client: redis.asyncio.Redis,
         *,
         redis_info: _RedisConnectionInfo,
         namespace: str,
+        host: str,
+        port: int,
         interface: str | None = None,
-        port: int | None = None,
     ) -> None:
         self._mailbox_id = mailbox_id
         self._redis_client = redis_client
         self._redis_info = redis_info
         self._namespace = namespace
-        self._interface = interface
-        # How can we pass the port through the bind method?
+        self._host = host
         self._port = port
+        self._interface = interface
 
         self._address_cache: dict[EntityId, str] = {}
-        self._messages: Queue[Message] = Queue()
-        self._socket_pool = _SocketPool()
-        self._start_mailbox_server()
+        self._messages: AsyncQueue[Message] = AsyncQueue()
+        self._socket_pool = SocketPool()
+        self._started = asyncio.Event()
+        self._shutdown = asyncio.Event()
+
+        self._server = SimpleSocketServer(
+            handler=self._direct_message_handler,
+            host=host,
+            port=port,
+        )
+        self._server_task = asyncio.create_task(
+            self._run_direct_server(),
+            name=f'hybrid-transport-direct-server-{self.mailbox_id}',
+        )
+        self._redis_task = asyncio.create_task(
+            self._run_redis_listener(),
+            name=f'hybrid-transport-redis-watcher-{self.mailbox_id}',
+        )
 
     def _address_key(self, uid: EntityId) -> str:
         return f'{self._namespace}:address:{uuid_to_base32(uid.uid)}'
@@ -98,7 +116,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return f'{self._namespace}:queue:{uuid_to_base32(uid.uid)}'
 
     @classmethod
-    def new(  # noqa: PLR0913
+    async def new(  # noqa: PLR0913
         cls,
         *,
         namespace: str,
@@ -129,44 +147,66 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             redis.exceptions.ConnectionError: If the Redis server is not
                 reachable.
         """
-        client = redis.Redis(
+        host = (
+            address_by_interface(interface)
+            if interface is not None
+            else address_by_hostname()
+        )
+        port = port if port is not None else open_port()
+
+        client = redis.asyncio.Redis(
             host=redis_info.hostname,
             port=redis_info.port,
             decode_responses=False,
             **redis_info.kwargs,
         )
         # Ensure the redis server is reachable else fail early
-        client.ping()
+        await client.ping()
 
         if mailbox_id is None:
             mailbox_id = UserId.new(name=name)
-            client.set(
+            await client.set(
                 f'{namespace}:status:{uuid_to_base32(mailbox_id.uid)}',
                 _MailboxState.ACTIVE.value,
             )
             logger.info('Registered %s in exchange', mailbox_id)
-        return cls(
+
+        await client.set(
+            f'{namespace}:address:{uuid_to_base32(mailbox_id.uid)}',
+            f'{host}:{port}',
+        )
+
+        transport = cls(
             mailbox_id,
             client,
             redis_info=redis_info,
             namespace=namespace,
             interface=interface,
+            host=host,
             port=port,
         )
+        # Wait for the direct message server to start
+        await asyncio.wait_for(transport._started.wait(), timeout=5)
+        return transport
 
     @property
     def mailbox_id(self) -> EntityId:
         return self._mailbox_id
 
-    def close(self) -> None:
-        # This is necessary to get the listener thread to exit.
-        # This should be replaced in the async implementation
-        self._messages.close()
-        self._close_mailbox_server()
-        self._redis_client.close()
-        self._socket_pool.close()
+    async def close(self) -> None:
+        self._shutdown.set()
+        await self._messages.close()
+        await self._socket_pool.close()
 
-    def discover(
+        await asyncio.wait_for(self._server_task, timeout=5)
+
+        self._redis_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self._redis_task
+
+        await self._redis_client.aclose()
+
+    async def discover(
         self,
         behavior: type[Behavior],
         *,
@@ -174,10 +214,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
         fqp = f'{behavior.__module__}.{behavior.__name__}'
-        for key in self._redis_client.scan_iter(
+        async for key in self._redis_client.scan_iter(
             f'{self._namespace}:behavior:*',
         ):
-            mro_str = self._redis_client.get(key)
+            mro_str = await self._redis_client.get(key)
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')
             if fqp == mro[0] or (allow_subclasses and fqp in mro):
@@ -187,7 +227,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 found.append(aid)
         active: list[AgentId[Any]] = []
         for aid in found:
-            status = self._redis_client.get(self._status_key(aid))
+            status = await self._redis_client.get(self._status_key(aid))
             if status == _MailboxState.ACTIVE.value:  # pragma: no branch
                 active.append(aid)
         return tuple(active)
@@ -201,13 +241,13 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             namespace=self._namespace,
         )
 
-    def recv(self, timeout: float | None = None) -> Message:
+    async def recv(self, timeout: float | None = None) -> Message:
         try:
-            return self._messages.get(timeout=timeout)
+            return await self._messages.get(timeout=timeout)
         except QueueClosedError:
             raise MailboxClosedError(self.mailbox_id) from None
 
-    def register_agent(
+    async def register_agent(
         self,
         behavior: type[BehaviorT],
         *,
@@ -217,18 +257,18 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         aid: AgentId[Any] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
-        self._redis_client.set(
+        await self._redis_client.set(
             self._status_key(aid),
             _MailboxState.ACTIVE.value,
         )
-        self._redis_client.set(
+        await self._redis_client.set(
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
         return HybridAgentRegistration(agent_id=aid)
 
-    def _send_direct(self, address: str, message: Message) -> None:
-        self._socket_pool.send(address, message.model_serialize())
+    async def _send_direct(self, address: str, message: Message) -> None:
+        await self._socket_pool.send(address, message.model_serialize())
         logger.debug(
             'Sent %s to %s via p2p at %s',
             type(message).__name__,
@@ -236,14 +276,14 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             address,
         )
 
-    def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> None:
         address = self._address_cache.get(message.dest, None)
         if address is not None:
             try:
                 # This is as optimistic as possible. If the address of the
                 # peer is cached, we assume the mailbox is still active and
                 # the peer is still listening.
-                self._send_direct(address, message)
+                await self._send_direct(address, message)
             except (SocketClosedError, OSError):
                 # Our optimism let us down so clear the cache and try the
                 # standard flow.
@@ -251,13 +291,15 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             else:
                 return
 
-        status = self._redis_client.get(self._status_key(message.dest))
+        status = await self._redis_client.get(self._status_key(message.dest))
         if status is None:
             raise BadEntityIdError(message.dest)
         elif status == _MailboxState.INACTIVE.value:
             raise MailboxClosedError(message.dest)
 
-        maybe_address = self._redis_client.get(self._address_key(message.dest))
+        maybe_address = await self._redis_client.get(
+            self._address_key(message.dest),
+        )
         try:
             # This branching is a little odd. We want to fall back to
             # Redis for message sending on two conditions: direct send fails
@@ -269,12 +311,12 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     if isinstance(maybe_address, bytes)
                     else maybe_address
                 )
-                self._send_direct(decoded_address, message)
+                await self._send_direct(decoded_address, message)
                 self._address_cache[message.dest] = decoded_address
             else:
                 raise TypeError('Did not active peer address in Redis.')
         except (TypeError, SocketClosedError, OSError):
-            self._redis_client.rpush(
+            await self._redis_client.rpush(
                 self._queue_key(message.dest),
                 message.model_serialize(),
             )
@@ -284,8 +326,8 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 message.dest,
             )
 
-    def status(self, uid: EntityId) -> MailboxStatus:
-        status = self._redis_client.get(self._status_key(uid))
+    async def status(self, uid: EntityId) -> MailboxStatus:
+        status = await self._redis_client.get(self._status_key(uid))
         if status is None:
             return MailboxStatus.MISSING
         elif status == _MailboxState.INACTIVE.value:
@@ -293,53 +335,21 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         else:
             return MailboxStatus.ACTIVE
 
-    def terminate(self, uid: EntityId) -> None:
-        self._redis_client.set(
+    async def terminate(self, uid: EntityId) -> None:
+        await self._redis_client.set(
             self._status_key(uid),
             _MailboxState.INACTIVE.value,
         )
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
+        await self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
         if isinstance(uid, AgentId):
-            self._redis_client.delete(self._behavior_key(uid))
+            await self._redis_client.delete(self._behavior_key(uid))
 
-    def _start_mailbox_server(self) -> None:
-        self._closed = threading.Event()
-        self._socket_poll_timeout_ms = _SOCKET_POLL_TIMEOUT_MS
-
-        host = (
-            address_by_interface(self._interface)
-            if self._interface is not None
-            else address_by_hostname()
-        )
-        self._server = SimpleSocketServer(
-            handler=self._server_handler,
-            host=host,
-            port=self._port,
-            timeout=_THREAD_JOIN_TIMEOUT,
-        )
-        self._server.start_server_thread()
-
-        self._redis_client.set(
-            self._address_key(self.mailbox_id),
-            f'{self._server.host}:{self._server.port}',
-        )
-
-        self._redis_thread = threading.Thread(
-            target=self._redis_watcher,
-            name=f'hybrid-mailbox-redis-watcher-{self.mailbox_id}',
-        )
-        self._redis_started = threading.Event()
-        self._redis_thread.start()
-        self._redis_started.wait(timeout=_THREAD_START_TIMEOUT)
-
-    def _pull_messages_from_redis(self, timeout: int = 1) -> None:
-        # Note: we use blpop instead of lpop here for the timeout.
-        raw = self._redis_client.blpop(
+    async def _get_message_from_redis(self) -> None:
+        raw = await self._redis_client.blpop(
             [self._queue_key(self.mailbox_id)],
-            timeout=timeout,
         )
         if raw is None:
             return
@@ -348,7 +358,8 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         assert isinstance(raw, (tuple, list))
         assert len(raw) == 2  # noqa: PLR2004
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
-            self._messages.close()
+            self._shutdown.set()
+            await self._messages.close()
             raise MailboxClosedError(self.mailbox_id)
         message = BaseMessage.model_deserialize(raw[1])
         assert isinstance(message, get_args(Message))
@@ -357,14 +368,13 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             type(message).__name__,
             self.mailbox_id,
         )
-        self._messages.put(message)
+        await self._messages.put(message)
 
-    def _redis_watcher(self) -> None:
-        self._redis_started.set()
-        logger.debug('Started redis watcher thread for %s', self.mailbox_id)
+    async def _run_redis_listener(self) -> None:
+        logger.debug('Started redis listener task for %s', self.mailbox_id)
         try:
-            while not self._closed.is_set():
-                status = self._redis_client.get(
+            while True:
+                status = await self._redis_client.get(
                     self._status_key(self.mailbox_id),
                 )
                 if status is None:  # pragma: no cover
@@ -376,54 +386,44 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 elif (
                     status == _MailboxState.INACTIVE.value
                 ):  # pragma: no cover
-                    self._messages.close()
                     break
-
-                self._pull_messages_from_redis(timeout=1)
+                await self._get_message_from_redis()
         except MailboxClosedError:  # pragma: no cover
             pass
         except Exception:
             logger.exception(
-                'Error in redis watcher thread for %s',
+                'Error in redis listener task for %s',
                 self.mailbox_id,
             )
         finally:
-            self._server.stop_server_thread()
+            self._shutdown.set()
+            await self._messages.close()
             logger.debug(
-                'Stopped redis watcher thread for %s',
+                'Stopped redis listener task for %s',
                 self.mailbox_id,
             )
 
-    def _server_handler(self, payload: bytes) -> bytes | None:
+    async def _direct_message_handler(self, payload: bytes) -> bytes | None:
         message = BaseMessage.model_deserialize(payload)
         logger.debug(
             'Received %s to %s via p2p',
             type(message).__name__,
             self.mailbox_id,
         )
-        self._messages.put(message)
+        await self._messages.put(message)
         return None
 
-    def _close_mailbox_server(self) -> None:
-        """Close this mailbox client.
-
-        Warning:
-            This does not close the mailbox in the exchange. I.e., the exchange
-            will still accept new messages to this mailbox, but this client
-            will no longer be listening for them.
-        """
-        self._closed.set()
-        self._redis_client.delete(
-            self._address_key(self.mailbox_id),
+    async def _run_direct_server(self) -> None:
+        logger.debug(
+            'Started direct message server task for %s',
+            self.mailbox_id,
         )
+        async with self._server.serve():
+            self._started.set()
+            await self._shutdown.wait()
 
-        self._server.stop_server_thread()
-
-        self._redis_thread.join(_THREAD_JOIN_TIMEOUT)
-        if self._redis_thread.is_alive():  # pragma: no cover
-            raise TimeoutError(
-                'Redis watcher thread failed to exit within '
-                f'{_THREAD_JOIN_TIMEOUT} seconds.',
+            await self._redis_client.delete(
+                self._address_key(self.mailbox_id),
             )
 
 
@@ -472,14 +472,14 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
         )
         self._ports = None if ports is None else iter(ports)
 
-    def _create_transport(
+    async def _create_transport(
         self,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
         registration: HybridAgentRegistration[Any] | None = None,  # type: ignore[override]
     ) -> HybridExchangeTransport:
-        return HybridExchangeTransport.new(
+        return await HybridExchangeTransport.new(
             interface=self._interface,
             mailbox_id=mailbox_id,
             name=name,
@@ -487,38 +487,6 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
             port=None if self._ports is None else next(self._ports),
             redis_info=self._redis_info,
         )
-
-
-class _SocketPool:
-    def __init__(self) -> None:
-        self._sockets: dict[str, SimpleSocket] = {}
-
-    def close(self) -> None:
-        for address in tuple(self._sockets.keys()):
-            self.close_socket(address)
-
-    def close_socket(self, address: str) -> None:
-        conn = self._sockets.pop(address, None)
-        if conn is not None:  # pragma: no branch
-            conn.close(shutdown=True)
-
-    def get_socket(self, address: str) -> SimpleSocket:
-        try:
-            return self._sockets[address]
-        except KeyError:
-            parts = address.split(':')
-            host, port = parts[0], int(parts[1])
-            conn = SimpleSocket(host, port)
-            self._sockets[address] = conn
-            return conn
-
-    def send(self, address: str, message: bytes) -> None:
-        conn = self.get_socket(address)
-        try:
-            conn.send(message)
-        except (SocketClosedError, OSError):
-            self.close_socket(address)
-            raise
 
 
 def base32_to_uuid(uid: str) -> uuid.UUID:

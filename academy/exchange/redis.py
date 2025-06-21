@@ -16,7 +16,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-import redis
+import redis.asyncio
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
@@ -62,7 +62,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def __init__(
         self,
         mailbox_id: EntityId,
-        redis_client: redis.Redis,
+        redis_client: redis.asyncio.Redis,
         *,
         redis_info: _RedisConnectionInfo,
     ) -> None:
@@ -80,7 +80,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return f'queue:{uid.uid}'
 
     @classmethod
-    def new(
+    async def new(
         cls,
         *,
         mailbox_id: EntityId | None = None,
@@ -104,18 +104,21 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             redis.exceptions.ConnectionError: If the Redis server is not
                 reachable.
         """
-        client = redis.Redis(
+        client = redis.asyncio.Redis(
             host=redis_info.hostname,
             port=redis_info.port,
             decode_responses=False,
             **redis_info.kwargs,
         )
         # Ensure the redis server is reachable else fail early
-        client.ping()
+        await client.ping()
 
         if mailbox_id is None:
             mailbox_id = UserId.new(name=name)
-            client.set(f'active:{mailbox_id.uid}', _MailboxState.ACTIVE.value)
+            await client.set(
+                f'active:{mailbox_id.uid}',
+                _MailboxState.ACTIVE.value,
+            )
             logger.info('Registered %s in exchange', mailbox_id)
         return cls(mailbox_id, client, redis_info=redis_info)
 
@@ -123,10 +126,10 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def mailbox_id(self) -> EntityId:
         return self._mailbox_id
 
-    def close(self) -> None:
-        self._client.close()
+    async def close(self) -> None:
+        await self._client.aclose()
 
-    def discover(
+    async def discover(
         self,
         behavior: type[Behavior],
         *,
@@ -134,8 +137,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
         fqp = f'{behavior.__module__}.{behavior.__name__}'
-        for key in self._client.scan_iter('behavior:*'):
-            mro_str = self._client.get(key)
+        async for key in self._client.scan_iter('behavior:*'):
+            mro_str = await self._client.get(key)
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')
             if fqp == mro[0] or (allow_subclasses and fqp in mro):
@@ -143,7 +146,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 found.append(aid)
         active: list[AgentId[Any]] = []
         for aid in found:
-            status = self._client.get(self._active_key(aid))
+            status = await self._client.get(self._active_key(aid))
             if status == _MailboxState.ACTIVE.value:  # pragma: no branch
                 active.append(aid)
         return tuple(active)
@@ -155,10 +158,10 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             **self._redis_info.kwargs,
         )
 
-    def recv(self, timeout: float | None = None) -> Message:
+    async def recv(self, timeout: float | None = None) -> Message:
         _timeout = int(timeout) if timeout is not None else 1
         while True:
-            status = self._client.get(
+            status = await self._client.get(
                 self._active_key(self.mailbox_id),
             )
             if status is None:
@@ -170,7 +173,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             elif status == _MailboxState.INACTIVE.value:
                 raise MailboxClosedError(self.mailbox_id)
 
-            raw = self._client.blpop(
+            raw = await self._client.blpop(
                 [self._queue_key(self.mailbox_id)],
                 timeout=_timeout,
             )
@@ -191,7 +194,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             assert isinstance(message, get_args(Message))
             return message
 
-    def register_agent(
+    async def register_agent(
         self,
         behavior: type[BehaviorT],
         *,
@@ -201,27 +204,30 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         aid: AgentId[BehaviorT] = (
             AgentId.new(name=name) if _agent_id is None else _agent_id
         )
-        self._client.set(self._active_key(aid), _MailboxState.ACTIVE.value)
-        self._client.set(
+        await self._client.set(
+            self._active_key(aid),
+            _MailboxState.ACTIVE.value,
+        )
+        await self._client.set(
             self._behavior_key(aid),
             ','.join(behavior.behavior_mro()),
         )
         return RedisAgentRegistration(agent_id=aid)
 
-    def send(self, message: Message) -> None:
-        status = self._client.get(self._active_key(message.dest))
+    async def send(self, message: Message) -> None:
+        status = await self._client.get(self._active_key(message.dest))
         if status is None:
             raise BadEntityIdError(message.dest)
         elif status == _MailboxState.INACTIVE.value:
             raise MailboxClosedError(message.dest)
         else:
-            self._client.rpush(
+            await self._client.rpush(
                 self._queue_key(message.dest),
                 message.model_serialize(),
             )
 
-    def status(self, uid: EntityId) -> MailboxStatus:
-        status = self._client.get(self._active_key(uid))
+    async def status(self, uid: EntityId) -> MailboxStatus:
+        status = await self._client.get(self._active_key(uid))
         if status is None:
             return MailboxStatus.MISSING
         elif status == _MailboxState.INACTIVE.value:
@@ -229,14 +235,17 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         else:
             return MailboxStatus.ACTIVE
 
-    def terminate(self, uid: EntityId) -> None:
-        self._client.set(self._active_key(uid), _MailboxState.INACTIVE.value)
+    async def terminate(self, uid: EntityId) -> None:
+        await self._client.set(
+            self._active_key(uid),
+            _MailboxState.INACTIVE.value,
+        )
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
+        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
         if isinstance(uid, AgentId):
-            self._client.delete(self._behavior_key(uid))
+            await self._client.delete(self._behavior_key(uid))
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):
@@ -257,14 +266,14 @@ class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):
     ) -> None:
         self.redis_info = _RedisConnectionInfo(hostname, port, redis_kwargs)
 
-    def _create_transport(
+    async def _create_transport(
         self,
         mailbox_id: EntityId | None = None,
         *,
         name: str | None = None,
         registration: RedisAgentRegistration[Any] | None = None,  # type: ignore[override]
     ) -> RedisExchangeTransport:
-        return RedisExchangeTransport.new(
+        return await RedisExchangeTransport.new(
             mailbox_id=mailbox_id,
             name=name,
             redis_info=self.redis_info,

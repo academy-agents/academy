@@ -91,16 +91,16 @@ class ProxyStoreExchangeTransport(
     def mailbox_id(self) -> EntityId:
         return self.transport.mailbox_id
 
-    def close(self) -> None:
-        self.transport.close()
+    async def close(self) -> None:
+        await self.transport.close()
 
-    def discover(
+    async def discover(
         self,
         behavior: type[Behavior],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
-        return self.transport.discover(
+        return await self.transport.discover(
             behavior,
             allow_subclasses=allow_subclasses,
         )
@@ -113,8 +113,8 @@ class ProxyStoreExchangeTransport(
             resolve_async=self.resolve_async,
         )
 
-    def recv(self, timeout: float | None = None) -> Message:
-        message = self.transport.recv(timeout)
+    async def recv(self, timeout: float | None = None) -> Message:
+        message = await self.transport.recv(timeout)
         if self.resolve_async and isinstance(message, ActionRequest):
             for arg in (*message.pargs, *message.kargs.values()):
                 if type(arg) is Proxy:
@@ -127,20 +127,20 @@ class ProxyStoreExchangeTransport(
             resolve_async(message.result)
         return message
 
-    def register_agent(
+    async def register_agent(
         self,
         behavior: type[BehaviorT],
         *,
         name: str | None = None,
         _agent_id: AgentId[BehaviorT] | None = None,
     ) -> AgentRegistration[BehaviorT]:
-        return self.transport.register_agent(
+        return await self.transport.register_agent(
             behavior,
             name=name,
             _agent_id=_agent_id,
         )
 
-    def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> None:
         if isinstance(message, ActionRequest):
             message.pargs = _proxy_iterable(
                 message.pargs,
@@ -159,13 +159,13 @@ class ProxyStoreExchangeTransport(
                 self.should_proxy,
             )
 
-        self.transport.send(message)
+        await self.transport.send(message)
 
-    def status(self, uid: EntityId) -> MailboxStatus:
-        return self.transport.status(uid)
+    async def status(self, uid: EntityId) -> MailboxStatus:
+        return await self.transport.status(uid)
 
-    def terminate(self, uid: EntityId) -> None:
-        self.transport.terminate(uid)
+    async def terminate(self, uid: EntityId) -> None:
+        await self.transport.terminate(uid)
 
 
 class ProxyStoreExchangeFactory(
@@ -198,7 +198,7 @@ class ProxyStoreExchangeFactory(
         self.should_proxy = should_proxy
         self.resolve_async = resolve_async
 
-    def _create_transport(
+    async def _create_transport(
         self,
         mailbox_id: EntityId | None = None,
         *,
@@ -208,7 +208,7 @@ class ProxyStoreExchangeFactory(
         # If store was none because of pickling,
         # the __setstate__ must be called before bind.
         assert self.store is not None
-        transport = self.base._create_transport(
+        transport = await self.base._create_transport(
             mailbox_id,
             name=name,
             registration=registration,

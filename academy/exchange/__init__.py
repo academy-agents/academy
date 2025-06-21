@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import abc
+import asyncio
+import contextlib
 import enum
 import logging
 import sys
-import threading
 import uuid
+from collections.abc import Coroutine
 from types import TracebackType
 from typing import Any
 from typing import Callable
@@ -14,6 +16,11 @@ from typing import get_args
 from typing import Protocol
 from typing import runtime_checkable
 from typing import TypeVar
+
+if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+    from typing import TypeAlias
+else:  # pragma: <3.11 cover
+    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -44,6 +51,10 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
+RequestHandler: TypeAlias = Callable[
+    [RequestMessage],
+    Coroutine[None, None, None],
+]
 
 
 class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
@@ -61,7 +72,7 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
     """
 
     @abc.abstractmethod
-    def _create_transport(
+    async def _create_transport(
         self,
         mailbox_id: EntityId | None = None,
         *,
@@ -69,10 +80,10 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
         registration: AgentRegistration[Any] | None = None,
     ) -> ExchangeTransportT: ...
 
-    def create_agent_client(
+    async def create_agent_client(
         self,
         registration: AgentRegistration[BehaviorT],
-        request_handler: Callable[[RequestMessage], None],
+        request_handler: RequestHandler,
     ) -> AgentExchangeClient[BehaviorT, ExchangeTransportT]:
         """Create a new agent exchange client.
 
@@ -97,13 +108,14 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
                 already registered with the exchange.
         """
         agent_id: AgentId[BehaviorT] = registration.agent_id
-        transport = self._create_transport(
+        transport = await self._create_transport(
             mailbox_id=agent_id,
             registration=registration,
         )
         assert transport.mailbox_id == agent_id
-        if transport.status(agent_id) != MailboxStatus.ACTIVE:
-            transport.close()
+        status = await transport.status(agent_id)
+        if status != MailboxStatus.ACTIVE:
+            await transport.close()
             raise BadEntityIdError(agent_id)
         return AgentExchangeClient(
             agent_id,
@@ -111,7 +123,7 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
             request_handler=request_handler,
         )
 
-    def create_user_client(
+    async def create_user_client(
         self,
         *,
         name: str | None = None,
@@ -126,7 +138,7 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
         Returns:
             User exchange client.
         """
-        transport = self._create_transport(mailbox_id=None, name=name)
+        transport = await self._create_transport(mailbox_id=None, name=name)
         user_id = transport.mailbox_id
         assert isinstance(user_id, UserId)
         return UserExchangeClient(
@@ -157,19 +169,19 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         self._transport = transport
         self._handles: dict[uuid.UUID, BoundRemoteHandle[Any]] = {}
 
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
     @abc.abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the transport."""
         ...
 
@@ -179,7 +191,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             handle = self._handles.pop(key)
             handle.close(wait_futures=False)
 
-    def discover(
+    async def discover(
         self,
         behavior: type[Behavior],
         *,
@@ -195,7 +207,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         Returns:
             Tuple of agent IDs implementing the behavior.
         """
-        return self._transport.discover(
+        return await self._transport.discover(
             behavior,
             allow_subclasses=allow_subclasses,
         )
@@ -234,7 +246,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         logger.info('Created handle to %s', aid)
         return handle
 
-    def register_agent(
+    async def register_agent(
         self,
         behavior: type[BehaviorT],
         *,
@@ -250,7 +262,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         Returns:
             Agent registration info.
         """
-        registration = self._transport.register_agent(
+        registration = await self._transport.register_agent(
             behavior,
             name=name,
             _agent_id=_agent_id,
@@ -258,7 +270,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         logger.info('Registered %s in exchange', registration.agent_id)
         return registration
 
-    def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> None:
         """Send a message to a mailbox.
 
         Args:
@@ -268,18 +280,18 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             BadEntityIdError: If a mailbox for `message.dest` does not exist.
             MailboxClosedError: If the mailbox was closed.
         """
-        self._transport.send(message)
+        await self._transport.send(message)
         logger.debug('Sent %s to %s', type(message).__name__, message.dest)
 
-    def status(self, uid: EntityId) -> MailboxStatus:
+    async def status(self, uid: EntityId) -> MailboxStatus:
         """Check the status of a mailbox in the exchange.
 
         Args:
             uid: Entity identifier of the mailbox to check.
         """
-        return self._transport.status(uid)
+        return await self._transport.status(uid)
 
-    def terminate(self, uid: EntityId) -> None:
+    async def terminate(self, uid: EntityId) -> None:
         """Terminate a mailbox in the exchange.
 
         Terminating a mailbox means that the corresponding entity will no
@@ -291,13 +303,13 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         Args:
             uid: Entity identifier of the mailbox to close.
         """
-        self._transport.terminate(uid)
+        await self._transport.terminate(uid)
         logger.debug('Terminated mailbox for %s', uid)
 
-    def _listen_for_messages(self) -> None:
+    async def _listen_for_messages(self) -> None:
         while True:
             try:
-                message = self._transport.recv()
+                message = await self._transport.recv()
             except MailboxClosedError:
                 break
             logger.debug(
@@ -306,10 +318,10 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 message.src,
                 self._transport.mailbox_id,
             )
-            self._handle_message(message)
+            await self._handle_message(message)
 
     @abc.abstractmethod
-    def _handle_message(self, message: Message) -> None: ...
+    async def _handle_message(self, message: Message) -> None: ...
 
 
 class AgentExchangeClient(
@@ -334,7 +346,7 @@ class AgentExchangeClient(
         self,
         agent_id: AgentId[BehaviorT],
         transport: ExchangeTransportT,
-        request_handler: Callable[[RequestMessage], None],
+        request_handler: RequestHandler,
     ) -> None:
         super().__init__(transport)
         self._agent_id = agent_id
@@ -351,7 +363,7 @@ class AgentExchangeClient(
         """Agent ID."""
         return self._agent_id
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the user client.
 
         This closes the underlying exchange transport and all handles created
@@ -359,12 +371,12 @@ class AgentExchangeClient(
         can be started again later.
         """
         self._close_handles()
-        self._transport.close()
+        await self._transport.close()
         logger.info('Closed exchange client for %s', self.agent_id)
 
-    def _handle_message(self, message: Message) -> None:
+    async def _handle_message(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):
-            self._request_handler(message)
+            await self._request_handler(message)
         elif isinstance(message, get_args(ResponseMessage)):
             try:
                 handle = self._handles[message.label]
@@ -403,13 +415,12 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
     ) -> None:
         super().__init__(transport)
         self._user_id = user_id
-        self._listener_thread: threading.Thread | None = None
+        self._listener_task: asyncio.Task[None] | None = None
         if start_listener:
-            self._listener_thread = threading.Thread(
-                target=self._listen_for_messages,
+            self._listener_task = asyncio.create_task(
+                self._listen_for_messages(),
                 name=f'user-exchange-listener-{self.user_id.uid}',
             )
-            self._listener_thread.start()
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}({self.user_id!r})'
@@ -422,25 +433,27 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         """User ID."""
         return self._user_id
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the user client.
 
         This terminates the user's mailbox, closes the underlying exchange
         transport, and closes all handles produced by this client.
         """
         self._close_handles()
-        self._transport.terminate(self.user_id)
+        await self._transport.terminate(self.user_id)
         logger.info(f'Terminated mailbox for {self.user_id}')
-        if self._listener_thread is not None:
-            self._listener_thread.join()
-        self._transport.close()
+        if self._listener_task is not None:
+            self._listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._listener_task
+        await self._transport.close()
         logger.info('Closed exchange client for %s', self.user_id)
 
-    def _handle_message(self, message: Message) -> None:
+    async def _handle_message(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):
             error = TypeError(f'{self.user_id} cannot fulfill requests.')
             response = message.error(error)
-            self._transport.send(response)
+            await self._transport.send(response)
             logger.warning(
                 'Exchange client for %s received unexpected request message '
                 'from %s',

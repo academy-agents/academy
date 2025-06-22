@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import asyncio
-import threading
 from collections.abc import AsyncGenerator
 from collections.abc import Generator
+from typing import Callable
 
 import pytest
 import pytest_asyncio
-from aiohttp.web import TCPSite, AppRunner
+from aiohttp.web import AppRunner
+from aiohttp.web import TCPSite
 
+from academy.exchange import ExchangeFactoryT
 from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.server import create_app
@@ -16,10 +17,9 @@ from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.redis import RedisExchangeFactory
-from academy.exchange.transport import AgentRegistrationT
+from academy.exchange.transport import ExchangeTransportT
 from academy.launcher import ThreadLauncher
 from academy.socket import open_port
-from testing.constant import TEST_CONNECTION_TIMEOUT
 
 
 @pytest_asyncio.fixture
@@ -78,13 +78,14 @@ async def get_factory(
             return factory_type()
         else:
             raise AssertionError('Unsupported factory type.')
-    
+
     return _get_factory_for_testing
 
 
-@pytest.fixture
-def exchange() -> Generator[UserExchangeClient[LocalExchangeTransport]]:
-    with LocalExchangeFactory().create_user_client(
+@pytest_asyncio.fixture
+async def exchange() -> Generator[UserExchangeClient[LocalExchangeTransport]]:
+    factory = LocalExchangeFactory()
+    async with await factory.create_user_client(
         start_listener=False,
     ) as client:
         yield client

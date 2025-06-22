@@ -1,20 +1,23 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import dataclasses
 import enum
 import logging
 import sys
 import threading
 from collections.abc import Sequence
-from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
+from typing import Callable
 from typing import Generic
 from typing import TypeVar
 
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
+from academy.exchange import AgentExchangeClient
 from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
@@ -46,22 +49,19 @@ class AgentRunConfig:
     """Agent run configuration.
 
     Attributes:
-        close_exchange_on_exit: Close the exchange interface when the agent
-            exits. Typically this should be `True` to clean up resources,
-            except when multiple agents are running in the same process
-            and sharing an exchange.
         max_action_concurrency: Maximum size of the thread pool used to
             concurrently execute action requests.
+        shutdown_on_loop_error: Shutdown the agent if any loop raises an error.
         terminate_on_error: Terminate the agent by closing its mailbox
-            permanently if the agent fails.
-        terminate_on_exit: Terminate the agent by closing its mailbox
-            permanently after the agent exits.
+            permanently if the agent shuts down due to an error.
+        terminate_on_success: Terminate the agent by closing its mailbox
+            permanently if the agent shuts down without an error.
     """
 
-    close_exchange_on_exit: bool = True
     max_action_concurrency: int | None = None
+    shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
-    terminate_on_exit: bool = True
+    terminate_on_success: bool = True
 
 
 # Helper for Agent.__reduce__ which cannot handle the keyword arguments
@@ -93,7 +93,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
 
     Note:
         If any `@loop` method raises an error, the agent will be signaled
-        to shutdown.
+        to shutdown if `shutdown_on_loop_error` is set in the `config`.
 
     Args:
         behavior: Behavior that the agent will exhibit.
@@ -112,29 +112,29 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
     ) -> None:
         self.agent_id = registration.agent_id
         self.behavior = behavior
-        self.exchange = exchange_factory.create_agent_client(
-            registration,
-            request_handler=self._request_handler,
-        )
+        self.exchange = exchange_factory
         self.registration = registration
         self.config = config if config is not None else AgentRunConfig()
 
         self._actions = behavior.behavior_actions()
         self._loops = behavior.behavior_loops()
 
-        self._shutdown = threading.Event()
+        self._shutdown_agent = asyncio.Event()
+        self._shutdown_loop = threading.Event()
         self._expected_shutdown = False
-        self._state_lock = threading.Lock()
+        self._state_lock = asyncio.Lock()
         self._state = _AgentState.INITIALIZED
 
         self._action_pool: ThreadPoolExecutor | None = None
-        self._action_futures: dict[ActionRequest, Future[None]] = {}
+        self._action_tasks: dict[ActionRequest, asyncio.Task[None]] = {}
         self._loop_pool: ThreadPoolExecutor | None = None
-        self._loop_futures: dict[Future[None], str] = {}
+        self._loop_tasks: dict[str, asyncio.Task[None]] = {}
+        self._loop_exceptions: list[tuple[str, Exception]] = []
 
-    def __call__(self) -> None:
-        """Alias for [run()][academy.agent.Agent.run]."""
-        self.run()
+        self._exchange_client: (
+            AgentExchangeClient[ExchangeTransportT] | None
+        ) = None
+        self._exchange_listener_task: asyncio.Task[None] | None = None
 
     def __repr__(self) -> str:
         name = type(self).__name__
@@ -181,9 +181,9 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
     def _bind_handles(self) -> None:
         self.behavior.behavior_handles_bind(self._bind_handle)
 
-    def _send_response(self, response: ResponseMessage) -> None:
+    async def _send_response(self, response: ResponseMessage) -> None:
         try:
-            self.exchange.send(response)
+            await self._exchange_client.send(response)
         except (BadEntityIdError, MailboxClosedError):
             logger.warning(
                 'Failed to send response from %s to %s. '
@@ -193,43 +193,65 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 response.dest,
             )
 
-    def _execute_action(self, request: ActionRequest) -> None:
+    async def _execute_action(self, request: ActionRequest) -> None:
+        assert self._action_pool is not None
+        loop = asyncio.get_running_loop()
         try:
-            result = self.action(request.action, request.pargs, request.kargs)
+            result = await loop.run_in_executor(
+                self._action_pool,
+                self.action,
+                request.action,
+                request.pargs,
+                request.kargs,
+            )
         except Exception as e:
             response = request.error(exception=e)
         else:
             response = request.response(result=result)
-        self._send_response(response)
+        await self._send_response(response)
 
-    def _request_handler(self, request: RequestMessage) -> None:
+    async def _execute_loop(
+        self,
+        name: str,
+        method: Callable[[threading.Event], None],
+    ) -> None:
+        assert self._loop_pool is not None
+        loop = asyncio.get_running_loop()
+        try:
+            await loop.run_in_executor(
+                self._loop_pool,
+                method,
+                self._shutdown_loop,
+            )
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            self._loop_exceptions.append((name, e))
+            logger.exception(
+                'Error in loop %r (signaling shutdown: %s)',
+                name,
+                self.config.shutdown_on_loop_error,
+            )
+            if self.config.shutdown_on_loop_error:
+                self.signal_shutdown(expected=False)
+
+    async def _request_handler(self, request: RequestMessage) -> None:
         if isinstance(request, ActionRequest):
-            # The _request_handler should only be called within the message
-            # handler thread which is only started after the _action_pool
-            # is initialized.
-            assert self._action_pool is not None
-            future = self._action_pool.submit(self._execute_action, request)
-            self._action_futures[request] = future
-            future.add_done_callback(
-                lambda _: self._action_futures.pop(request),
+            task = asyncio.create_task(
+                self._execute_action(request),
+                name=f'execute-action-{request.action}-{request.tag}',
+            )
+            self._action_tasks[request] = task
+            task.add_done_callback(
+                lambda _: self._action_tasks.pop(request),
             )
         elif isinstance(request, PingRequest):
             logger.info('Ping request received by %s', self.agent_id)
-            self._send_response(request.response())
+            await self._send_response(request.response())
         elif isinstance(request, ShutdownRequest):
             self.signal_shutdown()
         else:
             raise AssertionError('Unreachable.')
-
-    def _loop_callback(self, future: Future[None]) -> None:
-        if future.exception() is not None:
-            name = self._loop_futures[future]
-            logger.warning(
-                'Error in loop %r (signaling shutdown): %r',
-                name,
-                future.exception(),
-            )
-            self.signal_shutdown(expected=False)
 
     def action(self, action: str, args: Any, kwargs: Any) -> Any:
         """Invoke an action of the agent.
@@ -254,7 +276,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             )
         return self._actions[action](*args, **kwargs)
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Run the agent.
 
         Starts the agent, waits for another thread to call `signal_shutdown()`,
@@ -264,12 +286,12 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             Exception: Any exceptions raised inside threads.
         """
         try:
-            self.start()
-            self._shutdown.wait()
+            await self.start()
+            await self._shutdown_agent.wait()
         finally:
-            self.shutdown()
+            await self.shutdown()
 
-    def start(self) -> None:
+    async def start(self) -> None:
         """Start the agent.
 
         Note:
@@ -286,7 +308,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         Raises:
             RuntimeError: If the agent has been shutdown.
         """
-        with self._state_lock:
+        async with self._state_lock:
             if self._state is _AgentState.SHUTDOWN:
                 raise RuntimeError('Agent has already been shutdown.')
             elif self._state is _AgentState.RUNNING:
@@ -298,30 +320,38 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 self.behavior,
             )
             self._state = _AgentState.STARTING
+
+            self._exchange_client = await self.exchange.create_agent_client(
+                self.registration,
+                request_handler=self._request_handler,
+            )
             self._bind_handles()
             self.behavior.on_setup()
             self._action_pool = ThreadPoolExecutor(
-                self.config.max_action_concurrency,
-            )
-            self._loop_pool = ThreadPoolExecutor(
-                max_workers=len(self._loops) + 1,
+                max_workers=self.config.max_action_concurrency,
             )
 
-            for name, method in self._loops.items():
-                loop_future = self._loop_pool.submit(method, self._shutdown)
-                self._loop_futures[loop_future] = name
-                loop_future.add_done_callback(self._loop_callback)
+            if len(self._loops) > 0:
+                self._loop_pool = ThreadPoolExecutor(
+                    max_workers=len(self._loops),
+                )
+                for name, method in self._loops.items():
+                    task = asyncio.create_task(
+                        self._execute_loop(name, method),
+                        name=f'execute-loop-{name}-{self.agent_id}',
+                    )
+                    self._loop_tasks[name] = task
 
-            listener_future = self._loop_pool.submit(
-                self.exchange._listen_for_messages,
+            self._exchange_listener_task = asyncio.create_task(
+                self._exchange_client._listen_for_messages(),
+                name=f'exchange-listener-{self.agent_id}',
             )
-            self._loop_futures[listener_future] = '_exchange.listen'
 
             self._state = _AgentState.RUNNING
 
             logger.info('Running agent (%s; %s)', self.agent_id, self.behavior)
 
-    def shutdown(self) -> None:
+    async def shutdown(self) -> None:
         """Shutdown the agent.
 
         Note:
@@ -333,15 +363,15 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         1. Closes the agent's mailbox indicating that no further messages
            will be processed.
         1. Waits for the control loop and message listener threads to exit.
-        1. Optionally closes the exchange.
+        1. Closes the exchange.
         1. Calls
            [`Behavior.on_shutdown()`][academy.behavior.Behavior.on_shutdown].
 
         Raises:
             Exception: Any exceptions raised inside threads.
         """
-        with self._state_lock:
-            if self._state is _AgentState.SHUTDOWN:
+        async with self._state_lock:
+            if self._state in (_AgentState.INITIALIZED, _AgentState.SHUTDOWN):
                 return
 
             logger.debug(
@@ -351,15 +381,12 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 self.behavior,
             )
             self._state = _AgentState.TERMINTATING
-            self._shutdown.set()
+            self._shutdown_agent.set()
+            self._shutdown_loop.set()
 
-            # Cause the exchange message listener thread to exit by closing
-            # the mailbox the exchange is listening to. This is done
-            # first so we stop receiving new requests.
-            self.exchange.terminate(self.agent_id)
-            for future, name in self._loop_futures.items():
-                if name == '_exchange.listen':
-                    future.result()
+            self._exchange_listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._exchange_listener_task
 
             # Wait for currently running actions to complete. No more
             # should come in now that exchange's listener thread is done.
@@ -370,33 +397,23 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             if self._loop_pool is not None:
                 self._loop_pool.shutdown(wait=True)
 
-            if (
-                self._expected_shutdown and not self.config.terminate_on_exit
-            ) or (
-                not self._expected_shutdown
-                and not self.config.terminate_on_error
-            ):
-                # TODO: This is a hack because we need to close the mailbox
-                # for the exchange listener thread to exit, but in some
-                # cases we don't actually want to close it permanently. This
-                # means there is a race where the mailbox is temporarily
-                # closed.
-                self.exchange.register_agent(
-                    type(self.behavior),
-                    _agent_id=self.agent_id,
-                )
+            terminate_for_success = (
+                self.config.terminate_on_success and self._expected_shutdown
+            )
+            terminate_for_error = (
+                self.config.terminate_on_error and not self._expected_shutdown
+            )
+            if terminate_for_success or terminate_for_error:
+                await self._exchange_client.terminate(self.agent_id)
 
             self.behavior.on_shutdown()
 
-            # Close the exchange last since the actions that finished
-            # up may still need to use it to send replies.
-            if self.config.close_exchange_on_exit:
-                self.exchange.close()
+            await self._exchange_client.close()
 
             self._state = _AgentState.SHUTDOWN
 
             # Raise any exceptions from the loop threads as the final step.
-            _raise_future_exceptions(tuple(self._loop_futures))
+            _raise_exceptions(self._loop_exceptions)
 
             logger.info(
                 'Shutdown agent (%s; %s)',
@@ -412,27 +429,18 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         effect.
         """
         self._expected_shutdown = expected
-        self._shutdown.set()
+        self._shutdown_agent.set()
+        self._shutdown_loop.set()
 
 
-def _raise_future_exceptions(futures: Sequence[Future[Any]]) -> None:
+def _raise_exceptions(exceptions: Sequence[tuple[str, Exception]]) -> None:
     if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-        exceptions: list[Exception] = []
-        for future in futures:
-            exception = future.exception()
-            if isinstance(exception, Exception):
-                exceptions.append(exception)
+        exceptions = [e for _, e in exceptions]
         if len(exceptions) > 0:
             raise ExceptionGroup(  # noqa: F821
                 'Caught failures in agent loops while shutting down.',
                 exceptions,
             )
     else:  # pragma: <3.11 cover
-        for future in futures:
-            try:
-                future.result()
-            except Exception as e:
-                raise RuntimeError(
-                    'Caught at least one failure in agent loops '
-                    'while shutting down.',
-                ) from e
+        for _, exception in exceptions:
+            raise exception

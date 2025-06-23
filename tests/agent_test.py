@@ -31,25 +31,25 @@ from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 
 class SignalingBehavior(Behavior):
     def __init__(self) -> None:
-        self.setup_event = threading.Event()
-        self.loop_event = threading.Event()
-        self.shutdown_event = threading.Event()
+        self.setup_event = asyncio.Event()
+        self.loop_event = asyncio.Event()
+        self.shutdown_event = asyncio.Event()
 
-    def on_setup(self) -> None:
+    async def on_setup(self) -> None:
         self.setup_event.set()
 
-    def on_shutdown(self) -> None:
+    async def on_shutdown(self) -> None:
         self.shutdown_event.set()
 
     @loop
-    def waiter(self, shutdown: threading.Event) -> None:
-        self.loop_event.wait()
-        shutdown.wait()
+    async def waiter(self, shutdown: asyncio.Event) -> None:
+        await self.loop_event.wait()
+        await shutdown.wait()
 
     @loop
-    def setter(self, shutdown: threading.Event) -> None:
+    async def setter(self, shutdown: asyncio.Event) -> None:
         self.loop_event.set()
-        shutdown.wait()
+        await shutdown.wait()
 
 
 @pytest.mark.asyncio
@@ -109,11 +109,11 @@ async def test_agent_shutdown_without_start(
 
 class LoopFailureBehavior(Behavior):
     @loop
-    def bad1(self, shutdown: threading.Event) -> None:
+    async def bad1(self, shutdown: asyncio.Event) -> None:
         raise RuntimeError('Loop failure 1.')
 
     @loop
-    def bad2(self, shutdown: threading.Event) -> None:
+    async def bad2(self, shutdown: asyncio.Event) -> None:
         raise RuntimeError('Loop failure 2.')
 
 
@@ -327,17 +327,14 @@ class HandleBindingBehavior(Behavior):
         self.agent_bound = agent_bound
         self.self_bound = self_bound
 
-    def on_setup(self) -> None:
+    async def on_setup(self) -> None:
         assert isinstance(self.unbound, BoundRemoteHandle)
         assert isinstance(self.agent_bound, BoundRemoteHandle)
         assert isinstance(self.self_bound, BoundRemoteHandle)
 
         assert self.unbound.mailbox_id is not None
-        assert (
-            self.unbound.mailbox_id
-            == self.agent_bound.mailbox_id
-            == self.self_bound.mailbox_id
-        )
+        assert self.unbound.mailbox_id == self.agent_bound.mailbox_id
+        assert self.unbound.mailbox_id == self.self_bound.mailbox_id
 
 
 @pytest.mark.asyncio
@@ -368,7 +365,7 @@ async def test_agent_run_bind_handles(
 
     # start() will bind the handles and call the checks in on_setup()
     await agent.start()
-    # The user-bound and self-bound remote handles should be ignored.
+    # The self-bound remote handles should be ignored.
     assert agent._exchange_client is not None
     assert len(agent._exchange_client._handles) == 2  # noqa: PLR2004
     await agent.shutdown()
@@ -378,24 +375,25 @@ class RunBehavior(Behavior):
     def __init__(self, doubler: Handle[DoubleBehavior]) -> None:
         self.doubler = doubler
 
-    def on_shutdown(self) -> None:
+    async def on_shutdown(self) -> None:
         assert isinstance(self.doubler, BoundRemoteHandle)
-        self.doubler.shutdown()
+        await self.doubler.shutdown()
 
     @action
-    def run(self, value: int) -> int:
-        return self.doubler.action('double', value).result()
+    async def run(self, value: int) -> int:
+        future = await self.doubler.action('double', value)
+        return await future
 
 
 class DoubleBehavior(Behavior):
     @action
-    def double(self, value: int) -> int:
+    async def double(self, value: int) -> int:
         return 2 * value
 
 
 @pytest.mark.asyncio
-async def test_agent_to_agent_handles(http_exchange_factory) -> None:
-    factory = http_exchange_factory
+async def test_agent_to_agent_handles(local_exchange_factory) -> None:
+    factory = local_exchange_factory
     async with await factory.create_user_client() as client:
         runner_info = await client.register_agent(RunBehavior)
         doubler_info = await client.register_agent(DoubleBehavior)
@@ -426,13 +424,13 @@ async def test_agent_to_agent_handles(http_exchange_factory) -> None:
             name='test-agent-to-agent-handles-doubler',
         )
 
-        result: int = await runner_handle.action_async('run', 1)
-        assert result == 2  # noqa: PLR2004
+        future = await runner_handle.action('run', 1)
+        assert await future == 2  # noqa: PLR2004
 
-        await runner_handle.shutdown_async()
+        await runner_handle.shutdown()
 
         await asyncio.wait_for(runner_task, timeout=TEST_THREAD_JOIN_TIMEOUT)
         await asyncio.wait_for(doubler_task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
-        await runner_handle.close_async()
-        await runner_handle.close_async()
+        await runner_handle.close()
+        await runner_handle.close()

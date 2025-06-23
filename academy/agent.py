@@ -163,7 +163,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
     async def _bind_handles(self) -> None:
         loop = asyncio.get_running_loop()
 
-        def _bind(self, handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
+        async def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
             if isinstance(handle, ProxyHandle):  # pragma: no cover
                 return handle
             if (
@@ -174,10 +174,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
 
             assert isinstance(handle, (UnboundRemoteHandle, BoundRemoteHandle))
             assert self._exchange_client is not None
-            bound = loop.run_until_complete(
-                self._exchange_client.get_handle(handle.agent_id),
-            )
-            print(bound)
+            bound = await handle.bind_to_exchange(self._exchange_client)
             logger.debug(
                 'Bound handle to %s to running agent with %s',
                 bound.agent_id,
@@ -185,7 +182,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             )
             return bound
 
-        self.behavior.behavior_handles_bind(_bind)
+        await self.behavior.behavior_handles_bind(_bind)
 
     async def _send_response(self, response: ResponseMessage) -> None:
         assert self._exchange_client is not None
@@ -204,13 +201,14 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         assert self._action_pool is not None
         loop = asyncio.get_running_loop()
         try:
-            result = await loop.run_in_executor(
-                self._action_pool,
-                self.action,
-                request.action,
-                request.pargs,
-                request.kargs,
-            )
+            result = await self.action(request.action, request.pargs, request.kargs)
+            # result = await loop.run_in_executor(
+            #     self._action_pool,
+            #     self.action,
+            #     request.action,
+            #     request.pargs,
+            #     request.kargs,
+            # )
         except Exception as e:
             response = request.error(exception=e)
         else:
@@ -220,16 +218,17 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
     async def _execute_loop(
         self,
         name: str,
-        method: Callable[[threading.Event], None],
+        method: Callable[[asyncio.Event], None],
     ) -> None:
         assert self._loop_pool is not None
         loop = asyncio.get_running_loop()
         try:
-            await loop.run_in_executor(
-                self._loop_pool,
-                method,
-                self._shutdown_loop,
-            )
+            await method(self._shutdown_agent)
+            # await loop.run_in_executor(
+            #     self._loop_pool,
+            #     method,
+            #     self._shutdown_loop,
+            # )
         except asyncio.CancelledError:
             pass
         except Exception as e:
@@ -260,7 +259,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         else:
             raise AssertionError('Unreachable.')
 
-    def action(self, action: str, args: Any, kwargs: Any) -> Any:
+    async def action(self, action: str, args: Any, kwargs: Any) -> Any:
         """Invoke an action of the agent.
 
         Args:
@@ -281,7 +280,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 f'Agent[{type(self.behavior).__name__}] does not have an '
                 f'action named "{action}".',
             )
-        return self._actions[action](*args, **kwargs)
+        return await self._actions[action](*args, **kwargs)
 
     async def run(self) -> None:
         """Run the agent.
@@ -295,6 +294,11 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         try:
             await self.start()
             await self._shutdown_agent.wait()
+        except asyncio.CancelledError:
+            pass
+        except:
+            logger.exception('Running agent %s failed!', self.agent_id)
+            raise
         finally:
             await self.shutdown()
 
@@ -333,7 +337,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 request_handler=self._request_handler,
             )
             await self._bind_handles()
-            self.behavior.on_setup()
+            await self.behavior.on_setup()
             self._action_pool = ThreadPoolExecutor(
                 max_workers=self.config.max_action_concurrency,
             )
@@ -404,8 +408,13 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             # Shutdown the loop pool after waiting on the loops to exit.
             if self._loop_pool is not None:
                 self._loop_pool.shutdown(wait=True)
+                # TODO: remove pools????
+                for task in self._loop_tasks.values():
+                    task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await task
 
-            self.behavior.on_shutdown()
+            await self.behavior.on_shutdown()
 
             terminate_for_success = (
                 self.config.terminate_on_success and self._expected_shutdown
@@ -416,7 +425,6 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             if self._exchange_client is not None:
                 if terminate_for_success or terminate_for_error:
                     await self._exchange_client.terminate(self.agent_id)
-
                 await self._exchange_client.close()
 
             self._state = _AgentState.SHUTDOWN

@@ -1,16 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import logging
 import sys
-import threading
-from concurrent.futures import CancelledError
 from concurrent.futures import Executor
-from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
-from typing import Generic
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -22,7 +19,6 @@ from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
-from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import BoundRemoteHandle
@@ -32,23 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 def _run_agent_on_worker(agent: Agent[AgentRegistrationT, BehaviorT]) -> None:
-    # Agent implements __call__ so we could submit the agent directly
-    # to Executor.submit() as the function to run. However, some executors
-    # serialize code differently from arguments so avoid that we add
-    # a level of indirection so the agent is an argument.
-    agent.run()
+    asyncio.run(agent.run())
 
 
 @dataclasses.dataclass
-class _ACB(Generic[AgentRegistrationT, BehaviorT, ExchangeTransportT]):
+class _ACB[BehaviorT]:
     # Agent Control Block
     agent_id: AgentId[BehaviorT]
-    behavior: BehaviorT
-    exchange_factory: ExchangeFactory[ExchangeTransportT]
-    registration: AgentRegistrationT
-    done: threading.Event
-    future: Future[None] | None = None
-    launch_count: int = 0
+    task: asyncio.Future[None]
 
 
 class Launcher:
@@ -57,11 +44,6 @@ class Launcher:
     Args:
         executor: Executor used for launching agents. Note that this class
             takes ownership of the `executor`.
-        close_exchange: Passed along to the [`Agent`][academy.agent.Agent]
-            constructor. This should typically be `True`, the default,
-            when the executor runs agents in separate processes, but should
-            be `False` for the `ThreadPoolExecutor` to avoid closing
-            shared exchange objects.
         max_restarts: Maximum times to restart an agent if it exits with
             an error.
     """  # noqa: E501
@@ -70,25 +52,22 @@ class Launcher:
         self,
         executor: Executor,
         *,
-        close_exchange: bool = True,
         max_restarts: int = 0,
     ) -> None:
         self._executor = executor
-        self._close_exchange = close_exchange
         self._max_restarts = max_restarts
-        self._acbs: dict[AgentId[Any], _ACB[Any, Any, Any]] = {}
-        self._future_to_acb: dict[Future[None], _ACB[Any, Any, Any]] = {}
+        self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
 
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}(executor={self._executor!r})'
@@ -96,25 +75,60 @@ class Launcher:
     def __str__(self) -> str:
         return f'{type(self).__name__}<{type(self._executor).__name__}>'
 
-    def _callback(self, future: Future[None]) -> None:
-        acb = self._future_to_acb.pop(future)
-        done = True
+    async def _run_agent(self, agent: Agent[Any, Any], started: asyncio.Event) -> None:
+        agent_id = agent.agent_id
+        config = agent.config
+        loop = asyncio.get_running_loop()
+        run_count = 0
+        started.set()
 
-        try:
-            future.result()
-            logger.debug('Completed agent future (%s)', acb.agent_id)
-        except CancelledError:  # pragma: no cover
-            logger.warning('Cancelled agent future (%s)', acb.agent_id)
-        except Exception:  # pragma: no cover
-            logger.exception('Received agent exception (%s)', acb.agent_id)
-            if acb.launch_count < self._max_restarts + 1:
-                self._launch(acb.agent_id)
-                done = False
+        while run_count <= self._max_restarts:
+            run_count += 1
 
-        if done:
-            acb.done.set()
+            if run_count < self._max_restarts:
+                # Override this configuration for the case where the agent
+                # fails and we will restart it.
+                agent.config = dataclasses.replace(
+                    config,
+                    terminate_on_error=False,
+                )
+            else:
+                # Otherwise, keep the original config.
+                agent.config = config
 
-    def close(self) -> None:
+            if run_count == 1:
+                logger.debug(
+                    'Launching agent (%s; %s)',
+                    agent_id,
+                    agent.behavior,
+                )
+            else:
+                logger.debug(
+                    'Restarting agent (%d/%d retries; %s; %s)',
+                    run_count,
+                    self._max_restarts,
+                    agent_id,
+                    agent.behavior,
+                )        
+
+            try:
+                await loop.run_in_executor(
+                    self._executor,
+                    _run_agent_on_worker,
+                    agent,
+                )
+            except asyncio.CancelledError:  # pragma: no cover
+                logger.warning('Cancelled agent task (%s)', agent_id)
+                break
+            except Exception:  # pragma: no cover
+                logger.exception('Received agent exception (%s)', agent_id)
+                if run_count == self._max_restarts:
+                    break
+            else:
+                logger.debug('Completed agent task (%s)', agent_id)
+                break
+
+    async def close(self) -> None:
         """Close the launcher.
 
         Warning:
@@ -124,43 +138,13 @@ class Launcher:
         """
         logger.debug('Waiting for agents to shutdown...')
         for acb in self._acbs.values():
-            if acb.done.is_set() and acb.future is not None:
-                # Raise possible errors from agents so user is sure
-                # to see them.
-                acb.future.result()
+            if acb.task.done():
+                # Raise possible errors from agents so user sees them.
+                await acb.task
         self._executor.shutdown(wait=True, cancel_futures=True)
         logger.debug('Closed launcher (%s)', self)
 
-    def _launch(self, agent_id: AgentId[Any]) -> None:
-        acb = self._acbs[agent_id]
-
-        agent = Agent(
-            acb.behavior,
-            config=AgentRunConfig(
-                terminate_on_error=acb.launch_count + 1 >= self._max_restarts,
-            ),
-            exchange_factory=acb.exchange_factory,
-            registration=acb.registration,
-        )
-        future = self._executor.submit(_run_agent_on_worker, agent)
-        acb.launch_count += 1
-        acb.future = future
-        self._future_to_acb[future] = acb
-        future.add_done_callback(self._callback)
-
-        if acb.launch_count == 1:
-            logger.debug('Launched agent (%s; %s)', acb.agent_id, acb.behavior)
-        else:
-            restarts = acb.launch_count - 1
-            logger.debug(
-                'Restarted agent (%d/%d retries; %s; %s)',
-                restarts,
-                self._max_restarts,
-                acb.agent_id,
-                acb.behavior,
-            )
-
-    def launch(
+    async def launch(
         self,
         behavior: BehaviorT,
         exchange: ExchangeClient[ExchangeTransportT],
@@ -181,24 +165,32 @@ class Launcher:
         Returns:
             Handle (unbound) used to interact with the agent.
         """
-        registration = exchange.register_agent(
+        registration = await exchange.register_agent(
             type(behavior),
             name=name,
             _agent_id=agent_id,
         )
         agent_id = registration.agent_id
 
-        acb = _ACB(
-            agent_id=agent_id,
-            behavior=behavior,
+        agent = Agent(
+            behavior,
+            config=AgentRunConfig(),
             exchange_factory=exchange.factory(),
             registration=registration,
-            done=threading.Event(),
         )
-        self._acbs[agent_id] = acb
-        self._launch(agent_id)
 
-        return exchange.get_handle(agent_id)
+        started = asyncio.Event()
+        task = asyncio.create_task(
+            self._run_agent(agent, started),
+            name=f'launcher-run-{agent_id}',
+        )
+
+        acb = _ACB(agent_id=agent_id, task=task)
+        self._acbs[agent_id] = acb
+
+        handle = await exchange.get_handle(agent_id)
+        await started.wait()
+        return handle
 
     def running(self) -> set[AgentId[Any]]:
         """Get a set of IDs for all running agents.
@@ -209,11 +201,11 @@ class Launcher:
         """
         running: set[AgentId[Any]] = set()
         for acb in self._acbs.values():
-            if not acb.done.is_set():
+            if not acb.task.done():
                 running.add(acb.agent_id)
         return running
 
-    def wait(
+    async def wait(
         self,
         agent_id: AgentId[Any],
         *,
@@ -242,23 +234,16 @@ class Launcher:
         except KeyError:
             raise BadEntityIdError(agent_id) from None
 
-        if not acb.done.wait(timeout):
+        try:
+            await asyncio.wait_for(acb.task, timeout=timeout)
+        except asyncio.TimeoutError:
             raise TimeoutError(
                 f'Agent did not complete within {timeout}s timeout '
                 f'({acb.agent_id})',
-            )
-
-        # The only time _ACB.future is None is between constructing the _ACB
-        # in launch() and creating the future in _launch().
-        assert acb.future is not None
-        # _ACB.done event should only be set in callback of future so
-        # the future must be done.
-        assert acb.future.done()
+            ) from None
 
         if not ignore_error:
-            exc = acb.future.exception()
-            if exc is not None:
-                raise exc
+            acb.task.result()
 
 
 class ThreadLauncher(Launcher):
@@ -280,8 +265,4 @@ class ThreadLauncher(Launcher):
             max_workers=max_workers,
             thread_name_prefix='launcher',
         )
-        super().__init__(
-            executor,
-            close_exchange=False,
-            max_restarts=max_restarts,
-        )
+        super().__init__(executor, max_restarts=max_restarts)

@@ -186,11 +186,11 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Close the transport."""
         ...
 
-    def _close_handles(self) -> None:
+    async def _close_handles(self) -> None:
         """Close all handles created by this client."""
         for key in tuple(self._handles):
             handle = self._handles.pop(key)
-            handle.close(wait_futures=False)
+            await handle.close(wait_futures=False)
 
     async def discover(
         self,
@@ -242,12 +242,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 f'Handle must be created from an {AgentId.__name__} '
                 f'but got identifier with type {type(aid).__name__}.',
             )
-        handle = BoundRemoteHandle(
-            self,
-            aid,
-            self._transport.mailbox_id,
-            event_loop=EventLoopRunner(asyncio.get_running_loop()),
-        )
+        handle = BoundRemoteHandle(self, aid, self._transport.mailbox_id)
         self._handles[handle.handle_id] = handle
         logger.info('Created handle to %s', aid)
         return handle
@@ -310,13 +305,12 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             uid: Entity identifier of the mailbox to close.
         """
         await self._transport.terminate(uid)
-        logger.debug('Terminated mailbox for %s', uid)
 
     async def _listen_for_messages(self) -> None:
         while True:
             try:
                 message = await self._transport.recv()
-            except MailboxClosedError:
+            except (asyncio.CancelledError, MailboxClosedError):
                 break
             logger.debug(
                 'Received %s from %s for %s',
@@ -376,7 +370,7 @@ class AgentExchangeClient(
         by this client. The agent's mailbox will not be terminated so the agent
         can be started again later.
         """
-        self._close_handles()
+        await self._close_handles()
         await self._transport.close()
         logger.info('Closed exchange client for %s', self.agent_id)
 
@@ -394,7 +388,7 @@ class AgentExchangeClient(
                     message.src,
                 )
             else:
-                handle._process_response(message)
+                await handle._process_response(message)
         else:
             raise AssertionError('Unreachable.')
 
@@ -445,7 +439,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         This terminates the user's mailbox, closes the underlying exchange
         transport, and closes all handles produced by this client.
         """
-        self._close_handles()
+        await self._close_handles()
         await self._transport.terminate(self.user_id)
         logger.info(f'Terminated mailbox for {self.user_id}')
         if self._listener_task is not None:
@@ -477,6 +471,6 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                     message.src,
                 )
             else:
-                handle._process_response(message)
+                await handle._process_response(message)
         else:
             raise AssertionError('Unreachable.')

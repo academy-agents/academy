@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import threading
+import asyncio
 import time
 
 import pytest
@@ -27,9 +27,10 @@ def test_initialize_base_type_error() -> None:
         Behavior()
 
 
-def test_behavior_empty() -> None:
+@pytest.mark.asyncio
+async def test_behavior_empty() -> None:
     behavior = EmptyBehavior()
-    behavior.on_setup()
+    await behavior.on_setup()
 
     assert isinstance(behavior, EmptyBehavior)
     assert isinstance(str(behavior), str)
@@ -39,84 +40,87 @@ def test_behavior_empty() -> None:
     assert len(behavior.behavior_loops()) == 0
     assert len(behavior.behavior_handles()) == 0
 
-    behavior.on_shutdown()
+    await behavior.on_shutdown()
 
 
-def test_behavior_actions() -> None:
+@pytest.mark.asyncio
+async def test_behavior_actions() -> None:
     behavior = IdentityBehavior()
-    behavior.on_setup()
+    await behavior.on_setup()
 
     actions = behavior.behavior_actions()
     assert set(actions) == {'identity'}
 
-    assert behavior.identity(1) == 1
+    assert await behavior.identity(1) == 1
 
-    behavior.on_shutdown()
+    await behavior.on_shutdown()
 
 
-def test_behavior_loops() -> None:
+@pytest.mark.asyncio
+async def test_behavior_loops() -> None:
     behavior = WaitBehavior()
-    behavior.on_setup()
+    await behavior.on_setup()
 
     loops = behavior.behavior_loops()
     assert set(loops) == {'wait'}
 
-    shutdown = threading.Event()
+    shutdown = asyncio.Event()
     shutdown.set()
-    behavior.wait(shutdown)
+    await behavior.wait(shutdown)
 
-    behavior.on_shutdown()
+    await behavior.on_shutdown()
 
 
-def test_behavior_event() -> None:
+@pytest.mark.asyncio
+async def test_behavior_event() -> None:
     class _Event(Behavior):
         def __init__(self) -> None:
-            self.event = threading.Event()
-            self.ran = threading.Event()
+            self.event = asyncio.Event()
+            self.ran = asyncio.Event()
             self.bad = 42
 
         @event('event')
-        def run(self) -> None:
+        async def run(self) -> None:
             self.ran.set()
 
         @event('missing')
-        def missing_event(self) -> None: ...
+        async def missing_event(self) -> None: ...
 
         @event('bad')
-        def bad_event(self) -> None: ...
+        async def bad_event(self) -> None: ...
 
     behavior = _Event()
 
     loops = behavior.behavior_loops()
     assert set(loops) == {'bad_event', 'missing_event', 'run'}
 
-    shutdown = threading.Event()
+    shutdown = asyncio.Event()
 
     with pytest.raises(AttributeError, match='missing'):
-        behavior.missing_event(shutdown)
+        await behavior.missing_event(shutdown)
     with pytest.raises(TypeError, match='bad'):
-        behavior.bad_event(shutdown)
+        await behavior.bad_event(shutdown)
 
-    handle = threading.Thread(target=behavior.run, args=(shutdown,))
-    handle.start()
+    task = asyncio.create_task(behavior.run(shutdown))
 
     for _ in range(5):
         assert not behavior.ran.is_set()
         behavior.event.set()
-        assert behavior.ran.wait(1)
+        await asyncio.wait_for(behavior.ran.wait(), timeout=1)
         behavior.ran.clear()
 
     shutdown.set()
-    handle.join(TEST_THREAD_JOIN_TIMEOUT)
+    await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 
-def test_behavior_timer() -> None:
+@pytest.mark.asyncio
+async def test_behavior_timer() -> None:
     class _Timer(Behavior):
         def __init__(self) -> None:
             self.count = 0
 
         @timer(TEST_LOOP_SLEEP)
-        def counter(self) -> None:
+        async def counter(self) -> None:
             self.count += 1
 
     behavior = _Timer()
@@ -124,28 +128,29 @@ def test_behavior_timer() -> None:
     loops = behavior.behavior_loops()
     assert set(loops) == {'counter'}
 
-    shutdown = threading.Event()
-    handle = threading.Thread(target=behavior.counter, args=(shutdown,))
-    handle.start()
+    shutdown = asyncio.Event()
+    task = asyncio.create_task(behavior.counter(shutdown))
 
-    time.sleep(TEST_LOOP_SLEEP * 10)
+    await asyncio.sleep(TEST_LOOP_SLEEP * 10)
     shutdown.set()
 
-    handle.join(TEST_THREAD_JOIN_TIMEOUT)
+    await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 
-def test_behavior_handles() -> None:
+@pytest.mark.asyncio
+async def test_behavior_handles() -> None:
     handle = ProxyHandle(EmptyBehavior())
     behavior = HandleBehavior(handle)
-    behavior.on_setup()
+    await behavior.on_setup()
 
     handles = behavior.behavior_handles()
     assert set(handles) == {'handle'}
 
-    behavior.on_shutdown()
+    await behavior.on_shutdown()
 
 
-def test_behavior_handles_bind() -> None:
+@pytest.mark.asyncio
+async def test_behavior_handles_bind() -> None:
     class _TestBehavior(Behavior):
         def __init__(self, handle: Handle[EmptyBehavior]) -> None:
             self.direct = handle
@@ -155,19 +160,19 @@ def test_behavior_handles_bind() -> None:
     expected_binds = 3
     bind_count = 0
 
-    def _bind_handle(handle: Handle[EmptyBehavior]) -> Handle[EmptyBehavior]:
+    async def _bind_handle(handle: Handle[EmptyBehavior]) -> Handle[EmptyBehavior]:
         nonlocal bind_count
         bind_count += 1
         return handle
 
     handle = ProxyHandle(EmptyBehavior())
     behavior = _TestBehavior(handle)
-    behavior.on_setup()
+    await behavior.on_setup()
 
-    behavior.behavior_handles_bind(_bind_handle)
+    await behavior.behavior_handles_bind(_bind_handle)
     assert bind_count == expected_binds
 
-    behavior.on_shutdown()
+    await behavior.on_shutdown()
 
 
 class A(Behavior): ...
@@ -196,7 +201,7 @@ def test_behavior_mro() -> None:
 
 def test_invalid_loop_signature() -> None:
     class BadBehavior(Behavior):
-        def loop(self) -> None: ...
+        async def loop(self) -> None: ...
 
     with pytest.raises(TypeError, match='Signature of loop method "loop"'):
         loop(BadBehavior.loop)

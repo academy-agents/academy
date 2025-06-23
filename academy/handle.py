@@ -74,13 +74,13 @@ class Handle(Protocol[BehaviorT]):
         # on the concrete type for the BehaviorT that Handle is generic on.
         ...
 
-    def action(
+    async def action(
         self,
         action: str,
         /,
         *args: Any,
         **kwargs: Any,
-    ) -> Future[R]:
+    ) -> asyncio.Future[R]:
         """Invoke an action on the agent.
 
         Args:
@@ -99,7 +99,7 @@ class Handle(Protocol[BehaviorT]):
         """
         ...
 
-    def close(
+    async def close(
         self,
         wait_futures: bool = True,
         *,
@@ -114,7 +114,7 @@ class Handle(Protocol[BehaviorT]):
         """
         ...
 
-    def ping(self, *, timeout: float | None = None) -> float:
+    async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
 
         Ping the agent and wait to get a response. Agents process messages
@@ -136,7 +136,7 @@ class Handle(Protocol[BehaviorT]):
         """
         ...
 
-    def shutdown(self) -> None:
+    async def shutdown(self) -> None:
         """Instruct the agent to shutdown.
 
         This is non-blocking and will only send the message.
@@ -216,18 +216,18 @@ class ProxyHandle(Generic[BehaviorT]):
             )
 
         @functools.wraps(method)
-        def func(*args: Any, **kwargs: Any) -> Future[R]:
-            return self.action(name, *args, **kwargs)
+        async def func(*args: Any, **kwargs: Any) -> Future[R]:
+            return await self.action(name, *args, **kwargs)
 
         return func
 
-    def action(
+    async def action(
         self,
         action: str,
         /,
         *args: Any,
         **kwargs: Any,
-    ) -> Future[R]:
+    ) -> asyncio.Future[R]:
         """Invoke an action on the agent.
 
         Args:
@@ -249,17 +249,17 @@ class ProxyHandle(Generic[BehaviorT]):
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 
-        future: Future[R] = Future()
+        future: asyncio.Future[R] = asyncio.get_running_loop().create_future()
         try:
             method = getattr(self.behavior, action)
-            result = method(*args, **kwargs)
+            result = await method(*args, **kwargs)
         except Exception as e:
             future.set_exception(e)
         else:
             future.set_result(result)
         return future
 
-    def close(
+    async def close(
         self,
         wait_futures: bool = True,
         *,
@@ -277,7 +277,7 @@ class ProxyHandle(Generic[BehaviorT]):
         """
         self._handle_closed = True
 
-    def ping(self, *, timeout: float | None = None) -> float:
+    async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
 
         Ping the agent and wait to get a response. Agents process messages
@@ -306,7 +306,7 @@ class ProxyHandle(Generic[BehaviorT]):
             raise HandleClosedError(self.agent_id, self.mailbox_id)
         return 0
 
-    def shutdown(self) -> None:
+    async def shutdown(self) -> None:
         """Instruct the agent to shutdown.
 
         This is non-blocking and will only send the message.
@@ -353,7 +353,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
             'Actions cannot be invoked via an unbound handle.',
         )
 
-    def bind_to_exchange(
+    async def bind_to_exchange(
         self,
         exchange: ExchangeClient[Any],
     ) -> BoundRemoteHandle[BehaviorT]:
@@ -365,27 +365,27 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         Returns:
             Remote handle bound to the identifier.
         """
-        return exchange.get_handle(self.agent_id)
+        return await exchange.get_handle(self.agent_id)
 
-    def action(
+    async def action(
         self,
         action: str,
         /,
         *args: Any,
         **kwargs: Any,
-    ) -> Future[R]:
+    ) -> asyncio.Future[R]:
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
-    def ping(self, *, timeout: float | None = None) -> float:
+    async def ping(self, *, timeout: float | None = None) -> float:
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
-    def shutdown(self) -> None:
+    async def shutdown(self) -> None:
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
@@ -404,8 +404,6 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         exchange: ExchangeClient[Any],
         agent_id: AgentId[BehaviorT],
         mailbox_id: EntityId | None = None,
-        *,
-        event_loop: EventLoopRunner | None = None,
     ) -> None:
         if agent_id == mailbox_id:
             raise ValueError(
@@ -421,23 +419,19 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         # messages when multiple handles are bound to the same mailbox.
         self.handle_id = uuid.uuid4()
 
-        self._async_futures: dict[uuid.UUID, asyncio.Future[Any]] = {}
+        self._futures: dict[uuid.UUID, asyncio.Future[Any]] = {}
         self._closed = False
 
-        self._event_loop = (
-            EventLoopRunner() if event_loop is None else event_loop
-        )
-
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
     def __reduce__(
         self,
@@ -458,12 +452,12 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         return f'{name}<agent: {self.agent_id}; mailbox: {self.mailbox_id}>'
 
     def __getattr__(self, name: str) -> Any:
-        def remote_method_call(*args: Any, **kwargs: Any) -> Future[R]:
-            return self.action(name, *args, **kwargs)
+        async def remote_method_call(*args: Any, **kwargs: Any) -> Future[R]:
+            return await self.action(name, *args, **kwargs)
 
         return remote_method_call
 
-    def bind_to_exchange(
+    async def bind_to_exchange(
         self,
         exchange: ExchangeClient[Any],
     ) -> BoundRemoteHandle[BehaviorT]:
@@ -475,15 +469,16 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         Returns:
             Remote handle bound to the identifier.
         """
-        return self.clone().bind_to_exchange(exchange)
+        unbound = self.clone()
+        return await unbound.bind_to_exchange(exchange)
 
     def clone(self) -> UnboundRemoteHandle[BehaviorT]:
         """Create an unbound copy of this handle."""
         return UnboundRemoteHandle(self.agent_id)
 
-    def _process_response(self, response: ResponseMessage) -> None:
+    async def _process_response(self, response: ResponseMessage) -> None:
         if isinstance(response, (ActionResponse, PingResponse)):
-            future = self._async_futures.pop(response.tag)
+            future = self._futures.pop(response.tag)
             if response.exception is not None:
                 future.set_exception(response.exception)
             elif isinstance(response, ActionResponse):
@@ -498,7 +493,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         else:
             raise AssertionError('Unreachable.')
 
-    def close(
+    async def close(
         self,
         wait_futures: bool = True,
         *,
@@ -514,41 +509,28 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 executing. If `False`, pending futures are cancelled.
             timeout: Optional timeout used when `wait=True`.
         """
-        coro = self.close_async()
-        # try:
-        self._event_loop.run_coroutine(coro).result()
-        # finally:
-        #     # TODO: what to do when this is shared?
-        #     self._event_loop.stop()
-
-    async def close_async(
-        self,
-        wait_futures: bool = True,
-        *,
-        timeout: float | None = None,
-    ) -> None:
         self._closed = True
 
-        if len(self._async_futures) == 0:
+        if len(self._futures) == 0:
             return
         if wait_futures:
             logger.debug('Waiting on pending futures for %s', self)
             await asyncio.wait(
-                list(self._async_futures.values()),
+                list(self._futures.values()),
                 timeout=timeout,
             )
         else:
             logger.debug('Cancelling pending futures for %s', self)
-            for future in self._async_futures:
-                self._async_futures[future].cancel()
+            for future in self._futures:
+                self._futures[future].cancel()
 
-    def action(
+    async def action(
         self,
         action: str,
         /,
         *args: Any,
         **kwargs: Any,
-    ) -> Future[R]:
+    ) -> asyncio.Future[R]:
         """Invoke an action on the agent.
 
         Args:
@@ -565,22 +547,6 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
-        coro: Coroutine[None, None, R] = self.action_async(
-            action,
-            *args,
-            **kwargs,
-        )
-        future = self._event_loop.run_coroutine(coro)
-        return future
-
-    async def action_async(
-        self,
-        action: str,
-        /,
-        *args: Any,
-        **kwargs: Any,
-    ) -> R:
-        """Async version of [`action()`][academy.handle.BoundRemoteHandle.action]."""  # noqa: E501
         if self._closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 
@@ -594,7 +560,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         )
         loop = asyncio.get_running_loop()
         future: asyncio.Future[R] = loop.create_future()
-        self._async_futures[request.tag] = future
+        self._futures[request.tag] = future
         await self.exchange.send(request)
         logger.debug(
             'Sent action request from %s to %s (action=%r)',
@@ -602,10 +568,9 @@ class BoundRemoteHandle(Generic[BehaviorT]):
             self.agent_id,
             action,
         )
-        await future
-        return future.result()
+        return future
 
-    def ping(self, *, timeout: float | None = None) -> float:
+    async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
 
         Ping the agent and wait to get a response. Agents process messages
@@ -625,11 +590,6 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 (it self terminated or via another handle).
             TimeoutError: If the timeout is exceeded.
         """
-        coro = self.ping_async(timeout=timeout)
-        future = self._event_loop.run_coroutine(coro)
-        return future.result()
-
-    async def ping_async(self, *, timeout: float | None = None) -> float:
         if self._closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 
@@ -641,7 +601,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         )
         loop = asyncio.get_running_loop()
         future: asyncio.Future[None] = loop.create_future()
-        self._async_futures[request.tag] = future
+        self._futures[request.tag] = future
         await self.exchange.send(request)
         logger.debug('Sent ping from %s to %s', self.mailbox_id, self.agent_id)
         await asyncio.wait_for(future, timeout=timeout)
@@ -655,7 +615,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         )
         return elapsed
 
-    def shutdown(self) -> None:
+    async def shutdown(self) -> None:
         """Instruct the agent to shutdown.
 
         This is non-blocking and will only send the message.
@@ -666,11 +626,6 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
-        coro = self.shutdown_async()
-        future = self._event_loop.run_coroutine(coro)
-        return future.result()
-
-    async def shutdown_async(self) -> None:
         if self._closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 

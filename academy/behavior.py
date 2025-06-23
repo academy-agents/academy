@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import functools
 import inspect
 import logging
 import sys
 import threading
 from datetime import timedelta
-from typing import Any
+from typing import Any, Awaitable
 from typing import Callable
 from typing import Generic
 from typing import Literal
@@ -25,7 +26,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.event import or_event
+from academy.event import or_event, or_event_async
 from academy.handle import Handle
 from academy.handle import HandleDict
 from academy.handle import HandleList
@@ -127,9 +128,9 @@ class Behavior:
                 handles[name] = attr
         return handles
 
-    def behavior_handles_bind(
+    async def behavior_handles_bind(
         self,
-        bind: Callable[[Handle[BehaviorT]], Handle[BehaviorT]],
+        bind: Callable[[Handle[BehaviorT]], Awaitable[Handle[BehaviorT]]],
     ) -> None:
         """Bind all instance attributes that are agent handles.
 
@@ -139,15 +140,15 @@ class Behavior:
         """
         for attr, handles in self.behavior_handles().items():
             if isinstance(handles, Handle):
-                setattr(self, attr, bind(handles))
+                setattr(self, attr, await bind(handles))
             elif isinstance(handles, HandleDict):
                 setattr(
                     self,
                     attr,
-                    HandleDict({k: bind(h) for k, h in handles.items()}),
+                    HandleDict({k: await bind(h) for k, h in handles.items()}),
                 )
             elif isinstance(handles, HandleList):
-                setattr(self, attr, HandleList(bind(h) for h in handles))
+                setattr(self, attr, HandleList([await bind(h) for h in handles]))
             else:
                 raise AssertionError('Unreachable.')
 
@@ -184,14 +185,14 @@ class Behavior:
         mro = mro[:base_index]
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
-    def on_setup(self) -> None:
+    async def on_setup(self) -> None:
         """Setup up resources needed for the agents execution.
 
         This is called before any control loop threads are started.
         """
         pass
 
-    def on_shutdown(self) -> None:
+    async def on_shutdown(self) -> None:
         """Shutdown resources after the agents execution.
 
         This is called after control loop threads have exited.
@@ -204,7 +205,7 @@ class Action(Generic[P, R_co], Protocol):
 
     _agent_method_type: Literal['action'] = 'action'
 
-    def __call__(self, *arg: P.args, **kwargs: P.kwargs) -> R_co:
+    async def __call__(self, *arg: P.args, **kwargs: P.kwargs) -> R_co:
         """Expected signature of methods decorated as an action.
 
         In general, action methods can implement any signature.
@@ -217,7 +218,7 @@ class ControlLoop(Protocol):
 
     _agent_method_type: Literal['loop'] = 'loop'
 
-    def __call__(self, shutdown: threading.Event) -> None:
+    async def __call__(self, shutdown: asyncio.Event) -> None:
         """Expected signature of methods decorated as a control loop.
 
         Args:
@@ -230,7 +231,7 @@ class ControlLoop(Protocol):
         ...
 
 
-def action(method: Callable[P, R]) -> Callable[P, R]:
+def action(method: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
     """Decorator that annotates a method of a behavior as an action.
 
     Marking a method of a behavior as an action makes the method available
@@ -253,8 +254,8 @@ def action(method: Callable[P, R]) -> Callable[P, R]:
 
 
 def loop(
-    method: Callable[Concatenate[BehaviorT, P], R],
-) -> Callable[Concatenate[BehaviorT, P], R]:
+    method: Callable[[BehaviorT, asyncio.Event], Awaitable[None]],
+) -> Callable[[BehaviorT, asyncio.Event], Awaitable[None]]:
     """Decorator that annotates a method of a behavior as a control loop.
 
     Control loop methods of a behavior are run as threads when an agent
@@ -264,12 +265,12 @@ def loop(
 
     Example:
         ```python
-        import threading
+        import asyncio
         from academy.behavior import Behavior, loop
 
         class Example(Behavior):
             @loop
-            def listen(self, shutdown: threading.Event) -> None:
+            async def listen(self, shutdown: asyncio.Event) -> None:
                 while not shutdown.is_set():
                     ...
         ```
@@ -297,9 +298,9 @@ def loop(
         )
 
     @functools.wraps(method)
-    def _wrapped(self: BehaviorT, *args: P.args, **kwargs: P.kwargs) -> R:
+    async def _wrapped(self: BehaviorT, shutdown: asyncio.Event) -> None:
         logger.debug('Started %r loop for %s', method.__name__, self)
-        result = method(self, *args, **kwargs)
+        result = await method(self, shutdown)
         logger.debug('Exited %r loop for %s', method.__name__, self)
         return result
 
@@ -309,50 +310,50 @@ def loop(
 def event(
     name: str,
 ) -> Callable[
-    [Callable[[BehaviorT], None]],
-    Callable[[BehaviorT, threading.Event], None],
+    [Callable[[BehaviorT], Awaitable[None]]],
+    Callable[[BehaviorT, asyncio.Event], Awaitable[None]],
 ]:
     """Decorator that annotates a method of a behavior as an event loop.
 
     An event loop is a special type of control loop that runs when a
-    [`threading.Event`][threading.Event] is set. The event is cleared
+    [`asyncio.Event`][asyncio.Event] is set. The event is cleared
     after the loop runs.
 
     Example:
         ```python
-        import threading
+        import asyncio
         from academy.behavior import Behavior, timer
 
         class Example(Behavior):
             def __init__(self) -> None:
-                self.alert = threading.Event()
+                self.alert = asyncio.Event()
 
             @event('alert')
-            def handle(self) -> None:
+            async def handle(self) -> None:
                 # Runs every time alter is set
                 ...
         ```
 
     Args:
-        name: Attribute name of the [`threading.Event`][threading.Event]
+        name: Attribute name of the [`asyncio.Event`][asyncio.Event]
             to wait on.
 
     Raises:
         AttributeError: Raised at runtime if no attribute named `name`
             exists on the behavior.
         TypeError: Raised at runtime if the attribute named `name` is not
-            a [`threading.Event`][threading.Event].
+            a [`asyncio.Event`][asyncio.Event].
     """
 
     def decorator(
-        method: Callable[[BehaviorT], None],
-    ) -> Callable[[BehaviorT, threading.Event], None]:
+        method: Callable[[BehaviorT], Awaitable[None]],
+    ) -> Callable[[BehaviorT, asyncio.Event], Awaitable[None]]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)
-        def _wrapped(self: BehaviorT, shutdown: threading.Event) -> None:
+        async def _wrapped(self: BehaviorT, shutdown: asyncio.Event) -> None:
             event = getattr(self, name)
-            if not isinstance(event, threading.Event):
+            if not isinstance(event, asyncio.Event):
                 raise TypeError(
                     f'Attribute {name} of {type(self).__class__} has type '
                     f'{type(event).__class__}. Expected threading.Event.',
@@ -364,18 +365,13 @@ def event(
                 self,
                 name,
             )
-            combined = or_event(shutdown, event)
-            while True:
-                combined.wait()
-                if shutdown.is_set():
-                    break
-                elif event.is_set():
+            while not shutdown.is_set():
+                await or_event_async(shutdown, event)
+                if event.is_set():
                     try:
-                        method(self)
+                        await method(self)
                     finally:
                         event.clear()
-                else:
-                    raise AssertionError('Unreachable.')
             logger.debug('Exited %r event loop for %s', method.__name__, self)
 
         return _wrapped
@@ -386,8 +382,8 @@ def event(
 def timer(
     interval: float | timedelta,
 ) -> Callable[
-    [Callable[[BehaviorT], None]],
-    Callable[[BehaviorT, threading.Event], None],
+    [Callable[[BehaviorT], Awaitable[None]]],
+    Callable[[BehaviorT, threading.Event], Awaitable[None]],
 ]:
     """Decorator that annotates a method of a behavior as a timer loop.
 
@@ -401,7 +397,7 @@ def timer(
 
         class Example(Behavior):
             @timer(interval=1)
-            def listen(self) -> None:
+            async def listen(self) -> None:
                 # Runs every 1 second
                 ...
         ```
@@ -417,20 +413,23 @@ def timer(
     )
 
     def decorator(
-        method: Callable[[BehaviorT], None],
-    ) -> Callable[[BehaviorT, threading.Event], None]:
+        method: Callable[[BehaviorT], Awaitable[None]],
+    ) -> Callable[[BehaviorT, asyncio.Event], Awaitable[None]]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)
-        def _wrapped(self: BehaviorT, shutdown: threading.Event) -> None:
+        async def _wrapped(self: BehaviorT, shutdown: asyncio.Event) -> None:
             logger.debug(
                 'Started %r timer loop for %s (interval: %fs)',
                 method.__name__,
                 self,
                 interval,
             )
-            while not shutdown.wait(interval):
-                method(self)
+            while not shutdown.is_set():
+                try:
+                    await asyncio.wait_for(shutdown.wait(), timeout=interval)
+                except asyncio.TimeoutError:
+                    await method(self)
             logger.debug('Exited %r timer loop for %s', method.__name__, self)
 
         return _wrapped

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import threading
 from typing import Any
 from typing import Callable
@@ -61,3 +63,18 @@ def or_event(*events: threading.Event) -> threading.Event:
 
     changed()
     return combined
+
+
+async def or_event_async(*events: asyncio.Event) -> asyncio.Event:
+    tasks = {
+        asyncio.create_task(event.wait(), name=f'or-event-waiter-{i}'): event
+        for i, event in enumerate(events)
+    }
+    done, pending = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
+    for task in pending:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+    assert len(done) > 0
+    return tasks[done.pop()]

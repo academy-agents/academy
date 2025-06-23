@@ -29,6 +29,7 @@ else:  # pragma: <3.11 cover
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
+from academy.event_loop import EventLoopRunner
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange.transport import AgentRegistration
@@ -216,7 +217,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Get an exchange factory."""
         return self._transport.factory()
 
-    def get_handle(
+    async def get_handle(
         self,
         aid: AgentId[BehaviorT],
     ) -> BoundRemoteHandle[BehaviorT]:
@@ -241,7 +242,12 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 f'Handle must be created from an {AgentId.__name__} '
                 f'but got identifier with type {type(aid).__name__}.',
             )
-        handle = BoundRemoteHandle(self, aid, self._transport.mailbox_id)
+        handle = BoundRemoteHandle(
+            self,
+            aid,
+            self._transport.mailbox_id,
+            event_loop=EventLoopRunner(asyncio.get_running_loop()),
+        )
         self._handles[handle.handle_id] = handle
         logger.info('Created handle to %s', aid)
         return handle

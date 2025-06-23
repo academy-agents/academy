@@ -132,7 +132,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         self._loop_exceptions: list[tuple[str, Exception]] = []
 
         self._exchange_client: (
-            AgentExchangeClient[ExchangeTransportT] | None
+            AgentExchangeClient[BehaviorT, ExchangeTransportT] | None
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
 
@@ -154,34 +154,41 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             (
                 # The order of these must match the __init__ params!
                 self.behavior,
-                self.exchange.factory(),
+                self.exchange,
                 self.registration,
                 self.config,
             ),
         )
 
-    def _bind_handle(self, handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
-        if isinstance(handle, ProxyHandle):  # pragma: no cover
-            return handle
-        if (
-            isinstance(handle, BoundRemoteHandle)
-            and handle.mailbox_id == self.agent_id
-        ):
-            return handle
+    async def _bind_handles(self) -> None:
+        loop = asyncio.get_running_loop()
 
-        assert isinstance(handle, (UnboundRemoteHandle, BoundRemoteHandle))
-        bound = handle.bind_to_exchange(self.exchange)
-        logger.debug(
-            'Bound handle to %s to running agent with %s',
-            handle.agent_id,
-            self.agent_id,
-        )
-        return bound
+        def _bind(self, handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
+            if isinstance(handle, ProxyHandle):  # pragma: no cover
+                return handle
+            if (
+                isinstance(handle, BoundRemoteHandle)
+                and handle.mailbox_id == self.agent_id
+            ):
+                return handle
 
-    def _bind_handles(self) -> None:
-        self.behavior.behavior_handles_bind(self._bind_handle)
+            assert isinstance(handle, (UnboundRemoteHandle, BoundRemoteHandle))
+            assert self._exchange_client is not None
+            bound = loop.run_until_complete(
+                self._exchange_client.get_handle(handle.agent_id),
+            )
+            print(bound)
+            logger.debug(
+                'Bound handle to %s to running agent with %s',
+                bound.agent_id,
+                self.agent_id,
+            )
+            return bound
+
+        self.behavior.behavior_handles_bind(_bind)
 
     async def _send_response(self, response: ResponseMessage) -> None:
+        assert self._exchange_client is not None
         try:
             await self._exchange_client.send(response)
         except (BadEntityIdError, MailboxClosedError):
@@ -325,7 +332,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 self.registration,
                 request_handler=self._request_handler,
             )
-            self._bind_handles()
+            await self._bind_handles()
             self.behavior.on_setup()
             self._action_pool = ThreadPoolExecutor(
                 max_workers=self.config.max_action_concurrency,
@@ -384,9 +391,10 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             self._shutdown_agent.set()
             self._shutdown_loop.set()
 
-            self._exchange_listener_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._exchange_listener_task
+            if self._exchange_listener_task is not None:
+                self._exchange_listener_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._exchange_listener_task
 
             # Wait for currently running actions to complete. No more
             # should come in now that exchange's listener thread is done.
@@ -397,18 +405,19 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             if self._loop_pool is not None:
                 self._loop_pool.shutdown(wait=True)
 
+            self.behavior.on_shutdown()
+
             terminate_for_success = (
                 self.config.terminate_on_success and self._expected_shutdown
             )
             terminate_for_error = (
                 self.config.terminate_on_error and not self._expected_shutdown
             )
-            if terminate_for_success or terminate_for_error:
-                await self._exchange_client.terminate(self.agent_id)
+            if self._exchange_client is not None:
+                if terminate_for_success or terminate_for_error:
+                    await self._exchange_client.terminate(self.agent_id)
 
-            self.behavior.on_shutdown()
-
-            await self._exchange_client.close()
+                await self._exchange_client.close()
 
             self._state = _AgentState.SHUTDOWN
 
@@ -435,11 +444,11 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
 
 def _raise_exceptions(exceptions: Sequence[tuple[str, Exception]]) -> None:
     if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-        exceptions = [e for _, e in exceptions]
-        if len(exceptions) > 0:
+        exceptions_only = [e for _, e in exceptions]
+        if len(exceptions_only) > 0:
             raise ExceptionGroup(  # noqa: F821
                 'Caught failures in agent loops while shutting down.',
-                exceptions,
+                exceptions_only,
             )
     else:  # pragma: <3.11 cover
         for _, exception in exceptions:

@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import sys
 import threading
-from concurrent.futures import Future
 from typing import Any
 
 import pytest
@@ -15,7 +14,6 @@ from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import loop
 from academy.exchange import UserExchangeClient
-from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.transport import MailboxStatus
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
@@ -341,26 +339,24 @@ class HandleBindingBehavior(Behavior):
             == self.self_bound.mailbox_id
         )
 
-    def on_shutdown(self) -> None:
-        self.unbound.close()
-        self.agent_bound.close()
-        self.self_bound.close()
 
-
-def test_agent_run_bind_handles(exchange: UserExchangeClient[Any]) -> None:
-    registration = exchange.register_agent(HandleBindingBehavior)
+@pytest.mark.asyncio
+async def test_agent_run_bind_handles(
+    exchange: UserExchangeClient[Any],
+) -> None:
+    registration = await exchange.register_agent(HandleBindingBehavior)
     behavior = HandleBindingBehavior(
         unbound=UnboundRemoteHandle(
-            exchange.register_agent(EmptyBehavior).agent_id,
+            (await exchange.register_agent(EmptyBehavior)).agent_id,
         ),
         agent_bound=BoundRemoteHandle(
             exchange,
-            exchange.register_agent(EmptyBehavior).agent_id,
-            exchange.register_agent(EmptyBehavior).agent_id,
+            (await exchange.register_agent(EmptyBehavior)).agent_id,
+            (await exchange.register_agent(EmptyBehavior)).agent_id,
         ),
         self_bound=BoundRemoteHandle(
             exchange,
-            exchange.register_agent(EmptyBehavior).agent_id,
+            (await exchange.register_agent(EmptyBehavior)).agent_id,
             registration.agent_id,
         ),
     )
@@ -370,12 +366,12 @@ def test_agent_run_bind_handles(exchange: UserExchangeClient[Any]) -> None:
         registration=registration,
     )
 
-    agent._bind_handles()
-    agent._bind_handles()  # Idempotency check
-    agent.behavior.on_setup()
-    agent.behavior.on_shutdown()
+    # start() will bind the handles and call the checks in on_setup()
+    await agent.start()
     # The user-bound and self-bound remote handles should be ignored.
-    assert len(agent.exchange._handles) == 2  # noqa: PLR2004
+    assert agent._exchange_client is not None
+    assert len(agent._exchange_client._handles) == 2  # noqa: PLR2004
+    await agent.shutdown()
 
 
 class RunBehavior(Behavior):
@@ -397,39 +393,46 @@ class DoubleBehavior(Behavior):
         return 2 * value
 
 
-def test_agent_to_handle_handles() -> None:
-    exchange_factory = LocalExchangeFactory()
-    with exchange_factory.create_user_client() as exchange:
-        runner_info = exchange.register_agent(RunBehavior)
-        doubler_info = exchange.register_agent(DoubleBehavior)
+@pytest.mark.asyncio
+async def test_agent_to_agent_handles(http_exchange_factory) -> None:
+    factory = http_exchange_factory
+    async with await factory.create_user_client() as client:
+        runner_info = await client.register_agent(RunBehavior)
+        doubler_info = await client.register_agent(DoubleBehavior)
 
-        runner_handle = exchange.get_handle(runner_info.agent_id)
-        doubler_handle = exchange.get_handle(doubler_info.agent_id)
+        runner_handle = await client.get_handle(runner_info.agent_id)
+        doubler_handle = await client.get_handle(doubler_info.agent_id)
 
         runner_behavior = RunBehavior(doubler_handle)
         doubler_behavior = DoubleBehavior()
 
         runner_agent = Agent(
             runner_behavior,
-            exchange_factory=exchange_factory,
+            exchange_factory=factory,
             registration=runner_info,
         )
         doubler_agent = Agent(
             doubler_behavior,
-            exchange_factory=exchange_factory,
+            exchange_factory=factory,
             registration=doubler_info,
         )
 
-        runner_thread = threading.Thread(target=runner_agent)
-        doubler_thread = threading.Thread(target=doubler_agent)
+        runner_task = asyncio.create_task(
+            runner_agent.run(),
+            name='test-agent-to-agent-handles-runner',
+        )
+        doubler_task = asyncio.create_task(
+            doubler_agent.run(),
+            name='test-agent-to-agent-handles-doubler',
+        )
 
-        runner_thread.start()
-        doubler_thread.start()
+        result: int = await runner_handle.action_async('run', 1)
+        assert result == 2  # noqa: PLR2004
 
-        future: Future[int] = runner_handle.action('run', 1)
-        assert future.result() == 2  # noqa: PLR2004
+        await runner_handle.shutdown_async()
 
-        runner_handle.shutdown()
+        await asyncio.wait_for(runner_task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+        await asyncio.wait_for(doubler_task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
-        runner_thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
-        doubler_thread.join(timeout=TEST_THREAD_JOIN_TIMEOUT)
+        await runner_handle.close_async()
+        await runner_handle.close_async()

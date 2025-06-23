@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from collections.abc import Generator
+from typing import Any
 from typing import Callable
+from typing import TypeVar
 
 import pytest
 import pytest_asyncio
 from aiohttp.web import AppRunner
 from aiohttp.web import TCPSite
 
-from academy.exchange import ExchangeFactoryT
+from academy.exchange import ExchangeFactory
 from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.server import create_app
@@ -20,6 +22,8 @@ from academy.exchange.redis import RedisExchangeFactory
 from academy.exchange.transport import ExchangeTransportT
 from academy.launcher import ThreadLauncher
 from academy.socket import open_port
+
+ExchangeFactoryT = TypeVar('ExchangeFactoryT', bound=ExchangeFactory[Any])
 
 
 @pytest_asyncio.fixture

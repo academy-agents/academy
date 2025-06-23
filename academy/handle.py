@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import functools
 import logging
 import sys
 import time
 import uuid
+from collections.abc import Coroutine
 from collections.abc import Iterable
 from collections.abc import Mapping
 from concurrent.futures import Future
-from concurrent.futures import wait
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -27,6 +28,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+from academy.event_loop import EventLoopRunner
 from academy.exception import HandleClosedError
 from academy.exception import HandleNotBoundError
 from academy.exception import MailboxClosedError
@@ -36,7 +38,6 @@ from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import PingRequest
 from academy.message import PingResponse
-from academy.message import RequestMessage
 from academy.message import ResponseMessage
 from academy.message import ShutdownRequest
 from academy.message import ShutdownResponse
@@ -366,9 +367,6 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         """
         return exchange.get_handle(self.agent_id)
 
-    def _send_request(self, request: RequestMessage) -> None:
-        raise HandleNotBoundError(self.agent_id)
-
     def action(
         self,
         action: str,
@@ -406,6 +404,8 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         exchange: ExchangeClient[Any],
         agent_id: AgentId[BehaviorT],
         mailbox_id: EntityId | None = None,
+        *,
+        event_loop: EventLoopRunner | None = None,
     ) -> None:
         if agent_id == mailbox_id:
             raise ValueError(
@@ -421,8 +421,12 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         # messages when multiple handles are bound to the same mailbox.
         self.handle_id = uuid.uuid4()
 
-        self._futures: dict[uuid.UUID, Future[Any]] = {}
+        self._async_futures: dict[uuid.UUID, asyncio.Future[Any]] = {}
         self._closed = False
+
+        self._event_loop = (
+            EventLoopRunner() if event_loop is None else event_loop
+        )
 
     def __enter__(self) -> Self:
         return self
@@ -459,13 +463,27 @@ class BoundRemoteHandle(Generic[BehaviorT]):
 
         return remote_method_call
 
+    def bind_to_exchange(
+        self,
+        exchange: ExchangeClient[Any],
+    ) -> BoundRemoteHandle[BehaviorT]:
+        """Bind the handle to an existing mailbox.
+
+        Args:
+            exchange: Client exchange to associate with handle
+
+        Returns:
+            Remote handle bound to the identifier.
+        """
+        return self.clone().bind_to_exchange(exchange)
+
     def clone(self) -> UnboundRemoteHandle[BehaviorT]:
         """Create an unbound copy of this handle."""
         return UnboundRemoteHandle(self.agent_id)
 
     def _process_response(self, response: ResponseMessage) -> None:
         if isinstance(response, (ActionResponse, PingResponse)):
-            future = self._futures.pop(response.tag)
+            future = self._async_futures.pop(response.tag)
             if response.exception is not None:
                 future.set_exception(response.exception)
             elif isinstance(response, ActionResponse):
@@ -480,9 +498,6 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         else:
             raise AssertionError('Unreachable.')
 
-    def _send_request(self, request: RequestMessage) -> None:
-        self.exchange.send(request)
-
     def close(
         self,
         wait_futures: bool = True,
@@ -491,22 +506,41 @@ class BoundRemoteHandle(Generic[BehaviorT]):
     ) -> None:
         """Close this handle.
 
+        Note:
+            This does not close the exchange client.
+
         Args:
             wait_futures: Wait to return until all pending futures are done
                 executing. If `False`, pending futures are cancelled.
             timeout: Optional timeout used when `wait=True`.
         """
+        coro = self.close_async()
+        # try:
+        self._event_loop.run_coroutine(coro).result()
+        # finally:
+        #     # TODO: what to do when this is shared?
+        #     self._event_loop.stop()
+
+    async def close_async(
+        self,
+        wait_futures: bool = True,
+        *,
+        timeout: float | None = None,
+    ) -> None:
         self._closed = True
 
-        if len(self._futures) == 0:
+        if len(self._async_futures) == 0:
             return
         if wait_futures:
             logger.debug('Waiting on pending futures for %s', self)
-            wait(list(self._futures.values()), timeout=timeout)
+            await asyncio.wait(
+                list(self._async_futures.values()),
+                timeout=timeout,
+            )
         else:
             logger.debug('Cancelling pending futures for %s', self)
-            for future in self._futures:
-                self._futures[future].cancel()
+            for future in self._async_futures:
+                self._async_futures[future].cancel()
 
     def action(
         self,
@@ -531,12 +565,22 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
-        if self.mailbox_id is None:
-            # UnboundRemoteHandle overrides these methods and is the only
-            # handle state variant where hid is None.
-            raise AssertionError(
-                'Method should not be reachable in unbound state.',
-            )
+        coro: Coroutine[None, None, R] = self.action_async(
+            action,
+            *args,
+            **kwargs,
+        )
+        future = self._event_loop.run_coroutine(coro)
+        return future
+
+    async def action_async(
+        self,
+        action: str,
+        /,
+        *args: Any,
+        **kwargs: Any,
+    ) -> R:
+        """Async version of [`action()`][academy.handle.BoundRemoteHandle.action]."""  # noqa: E501
         if self._closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 
@@ -548,16 +592,18 @@ class BoundRemoteHandle(Generic[BehaviorT]):
             pargs=args,
             kargs=kwargs,
         )
-        future: Future[R] = Future()
-        self._futures[request.tag] = future
-        self._send_request(request)
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[R] = loop.create_future()
+        self._async_futures[request.tag] = future
+        await self.exchange.send(request)
         logger.debug(
             'Sent action request from %s to %s (action=%r)',
             self.mailbox_id,
             self.agent_id,
             action,
         )
-        return future
+        await future
+        return future.result()
 
     def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
@@ -579,12 +625,11 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 (it self terminated or via another handle).
             TimeoutError: If the timeout is exceeded.
         """
-        if self.mailbox_id is None:
-            # UnboundRemoteHandle overrides these methods and is the only
-            # handle state variant where hid is None.
-            raise AssertionError(
-                'Method should not be reachable in unbound state.',
-            )
+        coro = self.ping_async(timeout=timeout)
+        future = self._event_loop.run_coroutine(coro)
+        return future.result()
+
+    async def ping_async(self, *, timeout: float | None = None) -> float:
         if self._closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 
@@ -594,11 +639,13 @@ class BoundRemoteHandle(Generic[BehaviorT]):
             dest=self.agent_id,
             label=self.handle_id,
         )
-        future: Future[None] = Future()
-        self._futures[request.tag] = future
-        self._send_request(request)
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[None] = loop.create_future()
+        self._async_futures[request.tag] = future
+        await self.exchange.send(request)
         logger.debug('Sent ping from %s to %s', self.mailbox_id, self.agent_id)
-        future.result(timeout=timeout)
+        await asyncio.wait_for(future, timeout=timeout)
+        future.result()
         elapsed = time.perf_counter() - start
         logger.debug(
             'Received ping from %s to %s in %.1f ms',
@@ -619,12 +666,11 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
-        if self.mailbox_id is None:
-            # UnboundRemoteHandle overrides these methods and is the only
-            # handle state variant where hid is None.
-            raise AssertionError(
-                'Method should not be reachable in unbound state.',
-            )
+        coro = self.shutdown_async()
+        future = self._event_loop.run_coroutine(coro)
+        return future.result()
+
+    async def shutdown_async(self) -> None:
         if self._closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 
@@ -633,23 +679,9 @@ class BoundRemoteHandle(Generic[BehaviorT]):
             dest=self.agent_id,
             label=self.handle_id,
         )
-        self._send_request(request)
+        await self.exchange.send(request)
         logger.debug(
             'Sent shutdown request from %s to %s',
             self.mailbox_id,
             self.agent_id,
         )
-
-    def bind_to_exchange(
-        self,
-        exchange: ExchangeClient[Any],
-    ) -> BoundRemoteHandle[BehaviorT]:
-        """Bind the handle to an existing mailbox.
-
-        Args:
-            exchange: Client exchange to associate with handle
-
-        Returns:
-            Remote handle bound to the identifier.
-        """
-        return self.clone().bind_to_exchange(exchange)

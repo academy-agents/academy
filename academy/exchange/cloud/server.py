@@ -63,6 +63,7 @@ _UNAUTHORIZED_CODE = 401
 _FORBIDDEN_CODE = 403
 _NOT_FOUND_CODE = 404
 _TIMEOUT_CODE = 408
+_NO_RESPONSE_CODE = 444
 
 
 class _MailboxManager:
@@ -313,8 +314,17 @@ async def _send_message_route(request: Request) -> Response:
         return Response(status=_OKAY_CODE)
 
 
-async def _recv_message_route(request: Request) -> Response:
-    data = await request.json()
+async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
+    try:
+        data = await request.json()
+    except ConnectionResetError:  # pragma: no cover
+        # This happens when the client cancel's it's listener task, which is
+        # waiting on recv, because the client is shutting down and closing
+        # its connection. In this case, we don't need to do anything
+        # because the client disconnected itself. If we don't catch this
+        # error, aiohttp will just log an error message each time this happens.
+        return Response(status=_NO_RESPONSE_CODE)
+
     manager: _MailboxManager = request.app[MANAGER_KEY]
 
     try:

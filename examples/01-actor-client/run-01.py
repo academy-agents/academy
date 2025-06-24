@@ -1,51 +1,54 @@
 from __future__ import annotations
 
+import asyncio
 import logging
-from concurrent.futures import Future
 
 from academy.behavior import action
 from academy.behavior import Behavior
-from academy.exchange.thread import ThreadExchangeFactory
+from academy.exchange.local import LocalExchangeFactory
 from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
-from academy.manager import Manager
+from academy.manager import AsyncManager
 
 
 class Counter(Behavior):
     count: int
 
-    def on_setup(self) -> None:
+    async def on_setup(self) -> None:
         self.count = 0
 
     @action
-    def increment(self, value: int = 1) -> None:
+    async def increment(self, value: int = 1) -> None:
         self.count += value
 
     @action
-    def get_count(self) -> int:
+    async def get_count(self) -> int:
         return self.count
 
 
-def main() -> int:
+async def main() -> int:
     init_logging(logging.INFO)
 
-    with Manager(
-        exchange=ThreadExchangeFactory(),
+    async with await AsyncManager.from_exchange_factory(
+        factory=LocalExchangeFactory(),
         launcher=ThreadLauncher(),
     ) as manager:
         behavior = Counter()
-        agent = manager.launch(behavior)
+        agent_handle = await manager.launch(behavior)
 
-        future: Future[int] = agent.action('get_count')
-        assert future.result() == 0
+        count_future = await agent_handle.get_count()
+        await count_future
+        assert count_future.result() == 0
 
-        agent.action('increment').result()
+        inc_future = await agent_handle.increment()
+        await inc_future
 
-        future = agent.action('get_count')
-        assert future.result() == 1
+        count_future = await agent_handle.get_count()
+        await count_future
+        assert count_future.result() == 1
 
     return 0
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(asyncio.run(main()))

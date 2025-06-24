@@ -142,9 +142,9 @@ class Launcher:
         """
         logger.debug('Waiting for agents to shutdown...')
         for acb in self._acbs.values():
-            if acb.task.done():
-                # Raise possible errors from agents so user sees them.
-                acb.task.result()
+            await acb.task
+            # Raise possible errors from agents so user sees them.
+            acb.task.result()
         self._executor.shutdown(wait=True, cancel_futures=True)
         logger.debug('Closed launcher (%s)', self)
 

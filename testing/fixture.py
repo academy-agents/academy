@@ -89,15 +89,13 @@ async def get_factory(
 @pytest_asyncio.fixture
 async def exchange() -> Generator[UserExchangeClient[LocalExchangeTransport]]:
     factory = LocalExchangeFactory()
-    async with await factory.create_user_client(
-        start_listener=False,
-    ) as client:
+    async with await factory.create_user_client() as client:
         yield client
 
 
 @pytest.fixture
-def launcher() -> Generator[ThreadLauncher]:
-    with ThreadLauncher() as launcher:
+async def launcher() -> AsyncGenerator[ThreadLauncher]:
+    async with ThreadLauncher() as launcher:
         yield launcher
 
 

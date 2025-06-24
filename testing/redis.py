@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import fnmatch
 from collections.abc import AsyncGenerator
+from collections.abc import Generator
 from typing import Any
 from unittest import mock
 
@@ -23,7 +24,10 @@ class MockRedis:
         for key in keys:
             if key not in self.lists:
                 self.lists[key] = asyncio.Queue()
-            item = await asyncio.wait_for(self.lists[key].get(), timeout=timeout)
+            item = await asyncio.wait_for(
+                self.lists[key].get(),
+                timeout=timeout,
+            )
             result.extend([key, item])
         return result
 
@@ -39,7 +43,10 @@ class MockRedis:
     async def exists(self, key: str) -> bool:  # pragma: no cover
         return key in self.values or key in self.lists
 
-    async def get(self, key: str) -> str | list[str] | None:  # pragma: no cover
+    async def get(
+        self,
+        key: str,
+    ) -> str | list[str] | None:  # pragma: no cover
         if key in self.values:
             return self.values[key]
         elif key in self.lists:
@@ -55,7 +62,7 @@ class MockRedis:
         for value in values:
             await self.lists[key].put(value)
 
-    async def scan_iter(self, pattern: str) -> AsyncGenerator[str, None, None]:
+    async def scan_iter(self, pattern: str) -> AsyncGenerator[str]:
         for key in self.values:
             if fnmatch.fnmatch(key, pattern):
                 yield key

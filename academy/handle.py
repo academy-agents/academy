@@ -6,10 +6,8 @@ import logging
 import sys
 import time
 import uuid
-from collections.abc import Coroutine
 from collections.abc import Iterable
 from collections.abc import Mapping
-from concurrent.futures import Future
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -28,7 +26,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.event_loop import EventLoopRunner
 from academy.exception import HandleClosedError
 from academy.exception import HandleNotBoundError
 from academy.exception import MailboxClosedError
@@ -216,7 +213,7 @@ class ProxyHandle(Generic[BehaviorT]):
             )
 
         @functools.wraps(method)
-        async def func(*args: Any, **kwargs: Any) -> Future[R]:
+        async def func(*args: Any, **kwargs: Any) -> asyncio.Future[R]:
             return await self.action(name, *args, **kwargs)
 
         return func
@@ -452,7 +449,10 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         return f'{name}<agent: {self.agent_id}; mailbox: {self.mailbox_id}>'
 
     def __getattr__(self, name: str) -> Any:
-        async def remote_method_call(*args: Any, **kwargs: Any) -> Future[R]:
+        async def remote_method_call(
+            *args: Any,
+            **kwargs: Any,
+        ) -> asyncio.Future[R]:
             return await self.action(name, *args, **kwargs)
 
         return remote_method_call
@@ -593,7 +593,6 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         if self._closed:
             raise HandleClosedError(self.agent_id, self.mailbox_id)
 
-        start = time.perf_counter()
         request = PingRequest(
             src=self.mailbox_id,
             dest=self.agent_id,
@@ -602,10 +601,15 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         loop = asyncio.get_running_loop()
         future: asyncio.Future[None] = loop.create_future()
         self._futures[request.tag] = future
+        start = time.perf_counter()
         await self.exchange.send(request)
         logger.debug('Sent ping from %s to %s', self.mailbox_id, self.agent_id)
-        await asyncio.wait_for(future, timeout=timeout)
-        future.result()
+
+        done, pending = await asyncio.wait({future}, timeout=timeout)
+        if future in pending:
+            raise TimeoutError(
+                f'Did not receive ping response within {timeout} seconds.',
+            )
         elapsed = time.perf_counter() - start
         logger.debug(
             'Received ping from %s to %s in %.1f ms',

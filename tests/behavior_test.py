@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 
 import pytest
 
@@ -101,7 +100,7 @@ async def test_behavior_event() -> None:
     with pytest.raises(TypeError, match='bad'):
         await behavior.bad_event(shutdown)
 
-    task = asyncio.create_task(behavior.run(shutdown))
+    task: asyncio.Task[None] = asyncio.create_task(behavior.run(shutdown))
 
     for _ in range(5):
         assert not behavior.ran.is_set()
@@ -129,7 +128,7 @@ async def test_behavior_timer() -> None:
     assert set(loops) == {'counter'}
 
     shutdown = asyncio.Event()
-    task = asyncio.create_task(behavior.counter(shutdown))
+    task: asyncio.Task[None] = asyncio.create_task(behavior.counter(shutdown))
 
     await asyncio.sleep(TEST_LOOP_SLEEP * 10)
     shutdown.set()
@@ -160,7 +159,9 @@ async def test_behavior_handles_bind() -> None:
     expected_binds = 3
     bind_count = 0
 
-    async def _bind_handle(handle: Handle[EmptyBehavior]) -> Handle[EmptyBehavior]:
+    async def _bind_handle(
+        handle: Handle[EmptyBehavior],
+    ) -> Handle[EmptyBehavior]:
         nonlocal bind_count
         bind_count += 1
         return handle
@@ -204,4 +205,4 @@ def test_invalid_loop_signature() -> None:
         async def loop(self) -> None: ...
 
     with pytest.raises(TypeError, match='Signature of loop method "loop"'):
-        loop(BadBehavior.loop)
+        loop(BadBehavior.loop)  # type: ignore[arg-type]

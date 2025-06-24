@@ -7,6 +7,7 @@ import enum
 import logging
 import sys
 import threading
+from collections.abc import Awaitable
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -161,8 +162,6 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         )
 
     async def _bind_handles(self) -> None:
-        loop = asyncio.get_running_loop()
-
         async def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
             if isinstance(handle, ProxyHandle):  # pragma: no cover
                 return handle
@@ -199,16 +198,12 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
 
     async def _execute_action(self, request: ActionRequest) -> None:
         assert self._action_pool is not None
-        loop = asyncio.get_running_loop()
         try:
-            result = await self.action(request.action, request.pargs, request.kargs)
-            # result = await loop.run_in_executor(
-            #     self._action_pool,
-            #     self.action,
-            #     request.action,
-            #     request.pargs,
-            #     request.kargs,
-            # )
+            result = await self.action(
+                request.action,
+                request.pargs,
+                request.kargs,
+            )
         except Exception as e:
             response = request.error(exception=e)
         else:
@@ -218,17 +213,11 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
     async def _execute_loop(
         self,
         name: str,
-        method: Callable[[asyncio.Event], None],
+        method: Callable[[asyncio.Event], Awaitable[None]],
     ) -> None:
         assert self._loop_pool is not None
-        loop = asyncio.get_running_loop()
         try:
             await method(self._shutdown_agent)
-            # await loop.run_in_executor(
-            #     self._loop_pool,
-            #     method,
-            #     self._shutdown_loop,
-            # )
         except asyncio.CancelledError:
             pass
         except Exception as e:

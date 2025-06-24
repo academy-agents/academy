@@ -5,9 +5,9 @@ import functools
 import inspect
 import logging
 import sys
-import threading
+from collections.abc import Awaitable
 from datetime import timedelta
-from typing import Any, Awaitable
+from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import Literal
@@ -15,10 +15,8 @@ from typing import Protocol
 from typing import TypeVar
 
 if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
-    from typing import Concatenate
     from typing import ParamSpec
 else:  # pragma: <3.10 cover
-    from typing_extensions import Concatenate
     from typing_extensions import ParamSpec
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -26,7 +24,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.event import or_event, or_event_async
+from academy.event import wait_event_async
 from academy.handle import Handle
 from academy.handle import HandleDict
 from academy.handle import HandleList
@@ -148,7 +146,11 @@ class Behavior:
                     HandleDict({k: await bind(h) for k, h in handles.items()}),
                 )
             elif isinstance(handles, HandleList):
-                setattr(self, attr, HandleList([await bind(h) for h in handles]))
+                setattr(
+                    self,
+                    attr,
+                    HandleList([await bind(h) for h in handles]),
+                )
             else:
                 raise AssertionError('Unreachable.')
 
@@ -300,9 +302,8 @@ def loop(
     @functools.wraps(method)
     async def _wrapped(self: BehaviorT, shutdown: asyncio.Event) -> None:
         logger.debug('Started %r loop for %s', method.__name__, self)
-        result = await method(self, shutdown)
+        await method(self, shutdown)
         logger.debug('Exited %r loop for %s', method.__name__, self)
-        return result
 
     return _wrapped
 
@@ -366,7 +367,7 @@ def event(
                 name,
             )
             while not shutdown.is_set():
-                await or_event_async(shutdown, event)
+                await wait_event_async(shutdown, event)
                 if event.is_set():
                     try:
                         await method(self)
@@ -383,7 +384,7 @@ def timer(
     interval: float | timedelta,
 ) -> Callable[
     [Callable[[BehaviorT], Awaitable[None]]],
-    Callable[[BehaviorT, threading.Event], Awaitable[None]],
+    Callable[[BehaviorT, asyncio.Event], Awaitable[None]],
 ]:
     """Decorator that annotates a method of a behavior as a timer loop.
 

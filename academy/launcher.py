@@ -75,7 +75,11 @@ class Launcher:
     def __str__(self) -> str:
         return f'{type(self).__name__}<{type(self._executor).__name__}>'
 
-    async def _run_agent(self, agent: Agent[Any, Any], started: asyncio.Event) -> None:
+    async def _run_agent(
+        self,
+        agent: Agent[Any, Any],
+        started: asyncio.Event,
+    ) -> None:
         agent_id = agent.agent_id
         config = agent.config
         loop = asyncio.get_running_loop()
@@ -109,7 +113,7 @@ class Launcher:
                     self._max_restarts,
                     agent_id,
                     agent.behavior,
-                )        
+                )
 
             try:
                 await loop.run_in_executor(
@@ -119,11 +123,13 @@ class Launcher:
                 )
             except asyncio.CancelledError:  # pragma: no cover
                 logger.warning('Cancelled agent task (%s)', agent_id)
-                break
+                raise
             except Exception:  # pragma: no cover
                 logger.exception('Received agent exception (%s)', agent_id)
                 if run_count == self._max_restarts:
                     break
+                else:
+                    raise
             else:
                 logger.debug('Completed agent task (%s)', agent_id)
                 break
@@ -140,7 +146,7 @@ class Launcher:
         for acb in self._acbs.values():
             if acb.task.done():
                 # Raise possible errors from agents so user sees them.
-                await acb.task
+                acb.task.result()
         self._executor.shutdown(wait=True, cancel_futures=True)
         logger.debug('Closed launcher (%s)', self)
 
@@ -234,13 +240,13 @@ class Launcher:
         except KeyError:
             raise BadEntityIdError(agent_id) from None
 
-        try:
-            await asyncio.wait_for(acb.task, timeout=timeout)
-        except asyncio.TimeoutError:
+        done, pending = await asyncio.wait({acb.task}, timeout=timeout)
+
+        if acb.task in pending:
             raise TimeoutError(
                 f'Agent did not complete within {timeout}s timeout '
                 f'({acb.agent_id})',
-            ) from None
+            )
 
         if not ignore_error:
             acb.task.result()

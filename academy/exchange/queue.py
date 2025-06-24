@@ -7,6 +7,8 @@ from typing import cast
 from typing import Generic
 from typing import TypeVar
 
+import aiologic
+
 T = TypeVar('T')
 
 DEFAULT_PRIORITY = 0
@@ -34,7 +36,9 @@ class AsyncQueue(Generic[T]):
     """
 
     def __init__(self) -> None:
-        self._queue: asyncio.PriorityQueue[_Item[T]] = asyncio.PriorityQueue()
+        self._queue: aiologic.PriorityQueue[_Item[T]] = (
+            aiologic.PriorityQueue()
+        )
         self._closed = False
 
     async def close(self, immediate: bool = False) -> None:
@@ -49,7 +53,7 @@ class AsyncQueue(Generic[T]):
         if not self.closed():
             self._closed = True
             priority = CLOSE_PRIORITY if immediate else DEFAULT_PRIORITY
-            await self._queue.put(_Item(priority, CLOSE_SENTINEL))
+            await self._queue.async_put(_Item(priority, CLOSE_SENTINEL))
 
     def closed(self) -> bool:
         """Check if the queue has been closed."""
@@ -65,7 +69,10 @@ class AsyncQueue(Generic[T]):
             TimeoutError: if no item was available within `timeout` seconds.
         """
         try:
-            item = await asyncio.wait_for(self._queue.get(), timeout=timeout)
+            item = await asyncio.wait_for(
+                self._queue.async_get(),
+                timeout=timeout,
+            )
         except asyncio.TimeoutError:
             # asyncio.TimeoutError is different from TimeoutError in Python
             # 3.10 and older so we convert the error type.
@@ -78,7 +85,7 @@ class AsyncQueue(Generic[T]):
         """Put an item on the queue."""
         if self.closed():
             raise QueueClosedError
-        await self._queue.put(_Item(DEFAULT_PRIORITY, item))
+        await self._queue.async_put(_Item(DEFAULT_PRIORITY, item))
 
 
 class Queue(Generic[T]):

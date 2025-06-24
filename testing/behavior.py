@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from typing import TypeVar
 
 from academy.behavior import action
@@ -70,5 +69,5 @@ class SleepBehavior(Behavior):
     @loop
     async def count(self, shutdown: asyncio.Event) -> None:
         while not shutdown.is_set():
-            await asyncio.sleep(self.loop_sleep)   
             self.steps += 1
+            await asyncio.sleep(self.loop_sleep)

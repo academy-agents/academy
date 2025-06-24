@@ -419,7 +419,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         if start_listener:
             self._listener_task = asyncio.create_task(
                 self._listen_for_messages(),
-                name=f'user-exchange-listener-{self.user_id.uid}',
+                name=f'user-exchange-listener-{self.user_id}',
             )
 
     def __repr__(self) -> str:

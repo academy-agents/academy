@@ -29,7 +29,6 @@ else:  # pragma: <3.11 cover
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
-from academy.event_loop import EventLoopRunner
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange.transport import AgentRegistration

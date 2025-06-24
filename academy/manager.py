@@ -16,8 +16,8 @@ else:  # pragma: <3.11 cover
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
-from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
+from academy.exchange import UserExchangeClient
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import BoundRemoteHandle
 from academy.identifier import AgentId
@@ -28,7 +28,7 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 
-class Manager(Generic[ExchangeTransportT], NoPickleMixin):
+class AsyncManager(Generic[ExchangeTransportT], NoPickleMixin):
     """Launch and manage running agents.
 
     The manager is provided as convenience to reduce common boilerplate code
@@ -47,7 +47,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         manager is closed.
 
     Args:
-        exchange: Exchange that agents and clients will use for communication.
+        exchange_client: Exchange client.
         launcher: A mapping of names to launchers used to execute agents
             remotely. If a single launcher is provided directly, it is
             set as the default with name `'default'`, overriding any value
@@ -62,7 +62,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     def __init__(
         self,
-        exchange: ExchangeFactory[ExchangeTransportT],
+        exchange_client: UserExchangeClient[ExchangeTransportT],
         launcher: Launcher | MutableMapping[str, Launcher],
         *,
         default_launcher: str | None = None,
@@ -77,8 +77,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 'use as the default.',
             )
 
-        self._exchange = exchange.create_user_client()
-        self._mailbox_id = self._exchange.user_id
+        self._exchange_client = exchange_client
+        self._user_id = self._exchange_client.user_id
         self._launchers = launcher
         self._default_launcher = default_launcher
 
@@ -87,20 +87,20 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         logger.info(
             'Initialized manager (%s; %s)',
-            self._mailbox_id,
-            self._exchange,
+            self._user_id,
+            self._exchange_client,
         )
 
-    def __enter__(self) -> Self:
+    async def __aenter__(self) -> Self:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
     def __repr__(self) -> str:
         launchers_repr = ', '.join(
@@ -108,23 +108,38 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         )
         return (
             f'{type(self).__name__}'
-            f'(exchange={self._exchange!r}, launchers={{{launchers_repr}}})'
+            f'(exchange={self._exchange_client!r}, '
+            f'launchers={{{launchers_repr}}})'
         )
 
     def __str__(self) -> str:
-        return f'{type(self).__name__}<{self.mailbox_id}, {self._exchange}>'
+        return (
+            f'{type(self).__name__}<{self.user_id}, {self._exchange_client}>'
+        )
+
+    @classmethod
+    async def from_exchange_factory(
+        cls,
+        factory: ExchangeFactory[ExchangeTransportT],
+        launcher: Launcher | MutableMapping[str, Launcher],
+        *,
+        default_launcher: str | None = None,
+    ) -> Self:
+        """Instantiate a new exchange client and manager from a factory."""
+        client = await factory.create_user_client()
+        return cls(client, launcher, default_launcher=default_launcher)
 
     @property
-    def exchange(self) -> ExchangeClient[ExchangeTransportT]:
+    def exchange_client(self) -> UserExchangeClient[ExchangeTransportT]:
         """Exchange interface."""
-        return self._exchange
+        return self._exchange_client
 
     @property
-    def mailbox_id(self) -> UserId:
-        """EntityId of the mailbox used by this manager."""
-        return self._mailbox_id
+    def user_id(self) -> UserId:
+        """Exchange client user ID of this manager."""
+        return self._user_id
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the manager and cleanup resources.
 
         1. Call shutdown on all running agents.
@@ -137,12 +152,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             for agent_id in launcher.running():
                 handle = self._handles[agent_id]
                 with contextlib.suppress(MailboxClosedError):
-                    handle.shutdown()
+                    await handle.shutdown()
         logger.debug('Instructed managed agents to shutdown')
-        self.exchange.close()
+        await self.exchange_client.close()
         for launcher in self._launchers.values():
-            launcher.close()
-        logger.info('Closed manager (%s)', self.mailbox_id)
+            await launcher.close()
+        logger.info('Closed manager (%s)', self.user_id)
 
     def add_launcher(self, name: str, launcher: Launcher) -> Self:
         """Add a launcher to the manager.
@@ -186,7 +201,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._default_launcher = name
         return self
 
-    def launch(
+    async def launch(
         self,
         behavior: BehaviorT,
         *,
@@ -223,9 +238,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         launcher = launcher if launcher is not None else self._default_launcher
         assert launcher is not None
         launcher_instance = self._launchers[launcher]
-        bound = launcher_instance.launch(
+        bound = await launcher_instance.launch(
             behavior,
-            exchange=self.exchange,
+            exchange=self.exchange_client,
             agent_id=agent_id,
             name=name,
         )
@@ -235,7 +250,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         logger.debug('Bound agent handle to manager (%s)', bound)
         return bound
 
-    def shutdown(
+    async def shutdown(
         self,
         agent_id: AgentId[Any],
         *,
@@ -260,12 +275,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             raise BadEntityIdError(agent_id) from None
 
         with contextlib.suppress(MailboxClosedError):
-            handle.shutdown()
+            await handle.shutdown()
 
         if blocking:
-            self.wait(agent_id, timeout=timeout)
+            await self.wait(agent_id, timeout=timeout)
 
-    def wait(
+    async def wait(
         self,
         agent: AgentId[Any] | BoundRemoteHandle[Any],
         *,
@@ -288,4 +303,4 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         if agent_id not in self._aid_to_launcher:
             raise BadEntityIdError(agent_id)
         launcher_name = self._aid_to_launcher[agent_id]
-        self._launchers[launcher_name].wait(agent_id, timeout=timeout)
+        await self._launchers[launcher_name].wait(agent_id, timeout=timeout)

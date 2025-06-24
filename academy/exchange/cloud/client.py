@@ -111,11 +111,11 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             An instantiated transport bound to a specific mailbox.
         """
         ssl_verify = connection_info.ssl_verify
-        if ssl_verify is None:
+        if ssl_verify is None:  # pragma: no branch
             ssl_verify = connection_info.scheme == 'https'
 
         session = aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(verify_ssl=ssl_verify),
+            connector=aiohttp.TCPConnector(ssl=ssl_verify),
             headers=connection_info.additional_headers,
         )
 

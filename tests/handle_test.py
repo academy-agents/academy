@@ -202,6 +202,20 @@ async def test_agent_remote_handle_bind(
 
 
 @pytest.mark.asyncio
+async def test_client_remote_handle_ping_timeout(
+    exchange: UserExchangeClient[Any],
+) -> None:
+    registration = await exchange.register_agent(EmptyBehavior)
+    handle = BoundRemoteHandle(
+        exchange,
+        registration.agent_id,
+        exchange.user_id,
+    )
+    with pytest.raises(TimeoutError):
+        await handle.ping(timeout=0.001)
+
+
+@pytest.mark.asyncio
 async def test_client_remote_handle_log_bad_response(
     launcher: ThreadLauncher,
     exchange: ExchangeClient[Any],

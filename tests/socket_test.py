@@ -45,14 +45,20 @@ async def echo_server() -> AsyncGenerator[tuple[str, int]]:
         yield host, port
 
 
+@pytest.mark.parametrize('shutdown', (True, False))
 @pytest.mark.asyncio(loop_scope='module')
-async def test_create_simple_socket(echo_server: tuple[str, int]) -> None:
+async def test_create_simple_socket(
+    echo_server: tuple[str, int],
+    shutdown: bool,
+) -> None:
     host, port = echo_server
     async with await SimpleSocket.connect(host, port) as socket:
         assert isinstance(repr(socket), str)
         assert isinstance(str(socket), str)
 
-        await socket.close()
+        await socket.close(shutdown=shutdown)
+        with pytest.raises(SocketClosedError):
+            await socket.recv()
 
 
 @pytest.mark.asyncio

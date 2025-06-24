@@ -18,16 +18,19 @@ class MockRedis:
     async def blpop(
         self,
         keys: list[str],
-        timeout: int | None = None,
+        timeout: int = 0,
     ) -> list[str] | None:
         result: list[str] = []
         for key in keys:
             if key not in self.lists:
                 self.lists[key] = asyncio.Queue()
-            item = await asyncio.wait_for(
-                self.lists[key].get(),
-                timeout=timeout,
-            )
+            try:
+                item = await asyncio.wait_for(
+                    self.lists[key].get(),
+                    timeout=None if timeout == 0 else timeout,
+                )
+            except asyncio.TimeoutError:
+                return None
             result.extend([key, item])
         return result
 

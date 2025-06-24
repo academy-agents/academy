@@ -89,11 +89,8 @@ class SimpleSocket:
         """
         try:
             coro = asyncio.open_connection(host, port)
-            if timeout is not None:
-                reader, writer = await asyncio.wait_for(coro, timeout)
-            else:
-                reader, writer = await coro
-        except OSError as e:
+            reader, writer = await asyncio.wait_for(coro, timeout)
+        except (OSError, asyncio.TimeoutError) as e:
             raise SocketOpenError() from e
 
         return cls(reader, writer, timeout=timeout)

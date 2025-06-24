@@ -159,40 +159,37 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     async def recv(self, timeout: float | None = None) -> Message:
-        _timeout = int(timeout) if timeout is not None else 1
-        while True:
-            status = await self._client.get(
-                self._active_key(self.mailbox_id),
+        _timeout = timeout if timeout is not None else 0
+        status = await self._client.get(
+            self._active_key(self.mailbox_id),
+        )
+        if status is None:
+            raise AssertionError(
+                f'Status for mailbox {self.mailbox_id} did not exist in '
+                'Redis server. This means that something incorrectly '
+                'deleted the key.',
             )
-            if status is None:
-                raise AssertionError(
-                    f'Status for mailbox {self.mailbox_id} did not exist in '
-                    'Redis server. This means that something incorrectly '
-                    'deleted the key.',
-                )
-            elif status == _MailboxState.INACTIVE.value:
-                raise MailboxClosedError(self.mailbox_id)
+        elif status == _MailboxState.INACTIVE.value:
+            raise MailboxClosedError(self.mailbox_id)
 
-            raw = await self._client.blpop(  # type: ignore[misc]
-                [self._queue_key(self.mailbox_id)],
-                timeout=_timeout,
+        raw = await self._client.blpop(  # type: ignore[misc]
+            [self._queue_key(self.mailbox_id)],
+            timeout=_timeout,
+        )
+        if raw is None:
+            raise TimeoutError(
+                f'Timeout waiting for next message for {self.mailbox_id} '
+                f'after {timeout} seconds.',
             )
-            if raw is None and timeout is not None:
-                raise TimeoutError(
-                    f'Timeout waiting for next message for {self.mailbox_id} '
-                    f'after {timeout} seconds.',
-                )
-            elif raw is None:  # pragma: no cover
-                continue
 
-            # Only passed one key to blpop to result is [key, item]
-            assert isinstance(raw, (tuple, list))
-            assert len(raw) == 2  # noqa: PLR2004
-            if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
-                raise MailboxClosedError(self.mailbox_id)
-            message = BaseMessage.model_deserialize(raw[1])
-            assert isinstance(message, get_args(Message))
-            return message
+        # Only passed one key to blpop to result is [key, item]
+        assert isinstance(raw, (tuple, list))
+        assert len(raw) == 2  # noqa: PLR2004
+        if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
+            raise MailboxClosedError(self.mailbox_id)
+        message = BaseMessage.model_deserialize(raw[1])
+        assert isinstance(message, get_args(Message))
+        return message
 
     async def register_agent(
         self,

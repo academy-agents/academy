@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import pickle
 import sys
 from typing import Any
 
@@ -13,6 +14,7 @@ from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import loop
 from academy.exchange import UserExchangeClient
+from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.transport import MailboxStatus
 from academy.handle import BoundRemoteHandle
@@ -27,6 +29,22 @@ from testing.behavior import CounterBehavior
 from testing.behavior import EmptyBehavior
 from testing.behavior import ErrorBehavior
 from testing.constant import TEST_THREAD_JOIN_TIMEOUT
+
+
+@pytest.mark.asyncio
+async def test_agent_serialize(http_exchange_server: tuple[str, int]) -> None:
+    host, port = http_exchange_server
+    factory = HttpExchangeFactory(host, port)
+    async with await factory.create_user_client() as client:
+        registration = await client.register_agent(SignalingBehavior)
+        agent = Agent(
+            EmptyBehavior(),
+            exchange_factory=factory,
+            registration=registration,
+        )
+        dumped = pickle.dumps(agent)
+        reconstructed = pickle.loads(dumped)
+        assert isinstance(reconstructed, Agent)
 
 
 class SignalingBehavior(Behavior):
@@ -131,6 +149,35 @@ async def test_loop_failure_triggers_shutdown(
     await agent.start()
     await asyncio.wait_for(agent._shutdown_agent.wait(), timeout=1)
 
+    if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+        # In Python 3.11 and later, all exceptions are raised in a group.
+        with pytest.raises(ExceptionGroup) as exc_info:  # noqa: F821
+            await agent.shutdown()
+        assert len(exc_info.value.exceptions) == 2  # noqa: PLR2004
+    else:  # pragma: <3.11 cover
+        # In Python 3.10 and older, only the first error will be raised.
+        with pytest.raises(RuntimeError, match='Loop failure'):
+            await agent.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_loop_failure_ignore_shutdown(
+    exchange: UserExchangeClient[Any],
+) -> None:
+    registration = await exchange.register_agent(LoopFailureBehavior)
+    agent = Agent(
+        LoopFailureBehavior(),
+        exchange_factory=exchange.factory(),
+        registration=registration,
+        config=AgentRunConfig(shutdown_on_loop_error=False),
+    )
+
+    await agent.start()
+    with pytest.raises(asyncio.TimeoutError):
+        # Should timeout because agent did not shutdown after loop errors
+        await asyncio.wait_for(agent._shutdown_agent.wait(), timeout=0.001)
+
+    # Loop errors raised on shutdown
     if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
         # In Python 3.11 and later, all exceptions are raised in a group.
         with pytest.raises(ExceptionGroup) as exc_info:  # noqa: F821

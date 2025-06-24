@@ -429,7 +429,7 @@ def _run(
     )
 
     ssl_context: ssl.SSLContext | None = None
-    if config.certfile is not None:
+    if config.certfile is not None:  # pragma: no cover
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ssl_context.load_cert_chain(config.certfile, keyfile=config.keyfile)
 

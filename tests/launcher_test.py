@@ -80,22 +80,29 @@ class FailOnStartupBehavior(Behavior):
         self.max_errors = max_errors
 
     async def on_setup(self) -> None:
-        if self.max_errors is None or self.errors < self.max_errors:
+        if (
+            self.max_errors is None or self.errors < self.max_errors
+        ):  # pragma: no branch
             self.errors += 1
             raise RuntimeError('Agent startup failed')
 
     @action
-    async def get_errors(self) -> int:
+    async def get_errors(self) -> int:  # pragma: no cover
         return self.errors
 
 
 @pytest.mark.skip(reason='Issue #93')
 @pytest.mark.asyncio
-async def test_restart_on_error(exchange: ExchangeClient[Any], caplog) -> None:
+async def test_restart_on_error(
+    exchange: ExchangeClient[Any],
+    caplog,
+) -> None:  # pragma: no cover
     # TODO: this test fails because we rerun the same Agent instance
     # in the thread pool executor; after the first run the agent is in a
     # shutdown state and cannot be run again. After deferred behavior
     # initialization, this will be possible.
+    # Once fixed, remove no cover in behavior, this test, and the restart
+    # loop in the launcher agent task.
     caplog.set_level(logging.DEBUG)
     behavior = FailOnStartupBehavior(max_errors=2)
     executor = ThreadPoolExecutor(max_workers=1)

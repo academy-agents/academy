@@ -187,7 +187,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         assert self._exchange_client is not None
         try:
             await self._exchange_client.send(response)
-        except (BadEntityIdError, MailboxClosedError):
+        except (BadEntityIdError, MailboxClosedError):  # pragma: no cover
             logger.warning(
                 'Failed to send response from %s to %s. '
                 'This likely means the destination mailbox was '
@@ -283,8 +283,6 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         try:
             await self.start()
             await self._shutdown_agent.wait()
-        except asyncio.CancelledError:
-            pass
         except:
             logger.exception('Running agent %s failed!', self.agent_id)
             raise
@@ -411,7 +409,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             terminate_for_error = (
                 self.config.terminate_on_error and not self._expected_shutdown
             )
-            if self._exchange_client is not None:
+            if self._exchange_client is not None:  # pragma: no branch
                 if terminate_for_success or terminate_for_error:
                     await self._exchange_client.terminate(self.agent_id)
                 await self._exchange_client.close()

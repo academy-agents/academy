@@ -83,13 +83,11 @@ class Launcher:
         agent_id = agent.agent_id
         config = agent.config
         loop = asyncio.get_running_loop()
-        run_count = 0
         started.set()
+        max_runs = self._max_restarts + 1
 
-        while run_count <= self._max_restarts:
-            run_count += 1
-
-            if run_count < self._max_restarts:
+        for run_count in range(1, max_runs + 1):  # pragma: no branch
+            if run_count < max_runs:  # pragma: no cover
                 # Override this configuration for the case where the agent
                 # fails and we will restart it.
                 agent.config = dataclasses.replace(
@@ -106,7 +104,7 @@ class Launcher:
                     agent_id,
                     agent.behavior,
                 )
-            else:
+            else:  # pragma: no cover
                 logger.debug(
                     'Restarting agent (%d/%d retries; %s; %s)',
                     run_count,
@@ -126,7 +124,7 @@ class Launcher:
                 raise
             except Exception:  # pragma: no cover
                 logger.exception('Received agent exception (%s)', agent_id)
-                if run_count == self._max_restarts:
+                if run_count > max_runs:
                     break
                 else:
                     raise

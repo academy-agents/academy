@@ -348,11 +348,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             await self._redis_client.delete(self._behavior_key(uid))
 
     async def _get_message_from_redis(self) -> None:
+        # Block indefinitely with timeout=0
         raw = await self._redis_client.blpop(  # type: ignore[misc]
             [self._queue_key(self.mailbox_id)],
+            timeout=0,
         )
-        if raw is None:
-            return
 
         # Only passed one key to blpop to result is [key, item]
         assert isinstance(raw, (tuple, list))

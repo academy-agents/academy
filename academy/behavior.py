@@ -6,6 +6,7 @@ import inspect
 import logging
 import sys
 from collections.abc import Awaitable
+from collections.abc import Coroutine
 from datetime import timedelta
 from typing import Any
 from typing import Callable
@@ -233,7 +234,9 @@ class ControlLoop(Protocol):
         ...
 
 
-def action(method: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+def action(
+    method: Callable[P, Coroutine[None, None, R]],
+) -> Callable[P, Coroutine[None, None, R]]:
     """Decorator that annotates a method of a behavior as an action.
 
     Marking a method of a behavior as an action makes the method available
@@ -256,8 +259,8 @@ def action(method: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
 
 
 def loop(
-    method: Callable[[BehaviorT, asyncio.Event], Awaitable[None]],
-) -> Callable[[BehaviorT, asyncio.Event], Awaitable[None]]:
+    method: Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]],
+) -> Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]]:
     """Decorator that annotates a method of a behavior as a control loop.
 
     Control loop methods of a behavior are run as threads when an agent
@@ -311,8 +314,8 @@ def loop(
 def event(
     name: str,
 ) -> Callable[
-    [Callable[[BehaviorT], Awaitable[None]]],
-    Callable[[BehaviorT, asyncio.Event], Awaitable[None]],
+    [Callable[[BehaviorT], Coroutine[None, None, None]]],
+    Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]],
 ]:
     """Decorator that annotates a method of a behavior as an event loop.
 
@@ -347,8 +350,8 @@ def event(
     """
 
     def decorator(
-        method: Callable[[BehaviorT], Awaitable[None]],
-    ) -> Callable[[BehaviorT, asyncio.Event], Awaitable[None]]:
+        method: Callable[[BehaviorT], Coroutine[None, None, None]],
+    ) -> Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)
@@ -383,8 +386,8 @@ def event(
 def timer(
     interval: float | timedelta,
 ) -> Callable[
-    [Callable[[BehaviorT], Awaitable[None]]],
-    Callable[[BehaviorT, asyncio.Event], Awaitable[None]],
+    [Callable[[BehaviorT], Coroutine[None, None, None]]],
+    Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]],
 ]:
     """Decorator that annotates a method of a behavior as a timer loop.
 
@@ -414,8 +417,8 @@ def timer(
     )
 
     def decorator(
-        method: Callable[[BehaviorT], Awaitable[None]],
-    ) -> Callable[[BehaviorT, asyncio.Event], Awaitable[None]]:
+        method: Callable[[BehaviorT], Coroutine[None, None, None]],
+    ) -> Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)

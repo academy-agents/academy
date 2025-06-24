@@ -408,8 +408,7 @@ class RunBehavior(Behavior):
 
     @action
     async def run(self, value: int) -> int:
-        future = await self.doubler.action('double', value)
-        return await future
+        return await (await self.doubler.action('double', value))
 
 
 class DoubleBehavior(Behavior):

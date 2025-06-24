@@ -49,7 +49,7 @@ class _HttpConnectionInfo(NamedTuple):
     port: int
     additional_headers: dict[str, str] | None = None
     scheme: Literal['http', 'https'] = 'http'
-    ssl_verify: str | bool | None = None
+    ssl_verify: bool | None = None
 
 
 @dataclasses.dataclass
@@ -110,10 +110,12 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         Returns:
             An instantiated transport bound to a specific mailbox.
         """
+        ssl_verify = connection_info.ssl_verify
+        if ssl_verify is None:
+            ssl_verify = connection_info.scheme == 'https'
+
         session = aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(
-                verify_ssl=connection_info.ssl_verify,
-            ),
+            connector=aiohttp.TCPConnector(verify_ssl=ssl_verify),
             headers=connection_info.additional_headers,
         )
 
@@ -176,7 +178,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     'mailbox': self.mailbox_id.model_dump_json(),
                     'timeout': timeout,
                 },
-                timeout=timeout,
+                timeout=aiohttp.ClientTimeout(timeout),
             ) as response:
                 if response.status == _FORBIDDEN_CODE:
                     raise MailboxClosedError(self.mailbox_id)
@@ -259,7 +261,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         port: int,
         additional_headers: dict[str, str] | None = None,
         scheme: Literal['http', 'https'] = 'http',
-        ssl_verify: str | bool | None = None,
+        ssl_verify: bool | None = None,
     ) -> None:
         self._info = _HttpConnectionInfo(
             host=host,

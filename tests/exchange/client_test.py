@@ -51,6 +51,10 @@ async def test_create_user_client(factory: ExchangeFactory[Any]) -> None:
         assert isinstance(str(client), str)
 
 
+async def _request_handler(_: Any) -> None:  # pragma: no cover
+    pass
+
+
 @pytest.mark.asyncio
 async def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
     async with await factory.create_user_client(
@@ -59,7 +63,7 @@ async def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
         registration = await client.register_agent(EmptyBehavior)
         async with await factory.create_agent_client(
             registration,
-            lambda _: None,
+            _request_handler,
         ) as agent_client:
             assert isinstance(repr(agent_client), str)
             assert isinstance(str(agent_client), str)
@@ -75,7 +79,7 @@ async def test_create_agent_client_unregistered(
         registration = await client.register_agent(EmptyBehavior)
         registration.agent_id = AgentId.new()
         with pytest.raises(BadEntityIdError):
-            await factory.create_agent_client(registration, lambda _: None)
+            await factory.create_agent_client(registration, _request_handler)
 
 
 @pytest.mark.asyncio

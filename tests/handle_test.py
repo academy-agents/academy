@@ -40,27 +40,27 @@ async def test_proxy_handle_actions() -> None:
     handle = ProxyHandle(CounterBehavior())
 
     # Via Handle.action()
-    future = await handle.action('add', 1)
-    assert await future is None
-    future = await handle.action('count')
-    assert await future == 1
+    add_future: asyncio.Future[None] = await handle.action('add', 1)
+    await add_future
+    count_future: asyncio.Future[int] = await handle.action('count')
+    assert await count_future == 1
 
     # Via attribute lookup
-    future = await handle.add(1)
-    assert await future is None
-    future = await handle.count()
-    assert await future == 2  # noqa: PLR2004
+    add_future = await handle.add(1)
+    await add_future
+    count_future = await handle.count()
+    assert await count_future == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
 async def test_proxy_handle_action_errors() -> None:
     handle = ProxyHandle(ErrorBehavior())
 
-    fails_future = await handle.action('fails')
+    fails_future: asyncio.Future[None] = await handle.action('fails')
     with pytest.raises(RuntimeError, match='This action always fails.'):
         await fails_future
 
-    null_future = await handle.action('null')
+    null_future: asyncio.Future[None] = await handle.action('null')
     with pytest.raises(AttributeError, match='null'):
         await null_future
 
@@ -186,9 +186,13 @@ async def test_agent_remote_handle_bind(
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
     factory = exchange.factory()
+
+    async def _handler(_: Any) -> None:  # pragma: no cover
+        pass
+
     async with await factory.create_agent_client(
         registration,
-        request_handler=lambda _: None,
+        request_handler=_handler,
     ) as client:
         with pytest.raises(
             ValueError,
@@ -227,7 +231,7 @@ async def test_client_remote_handle_actions(
     async with await launcher.launch(behavior, exchange) as handle:
         assert await handle.ping() > 0
 
-        future = await handle.action('add', 1)
+        future: asyncio.Future[None] = await handle.action('add', 1)
         await future
         count_future: asyncio.Future[int] = await handle.action('count')
         assert await count_future == 1
@@ -247,14 +251,14 @@ async def test_client_remote_handle_errors(
 ) -> None:
     behavior = ErrorBehavior()
     async with await launcher.launch(behavior, exchange) as handle:
-        action_future = await handle.action('fails')
+        action_future = await handle.fails()
         with pytest.raises(
             RuntimeError,
             match='This action always fails.',
         ):
             await action_future
 
-        null_future = await handle.action('null')
+        null_future: asyncio.Future[None] = await handle.action('null')
         with pytest.raises(AttributeError, match='null'):
             await null_future
 
@@ -268,7 +272,7 @@ async def test_client_remote_handle_wait_futures(
 ) -> None:
     behavior = SleepBehavior()
     async with await launcher.launch(behavior, exchange) as handle:
-        sleep_future = await handle.action('sleep', TEST_SLEEP)
+        sleep_future = await handle.sleep(TEST_SLEEP)
         await handle.close(wait_futures=True)
         await sleep_future
 
@@ -284,7 +288,7 @@ async def test_client_remote_handle_cancel_futures(
 ) -> None:
     behavior = SleepBehavior()
     async with await launcher.launch(behavior, exchange) as handle:
-        sleep_future = await handle.action('sleep', TEST_SLEEP)
+        sleep_future = await handle.sleep(TEST_SLEEP)
         await handle.close(wait_futures=False)
 
         with pytest.raises(asyncio.CancelledError):

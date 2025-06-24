@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import sys
-from concurrent.futures import Future
+from collections.abc import Coroutine
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import assert_type
@@ -38,29 +39,34 @@ class Example(Behavior):
         self.value = 42
 
     @action
-    def method(self) -> int:
+    async def method(self) -> int:
         return 42
 
     @action
-    def method_with_arg(self, value: int) -> int:
+    async def method_with_arg(self, value: int) -> int:
         return value
 
 
-def test_handle_attribute_access_resolved() -> None:
+@pytest.mark.asyncio
+async def test_handle_attribute_access_resolved() -> None:
     handle = ProxyHandle(Example())
 
     # Attributes/method defined on Handle should stay the same
     assert_type(handle.agent_id, AgentId[Example])
-    assert_type(handle.ping(), float)
+    assert_type(await handle.ping(), float)
 
     # Methods defined on the Behavior should have their return type
     # wrapped in a future
-    future = handle.method()
-    assert_type(future, Future[int])
+    coro = handle.method()
+    assert_type(coro, Coroutine[None, None, asyncio.Future[int]])  # type: ignore[unused-coroutine]
+    future = await coro
+    assert_type(future, asyncio.Future[int])
+    await future
     assert_type(future.result(), int)
 
 
-def test_handle_attribute_access_error() -> None:
+@pytest.mark.asyncio
+async def test_handle_attribute_access_error() -> None:
     handle = ProxyHandle(Example())
 
     # Attribute foo does not exist on Example so should raise an error
@@ -77,7 +83,7 @@ def test_handle_attribute_access_error() -> None:
 
     # Mypy should catch the bad argument type even if it is not an error
     # at runtime
-    handle.method_with_arg('not-an-int')  # type: ignore[arg-type]
+    await handle.method_with_arg('not-an-int')  # type: ignore[arg-type]
 
 
 def test_handle_union_types() -> None:
@@ -105,17 +111,19 @@ def test_handle_union_types() -> None:
         _ = handle4.foo  # type: ignore[union-attr]
 
 
-def test_handle_generic_protocol() -> None:
+@pytest.mark.asyncio
+async def test_handle_generic_protocol() -> None:
     # This is testing the casting a Handle implementation (i.e., ProxyHandle)
     # to the protocol Handle type still preserves the method resolution.
-    def _call(handle: Handle[Example]) -> int:
-        ping = handle.ping()
+    async def _call(handle: Handle[Example]) -> int:
+        ping = await handle.ping()
         assert_type(ping, float)
 
-        future = handle.method()
-        assert_type(future, Future[int])
+        future = await handle.method()
+        assert_type(future, asyncio.Future[int])
+        await future
         return future.result()
 
     handle = ProxyHandle(Example())
-    result = _call(handle)
+    result = await _call(handle)
     assert_type(result, int)

@@ -316,7 +316,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             else:
                 raise TypeError('Did not active peer address in Redis.')
         except (TypeError, SocketClosedError, OSError):
-            await self._redis_client.rpush(
+            await self._redis_client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),
                 message.model_serialize(),
             )
@@ -343,12 +343,12 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        await self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
+        await self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
         if isinstance(uid, AgentId):
             await self._redis_client.delete(self._behavior_key(uid))
 
     async def _get_message_from_redis(self) -> None:
-        raw = await self._redis_client.blpop(
+        raw = await self._redis_client.blpop(  # type: ignore[misc]
             [self._queue_key(self.mailbox_id)],
         )
         if raw is None:

@@ -173,7 +173,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             elif status == _MailboxState.INACTIVE.value:
                 raise MailboxClosedError(self.mailbox_id)
 
-            raw = await self._client.blpop(
+            raw = await self._client.blpop(  # type: ignore[misc]
                 [self._queue_key(self.mailbox_id)],
                 timeout=_timeout,
             )
@@ -221,7 +221,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         elif status == _MailboxState.INACTIVE.value:
             raise MailboxClosedError(message.dest)
         else:
-            await self._client.rpush(
+            await self._client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),
                 message.model_serialize(),
             )
@@ -243,7 +243,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
+        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
         if isinstance(uid, AgentId):
             await self._client.delete(self._behavior_key(uid))
 

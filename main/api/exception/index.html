@@ -1240,6 +1240,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../exchange/local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    local
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../exchange/proxystore/" class="md-nav__link">
         
   
@@ -1292,29 +1315,6 @@
   
   <span class="md-ellipsis">
     redis
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../exchange/thread/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    thread
     
   </span>
   
@@ -1947,7 +1947,7 @@
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span> <span class="n">mailbox_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            EntityId
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span> <span class="n">client_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            EntityId
 
 
   
@@ -1984,11 +1984,11 @@
 <span class="normal"><a href="#__codelineno-0-29">29</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="bp">self</span><span class="p">,</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>    <span class="n">mailbox_id</span><span class="p">:</span> <span class="n">EntityId</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>    <span class="n">client_id</span><span class="p">:</span> <span class="n">EntityId</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>        <span class="sa">f</span><span class="s1">&#39;Handle to </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s1"> bound to </span><span class="si">{</span><span class="n">mailbox_id</span><span class="si">}</span><span class="s1"> has been closed.&#39;</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>        <span class="k">if</span> <span class="n">mailbox_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>        <span class="sa">f</span><span class="s1">&#39;Handle to </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s1"> bound to </span><span class="si">{</span><span class="n">client_id</span><span class="si">}</span><span class="s1"> has been closed.&#39;</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>        <span class="k">if</span> <span class="n">client_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 </span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>        <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;Handle to </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s1"> has been closed.&#39;</span>
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="p">)</span>
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>

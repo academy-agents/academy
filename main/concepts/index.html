@@ -1266,6 +1266,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../api/exchange/local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    local
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/exchange/proxystore/" class="md-nav__link">
         
   
@@ -1318,29 +1341,6 @@
   
   <span class="md-ellipsis">
     redis
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../api/exchange/thread/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    thread
     
   </span>
   
@@ -1931,24 +1931,39 @@ Instance attributes maintain the agent's state, and methods define the actions a
 <li><strong>Communication</strong> between entities in managed via <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handles</code></a> which are client interfaces to remote agents used to invoke actions, ping, and shutdown.</li>
 </ul>
 <h3 id="execution">Execution<a class="headerlink" href="#execution" title="Permanent link">&para;</a></h3>
-<p>The <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> is a multithreaded entity that executes a provided behavior and manages communication with other entities.
-<a class="autorefs autorefs-internal" title="            run" href="../api/agent/#academy.agent.Agent.run"><code>Agent.run()</code></a> executed the agent by (1) invokes the <a class="autorefs autorefs-internal" title="            on_setup" href="../api/behavior/#academy.behavior.Behavior.on_setup"><code>on_setup()</code></a> callback of the behavior, (2) starts each <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a> method in a separate thread, (3) spawns a thread to listen for new messages in the agent's mailbox, and (4) waits for the agent to be shut down.
-Each <a class="autorefs autorefs-internal" title="            action" href="../api/behavior/#academy.behavior.action"><code>@action</code></a> method is executed in a thread pool when requested remotely so as to not block the handling of other messages.</p>
+<p>The <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> is an asynchronous entity that executes a provided behavior and manages communication with other entities.
+<a class="autorefs autorefs-internal" title="            run
+
+
+  
+      async
+  " href="../api/agent/#academy.agent.Agent.run"><code>Agent.run()</code></a> executed the agent by (1) invokes the <a class="autorefs autorefs-internal" title="            on_setup
+
+
+  
+      async
+  " href="../api/behavior/#academy.behavior.Behavior.on_setup"><code>on_setup()</code></a> callback of the behavior, (2) starts each <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a> method in a separate task, (3) spawns a task to listen for new messages in the agent's mailbox, and (4) waits for the agent to be shut down.
+Each <a class="autorefs autorefs-internal" title="            action" href="../api/behavior/#academy.behavior.action"><code>@action</code></a> method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The use of multi-threading means that behavior implementations must be aware of the caveats of Python's global interpreter lock (GIL).
 Compute-heavy actions can dispatch work to other parallel executors, such as a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a>, <a href="https://distributed.dask.org/en/stable/" target="_blank">Dask Distributed</a>, <a href="https://github.com/parsl/parsl/" target="_blank">Parsl</a>, or <a href="https://github.com/ray-project/ray" target="_blank">Ray</a>.</p>
 </div>
 <p>Agents are designed to be long-running, but can be terminated by sending a shutdown request.
-Upon shutdown, the shutdown <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/threading.html#threading.Event"><code>threading.Event</code></a>, passed to each <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a>, is set; running threads are instructed to shutdown and waited on; and the <a class="autorefs autorefs-internal" title="            on_shutdown" href="../api/behavior/#academy.behavior.Behavior.on_shutdown"><code>on_shutdown()</code></a> callback is invoked.
+Upon shutdown, the shutdown <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event"><code>Event</code></a>, passed to each <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a>, is set; running tasks are cancelled and waited on; and the <a class="autorefs autorefs-internal" title="            on_shutdown
+
+
+  
+      async
+  " href="../api/behavior/#academy.behavior.Behavior.on_shutdown"><code>on_shutdown()</code></a> callback is invoked.
 Agents can terminate themselves by setting the shutdown event;
 exceptions raised in <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a> methods will shutdown the agent by default, and
 exceptions raised when executing <a class="autorefs autorefs-internal" title="            action" href="../api/behavior/#academy.behavior.action"><code>@action</code></a> methods are caught and returned to the remote caller.</p>
 <h3 id="handles">Handles<a class="headerlink" href="#handles" title="Permanent link">&para;</a></h3>
 <p>Interacting with an agent is asynchronous; an entity sends a message to the agent's mailbox and waits to receive a response message in its own mailbox.
 A <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handle</code></a> is a client interface to a remote agent used to invoke actions, ping, and shutdown the agent.
-Handles translate method calls into a request messages sent via the exchange and returning a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Future"><code>Futures</code></a>.
-The handle also listens for response messages and accordingly sets the result on the appropriate <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Future"><code>Futures</code></a>.</p>
+Handles translate method calls into a request messages sent via the exchange and returning a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-future.html#asyncio.Future"><code>Futures</code></a>.
+The handle also listens for response messages and accordingly sets the result on the appropriate <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-future.html#asyncio.Future"><code>Futures</code></a>.</p>
 <h2 id="exchanges-and-mailboxes">Exchanges and Mailboxes<a class="headerlink" href="#exchanges-and-mailboxes" title="Permanent link">&para;</a></h2>
 <p>Entities communicate by sending and receiving messages to and from mailboxes.
 Mailboxes are managed by an exchange, and the <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a> protocol defines methods for interacting with the exchange and creating handles to other agents.
@@ -1959,17 +1974,22 @@ Open indicates that the entity is accepting messages, even if, for example, an a
 Closed indicates permanent termination of the entity and will cause <a class="autorefs autorefs-internal" title="            MailboxClosedError" href="../api/exception/#academy.exception.MailboxClosedError"><code>MailboxClosedError</code></a> to be raised by subsequent send or receive operations to that mailbox.</p>
 <p>Academy provides many exchange implementations for different scenarios, such as:</p>
 <ul>
-<li><a class="autorefs autorefs-internal" title="            ThreadExchangeFactory" href="../api/exchange/thread/#academy.exchange.thread.ThreadExchangeFactory"><strong>Threaded</strong></a>: Uses thread-safe queues for single-process, multiple-agent scenarios. Useful for testing and development.</li>
+<li><a class="autorefs autorefs-internal" title="            LocalExchangeFactory" href="../api/exchange/local/#academy.exchange.local.LocalExchangeFactory"><strong>Local</strong></a>: Uses in-memory queues for single-process, multiple-agent scenarios. Useful for testing and development.</li>
 <li><a class="autorefs autorefs-internal" title="            HttpExchangeFactory" href="../api/exchange/cloud/client/#academy.exchange.cloud.client.HttpExchangeFactory"><strong>HTTP</strong></a>: Centralized service that maintains mailboxes and exposes a REST API. Lower performance but easy to extend with common authentication tools.</li>
 <li><a class="autorefs autorefs-internal" title="            RedisExchangeFactory" href="../api/exchange/redis/#academy.exchange.redis.RedisExchangeFactory"><strong>Redis</strong></a>: Stores state and mailboxes in a Redis server. Use of Redis enables optional replication and cloud-hosting for improved resilience and availability.</li>
 <li><a class="autorefs autorefs-internal" title="            HybridExchangeFactory" href="../api/exchange/hybrid/#academy.exchange.hybrid.HybridExchangeFactory"><strong>HybridExchange</strong></a>: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).</li>
 </ul>
 <h2 id="launcher">Launcher<a class="headerlink" href="#launcher" title="Permanent link">&para;</a></h2>
 <p>An agent can be run manually, but the intended method of execution is via the launcher, which manages the initialization and execution of agents on remote resources.
-The <a class="autorefs autorefs-internal" title="            Launcher" href="../api/launcher/#academy.launcher.Launcher"><code>Launcher</code></a> defines a <a class="autorefs autorefs-internal" title="            launch" href="../api/launcher/#academy.launcher.Launcher.launch"><code>launch()</code></a> method with parameters for the behavior, exchange, and agent ID and returns a handle to the launched agent.
+The <a class="autorefs autorefs-internal" title="            Launcher" href="../api/launcher/#academy.launcher.Launcher"><code>Launcher</code></a> defines a <a class="autorefs autorefs-internal" title="            launch
+
+
+  
+      async
+  " href="../api/launcher/#academy.launcher.Launcher.launch"><code>launch()</code></a> method with parameters for the behavior, exchange, and agent ID and returns a handle to the launched agent.
 It runs agents in any <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor"><code>concurrent.futures.Executor</code></a> compatible executor, such as a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a>, <a href="https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops" target="_blank">Parsl</a>, or <a href="https://globus-compute.readthedocs.io/en/latest/index.html" target="_blank">Globus Compute</a>.</p>
 <h2 id="managers">Managers<a class="headerlink" href="#managers" title="Permanent link">&para;</a></h2>
-<p>A <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> combines an exchange and one or more launchers to provide a single interface for launching, using, and managing agents.
+<p>An <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> combines an exchange and one or more launchers to provide a single interface for launching, using, and managing agents.
 Each manager has a single mailbox in the exchange and multiplexes that mailbox across handles to all of the agents that it manages.
 This reduces boilerplate code, improves communication efficiency, and ensures stateful resources and threads are appropriately cleaned up.</p>
 

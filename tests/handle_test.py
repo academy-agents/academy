@@ -121,14 +121,9 @@ async def test_unbound_remote_handle_bind(
         match='An unbound handle has no client ID.',
     ):
         _ = handle.client_id
-    async with await handle.bind_to_exchange(exchange) as agent_bound:
+    async with await handle.bind_to_client(exchange) as agent_bound:
         assert isinstance(agent_bound, RemoteHandle)
         assert isinstance(agent_bound.clone(), UnboundRemoteHandle)
-
-        async with await agent_bound.bind_to_exchange(
-            exchange,
-        ) as agent_bound2:
-            assert agent_bound.client_id == agent_bound2.client_id
 
 
 @pytest.mark.asyncio

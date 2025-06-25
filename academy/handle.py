@@ -359,19 +359,19 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         """Raises [`RuntimeError`][RuntimeError] when unbound."""
         raise RuntimeError('An unbound handle has no client ID.')
 
-    async def bind_to_exchange(
+    async def bind_to_client(
         self,
-        exchange: ExchangeClient[Any],
+        client: ExchangeClient[Any],
     ) -> RemoteHandle[BehaviorT]:
         """Bind the handle to an existing mailbox.
 
         Args:
-            exchange: Client exchange to associate with handle
+            client: Exchange client.
 
         Returns:
-            Remote handle bound to the identifier.
+            Remote handle bound to the exchange client.
         """
-        return await exchange.get_handle(self.agent_id)
+        return await client.get_handle(self.agent_id)
 
     async def action(
         self,
@@ -467,20 +467,6 @@ class RemoteHandle(Generic[BehaviorT]):
             return await self.action(name, *args, **kwargs)
 
         return remote_method_call
-
-    async def bind_to_exchange(
-        self,
-        exchange: ExchangeClient[Any],
-    ) -> RemoteHandle[BehaviorT]:
-        """Bind the handle to an existing mailbox.
-
-        Args:
-            exchange: Client exchange to associate with handle
-
-        Returns:
-            Remote handle bound to the identifier.
-        """
-        return await exchange.get_handle(self.agent_id)
 
     def clone(self) -> UnboundRemoteHandle[BehaviorT]:
         """Create an unbound copy of this handle."""

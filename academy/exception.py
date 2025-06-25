@@ -40,7 +40,7 @@ class HandleNotBoundError(Exception):
     A handle must be bound to be used, either as a unique user program with its
     own mailbox or as bound to a running agent where it shares a mailbox with
     that running agent. To create a bound handle, use
-    `handle.bind_to_exchange()`.
+    `handle.bind_to_client()`.
 
     Any agent behavior that has a handle to another agent as an instance
     attribute will be automatically bound to the agent when the agent begins

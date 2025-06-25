@@ -29,6 +29,9 @@ from academy.event import wait_event_async
 from academy.handle import Handle
 from academy.handle import HandleDict
 from academy.handle import HandleList
+from academy.handle import ProxyHandle
+from academy.handle import RemoteHandle
+from academy.handle import UnboundRemoteHandle
 
 P = ParamSpec('P')
 R = TypeVar('R')
@@ -113,18 +116,21 @@ class Behavior:
             Dictionary mapping attribute names to agent handles or \
             data structures of handles.
         """
-        from academy.handle import Handle
-
-        # This import is deferred to prevent a cyclic import with
-        # academy.handle.
+        handle_types = (
+            ProxyHandle,
+            UnboundRemoteHandle,
+            RemoteHandle,
+            HandleDict,
+            HandleList,
+        )
         handles: dict[
             str,
             Handle[Any] | HandleDict[Any, Any] | HandleList[Any],
         ] = {}
         for name in dir(self):
             attr = getattr(self, name)
-            if isinstance(attr, (Handle, HandleDict, HandleList)):
-                handles[name] = attr
+            if isinstance(attr, handle_types):
+                handles[name] = attr  # type: ignore[assignment]
         return handles
 
     async def behavior_handles_bind(
@@ -138,9 +144,7 @@ class Behavior:
                 or a bound version of the handle.
         """
         for attr, handles in self.behavior_handles().items():
-            if isinstance(handles, Handle):
-                setattr(self, attr, await bind(handles))
-            elif isinstance(handles, HandleDict):
+            if isinstance(handles, HandleDict):
                 setattr(
                     self,
                     attr,
@@ -153,7 +157,7 @@ class Behavior:
                     HandleList([await bind(h) for h in handles]),
                 )
             else:
-                raise AssertionError('Unreachable.')
+                setattr(self, attr, await bind(handles))
 
     @classmethod
     def behavior_mro(cls) -> tuple[str, ...]:

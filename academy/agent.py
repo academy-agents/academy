@@ -120,7 +120,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         self._actions = behavior.behavior_actions()
         self._loops = behavior.behavior_loops()
 
-        self._shutdown_agent = asyncio.Event()
+        self._shutdown_agent: asyncio.Event | None = None
         self._shutdown_loop = threading.Event()
         self._expected_shutdown = False
         self._state_lock = asyncio.Lock()
@@ -216,6 +216,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         method: Callable[[asyncio.Event], Awaitable[None]],
     ) -> None:
         assert self._loop_pool is not None
+        assert self._shutdown_agent is not None
         try:
             await method(self._shutdown_agent)
         except asyncio.CancelledError:
@@ -282,6 +283,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         """
         try:
             await self.start()
+            assert self._shutdown_agent is not None
             await self._shutdown_agent.wait()
         except:
             logger.exception('Running agent %s failed!', self.agent_id)
@@ -317,6 +319,8 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 self.agent_id,
                 self.behavior,
             )
+            if self._shutdown_agent is None:
+                self._shutdown_agent = asyncio.Event()
             self._state = _AgentState.STARTING
 
             self._exchange_client = await self.exchange.create_agent_client(
@@ -379,7 +383,8 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 self.behavior,
             )
             self._state = _AgentState.TERMINTATING
-            self._shutdown_agent.set()
+            if self._shutdown_agent is not None:  # pragma: no branch
+                self._shutdown_agent.set()
             self._shutdown_loop.set()
 
             if self._exchange_listener_task is not None:
@@ -433,6 +438,8 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         effect.
         """
         self._expected_shutdown = expected
+        if self._shutdown_agent is None:
+            self._shutdown_agent = asyncio.Event()
         self._shutdown_agent.set()
         self._shutdown_loop.set()
 

@@ -214,7 +214,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
         fqp = f'{behavior.__module__}.{behavior.__name__}'
-        async for key in self._redis_client.scan_iter(
+        async for key in self._redis_client.scan_iter(  # pragma: no branch
             f'{self._namespace}:behavior:*',
         ):
             mro_str = await self._redis_client.get(key)

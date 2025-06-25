@@ -11,7 +11,6 @@ from academy.exception import HandleNotBoundError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeClient
 from academy.exchange import UserExchangeClient
-from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
@@ -28,7 +27,6 @@ from testing.constant import TEST_SLEEP
 async def test_proxy_handle_protocol() -> None:
     behavior = EmptyBehavior()
     handle = ProxyHandle(behavior)
-    assert isinstance(handle, Handle)
     assert str(behavior) in str(handle)
     assert repr(behavior) in repr(handle)
     assert await handle.ping() >= 0
@@ -104,7 +102,6 @@ async def test_unbound_remote_handle_serialize(
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
     handle = UnboundRemoteHandle(registration.agent_id)
-    assert isinstance(handle, Handle)
 
     dumped = pickle.dumps(handle)
     reconstructed = pickle.loads(dumped)

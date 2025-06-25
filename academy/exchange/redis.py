@@ -137,7 +137,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
         fqp = f'{behavior.__module__}.{behavior.__name__}'
-        async for key in self._client.scan_iter('behavior:*'):
+        async for key in self._client.scan_iter(
+            'behavior:*',
+        ):  # pragma: no branch
             mro_str = await self._client.get(key)
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')

@@ -8,6 +8,7 @@ from concurrent.futures import Executor
 from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
+from typing import Generic
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -33,7 +34,7 @@ def _run_agent_on_worker(agent: Agent[AgentRegistrationT, BehaviorT]) -> None:
 
 
 @dataclasses.dataclass
-class _ACB[BehaviorT]:
+class _ACB(Generic[BehaviorT]):
     # Agent Control Block
     agent_id: AgentId[BehaviorT]
     task: asyncio.Future[None]

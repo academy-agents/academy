@@ -56,7 +56,7 @@ async def test_reply_to_requests_with_error(
             start_listener=False,
         ) as client:
             request = PingRequest(
-                src=client.user_id,
+                src=client.client_id,
                 dest=manager.user_id,
             )
             await client.send(request)

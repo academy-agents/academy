@@ -167,7 +167,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
                 return handle
             if (
                 isinstance(handle, BoundRemoteHandle)
-                and handle.mailbox_id == self.agent_id
+                and handle.client_id == self.agent_id
             ):
                 return handle
 

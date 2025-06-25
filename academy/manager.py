@@ -78,7 +78,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             )
 
         self._exchange_client = exchange_client
-        self._user_id = self._exchange_client.user_id
+        self._user_id = self._exchange_client.client_id
         self._launchers = launcher
         self._default_launcher = default_launcher
 

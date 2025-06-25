@@ -320,7 +320,7 @@ class SimpleSocketServer:
         writer: asyncio.StreamWriter,
     ) -> None:
         try:
-            while not reader.at_eof():
+            while not reader.at_eof():  # pragma: no branch
                 try:
                     message = await self._read_message(reader)
                 except asyncio.IncompleteReadError:  # pragma: no cover

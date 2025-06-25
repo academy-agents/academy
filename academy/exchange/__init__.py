@@ -180,6 +180,18 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
     ) -> None:
         await self.close()
 
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}({self.client_id!r})'
+
+    def __str__(self) -> str:
+        return f'{type(self).__name__}<{self.client_id}>'
+
+    @property
+    @abc.abstractmethod
+    def client_id(self) -> EntityId:
+        """Client ID as registered with the exchange."""
+        ...
+
     @abc.abstractmethod
     async def close(self) -> None:
         """Close the transport."""
@@ -241,7 +253,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 f'Handle must be created from an {AgentId.__name__} '
                 f'but got identifier with type {type(aid).__name__}.',
             )
-        handle = BoundRemoteHandle(self, aid, self._transport.mailbox_id)
+        handle = BoundRemoteHandle(self, aid)
         self._handles[handle.handle_id] = handle
         logger.info('Created handle to %s', aid)
         return handle
@@ -315,7 +327,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 'Received %s from %s for %s',
                 type(message).__name__,
                 message.src,
-                self._transport.mailbox_id,
+                self.client_id,
             )
             await self._handle_message(message)
 
@@ -351,15 +363,9 @@ class AgentExchangeClient(
         self._agent_id = agent_id
         self._request_handler = request_handler
 
-    def __repr__(self) -> str:
-        return f'{type(self).__name__}({self.agent_id!r})'
-
-    def __str__(self) -> str:
-        return f'{type(self).__name__}<{self.agent_id}>'
-
     @property
-    def agent_id(self) -> AgentId[BehaviorT]:
-        """Agent ID."""
+    def client_id(self) -> AgentId[BehaviorT]:
+        """Agent ID of the client."""
         return self._agent_id
 
     async def close(self) -> None:
@@ -371,7 +377,7 @@ class AgentExchangeClient(
         """
         await self._close_handles()
         await self._transport.close()
-        logger.info('Closed exchange client for %s', self.agent_id)
+        logger.info('Closed exchange client for %s', self.client_id)
 
     async def _handle_message(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):
@@ -383,7 +389,7 @@ class AgentExchangeClient(
                 logger.warning(
                     'Exchange client for %s received an unexpected response '
                     'message from %s but no corresponding handle exists.',
-                    self.agent_id,
+                    self.client_id,
                     message.src,
                 )
             else:
@@ -418,18 +424,12 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         if start_listener:
             self._listener_task = asyncio.create_task(
                 self._listen_for_messages(),
-                name=f'user-exchange-listener-{self.user_id}',
+                name=f'user-exchange-listener-{self.client_id}',
             )
 
-    def __repr__(self) -> str:
-        return f'{type(self).__name__}({self.user_id!r})'
-
-    def __str__(self) -> str:
-        return f'{type(self).__name__}<{self.user_id}>'
-
     @property
-    def user_id(self) -> UserId:
-        """User ID."""
+    def client_id(self) -> UserId:
+        """User ID of the client."""
         return self._user_id
 
     async def close(self) -> None:
@@ -439,24 +439,24 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         transport, and closes all handles produced by this client.
         """
         await self._close_handles()
-        await self._transport.terminate(self.user_id)
-        logger.info(f'Terminated mailbox for {self.user_id}')
+        await self._transport.terminate(self.client_id)
+        logger.info(f'Terminated mailbox for {self.client_id}')
         if self._listener_task is not None:
             self._listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._listener_task
         await self._transport.close()
-        logger.info('Closed exchange client for %s', self.user_id)
+        logger.info('Closed exchange client for %s', self.client_id)
 
     async def _handle_message(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):
-            error = TypeError(f'{self.user_id} cannot fulfill requests.')
+            error = TypeError(f'{self.client_id} cannot fulfill requests.')
             response = message.error(error)
             await self._transport.send(response)
             logger.warning(
                 'Exchange client for %s received unexpected request message '
                 'from %s',
-                self.user_id,
+                self.client_id,
                 message.src,
             )
         elif isinstance(message, get_args(ResponseMessage)):
@@ -466,7 +466,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 logger.warning(
                     'Exchange client for %s received an unexpected response '
                     'message from %s but no corresponding handle exists.',
-                    self.user_id,
+                    self.client_id,
                     message.src,
                 )
             else:

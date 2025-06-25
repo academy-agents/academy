@@ -119,6 +119,11 @@ async def test_unbound_remote_handle_bind(
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
     handle = UnboundRemoteHandle(registration.agent_id)
+    with pytest.raises(
+        RuntimeError,
+        match='An unbound handle has no client ID.',
+    ):
+        _ = handle.client_id
     async with await handle.bind_to_exchange(exchange) as agent_bound:
         assert isinstance(agent_bound, BoundRemoteHandle)
 
@@ -144,14 +149,10 @@ async def test_remote_handle_closed_error(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
-    handle = BoundRemoteHandle(
-        exchange,
-        registration.agent_id,
-        exchange.user_id,
-    )
+    handle = BoundRemoteHandle(exchange, registration.agent_id)
     await handle.close()
 
-    assert handle.mailbox_id is not None
+    assert handle.client_id is not None
     with pytest.raises(HandleClosedError):
         await handle.action('foo')
     with pytest.raises(HandleClosedError):
@@ -165,11 +166,7 @@ async def test_agent_remote_handle_serialize(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
-    async with BoundRemoteHandle(
-        exchange,
-        registration.agent_id,
-        exchange.user_id,
-    ) as handle:
+    async with BoundRemoteHandle(exchange, registration.agent_id) as handle:
         # Note: don't call pickle.dumps here because ThreadExchange
         # is not pickleable so we test __reduce__ directly.
         class_, args = handle.__reduce__()
@@ -196,7 +193,7 @@ async def test_agent_remote_handle_bind(
     ) as client:
         with pytest.raises(
             ValueError,
-            match=f'Cannot create handle to {registration.agent_id}',
+            match='Cannot create handle to self.',
         ):
             await client.get_handle(registration.agent_id)
 
@@ -206,11 +203,7 @@ async def test_client_remote_handle_ping_timeout(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
-    handle = BoundRemoteHandle(
-        exchange,
-        registration.agent_id,
-        exchange.user_id,
-    )
+    handle = BoundRemoteHandle(exchange, registration.agent_id)
     with pytest.raises(TimeoutError):
         await handle.ping(timeout=0.001)
 
@@ -228,7 +221,7 @@ async def test_client_remote_handle_log_bad_response(
         #     error produced by user) with no corresponding handle to
         #     send the response to.
         await handle.exchange.send(
-            PingRequest(src=handle.agent_id, dest=handle.mailbox_id),
+            PingRequest(src=handle.agent_id, dest=handle.client_id),
         )
         assert await handle.ping() > 0
 

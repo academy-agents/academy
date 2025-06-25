@@ -20,6 +20,7 @@ from academy.exchange.transport import MailboxStatus
 from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import UnboundRemoteHandle
+from academy.identifier import AgentId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import PingRequest
@@ -213,7 +214,6 @@ async def test_agent_shutdown_message(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
-    user_id = exchange.user_id
 
     agent = Agent(
         EmptyBehavior(),
@@ -225,7 +225,7 @@ async def test_agent_shutdown_message(
     while agent._state is not _AgentState.RUNNING:
         await asyncio.sleep(0.001)
 
-    shutdown = ShutdownRequest(src=user_id, dest=agent.agent_id)
+    shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
     await exchange.send(shutdown)
     await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -238,7 +238,6 @@ async def test_agent_ping_message(
         start_listener=False,
     ) as exchange:
         registration = await exchange.register_agent(EmptyBehavior)
-        user_id = exchange.user_id
 
         agent = Agent(
             EmptyBehavior(),
@@ -250,12 +249,12 @@ async def test_agent_ping_message(
         while agent._state is not _AgentState.RUNNING:
             await asyncio.sleep(0.001)
 
-        ping = PingRequest(src=user_id, dest=agent.agent_id)
+        ping = PingRequest(src=exchange.client_id, dest=agent.agent_id)
         await exchange.send(ping)
         message = await exchange._transport.recv()
         assert isinstance(message, PingResponse)
 
-        shutdown = ShutdownRequest(src=user_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -268,7 +267,6 @@ async def test_agent_action_message(
         start_listener=False,
     ) as exchange:
         registration = await exchange.register_agent(CounterBehavior)
-        user_id = exchange.user_id
 
         agent = Agent(
             CounterBehavior(),
@@ -285,7 +283,7 @@ async def test_agent_action_message(
 
         value = 42
         request = ActionRequest(
-            src=user_id,
+            src=exchange.client_id,
             dest=agent.agent_id,
             action='add',
             pargs=(value,),
@@ -297,7 +295,7 @@ async def test_agent_action_message(
         assert message.result is None
 
         request = ActionRequest(
-            src=user_id,
+            src=exchange.client_id,
             dest=agent.agent_id,
             action='count',
         )
@@ -307,7 +305,7 @@ async def test_agent_action_message(
         assert message.exception is None
         assert message.result == value
 
-        shutdown = ShutdownRequest(src=user_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -320,7 +318,6 @@ async def test_agent_action_message_error(
         start_listener=False,
     ) as exchange:
         registration = await exchange.register_agent(ErrorBehavior)
-        user_id = exchange.user_id
 
         agent = Agent(
             ErrorBehavior(),
@@ -336,7 +333,7 @@ async def test_agent_action_message_error(
             await asyncio.sleep(0.001)
 
         request = ActionRequest(
-            src=user_id,
+            src=exchange.client_id,
             dest=agent.agent_id,
             action='fails',
         )
@@ -346,7 +343,7 @@ async def test_agent_action_message_error(
         assert isinstance(message.exception, RuntimeError)
         assert 'This action always fails.' in str(message.exception)
 
-        shutdown = ShutdownRequest(src=user_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -359,7 +356,6 @@ async def test_agent_action_message_unknown(
         start_listener=False,
     ) as exchange:
         registration = await exchange.register_agent(EmptyBehavior)
-        user_id = exchange.user_id
 
         agent = Agent(
             EmptyBehavior(),
@@ -375,7 +371,7 @@ async def test_agent_action_message_unknown(
             await asyncio.sleep(0.001)
 
         request = ActionRequest(
-            src=user_id,
+            src=exchange.client_id,
             dest=agent.agent_id,
             action='null',
         )
@@ -385,7 +381,7 @@ async def test_agent_action_message_unknown(
         assert isinstance(message.exception, AttributeError)
         assert 'null' in str(message.exception)
 
-        shutdown = ShutdownRequest(src=user_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -406,35 +402,48 @@ class HandleBindingBehavior(Behavior):
         assert isinstance(self.agent_bound, BoundRemoteHandle)
         assert isinstance(self.self_bound, BoundRemoteHandle)
 
-        assert self.unbound.mailbox_id is not None
-        assert self.unbound.mailbox_id == self.agent_bound.mailbox_id
-        assert self.unbound.mailbox_id == self.self_bound.mailbox_id
+        assert isinstance(self.unbound.client_id, AgentId)
+        assert self.unbound.client_id == self.agent_bound.client_id
+        assert self.unbound.client_id == self.self_bound.client_id
 
 
 @pytest.mark.asyncio
 async def test_agent_run_bind_handles(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(HandleBindingBehavior)
-    behavior = HandleBindingBehavior(
-        unbound=UnboundRemoteHandle(
-            (await exchange.register_agent(EmptyBehavior)).agent_id,
-        ),
-        agent_bound=BoundRemoteHandle(
-            exchange,
-            (await exchange.register_agent(EmptyBehavior)).agent_id,
-            (await exchange.register_agent(EmptyBehavior)).agent_id,
-        ),
-        self_bound=BoundRemoteHandle(
-            exchange,
-            (await exchange.register_agent(EmptyBehavior)).agent_id,
-            registration.agent_id,
-        ),
+    factory = exchange.factory()
+    main_agent_reg = await exchange.register_agent(HandleBindingBehavior)
+    remote_agent1_reg = await exchange.register_agent(EmptyBehavior)
+    remote_agent1_id = remote_agent1_reg.agent_id
+    remote_agent2_reg = await exchange.register_agent(EmptyBehavior)
+
+    async def _request_handler(_: Any) -> None:  # pragma: no cover
+        pass
+
+    main_agent_client = await factory.create_agent_client(
+        main_agent_reg,
+        _request_handler,
     )
+    remote_agent2_client = await factory.create_agent_client(
+        remote_agent2_reg,
+        _request_handler,
+    )
+
+    behavior = HandleBindingBehavior(
+        unbound=UnboundRemoteHandle(remote_agent1_id),
+        agent_bound=BoundRemoteHandle(remote_agent2_client, remote_agent1_id),
+        self_bound=BoundRemoteHandle(main_agent_client, remote_agent1_id),
+    )
+
+    # The agent is going to create it's own exchange client so we'd end up
+    # with two clients for the same agent. Close this one as we just used
+    # it to mock a handle already bound to the agent.
+    await main_agent_client.close()
+
     agent = Agent(
         behavior,
-        exchange_factory=exchange.factory(),
-        registration=registration,
+        exchange_factory=factory,
+        registration=main_agent_reg,
     )
 
     # start() will bind the handles and call the checks in on_setup()
@@ -443,6 +452,8 @@ async def test_agent_run_bind_handles(
     assert agent._exchange_client is not None
     assert len(agent._exchange_client._handles) == 2  # noqa: PLR2004
     await agent.shutdown()
+
+    await remote_agent2_client.close()
 
 
 class RunBehavior(Behavior):

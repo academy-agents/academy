@@ -19,11 +19,11 @@ class HandleClosedError(Exception):
     def __init__(
         self,
         agent_id: AgentId[Any],
-        mailbox_id: EntityId | None,
+        client_id: EntityId | None,
     ) -> None:
         message = (
-            f'Handle to {agent_id} bound to {mailbox_id} has been closed.'
-            if mailbox_id is not None
+            f'Handle to {agent_id} bound to {client_id} has been closed.'
+            if client_id is not None
             else f'Handle to {agent_id} has been closed.'
         )
         super().__init__(message)

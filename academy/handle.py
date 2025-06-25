@@ -31,6 +31,7 @@ from academy.exception import HandleNotBoundError
 from academy.exception import MailboxClosedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
+from academy.identifier import UserId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import PingRequest
@@ -61,7 +62,7 @@ class Handle(Protocol[BehaviorT]):
     """
 
     agent_id: AgentId[BehaviorT]
-    mailbox_id: EntityId | None
+    client_id: EntityId
 
     def __getattr__(self, name: str) -> Any:
         # This dummy method definition is required to signal to mypy that
@@ -195,7 +196,7 @@ class ProxyHandle(Generic[BehaviorT]):
     def __init__(self, behavior: BehaviorT) -> None:
         self.behavior = behavior
         self.agent_id: AgentId[BehaviorT] = AgentId.new()
-        self.mailbox_id: EntityId | None = None
+        self.client_id: EntityId = UserId.new()
         self._agent_closed = False
         self._handle_closed = False
 
@@ -244,7 +245,7 @@ class ProxyHandle(Generic[BehaviorT]):
         if self._agent_closed:
             raise MailboxClosedError(self.agent_id)
         elif self._handle_closed:
-            raise HandleClosedError(self.agent_id, self.mailbox_id)
+            raise HandleClosedError(self.agent_id, self.client_id)
 
         future: asyncio.Future[R] = asyncio.get_running_loop().create_future()
         try:
@@ -300,7 +301,7 @@ class ProxyHandle(Generic[BehaviorT]):
         if self._agent_closed:
             raise MailboxClosedError(self.agent_id)
         elif self._handle_closed:
-            raise HandleClosedError(self.agent_id, self.mailbox_id)
+            raise HandleClosedError(self.agent_id, self.client_id)
         return 0
 
     async def shutdown(self) -> None:
@@ -317,7 +318,7 @@ class ProxyHandle(Generic[BehaviorT]):
         if self._agent_closed:
             raise MailboxClosedError(self.agent_id)
         elif self._handle_closed:
-            raise HandleClosedError(self.agent_id, self.mailbox_id)
+            raise HandleClosedError(self.agent_id, self.client_id)
         self._agent_closed = True
 
 
@@ -335,7 +336,6 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
 
     def __init__(self, agent_id: AgentId[BehaviorT]) -> None:
         self.agent_id = agent_id
-        self.mailbox_id = None
 
     def __repr__(self) -> str:
         name = type(self).__name__
@@ -345,10 +345,14 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         return f'{type(self).__name__}<agent: {self.agent_id}>'
 
     def __getattr__(self, name: str) -> Any:
-        """Raises `AttributeError`."""
         raise AttributeError(
             'Actions cannot be invoked via an unbound handle.',
         )
+
+    @property
+    def client_id(self) -> EntityId | None:
+        """Raises [`RuntimeError`][RuntimeError] when unbound."""
+        raise RuntimeError('An unbound handle has no client ID.')
 
     async def bind_to_exchange(
         self,
@@ -391,27 +395,24 @@ class BoundRemoteHandle(Generic[BehaviorT]):
     """Handle to a remote agent bound to an existing mailbox.
 
     Args:
-        exchange: Message exchange used for agent communication.
+        exchange: Exchange client used for agent communication.
         agent_id: EntityId of the target agent of this handle.
-        mailbox_id: EntityId of the mailbox this handle receives messages to.
     """
 
     def __init__(
         self,
         exchange: ExchangeClient[Any],
         agent_id: AgentId[BehaviorT],
-        mailbox_id: EntityId | None = None,
     ) -> None:
-        if agent_id == mailbox_id:
-            raise ValueError(
-                f'Cannot create handle to {agent_id} that is bound to itself. '
-                'Check that the values of `agent_id` and `mailbox_id` '
-                'are different.',
-            )
-
         self.exchange = exchange
         self.agent_id = agent_id
-        self.mailbox_id = mailbox_id
+        self.client_id = exchange.client_id
+
+        if self.agent_id == self.client_id:
+            raise ValueError(
+                'Cannot create handle to self. The IDs of the exchange '
+                f'client and the target agent are the same: {self.agent_id}.',
+            )
         # Unique identifier for each handle object; used to disambiguate
         # messages when multiple handles are bound to the same mailbox.
         self.handle_id = uuid.uuid4()
@@ -441,12 +442,12 @@ class BoundRemoteHandle(Generic[BehaviorT]):
     def __repr__(self) -> str:
         return (
             f'{type(self).__name__}(agent_id={self.agent_id!r}, '
-            f'mailbox_id={self.mailbox_id!r}, exchange={self.exchange!r})'
+            f'client_id={self.client_id!r}, exchange={self.exchange!r})'
         )
 
     def __str__(self) -> str:
         name = type(self).__name__
-        return f'{name}<agent: {self.agent_id}; mailbox: {self.mailbox_id}>'
+        return f'{name}<agent: {self.agent_id}; mailbox: {self.client_id}>'
 
     def __getattr__(self, name: str) -> Any:
         async def remote_method_call(
@@ -548,10 +549,10 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 (it self terminated or via another handle).
         """
         if self._closed:
-            raise HandleClosedError(self.agent_id, self.mailbox_id)
+            raise HandleClosedError(self.agent_id, self.client_id)
 
         request = ActionRequest(
-            src=self.mailbox_id,
+            src=self.client_id,
             dest=self.agent_id,
             label=self.handle_id,
             action=action,
@@ -564,7 +565,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         await self.exchange.send(request)
         logger.debug(
             'Sent action request from %s to %s (action=%r)',
-            self.mailbox_id,
+            self.client_id,
             self.agent_id,
             action,
         )
@@ -591,10 +592,10 @@ class BoundRemoteHandle(Generic[BehaviorT]):
             TimeoutError: If the timeout is exceeded.
         """
         if self._closed:
-            raise HandleClosedError(self.agent_id, self.mailbox_id)
+            raise HandleClosedError(self.agent_id, self.client_id)
 
         request = PingRequest(
-            src=self.mailbox_id,
+            src=self.client_id,
             dest=self.agent_id,
             label=self.handle_id,
         )
@@ -603,7 +604,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         self._futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)
-        logger.debug('Sent ping from %s to %s', self.mailbox_id, self.agent_id)
+        logger.debug('Sent ping from %s to %s', self.client_id, self.agent_id)
 
         done, pending = await asyncio.wait({future}, timeout=timeout)
         if future in pending:
@@ -613,7 +614,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
         elapsed = time.perf_counter() - start
         logger.debug(
             'Received ping from %s to %s in %.1f ms',
-            self.mailbox_id,
+            self.client_id,
             self.agent_id,
             elapsed * 1000,
         )
@@ -631,16 +632,16 @@ class BoundRemoteHandle(Generic[BehaviorT]):
                 (it self terminated or via another handle).
         """
         if self._closed:
-            raise HandleClosedError(self.agent_id, self.mailbox_id)
+            raise HandleClosedError(self.agent_id, self.client_id)
 
         request = ShutdownRequest(
-            src=self.mailbox_id,
+            src=self.client_id,
             dest=self.agent_id,
             label=self.handle_id,
         )
         await self.exchange.send(request)
         logger.debug(
             'Sent shutdown request from %s to %s',
-            self.mailbox_id,
+            self.client_id,
             self.agent_id,
         )

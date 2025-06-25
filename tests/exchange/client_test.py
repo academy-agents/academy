@@ -137,8 +137,8 @@ async def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
             task = asyncio.Task(agent_client._listen_for_messages())
 
             message = PingRequest(
-                src=user_client.user_id,
-                dest=agent_client.agent_id,
+                src=user_client.client_id,
+                dest=agent_client.client_id,
             )
             await user_client.send(message)
 
@@ -158,7 +158,10 @@ async def test_client_reply_error_on_request(
         async with await factory.create_user_client(
             start_listener=True,
         ) as client2:
-            message = PingRequest(src=client1.user_id, dest=client2.user_id)
+            message = PingRequest(
+                src=client1.client_id,
+                dest=client2.client_id,
+            )
             await client1.send(message)
             response = await client1._transport.recv()
             assert isinstance(response, PingResponse)

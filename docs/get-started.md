@@ -63,7 +63,7 @@ if __name__ == '__main__':
 4. The [local exchange][academy.exchange.local.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
 5. The [`ThreadLauncher`][academy.launcher.ThreadLauncher] launches agents in threads of the current process.
 6. An instantiated behavior (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
-7. Interact with running agents via a [`BoundRemoteHandle`][academy.handle.BoundRemoteHandle]. Invoking an action returns a future to the result.
+7. Interact with running agents via a [`RemoteHandle`][academy.handle.RemoteHandle]. Invoking an action returns a future to the result.
 8. Agents can be shutdown via a handle or the manager.
 
 Running this script with logging enabled produces the following output:

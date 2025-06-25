@@ -17,8 +17,8 @@ from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.transport import MailboxStatus
-from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
+from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
 from academy.message import ActionRequest
@@ -390,17 +390,17 @@ class HandleBindingBehavior(Behavior):
     def __init__(
         self,
         unbound: UnboundRemoteHandle[EmptyBehavior],
-        agent_bound: BoundRemoteHandle[EmptyBehavior],
-        self_bound: BoundRemoteHandle[EmptyBehavior],
+        agent_bound: RemoteHandle[EmptyBehavior],
+        self_bound: RemoteHandle[EmptyBehavior],
     ) -> None:
         self.unbound = unbound
         self.agent_bound = agent_bound
         self.self_bound = self_bound
 
     async def on_setup(self) -> None:
-        assert isinstance(self.unbound, BoundRemoteHandle)
-        assert isinstance(self.agent_bound, BoundRemoteHandle)
-        assert isinstance(self.self_bound, BoundRemoteHandle)
+        assert isinstance(self.unbound, RemoteHandle)
+        assert isinstance(self.agent_bound, RemoteHandle)
+        assert isinstance(self.self_bound, RemoteHandle)
 
         assert isinstance(self.unbound.client_id, AgentId)
         assert self.unbound.client_id == self.agent_bound.client_id
@@ -431,8 +431,8 @@ async def test_agent_run_bind_handles(
 
     behavior = HandleBindingBehavior(
         unbound=UnboundRemoteHandle(remote_agent1_id),
-        agent_bound=BoundRemoteHandle(remote_agent2_client, remote_agent1_id),
-        self_bound=BoundRemoteHandle(main_agent_client, remote_agent1_id),
+        agent_bound=RemoteHandle(remote_agent2_client, remote_agent1_id),
+        self_bound=RemoteHandle(main_agent_client, remote_agent1_id),
     )
 
     # The agent is going to create it's own exchange client so we'd end up
@@ -461,7 +461,7 @@ class RunBehavior(Behavior):
         self.doubler = doubler
 
     async def on_shutdown(self) -> None:
-        assert isinstance(self.doubler, BoundRemoteHandle)
+        assert isinstance(self.doubler, RemoteHandle)
         await self.doubler.shutdown()
 
     @action

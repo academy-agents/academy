@@ -22,9 +22,9 @@ from academy.exchange import AgentExchangeClient
 from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
-from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import ProxyHandle
+from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.message import ActionRequest
 from academy.message import PingRequest
@@ -166,12 +166,12 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
             if isinstance(handle, ProxyHandle):  # pragma: no cover
                 return handle
             if (
-                isinstance(handle, BoundRemoteHandle)
+                isinstance(handle, RemoteHandle)
                 and handle.client_id == self.agent_id
             ):
                 return handle
 
-            assert isinstance(handle, (UnboundRemoteHandle, BoundRemoteHandle))
+            assert isinstance(handle, (UnboundRemoteHandle, RemoteHandle))
             assert self._exchange_client is not None
             bound = await handle.bind_to_exchange(self._exchange_client)
             logger.debug(

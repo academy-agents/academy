@@ -11,9 +11,9 @@ from academy.exception import HandleNotBoundError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeClient
 from academy.exchange import UserExchangeClient
-from academy.handle import BoundRemoteHandle
 from academy.handle import Handle
 from academy.handle import ProxyHandle
+from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.launcher import ThreadLauncher
 from academy.message import PingRequest
@@ -125,7 +125,7 @@ async def test_unbound_remote_handle_bind(
     ):
         _ = handle.client_id
     async with await handle.bind_to_exchange(exchange) as agent_bound:
-        assert isinstance(agent_bound, BoundRemoteHandle)
+        assert isinstance(agent_bound, RemoteHandle)
 
 
 @pytest.mark.asyncio
@@ -149,7 +149,7 @@ async def test_remote_handle_closed_error(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
-    handle = BoundRemoteHandle(exchange, registration.agent_id)
+    handle = RemoteHandle(exchange, registration.agent_id)
     await handle.close()
 
     assert handle.client_id is not None
@@ -166,7 +166,7 @@ async def test_agent_remote_handle_serialize(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
-    async with BoundRemoteHandle(exchange, registration.agent_id) as handle:
+    async with RemoteHandle(exchange, registration.agent_id) as handle:
         # Note: don't call pickle.dumps here because ThreadExchange
         # is not pickleable so we test __reduce__ directly.
         class_, args = handle.__reduce__()
@@ -203,7 +203,7 @@ async def test_client_remote_handle_ping_timeout(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
-    handle = BoundRemoteHandle(exchange, registration.agent_id)
+    handle = RemoteHandle(exchange, registration.agent_id)
     with pytest.raises(TimeoutError):
         await handle.ping(timeout=0.001)
 

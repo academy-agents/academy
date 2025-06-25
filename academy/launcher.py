@@ -21,7 +21,7 @@ from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
-from academy.handle import BoundRemoteHandle
+from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 
 logger = logging.getLogger(__name__)
@@ -155,7 +155,7 @@ class Launcher:
         *,
         agent_id: AgentId[BehaviorT] | None = None,
         name: str | None = None,
-    ) -> BoundRemoteHandle[BehaviorT]:
+    ) -> RemoteHandle[BehaviorT]:
         """Launch a new agent with a specified behavior.
 
         Args:

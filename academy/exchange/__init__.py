@@ -34,7 +34,7 @@ from academy.exception import MailboxClosedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
-from academy.handle import BoundRemoteHandle
+from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -167,7 +167,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         transport: ExchangeTransportT,
     ) -> None:
         self._transport = transport
-        self._handles: dict[uuid.UUID, BoundRemoteHandle[Any]] = {}
+        self._handles: dict[uuid.UUID, RemoteHandle[Any]] = {}
 
     async def __aenter__(self) -> Self:
         return self
@@ -231,7 +231,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
     async def get_handle(
         self,
         aid: AgentId[BehaviorT],
-    ) -> BoundRemoteHandle[BehaviorT]:
+    ) -> RemoteHandle[BehaviorT]:
         """Create a new handle to an agent.
 
         A handle acts like a reference to a remote agent, enabling a user
@@ -253,7 +253,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 f'Handle must be created from an {AgentId.__name__} '
                 f'but got identifier with type {type(aid).__name__}.',
             )
-        handle = BoundRemoteHandle(self, aid)
+        handle = RemoteHandle(self, aid)
         self._handles[handle.handle_id] = handle
         logger.info('Created handle to %s', aid)
         return handle

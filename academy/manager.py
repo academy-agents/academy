@@ -19,7 +19,7 @@ from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import UserExchangeClient
 from academy.exchange.transport import ExchangeTransportT
-from academy.handle import BoundRemoteHandle
+from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.launcher import Launcher
@@ -82,7 +82,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._launchers = launcher
         self._default_launcher = default_launcher
 
-        self._handles: dict[AgentId[Any], BoundRemoteHandle[Any]] = {}
+        self._handles: dict[AgentId[Any], RemoteHandle[Any]] = {}
         self._aid_to_launcher: dict[AgentId[Any], str] = {}
 
         logger.info(
@@ -208,7 +208,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         agent_id: AgentId[BehaviorT] | None = None,
         launcher: str | None = None,
         name: str | None = None,
-    ) -> BoundRemoteHandle[BehaviorT]:
+    ) -> RemoteHandle[BehaviorT]:
         """Launch a new agent with a specified behavior.
 
         Note:
@@ -282,7 +282,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     async def wait(
         self,
-        agent: AgentId[Any] | BoundRemoteHandle[Any],
+        agent: AgentId[Any] | RemoteHandle[Any],
         *,
         timeout: float | None = None,
     ) -> None:
@@ -297,9 +297,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 the agent was not launched by this launcher.
             TimeoutError: If `timeout` was exceeded while waiting for agent.
         """
-        agent_id = (
-            agent.agent_id if isinstance(agent, BoundRemoteHandle) else agent
-        )
+        agent_id = agent.agent_id if isinstance(agent, RemoteHandle) else agent
         if agent_id not in self._aid_to_launcher:
             raise BadEntityIdError(agent_id)
         launcher_name = self._aid_to_launcher[agent_id]

@@ -357,7 +357,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
     async def bind_to_exchange(
         self,
         exchange: ExchangeClient[Any],
-    ) -> BoundRemoteHandle[BehaviorT]:
+    ) -> RemoteHandle[BehaviorT]:
         """Bind the handle to an existing mailbox.
 
         Args:
@@ -391,8 +391,8 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         raise HandleNotBoundError(self.agent_id)
 
 
-class BoundRemoteHandle(Generic[BehaviorT]):
-    """Handle to a remote agent bound to an existing mailbox.
+class RemoteHandle(Generic[BehaviorT]):
+    """Handle to a remote agent bound to an exchange client.
 
     Args:
         exchange: Exchange client used for agent communication.
@@ -461,7 +461,7 @@ class BoundRemoteHandle(Generic[BehaviorT]):
     async def bind_to_exchange(
         self,
         exchange: ExchangeClient[Any],
-    ) -> BoundRemoteHandle[BehaviorT]:
+    ) -> RemoteHandle[BehaviorT]:
         """Bind the handle to an existing mailbox.
 
         Args:

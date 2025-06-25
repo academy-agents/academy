@@ -27,7 +27,7 @@ The below sensor monitoring behavior periodically reads a sensor in the `monitor
 Clients or peers can invoke the `get_last_reading()` and `set_process_threshold()` actions remotely to interact with the monitor agent.
 
 ```python
-import time, threading
+import asyncio
 from academy.behavior import Behavior, action, loop
 
 class SensorMonitorAgent(Behavior):
@@ -36,43 +36,45 @@ class SensorMonitorAgent(Behavior):
         self.process_threshold: float = 1.0
 
     @action
-    def get_last_reading(self) -> float | None:
+    async def get_last_reading(self) -> float | None:
         return self.last_reading
 
     @action
-    def set_process_threshold(self, value: float) -> None:
+    async def set_process_threshold(self, value: float) -> None:
         self.process_threshold = value
 
     @loop
-    def monitor(self, shutdown: threading.Event) -> None:
+    async def monitor(self, shutdown: asyncio.Event) -> None:
         while not shutdown.is_set():
-            value = read_sensor_data()
+            value = await read_sensor_data()
             self.last_reading = value:
             if value >= self.process_threshold:
-                process_reading(value)
-            time.sleep(1)
+                await process_reading(value)
+            await asyncio.sleep(1)
 ```
 
-Entities communicate asynchronously through *handles*, sending messages to and receiving messages from a mailbox managed by an `Exchange`.
-The `Launcher` abstracts the remote execution of an agent, and the `Manager` provides easy management of handles, launchers, and the exchange.
+Entities communicate asynchronously through *handles*, sending messages to and receiving messages from a mailbox managed by an *exchange*.
+The *launcher* abstracts the remote execution of an agent, and the `Manager` provides easy management of handles, launchers, and the exchange.
 
 ```python
-from academy.exchange.thread import ThreadExchange
+from academy.exchange.local import LocalExchangeFactory
 from academy.launcher import ThreadLauncher
 from academy.manager import Manager
 
-with Manager(
-    exchange=ThreadExchange(),  # Replace with other implementations
+async with await Manager.from_exchange_factory(
+    factory=LocalExchangeFactory(),  # Replace with other implementations
     launcher=ThreadLauncher(),  # for distributed deployments
 ) as manager:
     behavior = SensorMonitorAgent()  # From the above block
-    agent_handle = manager.launch(behavior)
+    agent_handle = await manager.launch(behavior)
 
-    agent_handle.set_process_threshold(2.0).result()
-    time.sleep(5)
-    value = agent_handle.get_last_reading().result()
+    future = await agent_handle.set_process_threshold(2.0)
+    await future
+    await asyncio.sleep(5)
+    future = await agent_handle.get_last_reading()
+    value = await future
 
-    manager.shutdown(handle, blocking=True)
+    await manager.shutdown(agent_handle, blocking=True)
 ```
 
 Learn more about Academy in [Getting Started](https://academy.proxystore.dev/latest/get-started).

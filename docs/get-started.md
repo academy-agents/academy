@@ -27,39 +27,40 @@ The following script defines, initializes, and launches a simple agent that perf
 Click on the plus (`+`) signs to learn more.
 
 ```python title="example.py" linenums="1"
+import asyncio
 from academy.behavior import Behavior, action
-from academy.exchange.thread import ThreadExchangeFactory
+from academy.exchange.local import LocalExchangeFactory
 from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
 from academy.manager import Manager
 
 class ExampleAgent(Behavior):  # (1)!
     @action  # (2)!
-    def square(self, value: float) -> float:
+    async def square(self, value: float) -> float:
         return value * value
 
-def main() -> None:
+async def main() -> None:
     init_logging('INFO')
 
-    with Manager(  # (3)!
-        exchange=ThreadExchangeFactory(),  # (4)!
+    async with await Manager.from_exchange_factory(  # (3)!
+        factory=LocalExchangeFactory(),  # (4)!
         launcher=ThreadLauncher(),  # (5)!
     ) as manager:
-        agent_handle = manager.launch(ExampleAgent())  # (6)!
+        agent_handle = await manager.launch(ExampleAgent())  # (6)!
 
-        future = agent_handle.square(2)  # (7)!
-        assert future.result() == 4
+        future = await agent_handle.square(2)  # (7)!
+        assert await future == 4
 
-        agent_handle.shutdown()  # (8)!
+        await agent_handle.shutdown()  # (8)!
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
 ```
 
 1. Running agents implement a [`Behavior`][academy.behavior.Behavior].
-2. Behavior methods decorated with [`@action`][academy.behavior.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
+2. Async behavior methods decorated with [`@action`][academy.behavior.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
 3. The [`Manager`][academy.manager.Manager] is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.
-4. The [thread exchange][academy.exchange.thread.ThreadExchangeFactory] manages message passing between users and agents running in different threads of a single process.
+4. The [local exchange][academy.exchange.local.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
 5. The [`ThreadLauncher`][academy.launcher.ThreadLauncher] launches agents in threads of the current process.
 6. An instantiated behavior (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
 7. Interact with running agents via a [`BoundRemoteHandle`][academy.handle.BoundRemoteHandle]. Invoking an action returns a future to the result.
@@ -81,21 +82,20 @@ INFO (academy.manager) Closed manager (UserId<6e890226>)
 Control loops define the autonomous behavior of a running agent and are created by decorating a method with [`@loop`][academy.behavior.loop].
 
 ```python
-import threading
-import time
 from academy.behavior import loop
 
 class ExampleAgent(Behavior):
     @loop
-    def counter(self, shutdown: threading.Event) -> None:
+    async def counter(self, shutdown: asyncio.Event) -> None:
         count = 0
         while not shutdown.is_set():
             print(f'Count: {count}')
             count += 1
-            time.sleep(1)
+            await asyncio.sleep(1)
 ```
 
-All control loops are started in separate threads when an agent is executed, and run until the control loop exits or the agent is shut down, as indicated by the `shutdown` event.
+All control loops are started in separate tasks in the event loop when an agent is executed, and run until the control loop exits or the agent is shut down, as indicated by the `shutdown` event.
+If an agent is shutdown before the control loops exit, the corresponding task will be cancelled.
 
 ## Agent to Agent Interaction
 
@@ -117,49 +117,56 @@ class Coordinator(Behavior):
         self.reverser = reverser
 
     @action
-    def process(self, text: str) -> str:
-        text = self.lowerer.action('lower', text).result()
-        text = self.reverser.action('reverse', text).result()
+    async def process(self, text: str) -> str:
+        future = await self.lowerer.lower(text)
+        text = await future
+        future = await self.reverser.reverse(text)
+        text = await future
         return text
+
 
 class Lowerer(Behavior):
     @action
-    def lower(self, text: str) -> str:
+    async def lower(self, text: str) -> str:
         return text.lower()
+
 
 class Reverser(Behavior):
     @action
-    def reverse(self, text: str) -> str:
+    async def reverse(self, text: str) -> str:
         return text[::-1]
 ```
 
 After launching the `Lowerer` and `Reverser`, the respective handles can be used to initialize the `Coordinator` before launching it.
 
 ```python
-from academy.exchange.thread import ThreadExchange
+from academy.exchange.local import LocalExchange
 from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
 from academy.manager import Manager
 
-def main() -> None:
-    init_logging('INFO')
+async def main() -> None:
+    init_logging(logging.INFO)
 
-    with Manager(
-        exchange=ThreadExchange(),
+    async with await Manager.from_exchange_factory(
+        factory=LocalExchangeFactory(),
         launcher=ThreadLauncher(),
     ) as manager:
-        lowerer = manager.launch(Lowerer())
-        reverser = manager.launch(Reverser())
-        coordinator = manager.launch(Coordinator(lowerer, reverser))
+        lowerer = await manager.launch(Lowerer())
+        reverser = await manager.launch(Reverser())
+        coordinator = await manager.launch(Coordinator(lowerer, reverser))
 
         text = 'DEADBEEF'
         expected = 'feebdaed'
 
-        future = coordinator.process(text)
-        assert future.result() == expected
+        future = await coordinator.process(text)
+        logger.info('Invoking process("%s") on %s', text, coordinator.agent_id)
+        result = await future
+        assert result == expected
+        logger.info('Received result: "%s"', result)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
 ```
 
 
@@ -174,9 +181,9 @@ from concurrent.futures import ProcessPoolExecutor
 from academy.exchange.redis import RedisExchangeFactory
 from academy.launcher import Launcher
 
-def main() -> None:
+async def main() -> None:
     process_pool = ProcessPoolExecutor(max_processes=4)
-    with Manager(
+    async with Manager.from_exchange_factory(
         exchange=RedisExchangeFactory('<REDIS HOST>', port=6379),
         launcher=Launcher(process_pool),
     ) as manager:

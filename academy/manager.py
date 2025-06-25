@@ -28,7 +28,7 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 
-class AsyncManager(Generic[ExchangeTransportT], NoPickleMixin):
+class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     """Launch and manage running agents.
 
     The manager is provided as convenience to reduce common boilerplate code

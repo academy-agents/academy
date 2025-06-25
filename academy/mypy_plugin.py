@@ -12,7 +12,7 @@ from academy.handle import Handle
 
 class Example(Behavior):
     @action
-    asyncio def get_value(self) -> int: ...
+    async def get_value(self) -> int: ...
 
 handle: Handle[Example]
 

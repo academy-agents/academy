@@ -9,7 +9,7 @@ from academy.behavior import loop
 from academy.exchange.local import LocalExchangeFactory
 from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
-from academy.manager import AsyncManager
+from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class Counter(Behavior):
 async def main() -> int:
     init_logging(logging.INFO)
 
-    async with await AsyncManager.from_exchange_factory(
+    async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
         launcher=ThreadLauncher(),
     ) as manager:

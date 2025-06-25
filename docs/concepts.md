@@ -38,9 +38,9 @@ Instance attributes maintain the agent's state, and methods define the actions a
 
 ### Execution
 
-The [`Agent`][academy.agent.Agent] is a multithreaded entity that executes a provided behavior and manages communication with other entities.
-[`Agent.run()`][academy.agent.Agent.run] executed the agent by (1) invokes the [`on_setup()`][academy.behavior.Behavior.on_setup] callback of the behavior, (2) starts each [`@loop`][academy.behavior.loop] method in a separate thread, (3) spawns a thread to listen for new messages in the agent's mailbox, and (4) waits for the agent to be shut down.
-Each [`@action`][academy.behavior.action] method is executed in a thread pool when requested remotely so as to not block the handling of other messages.
+The [`Agent`][academy.agent.Agent] is an asynchronous entity that executes a provided behavior and manages communication with other entities.
+[`Agent.run()`][academy.agent.Agent.run] executed the agent by (1) invokes the [`on_setup()`][academy.behavior.Behavior.on_setup] callback of the behavior, (2) starts each [`@loop`][academy.behavior.loop] method in a separate task, (3) spawns a task to listen for new messages in the agent's mailbox, and (4) waits for the agent to be shut down.
+Each [`@action`][academy.behavior.action] method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.
 
 !!! note
 
@@ -48,7 +48,7 @@ Each [`@action`][academy.behavior.action] method is executed in a thread pool wh
 	Compute-heavy actions can dispatch work to other parallel executors, such as a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor], [Dask Distributed](https://distributed.dask.org/en/stable/){target=_blank}, [Parsl](https://github.com/parsl/parsl/){target=_blank}, or [Ray](https://github.com/ray-project/ray){target=_blank}.
 
 Agents are designed to be long-running, but can be terminated by sending a shutdown request.
-Upon shutdown, the shutdown [`threading.Event`][threading.Event], passed to each [`@loop`][academy.behavior.loop], is set; running threads are instructed to shutdown and waited on; and the [`on_shutdown()`][academy.behavior.Behavior.on_shutdown] callback is invoked.
+Upon shutdown, the shutdown [`Event`][asyncio.Event], passed to each [`@loop`][academy.behavior.loop], is set; running tasks are cancelled and waited on; and the [`on_shutdown()`][academy.behavior.Behavior.on_shutdown] callback is invoked.
 Agents can terminate themselves by setting the shutdown event;
 exceptions raised in [`@loop`][academy.behavior.loop] methods will shutdown the agent by default, and
 exceptions raised when executing [`@action`][academy.behavior.action] methods are caught and returned to the remote caller.
@@ -57,8 +57,8 @@ exceptions raised when executing [`@action`][academy.behavior.action] methods ar
 
 Interacting with an agent is asynchronous; an entity sends a message to the agent's mailbox and waits to receive a response message in its own mailbox.
 A [`Handle`][academy.handle.Handle] is a client interface to a remote agent used to invoke actions, ping, and shutdown the agent.
-Handles translate method calls into a request messages sent via the exchange and returning a [`Futures`][concurrent.futures.Future].
-The handle also listens for response messages and accordingly sets the result on the appropriate [`Futures`][concurrent.futures.Future].
+Handles translate method calls into a request messages sent via the exchange and returning a [`Futures`][asyncio.Future].
+The handle also listens for response messages and accordingly sets the result on the appropriate [`Futures`][asyncio.Future].
 
 ## Exchanges and Mailboxes
 
@@ -73,7 +73,7 @@ Closed indicates permanent termination of the entity and will cause [`MailboxClo
 
 Academy provides many exchange implementations for different scenarios, such as:
 
-* [**Threaded**][academy.exchange.thread.ThreadExchangeFactory]: Uses thread-safe queues for single-process, multiple-agent scenarios. Useful for testing and development.
+* [**Local**][academy.exchange.local.LocalExchangeFactory]: Uses in-memory queues for single-process, multiple-agent scenarios. Useful for testing and development.
 * [**HTTP**][academy.exchange.cloud.client.HttpExchangeFactory]: Centralized service that maintains mailboxes and exposes a REST API. Lower performance but easy to extend with common authentication tools.
 * [**Redis**][academy.exchange.redis.RedisExchangeFactory]: Stores state and mailboxes in a Redis server. Use of Redis enables optional replication and cloud-hosting for improved resilience and availability.
 * [**HybridExchange**][academy.exchange.hybrid.HybridExchangeFactory]: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).
@@ -86,6 +86,6 @@ It runs agents in any [`concurrent.futures.Executor`][concurrent.futures.Executo
 
 ## Managers
 
-A [`Manager`][academy.manager.Manager] combines an exchange and one or more launchers to provide a single interface for launching, using, and managing agents.
+An [`Manager`][academy.manager.Manager] combines an exchange and one or more launchers to provide a single interface for launching, using, and managing agents.
 Each manager has a single mailbox in the exchange and multiplexes that mailbox across handles to all of the agents that it manages.
 This reduces boilerplate code, improves communication efficiency, and ensures stateful resources and threads are appropriately cleaned up.

@@ -250,7 +250,7 @@ def action(
 
         class Example(Behavior):
             @action
-            def perform(self):
+            async def perform(self):
                 ...
         ```
     """

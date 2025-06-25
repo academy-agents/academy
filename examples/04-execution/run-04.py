@@ -11,7 +11,7 @@ from academy.exchange.cloud.client import spawn_http_exchange
 from academy.handle import Handle
 from academy.launcher import Launcher
 from academy.logging import init_logging
-from academy.manager import AsyncManager
+from academy.manager import Manager
 
 EXCHANGE_PORT = 5346
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ async def main() -> int:
     with spawn_http_exchange('localhost', EXCHANGE_PORT) as factory:
         mp_context = multiprocessing.get_context('spawn')
         executor = ProcessPoolExecutor(max_workers=3, mp_context=mp_context)
-        async with await AsyncManager.from_exchange_factory(
+        async with await Manager.from_exchange_factory(
             factory=factory,
             # Agents are launched using a Launcher. The Launcher can
             # use any concurrent.futures.Executor (here, a ProcessPoolExecutor)

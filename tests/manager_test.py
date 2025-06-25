@@ -9,7 +9,7 @@ from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
 from academy.launcher import ThreadLauncher
-from academy.manager import AsyncManager
+from academy.manager import Manager
 from academy.message import PingRequest
 from academy.message import PingResponse
 from testing.behavior import EmptyBehavior
@@ -20,7 +20,7 @@ from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 
 @pytest.mark.asyncio
 async def test_protocol() -> None:
-    async with await AsyncManager.from_exchange_factory(
+    async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
         launcher=ThreadLauncher(),
     ) as manager:
@@ -33,7 +33,7 @@ async def test_basic_usage(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
@@ -48,7 +48,7 @@ async def test_reply_to_requests_with_error(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     factory = exchange.factory()
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
@@ -69,7 +69,7 @@ async def test_reply_to_requests_with_error(
 async def test_wait_bad_identifier(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
@@ -86,7 +86,7 @@ async def test_wait_timeout(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
@@ -100,7 +100,7 @@ async def test_wait_timeout(
 async def test_shutdown_bad_identifier(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
@@ -117,7 +117,7 @@ async def test_shutdown_nonblocking(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
@@ -131,7 +131,7 @@ async def test_shutdown_blocking(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher=ThreadLauncher(),
     ) as manager:
@@ -145,7 +145,7 @@ async def test_bad_default_launcher(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     with pytest.raises(ValueError, match='No launcher named "second"'):
-        AsyncManager(
+        Manager(
             exchange_client=exchange,
             launcher={'first': ThreadLauncher()},
             default_launcher='second',
@@ -157,7 +157,7 @@ async def test_add_and_set_launcher_errors(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     launcher = ThreadLauncher()
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher={'first': launcher},
     ) as manager:
@@ -177,7 +177,7 @@ async def test_add_and_set_launcher_errors(
 async def test_multiple_launcher(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher={'first': ThreadLauncher()},
     ) as manager:
@@ -193,7 +193,7 @@ async def test_multiple_launcher(
 async def test_multiple_launcher_no_default(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    async with AsyncManager(
+    async with Manager(
         exchange_client=exchange,
         launcher={'first': ThreadLauncher()},
     ) as manager:

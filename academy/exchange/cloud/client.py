@@ -104,7 +104,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             mailbox_id: Bind the transport to the specific mailbox. If `None`,
                 a new user entity will be registered and the transport will be
                 bound to that mailbox.
-            name: Display name of the redistered entity if `mailbox_id` is
+            name: Display name of the registered entity if `mailbox_id` is
                 `None`.
 
         Returns:

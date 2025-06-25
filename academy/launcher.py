@@ -20,8 +20,8 @@ from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
+from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
-from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
 from academy.identifier import AgentId
@@ -29,8 +29,23 @@ from academy.identifier import AgentId
 logger = logging.getLogger(__name__)
 
 
-def _run_agent_on_worker(agent: Agent[AgentRegistrationT, BehaviorT]) -> None:
-    asyncio.run(agent.run())
+async def _run_agent_on_worker_async(
+    behavior: BehaviorT,
+    config: AgentRunConfig,
+    exchange_factory: ExchangeFactory[ExchangeTransportT],
+    registration: AgentRegistration[BehaviorT],
+) -> None:
+    agent = Agent(
+        behavior,
+        config=config,
+        exchange_factory=exchange_factory,
+        registration=registration,
+    )
+    await agent.run()
+
+
+def _run_agent_on_worker(*args: Any) -> None:
+    asyncio.run(_run_agent_on_worker_async(*args))
 
 
 @dataclasses.dataclass
@@ -79,47 +94,47 @@ class Launcher:
 
     async def _run_agent(
         self,
-        agent: Agent[Any, Any],
-        started: asyncio.Event,
+        behavior: BehaviorT,
+        config: AgentRunConfig,
+        exchange_factory: ExchangeFactory[ExchangeTransportT],
+        registration: AgentRegistration[BehaviorT],
     ) -> None:
-        agent_id = agent.agent_id
-        config = agent.config
+        agent_id = registration.agent_id
+        original_config = config
         loop = asyncio.get_running_loop()
-        started.set()
         max_runs = self._max_restarts + 1
 
         for run_count in range(1, max_runs + 1):  # pragma: no branch
             if run_count < max_runs:  # pragma: no cover
                 # Override this configuration for the case where the agent
                 # fails and we will restart it.
-                agent.config = dataclasses.replace(
-                    config,
+                config = dataclasses.replace(
+                    original_config,
                     terminate_on_error=False,
                 )
             else:
                 # Otherwise, keep the original config.
-                agent.config = config
+                config = original_config
 
             if run_count == 1:
-                logger.debug(
-                    'Launching agent (%s; %s)',
-                    agent_id,
-                    agent.behavior,
-                )
+                logger.debug('Launching agent (%s; %s)', agent_id, behavior)
             else:  # pragma: no cover
                 logger.debug(
                     'Restarting agent (%d/%d retries; %s; %s)',
                     run_count,
                     self._max_restarts,
                     agent_id,
-                    agent.behavior,
+                    behavior,
                 )
 
             try:
                 await loop.run_in_executor(
                     self._executor,
                     _run_agent_on_worker,
-                    agent,
+                    behavior,
+                    config,
+                    exchange_factory,
+                    registration,
                 )
             except asyncio.CancelledError:  # pragma: no cover
                 logger.warning('Cancelled agent task (%s)', agent_id)
@@ -176,17 +191,11 @@ class Launcher:
                 name=name,
             )
         agent_id = registration.agent_id
+        config = AgentRunConfig()
+        exchange_factory = exchange.factory()
 
-        agent = Agent(
-            behavior,
-            config=AgentRunConfig(),
-            exchange_factory=exchange.factory(),
-            registration=registration,
-        )
-
-        started = asyncio.Event()
         task = asyncio.create_task(
-            self._run_agent(agent, started),
+            self._run_agent(behavior, config, exchange_factory, registration),
             name=f'launcher-run-{agent_id}',
         )
 
@@ -194,7 +203,6 @@ class Launcher:
         self._acbs[agent_id] = acb
 
         handle = await exchange.get_handle(agent_id)
-        await started.wait()
         return handle
 
     def running(self) -> set[AgentId[Any]]:

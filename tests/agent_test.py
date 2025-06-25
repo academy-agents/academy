@@ -130,7 +130,6 @@ async def test_loop_failure_triggers_shutdown(
     )
 
     await agent.start()
-    assert agent._shutdown_agent is not None
     await asyncio.wait_for(agent._shutdown_agent.wait(), timeout=1)
 
     if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -157,7 +156,6 @@ async def test_loop_failure_ignore_shutdown(
     )
 
     await agent.start()
-    assert agent._shutdown_agent is not None
     with pytest.raises(asyncio.TimeoutError):
         # Should timeout because agent did not shutdown after loop errors
         await asyncio.wait_for(agent._shutdown_agent.wait(), timeout=0.001)

@@ -44,7 +44,7 @@ class BaseMessage(BaseModel):
     )
     src: EntityId = Field(description='Source mailbox address.')
     dest: EntityId = Field(description='Destination mailbox address.')
-    label: Optional[uuid.UUID] = Field(  # noqa: UP007
+    label: Optional[uuid.UUID] = Field(  # noqa: UP045
         None,
         description=(
             'Optional label used to disambiguate response messages when '
@@ -168,14 +168,14 @@ class ActionResponse(BaseMessage):
         None,
         description='Result of the action, if successful.',
     )
-    exception: Optional[Exception] = Field(  # noqa: UP007
+    exception: Optional[Exception] = Field(  # noqa: UP045
         None,
         description='Exception of the action, if unsuccessful.',
     )
     kind: Literal['action-response'] = Field('action-response', repr=False)
 
     @field_serializer('exception', 'result', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> Optional[tuple[str, str]]:  # noqa: UP007
+    def _pickle_and_encode_obj(self, obj: Any) -> Optional[tuple[str, str]]:  # noqa: UP045
         if obj is None:
             return None
         raw = pickle.dumps(obj)
@@ -211,6 +211,9 @@ class ActionResponse(BaseMessage):
             and type(self.exception) is type(other.exception)
         )
 
+    def __hash__(self) -> int:
+        return hash((type(self), self.tag))
+
 
 class PingRequest(BaseMessage):
     """Ping request message."""
@@ -245,14 +248,14 @@ class PingRequest(BaseMessage):
 class PingResponse(BaseMessage):
     """Ping response message."""
 
-    exception: Optional[Exception] = Field(  # noqa: UP007
+    exception: Optional[Exception] = Field(  # noqa: UP045
         None,
         description='Exception of the ping, if unsuccessful.',
     )
     kind: Literal['ping-response'] = Field('ping-response', repr=False)
 
     @field_serializer('exception', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> Optional[str]:  # noqa: UP007
+    def _pickle_and_encode_obj(self, obj: Any) -> Optional[str]:  # noqa: UP045
         if obj is None:
             return None
         raw = pickle.dumps(obj)
@@ -278,6 +281,9 @@ class PingResponse(BaseMessage):
             # always False.
             and type(self.exception) is type(other.exception)
         )
+
+    def __hash__(self) -> int:
+        return hash((type(self), self.tag))
 
 
 class ShutdownRequest(BaseMessage):
@@ -323,14 +329,14 @@ class ShutdownRequest(BaseMessage):
 class ShutdownResponse(BaseMessage):
     """Agent shutdown response message."""
 
-    exception: Optional[Exception] = Field(  # noqa: UP007
+    exception: Optional[Exception] = Field(  # noqa: UP045
         None,
         description='Exception of the request, if unsuccessful.',
     )
     kind: Literal['shutdown-response'] = Field('shutdown-response', repr=False)
 
     @field_serializer('exception', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> Optional[str]:  # noqa: UP007
+    def _pickle_and_encode_obj(self, obj: Any) -> Optional[str]:  # noqa: UP045
         if obj is None:
             return None
         raw = pickle.dumps(obj)
@@ -355,6 +361,9 @@ class ShutdownResponse(BaseMessage):
             # always False.
             and type(self.exception) is type(other.exception)
         )
+
+    def __hash__(self) -> int:
+        return hash((type(self), self.tag))
 
 
 RequestMessage = Union[ActionRequest, PingRequest, ShutdownRequest]

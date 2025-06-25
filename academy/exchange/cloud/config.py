@@ -43,7 +43,7 @@ class ExchangeAuthConfig(BaseModel):
 
     model_config = ConfigDict(extra='forbid')
 
-    method: Optional[Literal['globus']] = None  # noqa: UP007
+    method: Optional[Literal['globus']] = None  # noqa: UP045
     kwargs: Dict[str, Any] = Field(  # noqa: UP006
         default_factory=dict,
         repr=False,
@@ -66,10 +66,10 @@ class ExchangeServingConfig(BaseModel):
 
     host: str = 'localhost'
     port: int = 8700
-    certfile: Optional[str] = None  # noqa: UP007
-    keyfile: Optional[str] = None  # noqa: UP007
+    certfile: Optional[str] = None  # noqa: UP045
+    keyfile: Optional[str] = None  # noqa: UP045
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
-    log_file: Optional[str] = None  # noqa: UP007
+    log_file: Optional[str] = None  # noqa: UP045
     log_level: Union[int, str] = logging.INFO  # noqa: UP007
 
     @classmethod

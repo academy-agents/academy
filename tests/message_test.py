@@ -57,6 +57,7 @@ def test_message_representations(message: Message) -> None:
     jsoned = message.model_dump_json()
     recreated = BaseMessage.model_from_json(jsoned)
     assert message == recreated
+    assert hash(message) == hash(recreated)
     pickled = message.model_serialize()
     recreated = BaseMessage.model_deserialize(pickled)
     assert message == recreated

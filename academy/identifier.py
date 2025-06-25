@@ -28,7 +28,7 @@ class AgentId(BaseModel, Generic[BehaviorT]):
     """Unique identifier for an agent entity in a multi-agent system."""
 
     uid: uuid.UUID = Field()
-    name: Optional[str] = Field(None)  # noqa: UP007
+    name: Optional[str] = Field(None)  # noqa: UP045
     role: Literal['agent'] = Field('agent', repr=False)
 
     model_config = ConfigDict(
@@ -61,7 +61,7 @@ class UserId(BaseModel):
     """Unique identifier for a user entity in a multi-agent system."""
 
     uid: uuid.UUID = Field()
-    name: Optional[str] = Field(None)  # noqa: UP007
+    name: Optional[str] = Field(None)  # noqa: UP045
     role: Literal['user'] = Field('user', repr=False)
 
     model_config = ConfigDict(

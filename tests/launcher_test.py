@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import pytest
 
-from academy.behavior import action
 from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
@@ -86,37 +84,20 @@ class FailOnStartupBehavior(Behavior):
         self.max_errors = max_errors
 
     async def on_setup(self) -> None:
-        if (
-            self.max_errors is None or self.errors < self.max_errors
-        ):  # pragma: no branch
+        if self.max_errors is None or self.errors < self.max_errors:
             self.errors += 1
             raise RuntimeError('Agent startup failed')
 
-    @action
-    async def get_errors(self) -> int:  # pragma: no cover
-        return self.errors
 
-
-@pytest.mark.skip(reason='Issue #93')
 @pytest.mark.asyncio
-async def test_restart_on_error(
-    exchange: ExchangeClient[Any],
-    caplog,
-) -> None:  # pragma: no cover
-    # TODO: this test fails because we rerun the same Agent instance
-    # in the thread pool executor; after the first run the agent is in a
-    # shutdown state and cannot be run again. After deferred behavior
-    # initialization, this will be possible.
-    # Once fixed, remove no cover in behavior, this test, and the restart
-    # loop in the launcher agent task.
-    caplog.set_level(logging.DEBUG)
+async def test_restart_on_error(exchange: ExchangeClient[Any]) -> None:
     behavior = FailOnStartupBehavior(max_errors=2)
     executor = ThreadPoolExecutor(max_workers=1)
     async with Launcher(executor, max_restarts=3) as launcher:
         handle = await launcher.launch(behavior, exchange)
-        errors_future = await handle.get_errors()
-        assert await errors_future == 2  # noqa: PLR2004
-        await launcher.wait(handle.agent_id, timeout=TEST_CONNECTION_TIMEOUT)
+        await handle.ping(timeout=TEST_CONNECTION_TIMEOUT)
+        assert behavior.errors == 2  # noqa: PLR2004
+        await handle.shutdown()
         await handle.close()
 
 

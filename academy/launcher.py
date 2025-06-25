@@ -102,12 +102,15 @@ class Launcher:
         agent_id = registration.agent_id
         original_config = config
         loop = asyncio.get_running_loop()
-        max_runs = self._max_restarts + 1
+        run_count = 0
+        retries = self._max_restarts
 
-        for run_count in range(1, max_runs + 1):  # pragma: no branch
-            if run_count < max_runs:  # pragma: no cover
+        while True:
+            run_count += 1
+            if retries > 0:
+                retries -= 1
                 # Override this configuration for the case where the agent
-                # fails and we will restart it.
+                # fails and we will be restarting it.
                 config = dataclasses.replace(
                     original_config,
                     terminate_on_error=False,
@@ -116,16 +119,13 @@ class Launcher:
                 # Otherwise, keep the original config.
                 config = original_config
 
-            if run_count == 1:
-                logger.debug('Launching agent (%s; %s)', agent_id, behavior)
-            else:  # pragma: no cover
-                logger.debug(
-                    'Restarting agent (%d/%d retries; %s; %s)',
-                    run_count,
-                    self._max_restarts,
-                    agent_id,
-                    behavior,
-                )
+            logger.debug(
+                'Launching agent (attempt: %s; retries: %s; %s; %s)',
+                run_count,
+                retries,
+                agent_id,
+                behavior,
+            )
 
             try:
                 await loop.run_in_executor(
@@ -137,16 +137,19 @@ class Launcher:
                     registration,
                 )
             except asyncio.CancelledError:  # pragma: no cover
-                logger.warning('Cancelled agent task (%s)', agent_id)
+                logger.warning('Cancelled %s task', agent_id)
                 raise
-            except Exception:  # pragma: no cover
-                logger.exception('Received agent exception (%s)', agent_id)
-                if run_count > max_runs:
-                    break
-                else:
+            except Exception:
+                if retries == 0:
+                    logger.exception('Received exception from %s', agent_id)
                     raise
+                else:
+                    logger.exception(
+                        'Restarting %s due to exception',
+                        agent_id,
+                    )
             else:
-                logger.debug('Completed agent task (%s)', agent_id)
+                logger.debug('Completed %s task', agent_id)
                 break
 
     async def close(self) -> None:

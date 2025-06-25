@@ -6,10 +6,8 @@ import dataclasses
 import enum
 import logging
 import sys
-import threading
 from collections.abc import Awaitable
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Callable
 from typing import Generic
@@ -68,7 +66,7 @@ class AgentRunConfig:
     terminate_on_success: bool = True
 
 
-class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
+class Agent(Generic[BehaviorT], NoPickleMixin):
     """Executable agent.
 
     An agent executes predefined [`Behavior`][academy.behavior.Behavior]. An
@@ -76,8 +74,9 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
     system.
 
     Note:
-        An agent can only be run once. After `shutdown()` is called, later
-        operations will raise a `RuntimeError`.
+        An agent can only be run once. Calling
+        [`run()`][academy.agent.Agent.run] multiple times will raise a
+        [`RuntimeError`][RuntimeError].
 
     Note:
         If any `@loop` method raises an error, the agent will be signaled
@@ -85,9 +84,9 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
 
     Args:
         behavior: Behavior that the agent will exhibit.
-        config: Agent execution parameters.
         exchange_factory: Message exchange factory.
         registration: Agent registration info returned by the exchange.
+        config: Agent execution parameters.
     """
 
     def __init__(
@@ -100,22 +99,19 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
     ) -> None:
         self.agent_id = registration.agent_id
         self.behavior = behavior
-        self.exchange = exchange_factory
+        self.factory = exchange_factory
         self.registration = registration
         self.config = config if config is not None else AgentRunConfig()
 
         self._actions = behavior.behavior_actions()
         self._loops = behavior.behavior_loops()
 
-        self._shutdown_agent = asyncio.Event()
-        self._shutdown_loop = threading.Event()
-        self._expected_shutdown = False
-        self._state_lock = asyncio.Lock()
-        self._state = _AgentState.INITIALIZED
+        self._started_event = asyncio.Event()
+        self._shutdown_event = asyncio.Event()
+        self._expected_shutdown = True
+        self._behavior_startup_called = False
 
-        self._action_pool: ThreadPoolExecutor | None = None
         self._action_tasks: dict[ActionRequest, asyncio.Task[None]] = {}
-        self._loop_pool: ThreadPoolExecutor | None = None
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
         self._loop_exceptions: list[tuple[str, Exception]] = []
 
@@ -126,10 +122,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
 
     def __repr__(self) -> str:
         name = type(self).__name__
-        return (
-            f'{name}(agent_id={self.agent_id!r}, behavior={self.behavior!r}, '
-            f'exchange={self.exchange!r})'
-        )
+        return f'{name}({self.behavior!r}, {self._exchange_client!r})'
 
     def __str__(self) -> str:
         name = type(self).__name__
@@ -150,7 +143,6 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
             )
 
     async def _execute_action(self, request: ActionRequest) -> None:
-        assert self._action_pool is not None
         try:
             result = await self.action(
                 request.action,
@@ -168,9 +160,8 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
         name: str,
         method: Callable[[asyncio.Event], Awaitable[None]],
     ) -> None:
-        assert self._loop_pool is not None
         try:
-            await method(self._shutdown_agent)
+            await method(self._shutdown_event)
         except asyncio.CancelledError:
             pass
         except Exception as e:
@@ -202,7 +193,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
             raise AssertionError('Unreachable.')
 
     async def action(self, action: str, args: Any, kwargs: Any) -> Any:
-        """Invoke an action of the agent.
+        """Invoke an action of the agent's behavior.
 
         Args:
             action: Name of action to invoke.
@@ -213,170 +204,139 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
             Result of the action.
 
         Raises:
-            AttributeError: if an action with this name is not implemented by
-                the behavior of the agent.
+            AttributeError: If an action with this name is not implemented by
+                the agent's behavior.
         """
         logger.debug('Invoking "%s" action on %s', action, self.agent_id)
         if action not in self._actions:
             raise AttributeError(
-                f'Agent[{type(self.behavior).__name__}] does not have an '
-                f'action named "{action}".',
+                f'{self.behavior} does not have an action named "{action}".',
             )
         return await self._actions[action](*args, **kwargs)
 
     async def run(self) -> None:
         """Run the agent.
 
-        Starts the agent, waits for another thread to call `signal_shutdown()`,
-        and then shuts down the agent.
-
-        Raises:
-            Exception: Any exceptions raised inside threads.
-        """
-        try:
-            await self.start()
-            await self._shutdown_agent.wait()
-        except:
-            logger.exception('Running agent %s failed!', self.agent_id)
-            raise
-        finally:
-            await self.shutdown()
-
-    async def start(self) -> None:
-        """Start the agent.
-
-        Note:
-            This method is idempotent; it will return if the agent is
-            already running. However, it will raise an error if the agent
-            is shutdown.
-
-        1. Binds all unbound handles to remote agents to this agent.
+        Agent startup involves:
+        1. Creates a new exchange client for the agent.
+        1. Binds all handles of the behavior to this agent's exchange client.
         1. Calls [`Behavior.on_setup()`][academy.behavior.Behavior.on_setup].
-        1. Starts threads for all control loops defined on the agent's
-           [`Behavior`][academy.behavior.Behavior].
-        1. Starts a thread for listening to messages from the exchange.
+        1. Starts a [`Task`][asyncio.Task] for all control loops defined on
+           the behavior.
+        1. Starts a [`Task`][asyncio.Task] to listen for messages in the
+           agent's mailbox in the exchange.
+        1. Waits for the agent to be shutdown, such as due to a failure in
+           a control loop and a received shutdown message.
 
-        Raises:
-            RuntimeError: If the agent has been shutdown.
-        """
-        async with self._state_lock:
-            if self._state is _AgentState.SHUTDOWN:
-                raise RuntimeError('Agent has already been shutdown.')
-            elif self._state is _AgentState.RUNNING:
-                return
-
-            logger.debug(
-                'Starting agent... (%s; %s)',
-                self.agent_id,
-                self.behavior,
-            )
-            self._state = _AgentState.STARTING
-
-            self._exchange_client = await self.exchange.create_agent_client(
-                self.registration,
-                request_handler=self._request_handler,
-            )
-            await _bind_behavior_handles(self.behavior, self._exchange_client)
-            await self.behavior.on_setup()
-            self._action_pool = ThreadPoolExecutor(
-                max_workers=self.config.max_action_concurrency,
-            )
-
-            if len(self._loops) > 0:
-                self._loop_pool = ThreadPoolExecutor(
-                    max_workers=len(self._loops),
-                )
-                for name, method in self._loops.items():
-                    task = asyncio.create_task(
-                        self._execute_loop(name, method),
-                        name=f'execute-loop-{name}-{self.agent_id}',
-                    )
-                    self._loop_tasks[name] = task
-
-            self._exchange_listener_task = asyncio.create_task(
-                self._exchange_client._listen_for_messages(),
-                name=f'exchange-listener-{self.agent_id}',
-            )
-
-            self._state = _AgentState.RUNNING
-
-            logger.info('Running agent (%s; %s)', self.agent_id, self.behavior)
-
-    async def shutdown(self) -> None:
-        """Shutdown the agent.
-
-        Note:
-            This method is idempotent.
-
-        1. Sets the shutdown [`Event`][threading.Event] passed to all control
-           loops.
+        Agent shutdown involves:
+        1. Cancels the mailbox message listener so no new requests are
+           received.
         1. Waits for any currently executing actions to complete.
-        1. Closes the agent's mailbox indicating that no further messages
-           will be processed.
-        1. Waits for the control loop and message listener threads to exit.
-        1. Closes the exchange.
+        1. Cancels running control loop tasks.
         1. Calls
            [`Behavior.on_shutdown()`][academy.behavior.Behavior.on_shutdown].
+        1. Terminates the agent's mailbox in the exchange if configured.
+        1. Closes the exchange client.
 
         Raises:
-            Exception: Any exceptions raised inside threads.
+            RuntimeError: If the agent has already been shutdown.
+            Exception: Any exceptions raised during startup, shutdown, or
+                inside of control loops.
         """
-        async with self._state_lock:
-            if self._state in (_AgentState.INITIALIZED, _AgentState.SHUTDOWN):
-                return
+        try:
+            await self._start()
+        except:
+            logger.exception('Agent startup failed (%r)', self)
+            self.signal_shutdown(expected=False)
+            await self._shutdown()
+            raise
 
-            logger.debug(
-                'Shutting down agent... (expected: %s; %s; %s)',
-                self._expected_shutdown,
-                self.agent_id,
-                self.behavior,
-            )
-            self._state = _AgentState.TERMINTATING
-            self._shutdown_agent.set()
-            self._shutdown_loop.set()
+        try:
+            await self._shutdown_event.wait()
+        finally:
+            await self._shutdown()
 
-            if self._exchange_listener_task is not None:
-                self._exchange_listener_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await self._exchange_listener_task
-
-            # Wait for currently running actions to complete. No more
-            # should come in now that exchange's listener thread is done.
-            if self._action_pool is not None:
-                self._action_pool.shutdown(wait=True, cancel_futures=True)
-
-            # Shutdown the loop pool after waiting on the loops to exit.
-            if self._loop_pool is not None:
-                self._loop_pool.shutdown(wait=True)
-                # TODO: remove pools????
-                for task in self._loop_tasks.values():
-                    task.cancel()
-                    with contextlib.suppress(asyncio.CancelledError):
-                        await task
-
-            await self.behavior.on_shutdown()
-
-            terminate_for_success = (
-                self.config.terminate_on_success and self._expected_shutdown
-            )
-            terminate_for_error = (
-                self.config.terminate_on_error and not self._expected_shutdown
-            )
-            if self._exchange_client is not None:  # pragma: no branch
-                if terminate_for_success or terminate_for_error:
-                    await self._exchange_client.terminate(self.agent_id)
-                await self._exchange_client.close()
-
-            self._state = _AgentState.SHUTDOWN
-
-            # Raise any exceptions from the loop threads as the final step.
+            # Raise loop exceptions so the caller of run() sees the errors,
+            # even if the loop errors were not configure to shut down the
+            # agent.
             _raise_exceptions(self._loop_exceptions)
 
-            logger.info(
-                'Shutdown agent (%s; %s)',
-                self.agent_id,
-                self.behavior,
+    async def _start(self) -> None:
+        if self._shutdown_event.is_set():
+            raise RuntimeError('Agent has already been shutdown.')
+
+        logger.debug(
+            'Starting agent... (%s; %s)',
+            self.agent_id,
+            self.behavior,
+        )
+
+        self._exchange_client = await self.factory.create_agent_client(
+            self.registration,
+            request_handler=self._request_handler,
+        )
+
+        await _bind_behavior_handles(self.behavior, self._exchange_client)
+        await self.behavior.on_setup()
+        self._behavior_startup_called = True
+
+        for name, method in self._loops.items():
+            task = asyncio.create_task(
+                self._execute_loop(name, method),
+                name=f'execute-loop-{name}-{self.agent_id}',
             )
+            self._loop_tasks[name] = task
+
+        self._exchange_listener_task = asyncio.create_task(
+            self._exchange_client._listen_for_messages(),
+            name=f'exchange-listener-{self.agent_id}',
+        )
+
+        self._started_event.set()
+        logger.info('Running agent (%s; %s)', self.agent_id, self.behavior)
+
+    async def _shutdown(self) -> None:
+        assert self._shutdown_event.is_set()
+
+        logger.debug(
+            'Shutting down agent... (expected: %s; %s; %s)',
+            self._expected_shutdown,
+            self.agent_id,
+            self.behavior,
+        )
+
+        # If _start() fails early, the listener task may not have started.
+        if self._exchange_listener_task is not None:
+            self._exchange_listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._exchange_listener_task
+
+        # Wait for running actions to complete
+        for task in tuple(self._action_tasks.values()):
+            await task
+
+        # Cancel running control loop tasks
+        for task in self._loop_tasks.values():
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+        if self._behavior_startup_called:
+            # Don't call on_shutdown() if we never called on_setup()
+            await self.behavior.on_shutdown()
+
+        terminate_for_success = (
+            self.config.terminate_on_success and self._expected_shutdown
+        )
+        terminate_for_error = (
+            self.config.terminate_on_error and not self._expected_shutdown
+        )
+        if self._exchange_client is not None:
+            if terminate_for_success or terminate_for_error:
+                await self._exchange_client.terminate(self.agent_id)
+            await self._exchange_client.close()
+
+        logger.info('Shutdown agent (%s; %s)', self.agent_id, self.behavior)
 
     def signal_shutdown(self, expected: bool = True) -> None:
         """Signal that the agent should exit.
@@ -386,8 +346,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
         effect.
         """
         self._expected_shutdown = expected
-        self._shutdown_agent.set()
-        self._shutdown_loop.set()
+        self._shutdown_event.set()
 
 
 async def _bind_behavior_handles(

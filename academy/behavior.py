@@ -5,7 +5,6 @@ import functools
 import inspect
 import logging
 import sys
-from collections.abc import Awaitable
 from collections.abc import Coroutine
 from datetime import timedelta
 from typing import Any
@@ -130,34 +129,8 @@ class Behavior:
         for name in dir(self):
             attr = getattr(self, name)
             if isinstance(attr, handle_types):
-                handles[name] = attr  # type: ignore[assignment]
+                handles[name] = attr
         return handles
-
-    async def behavior_handles_bind(
-        self,
-        bind: Callable[[Handle[BehaviorT]], Awaitable[Handle[BehaviorT]]],
-    ) -> None:
-        """Bind all instance attributes that are agent handles.
-
-        Args:
-            bind: A callback that takes a handle and returns the same handle
-                or a bound version of the handle.
-        """
-        for attr, handles in self.behavior_handles().items():
-            if isinstance(handles, HandleDict):
-                setattr(
-                    self,
-                    attr,
-                    HandleDict({k: await bind(h) for k, h in handles.items()}),
-                )
-            elif isinstance(handles, HandleList):
-                setattr(
-                    self,
-                    attr,
-                    HandleList([await bind(h) for h in handles]),
-                )
-            else:
-                setattr(self, attr, await bind(handles))
 
     @classmethod
     def behavior_mro(cls) -> tuple[str, ...]:

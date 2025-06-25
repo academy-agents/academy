@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from academy.agent import _AgentState
+from academy.agent import _bind_behavior_handles
 from academy.agent import Agent
 from academy.agent import AgentRunConfig
 from academy.behavior import action
@@ -16,6 +17,9 @@ from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.transport import MailboxStatus
 from academy.handle import Handle
+from academy.handle import HandleDict
+from academy.handle import HandleList
+from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
@@ -366,6 +370,46 @@ async def test_agent_action_message_unknown(
         shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+
+
+@pytest.mark.asyncio
+async def test_behavior_handles_bind(
+    exchange: UserExchangeClient[Any],
+) -> None:
+    class _TestBehavior(Behavior):
+        def __init__(
+            self,
+            handle: Handle[EmptyBehavior],
+            proxy: ProxyHandle[EmptyBehavior],
+        ) -> None:
+            self.direct = handle
+            self.proxy = proxy
+            self.sequence = HandleList([handle])
+            self.mapping = HandleDict({'x': handle})
+
+    factory = exchange.factory()
+    registration = await exchange.register_agent(_TestBehavior)
+    proxy_handle = ProxyHandle(EmptyBehavior())
+    unbound_handle = UnboundRemoteHandle(
+        (await exchange.register_agent(EmptyBehavior)).agent_id,
+    )
+
+    async def _request_handler(_: Any) -> None:  # pragma: no cover
+        pass
+
+    async with await factory.create_agent_client(
+        registration,
+        _request_handler,
+    ) as agent_client:
+        behavior = _TestBehavior(unbound_handle, proxy_handle)
+        await _bind_behavior_handles(behavior, agent_client)
+
+        assert behavior.proxy is proxy_handle
+        assert behavior.direct.client_id == agent_client.client_id
+        for handle in behavior.sequence:
+            assert handle.client_id == agent_client.client_id
+        for handle in behavior.mapping.values():
+            assert handle.client_id == agent_client.client_id
 
 
 class HandleBindingBehavior(Behavior):

@@ -59,15 +59,22 @@ class Handle(Protocol[BehaviorT]):
     A handle enables an agent or user to invoke actions on another agent.
     """
 
-    agent_id: AgentId[BehaviorT]
-    client_id: EntityId
-
     def __getattr__(self, name: str) -> Any:
         # This dummy method definition is required to signal to mypy that
         # any attribute access is "valid" on a Handle type. This forces
         # mypy into calling our mypy plugin (academy.mypy_plugin) which then
         # validates the exact semantics of the attribute access depending
         # on the concrete type for the BehaviorT that Handle is generic on.
+        ...
+
+    @property
+    def agent_id(self) -> AgentId[BehaviorT]:
+        """ID of the agent this is a handle to."""
+        ...
+
+    @property
+    def client_id(self) -> EntityId:
+        """ID of the client for this handle."""
         ...
 
     async def action(
@@ -376,7 +383,12 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
-    async def close(self) -> None:
+    async def close(
+        self,
+        wait_futures: bool = True,
+        *,
+        timeout: float | None = None,
+    ) -> None:
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
@@ -468,8 +480,7 @@ class RemoteHandle(Generic[BehaviorT]):
         Returns:
             Remote handle bound to the identifier.
         """
-        unbound = self.clone()
-        return await unbound.bind_to_exchange(exchange)
+        return await exchange.get_handle(self.agent_id)
 
     def clone(self) -> UnboundRemoteHandle[BehaviorT]:
         """Create an unbound copy of this handle."""

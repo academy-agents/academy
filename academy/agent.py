@@ -23,6 +23,8 @@ from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import Handle
+from academy.handle import HandleDict
+from academy.handle import HandleList
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
@@ -133,28 +135,6 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
         name = type(self).__name__
         behavior = type(self.behavior).__name__
         return f'{name}<{behavior}; {self.agent_id}>'
-
-    async def _bind_handles(self) -> None:
-        async def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
-            if isinstance(handle, ProxyHandle):  # pragma: no cover
-                return handle
-            if (
-                isinstance(handle, RemoteHandle)
-                and handle.client_id == self.agent_id
-            ):
-                return handle
-
-            assert isinstance(handle, (UnboundRemoteHandle, RemoteHandle))
-            assert self._exchange_client is not None
-            bound = await handle.bind_to_exchange(self._exchange_client)
-            logger.debug(
-                'Bound handle to %s to running agent with %s',
-                bound.agent_id,
-                self.agent_id,
-            )
-            return bound
-
-        await self.behavior.behavior_handles_bind(_bind)
 
     async def _send_response(self, response: ResponseMessage) -> None:
         assert self._exchange_client is not None
@@ -296,7 +276,7 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
                 self.registration,
                 request_handler=self._request_handler,
             )
-            await self._bind_handles()
+            await _bind_behavior_handles(self.behavior, self._exchange_client)
             await self.behavior.on_setup()
             self._action_pool = ThreadPoolExecutor(
                 max_workers=self.config.max_action_concurrency,
@@ -408,6 +388,53 @@ class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
         self._expected_shutdown = expected
         self._shutdown_agent.set()
         self._shutdown_loop.set()
+
+
+async def _bind_behavior_handles(
+    behavior: BehaviorT,
+    client: AgentExchangeClient[BehaviorT, Any],
+) -> None:
+    """Bind all handle instance attributes on a behavior.
+
+    Warning:
+        This mutates the behavior, replacing the attributes with new handles
+        bound to the agent's exchange client.
+
+    Args:
+        behavior: The behavior to bind handles on.
+        client: The agent's exchange client used to bind the handles.
+    """
+
+    async def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
+        if isinstance(handle, ProxyHandle):
+            return handle
+        if (
+            isinstance(handle, RemoteHandle)
+            and handle.client_id == client.client_id
+        ):
+            return handle
+
+        assert isinstance(handle, (UnboundRemoteHandle, RemoteHandle))
+        bound = await client.get_handle(handle.agent_id)
+        logger.debug(
+            'Bound %s of %s to %s',
+            handle,
+            behavior,
+            client.client_id,
+        )
+        return bound
+
+    for attr, handles in behavior.behavior_handles().items():
+        if isinstance(handles, HandleDict):
+            bound_dict = HandleDict(
+                {k: await _bind(h) for k, h in handles.items()},
+            )
+            setattr(behavior, attr, bound_dict)
+        elif isinstance(handles, HandleList):
+            bound_list = HandleList([await _bind(h) for h in handles])
+            setattr(behavior, attr, bound_list)
+        else:
+            setattr(behavior, attr, await _bind(handles))
 
 
 def _raise_exceptions(exceptions: Sequence[tuple[str, Exception]]) -> None:

@@ -8,9 +8,6 @@ from academy.behavior import Behavior
 from academy.behavior import event
 from academy.behavior import loop
 from academy.behavior import timer
-from academy.handle import Handle
-from academy.handle import HandleDict
-from academy.handle import HandleList
 from academy.handle import ProxyHandle
 from testing.behavior import EmptyBehavior
 from testing.behavior import HandleBehavior
@@ -144,34 +141,6 @@ async def test_behavior_handles() -> None:
 
     handles = behavior.behavior_handles()
     assert set(handles) == {'handle'}
-
-    await behavior.on_shutdown()
-
-
-@pytest.mark.asyncio
-async def test_behavior_handles_bind() -> None:
-    class _TestBehavior(Behavior):
-        def __init__(self, handle: Handle[EmptyBehavior]) -> None:
-            self.direct = handle
-            self.sequence = HandleList([handle])
-            self.mapping = HandleDict({'x': handle})
-
-    expected_binds = 3
-    bind_count = 0
-
-    async def _bind_handle(
-        handle: Handle[EmptyBehavior],
-    ) -> Handle[EmptyBehavior]:
-        nonlocal bind_count
-        bind_count += 1
-        return handle
-
-    handle = ProxyHandle(EmptyBehavior())
-    behavior = _TestBehavior(handle)
-    await behavior.on_setup()
-
-    await behavior.behavior_handles_bind(_bind_handle)
-    assert bind_count == expected_binds
 
     await behavior.on_shutdown()
 

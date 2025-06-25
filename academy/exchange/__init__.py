@@ -263,7 +263,6 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         behavior: type[BehaviorT],
         *,
         name: str | None = None,
-        _agent_id: AgentId[BehaviorT] | None = None,
     ) -> AgentRegistration[BehaviorT]:
         """Register a new agent and associated mailbox with the exchange.
 
@@ -277,7 +276,6 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         registration = await self._transport.register_agent(
             behavior,
             name=name,
-            _agent_id=_agent_id,
         )
         logger.info('Registered %s in exchange', registration.agent_id)
         return registration

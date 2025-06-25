@@ -196,11 +196,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         behavior: type[BehaviorT],
         *,
         name: str | None = None,
-        _agent_id: AgentId[BehaviorT] | None = None,
     ) -> RedisAgentRegistration[BehaviorT]:
-        aid: AgentId[BehaviorT] = (
-            AgentId.new(name=name) if _agent_id is None else _agent_id
-        )
+        aid: AgentId[BehaviorT] = AgentId.new(name=name)
         await self._client.set(
             self._active_key(aid),
             _MailboxState.ACTIVE.value,

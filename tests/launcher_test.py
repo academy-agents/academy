@@ -31,7 +31,13 @@ async def test_launch_agents_threads(exchange: ExchangeClient[Any]) -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     async with Launcher(executor) as launcher:
         handle1 = await launcher.launch(behavior, exchange)
-        handle2 = await launcher.launch(behavior, exchange)
+
+        registration = await exchange.register_agent(SleepBehavior)
+        handle2 = await launcher.launch(
+            behavior,
+            exchange,
+            registration=registration,
+        )
 
         assert len(launcher.running()) == 2  # noqa: PLR2004
 

@@ -132,13 +132,8 @@ class ProxyStoreExchangeTransport(
         behavior: type[BehaviorT],
         *,
         name: str | None = None,
-        _agent_id: AgentId[BehaviorT] | None = None,
     ) -> AgentRegistration[BehaviorT]:
-        return await self.transport.register_agent(
-            behavior,
-            name=name,
-            _agent_id=_agent_id,
-        )
+        return await self.transport.register_agent(behavior, name=name)
 
     async def send(self, message: Message) -> None:
         if isinstance(message, ActionRequest):

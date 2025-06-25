@@ -200,9 +200,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         behavior: type[BehaviorT],
         *,
         name: str | None = None,
-        _agent_id: AgentId[BehaviorT] | None = None,
     ) -> HttpAgentRegistration[BehaviorT]:
-        aid = AgentId.new(name=name) if _agent_id is None else _agent_id
+        aid: AgentId[BehaviorT] = AgentId.new(name=name)
         async with self._session.post(
             self._mailbox_url,
             json={

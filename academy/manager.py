@@ -18,6 +18,7 @@ from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import UserExchangeClient
+from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
 from academy.identifier import AgentId
@@ -205,9 +206,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self,
         behavior: BehaviorT,
         *,
-        agent_id: AgentId[BehaviorT] | None = None,
         launcher: str | None = None,
         name: str | None = None,
+        registration: AgentRegistration[BehaviorT] | None = None,
     ) -> RemoteHandle[BehaviorT]:
         """Launch a new agent with a specified behavior.
 
@@ -217,12 +218,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         Args:
             behavior: Behavior the agent should implement.
-            agent_id: Specify ID of the launched agent. If `None`, a new
-                agent ID will be created within the exchange.
             launcher: Name of the launcher instance to use. In `None`, uses
                 the default launcher if specified, otherwise raises an error.
-            name: Readable name of the agent. Ignored if `agent_id` is
-                provided.
+            name: Readable name of the agent used when registering a new agent.
+            registration: If `None`, a new agent will be registered with
+                the exchange.
 
         Returns:
             Handle (client bound) used to interact with the agent.
@@ -241,8 +241,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         bound = await launcher_instance.launch(
             behavior,
             exchange=self.exchange_client,
-            agent_id=agent_id,
             name=name,
+            registration=registration,
         )
         self._aid_to_launcher[bound.agent_id] = launcher
         logger.info('Launched agent (%s; %s)', bound.agent_id, behavior)

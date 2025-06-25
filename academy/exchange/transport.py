@@ -132,10 +132,6 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         behavior: type[BehaviorT],
         *,
         name: str | None = None,
-        # This is needed by a strange hack in academy/agent.py where we
-        # close an agent mailbox and immediately re-register it. This will no
-        # longer be needed after Issue #100 and can be removed.
-        _agent_id: AgentId[BehaviorT] | None = None,
     ) -> AgentRegistrationT_co:
         """Register a new agent and associated mailbox with the exchange.
 

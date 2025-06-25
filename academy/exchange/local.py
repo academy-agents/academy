@@ -128,11 +128,8 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         behavior: type[BehaviorT],
         *,
         name: str | None = None,
-        _agent_id: AgentId[BehaviorT] | None = None,
     ) -> LocalAgentRegistration[BehaviorT]:
-        aid: AgentId[BehaviorT] = (
-            AgentId.new(name=name) if _agent_id is None else _agent_id
-        )
+        aid: AgentId[BehaviorT] = AgentId.new(name=name)
         self._state.queues[aid] = AsyncQueue()
         self._state.behaviors[aid] = behavior
         return LocalAgentRegistration(agent_id=aid)

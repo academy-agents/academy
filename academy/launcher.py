@@ -19,6 +19,7 @@ from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeClient
+from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
@@ -153,27 +154,26 @@ class Launcher:
         behavior: BehaviorT,
         exchange: ExchangeClient[ExchangeTransportT],
         *,
-        agent_id: AgentId[BehaviorT] | None = None,
         name: str | None = None,
+        registration: AgentRegistration[BehaviorT] | None = None,
     ) -> RemoteHandle[BehaviorT]:
         """Launch a new agent with a specified behavior.
 
         Args:
             behavior: Behavior the agent should implement.
             exchange: Exchange the agent will use for messaging.
-            agent_id: Specify ID of the launched agent. If `None`, a new
-                agent ID will be created within the exchange.
-            name: Readable name of the agent. Ignored if `agent_id` is
-                provided.
+            name: Readable name of the agent used when registering a new agent.
+            registration: If `None`, a new agent will be registered with
+                the exchange.
 
         Returns:
             Handle (unbound) used to interact with the agent.
         """
-        registration = await exchange.register_agent(
-            type(behavior),
-            name=name,
-            _agent_id=agent_id,
-        )
+        if registration is None:
+            registration = await exchange.register_agent(
+                type(behavior),
+                name=name,
+            )
         agent_id = registration.agent_id
 
         agent = Agent(

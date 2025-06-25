@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import pickle
 import sys
 from typing import Any
 
@@ -14,7 +13,6 @@ from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import loop
 from academy.exchange import UserExchangeClient
-from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.transport import MailboxStatus
 from academy.handle import Handle
@@ -30,22 +28,6 @@ from testing.behavior import CounterBehavior
 from testing.behavior import EmptyBehavior
 from testing.behavior import ErrorBehavior
 from testing.constant import TEST_THREAD_JOIN_TIMEOUT
-
-
-@pytest.mark.asyncio
-async def test_agent_serialize(http_exchange_server: tuple[str, int]) -> None:
-    host, port = http_exchange_server
-    factory = HttpExchangeFactory(host, port)
-    async with await factory.create_user_client() as client:
-        registration = await client.register_agent(SignalingBehavior)
-        agent = Agent(
-            EmptyBehavior(),
-            exchange_factory=factory,
-            registration=registration,
-        )
-        dumped = pickle.dumps(agent)
-        reconstructed = pickle.loads(dumped)
-        assert isinstance(reconstructed, Agent)
 
 
 class SignalingBehavior(Behavior):

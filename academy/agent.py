@@ -31,6 +31,7 @@ from academy.message import PingRequest
 from academy.message import RequestMessage
 from academy.message import ResponseMessage
 from academy.message import ShutdownRequest
+from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
 
@@ -65,23 +66,7 @@ class AgentRunConfig:
     terminate_on_success: bool = True
 
 
-# Helper for Agent.__reduce__ which cannot handle the keyword arguments
-# of the Agent constructor.
-def _agent_trampoline(
-    behavior: BehaviorT,
-    exchange_factory: ExchangeFactory[ExchangeTransportT],
-    registration: AgentRegistrationT,
-    config: AgentRunConfig,
-) -> Agent[AgentRegistrationT, BehaviorT]:
-    return Agent(
-        behavior,
-        exchange_factory=exchange_factory,
-        registration=registration,
-        config=config,
-    )
-
-
-class Agent(Generic[AgentRegistrationT, BehaviorT]):
+class Agent(Generic[AgentRegistrationT, BehaviorT], NoPickleMixin):
     """Executable agent.
 
     An agent executes predefined [`Behavior`][academy.behavior.Behavior]. An
@@ -148,18 +133,6 @@ class Agent(Generic[AgentRegistrationT, BehaviorT]):
         name = type(self).__name__
         behavior = type(self.behavior).__name__
         return f'{name}<{behavior}; {self.agent_id}>'
-
-    def __reduce__(self) -> Any:
-        return (
-            _agent_trampoline,
-            (
-                # The order of these must match the __init__ params!
-                self.behavior,
-                self.exchange,
-                self.registration,
-                self.config,
-            ),
-        )
 
     async def _bind_handles(self) -> None:
         async def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:

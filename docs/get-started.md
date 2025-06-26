@@ -28,9 +28,9 @@ Click on the plus (`+`) signs to learn more.
 
 ```python title="example.py" linenums="1"
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from academy.behavior import Behavior, action
 from academy.exchange.local import LocalExchangeFactory
-from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
 from academy.manager import Manager
 
@@ -44,7 +44,7 @@ async def main() -> None:
 
     async with await Manager.from_exchange_factory(  # (3)!
         factory=LocalExchangeFactory(),  # (4)!
-        launcher=ThreadLauncher(),  # (5)!
+        executors=ThreadPoolExecutor(),  # (5)!
     ) as manager:
         agent_handle = await manager.launch(ExampleAgent())  # (6)!
 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 2. Async behavior methods decorated with [`@action`][academy.behavior.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
 3. The [`Manager`][academy.manager.Manager] is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.
 4. The [local exchange][academy.exchange.local.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
-5. The [`ThreadLauncher`][academy.launcher.ThreadLauncher] launches agents in threads of the current process.
+5. The manager uses an [`Executor`][concurrent.futures.Executor] to run agents concurrently across parallel/distributed resources. Here, a [`ThreadPoolExecutor`][concurrent.futures.Executor] runs agents in different threads of the main process.
 6. An instantiated behavior (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
 7. Interact with running agents via a [`RemoteHandle`][academy.handle.RemoteHandle]. Invoking an action returns a future to the result.
 8. Agents can be shutdown via a handle or the manager.
@@ -140,8 +140,10 @@ class Reverser(Behavior):
 After launching the `Lowerer` and `Reverser`, the respective handles can be used to initialize the `Coordinator` before launching it.
 
 ```python
-from academy.exchange.local import LocalExchange
-from academy.launcher import ThreadLauncher
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from academy.behavior import Behavior, action
+from academy.exchange.local import LocalExchangeFactory
 from academy.logging import init_logging
 from academy.manager import Manager
 
@@ -150,7 +152,7 @@ async def main() -> None:
 
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
-        launcher=ThreadLauncher(),
+        executors=ThreadPoolExecutor(),
     ) as manager:
         lowerer = await manager.launch(Lowerer())
         reverser = await manager.launch(Reverser())
@@ -169,25 +171,20 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-
 ## Distributed Execution
 
 The prior examples have launched agent in threads of the main process, but in practice agents are launched in different processes, possibly on the same node or remote nodes.
-The prior example can be executed in a distributed fashion by changing the launcher and exchange to implementations which support distributed execution.
-Below, a [Redis server](https://redis.io/){target=_blank} server (via the [redis exchange][academy.exchange.redis.RedisExchangeFactory]) is used to support messaging between distributed agents executed with a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor] (via the [`Launcher`][academy.launcher.Launcher]).
+The prior example can be executed in a distributed fashion by changing the executor and exchange to implementations which support distributed execution.
+Below, a [Redis server](https://redis.io/){target=_blank} server (via the [redis exchange][academy.exchange.redis.RedisExchangeFactory]) is used to support messaging between distributed agents executed with a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor].
 
 ```python
 from concurrent.futures import ProcessPoolExecutor
 from academy.exchange.redis import RedisExchangeFactory
-from academy.launcher import Launcher
 
 async def main() -> None:
-    process_pool = ProcessPoolExecutor(max_processes=4)
     async with Manager.from_exchange_factory(
         exchange=RedisExchangeFactory('<REDIS HOST>', port=6379),
-        launcher=Launcher(process_pool),
+        executors=ProcessPoolExecutor(max_processes=4),
     ) as manager:
         ...
 ```
-
-The [`Launcher`][academy.launcher.Launcher] is compatible with any [`concurrent.futures.Executor`][concurrent.futures.Executor].

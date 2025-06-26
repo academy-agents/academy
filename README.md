@@ -54,16 +54,16 @@ class SensorMonitorAgent(Behavior):
 ```
 
 Entities communicate asynchronously through *handles*, sending messages to and receiving messages from a mailbox managed by an *exchange*.
-The *launcher* abstracts the remote execution of an agent, and the `Manager` provides easy management of handles, launchers, and the exchange.
+The *manager* abstracts the remote execution and management of agents using [executors](https://docs.python.org/3/library/concurrent.futures.html).
 
 ```python
 from academy.exchange.local import LocalExchangeFactory
-from academy.launcher import ThreadLauncher
 from academy.manager import Manager
+from concurrent.futures import ThreadPoolExecutor
 
 async with await Manager.from_exchange_factory(
     factory=LocalExchangeFactory(),  # Replace with other implementations
-    launcher=ThreadLauncher(),  # for distributed deployments
+    executors=ThreadPoolExecutor(),  # for distributed deployments
 ) as manager:
     behavior = SensorMonitorAgent()  # From the above block
     agent_handle = await manager.launch(behavior)

@@ -65,7 +65,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     """Launch and manage running agents.
 
     A manager is used to launch agents using one or more
-    [`Executors`][concurrent.future.Executor] and interact with/manage those
+    [`Executors`][concurrent.futures.Executor] and interact with/manage those
     agents.
 
     Tip:

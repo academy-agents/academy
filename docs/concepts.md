@@ -5,11 +5,11 @@
 ![Architecture](static/architecture.jpg)
 > Agents and users in Academy interact via handles to invoke actions asynchronously.
 > Agents implement a behavior, defined by their actions, control loops, and state.
-> Academy decouples the control and data planes through the launcher and exchange components that manage spawning agents and communication, respectively.
+> Academy decouples the control and data planes through the exchange, used for user and agent communication, and launcher mechanisms that can remotely execute agents.
 
 An Academy application includes one or more *agents* and zero or more *users*.
 An agent is a process that executes a *behavior*, where a behavior is defined by a *local state*, a set of *actions*, and a set of *control loops*.
-Agents are executed remotely using a *launcher*.
+Agents can be executed remotely using a *manager* (previously referred to as a *launcher*).
 Once running, an agent concurrently executes all of its control loops and listens for messages from user programs or other agents.
 
 A user program interacts with an agent through a *handle*, which acts like a reference to the remote agent and translates method calls into action request messages.
@@ -78,14 +78,8 @@ Academy provides many exchange implementations for different scenarios, such as:
 * [**Redis**][academy.exchange.redis.RedisExchangeFactory]: Stores state and mailboxes in a Redis server. Use of Redis enables optional replication and cloud-hosting for improved resilience and availability.
 * [**HybridExchange**][academy.exchange.hybrid.HybridExchangeFactory]: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).
 
-## Launcher
+## Manager
 
-An agent can be run manually, but the intended method of execution is via the launcher, which manages the initialization and execution of agents on remote resources.
-The [`Launcher`][academy.launcher.Launcher] defines a [`launch()`][academy.launcher.Launcher.launch] method with parameters for the behavior, exchange, and agent ID and returns a handle to the launched agent.
-It runs agents in any [`concurrent.futures.Executor`][concurrent.futures.Executor] compatible executor, such as a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor], [Parsl](https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops){target=_blank}, or [Globus Compute](https://globus-compute.readthedocs.io/en/latest/index.html){target=_blank}.
-
-## Managers
-
-An [`Manager`][academy.manager.Manager] combines an exchange and one or more launchers to provide a single interface for launching, using, and managing agents.
-Each manager has a single mailbox in the exchange and multiplexes that mailbox across handles to all of the agents that it manages.
-This reduces boilerplate code, improves communication efficiency, and ensures stateful resources and threads are appropriately cleaned up.
+Agents can be run manually via [`Agent.run()`][academy.agent.Agent.run], but typically applications want to run many agents concurrently across parallel or distributed resources.
+The [`Manager`][academy.manager.Manager] provides a single interface for launching and managing agents across one or more [`Executors`][concurrent.futures.Executor], such as a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor], [Parsl](https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops){target=_blank}, or [Globus Compute](https://globus-compute.readthedocs.io/en/latest/index.html){target=_blank}.
+A manager will handle common boilerplate, including registering agents, creating handles, and ensuring stateful resources are appropriately cleaned up.

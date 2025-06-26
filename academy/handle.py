@@ -12,6 +12,7 @@ from types import TracebackType
 from typing import Any
 from typing import Generic
 from typing import Protocol
+from typing import runtime_checkable
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
@@ -53,6 +54,7 @@ P = ParamSpec('P')
 R = TypeVar('R')
 
 
+@runtime_checkable
 class Handle(Protocol[BehaviorT]):
     """Agent handle protocol.
 

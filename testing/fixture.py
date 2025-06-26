@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Callable
 
@@ -17,7 +18,7 @@ from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.redis import RedisExchangeFactory
-from academy.launcher import ThreadLauncher
+from academy.manager import Manager
 from academy.socket import open_port
 
 
@@ -91,9 +92,11 @@ async def exchange() -> AsyncGenerator[
 
 
 @pytest.fixture
-async def launcher() -> AsyncGenerator[ThreadLauncher]:
-    async with ThreadLauncher() as launcher:
-        yield launcher
+async def manager(
+    exchange: UserExchangeClient[LocalExchangeTransport],
+) -> AsyncGenerator[Manager[LocalExchangeTransport]]:
+    async with Manager(exchange, ThreadPoolExecutor()) as manager:
+        yield manager
 
 
 @pytest_asyncio.fixture

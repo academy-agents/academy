@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
+import dataclasses
 import logging
 import sys
 from collections.abc import MutableMapping
+from concurrent.futures import Executor
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -13,6 +16,8 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+from academy.agent import Agent
+from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
@@ -23,74 +28,100 @@ from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
-from academy.launcher import Launcher
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
 
 
+async def _run_agent_on_worker_async(
+    behavior: BehaviorT,
+    config: AgentRunConfig,
+    exchange_factory: ExchangeFactory[ExchangeTransportT],
+    registration: AgentRegistration[BehaviorT],
+) -> None:
+    agent = Agent(
+        behavior,
+        config=config,
+        exchange_factory=exchange_factory,
+        registration=registration,
+    )
+    await agent.run()
+
+
+def _run_agent_on_worker(*args: Any) -> None:
+    asyncio.run(_run_agent_on_worker_async(*args))
+
+
+@dataclasses.dataclass
+class _ACB(Generic[BehaviorT]):
+    # Agent Control Block
+    agent_id: AgentId[BehaviorT]
+    executor: str
+    task: asyncio.Future[None]
+
+
 class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     """Launch and manage running agents.
 
-    The manager is provided as convenience to reduce common boilerplate code
-    for spawning agents and managing handles. Each manager registers itself
-    as a client in the exchange (i.e., each manager has its own mailbox).
-    Handles created by the manager are bound to this mailbox.
+    A manager is used to launch agents using one or more
+    [`Executors`][concurrent.future.Executor] and interact with/manage those
+    agents.
 
     Tip:
         This class can be used as a context manager. Upon exiting the context,
         running agents will be shutdown, any agent handles created by the
-        manager will be closed, and the exchange and launcher will be closed.
+        manager will be closed, and the executors will be shutdown.
 
     Note:
-        The manager takes ownership of the exchange and launcher interfaces.
-        This means the manager will be responsible for closing them once the
-        manager is closed.
+        The manager takes ownership of the exchange client and executors,
+        meaning the manager will clean up those resources when the manager
+        is closed.
 
     Args:
         exchange_client: Exchange client.
-        launcher: A mapping of names to launchers used to execute agents
-            remotely. If a single launcher is provided directly, it is
-            set as the default with name `'default'`, overriding any value
-            of `default_launcher`.
-        default_launcher: Specify the name of the default launcher to use
+        executors: An executor instance or mapping of names to executors to
+            use to run agents. If a single executor is provided, it is set
+            as the default executor with name `'default'`, overriding any
+            value of `default_executor`.
+        default_executor: Specify the name of the default executor to use
             when not specified in `launch()`.
+        max_retries: Maximum number of times to retry running an agent
+            if it exits with an error.
 
     Raises:
-        ValueError: If `default_launcher` is specified but does not exist
-            in `launchers`.
+        ValueError: If `default_executor` is specified but does not exist
+            in `executors`.
     """
 
     def __init__(
         self,
         exchange_client: UserExchangeClient[ExchangeTransportT],
-        launcher: Launcher | MutableMapping[str, Launcher],
+        executors: Executor | MutableMapping[str, Executor],
         *,
-        default_launcher: str | None = None,
+        default_executor: str | None = None,
+        max_retries: int = 0,
     ) -> None:
-        if isinstance(launcher, Launcher):
-            launcher = {'default': launcher}
-            default_launcher = 'default'
+        if isinstance(executors, Executor):
+            executors = {'default': executors}
+            default_executor = 'default'
 
-        if default_launcher is not None and default_launcher not in launcher:
+        if default_executor is not None and default_executor not in executors:
             raise ValueError(
-                f'No launcher named "{default_launcher}" was provided to '
+                f'No executor named "{default_executor}" was provided to '
                 'use as the default.',
             )
 
         self._exchange_client = exchange_client
+        self._exchange_factory = exchange_client.factory()
         self._user_id = self._exchange_client.client_id
-        self._launchers = launcher
-        self._default_launcher = default_launcher
+        self._executors = executors
+        self._default_executor = default_executor
+        self._max_retries = max_retries
 
         self._handles: dict[AgentId[Any], RemoteHandle[Any]] = {}
-        self._aid_to_launcher: dict[AgentId[Any], str] = {}
+        self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
 
-        logger.info(
-            'Initialized manager (%s; %s)',
-            self._user_id,
-            self._exchange_client,
-        )
+        logger.info('Initialized manager (%s)', self.user_id)
 
     async def __aenter__(self) -> Self:
         return self
@@ -104,13 +135,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         await self.close()
 
     def __repr__(self) -> str:
-        launchers_repr = ', '.join(
-            f'{k}: {v!r}' for k, v in self._launchers.items()
+        executors_repr = ', '.join(
+            f'{k}: {v!r}' for k, v in self._executors.items()
         )
         return (
             f'{type(self).__name__}'
             f'(exchange={self._exchange_client!r}, '
-            f'launchers={{{launchers_repr}}})'
+            f'executors={{{executors_repr}}})'
         )
 
     def __str__(self) -> str:
@@ -122,13 +153,19 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     async def from_exchange_factory(
         cls,
         factory: ExchangeFactory[ExchangeTransportT],
-        launcher: Launcher | MutableMapping[str, Launcher],
+        executors: Executor | MutableMapping[str, Executor],
         *,
-        default_launcher: str | None = None,
+        default_executor: str | None = None,
+        max_retries: int = 0,
     ) -> Self:
         """Instantiate a new exchange client and manager from a factory."""
         client = await factory.create_user_client()
-        return cls(client, launcher, default_launcher=default_launcher)
+        return cls(
+            client,
+            executors,
+            default_executor=default_executor,
+            max_retries=max_retries,
+        )
 
     @property
     def exchange_client(self) -> UserExchangeClient[ExchangeTransportT]:
@@ -148,78 +185,143 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         1. Close the mailbox associated with the manager.
         1. Close the exchange.
         1. Close all launchers.
+
+        Raises:
+            Exception: Any exceptions raised by agents.
         """
-        for launcher in self._launchers.values():
-            for agent_id in launcher.running():
-                handle = self._handles[agent_id]
+        for acb in self._acbs.values():
+            if not acb.task.done():
                 with contextlib.suppress(MailboxClosedError):
-                    await handle.shutdown()
-        logger.debug('Instructed managed agents to shutdown')
+                    await self._handles[acb.agent_id].shutdown()
+        logger.debug('Requested shutdown from all agents')
+
+        for acb in self._acbs.values():
+            await acb.task
+            # TODO: do this at the end as an exception group
+            # Raise possible errors from agents so user sees them.
+            acb.task.result()
+        logger.debug('All agents have completed')
+
         await self.exchange_client.close()
-        for launcher in self._launchers.values():
-            await launcher.close()
+        for executor in self._executors.values():
+            executor.shutdown(wait=True, cancel_futures=True)
         logger.info('Closed manager (%s)', self.user_id)
 
-    def add_launcher(self, name: str, launcher: Launcher) -> Self:
-        """Add a launcher to the manager.
+    def add_executor(self, name: str, executor: Executor) -> Self:
+        """Add an executor to the manager.
 
         Note:
-            It is not possible to remove a launcher as this could create
-            complications if an agent was already launched using a given
-            launcher.
+            It is not possible to remove an executor as this could create
+            complications if an agent is already running in that executor.
 
         Args:
-            name: Name of the launcher.
-            launcher: Launcher instance.
+            name: Name of the executor used when launching agents.
+            executor: Executor instance.
 
         Returns:
             Self for chaining.
 
         Raises:
-            ValueError: If a launcher with `name` already exists.
+            ValueError: If an executor with `name` already exists.
         """
-        if name in self._launchers:
-            raise ValueError(f'Launcher named "{name}" already exists.')
-        self._launchers[name] = launcher
+        if name in self._executors:
+            raise ValueError(f'Executor named "{name}" already exists.')
+        self._executors[name] = executor
         return self
 
-    def set_default_launcher(self, name: str | None) -> Self:
-        """Set the name of the default launcher.
+    def set_default_executor(self, name: str | None) -> Self:
+        """Set the default executor by name.
 
         Args:
-            name: Name of the launcher to default to. If `None`, no default
-                launcher is set and all calls to `launch()` must specify
-                the launcher.
+            name: Name of the executor to use as default. If `None`, no
+                default executor is set and all calls to `launch()` must
+                specify the executor.
 
         Returns:
             Self for chaining.
 
         Raises:
-            ValueError: If no launcher with `name` exists.
+            ValueError: If no executor with `name` exists.
         """
-        if name not in self._launchers:
-            raise ValueError(f'A launcher name "{name}" does not exist.')
-        self._default_launcher = name
+        if name not in self._executors:
+            raise ValueError(f'An executor named "{name}" does not exist.')
+        self._default_executor = name
         return self
+
+    async def _run_agent_in_executor(
+        self,
+        executor: Executor,
+        behavior: BehaviorT,
+        config: AgentRunConfig,
+        registration: AgentRegistration[BehaviorT],
+    ) -> None:
+        agent_id = registration.agent_id
+        original_config = config
+        loop = asyncio.get_running_loop()
+        run_count = 0
+        retries = self._max_retries
+
+        while True:
+            run_count += 1
+            if retries > 0:
+                retries -= 1
+                # Override this configuration for the case where the agent
+                # fails and we will be restarting it.
+                config = dataclasses.replace(
+                    original_config,
+                    terminate_on_error=False,
+                )
+            else:
+                # Otherwise, keep the original config.
+                config = original_config
+
+            logger.debug(
+                'Launching agent (attempt: %s; retries: %s; %s; %s)',
+                run_count,
+                retries,
+                agent_id,
+                behavior,
+            )
+
+            try:
+                await loop.run_in_executor(
+                    executor,
+                    _run_agent_on_worker,
+                    behavior,
+                    config,
+                    self._exchange_factory,
+                    registration,
+                )
+            except asyncio.CancelledError:  # pragma: no cover
+                logger.warning('Cancelled %s task', agent_id)
+                raise
+            except Exception:
+                if retries == 0:
+                    logger.exception('Received exception from %s', agent_id)
+                    raise
+                else:
+                    logger.exception(
+                        'Restarting %s due to exception',
+                        agent_id,
+                    )
+            else:
+                logger.debug('Completed %s task', agent_id)
+                break
 
     async def launch(
         self,
         behavior: BehaviorT,
         *,
-        launcher: str | None = None,
+        executor: str | None = None,
         name: str | None = None,
         registration: AgentRegistration[BehaviorT] | None = None,
     ) -> RemoteHandle[BehaviorT]:
         """Launch a new agent with a specified behavior.
 
-        Note:
-            Compared to `Launcher.launch()`, this method will inject the
-            exchange and return a client-bound handle.
-
         Args:
-            behavior: Behavior the agent should implement.
-            launcher: Name of the launcher instance to use. In `None`, uses
-                the default launcher if specified, otherwise raises an error.
+            behavior: Behavior the agent will implement.
+            executor: Name of the executor instance to use. If `None`, uses
+                the default executor, if specified, otherwise raises an error.
             name: Readable name of the agent used when registering a new agent.
             registration: If `None`, a new agent will be registered with
                 the exchange.
@@ -228,47 +330,88 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             Handle (client bound) used to interact with the agent.
 
         Raises:
-            ValueError: If no default launcher is set and `launcher` is not
+            RuntimeError: If `registration` is provided and an agent with
+                that ID has already been executed.
+            ValueError: If no default executor is set and `executor` is not
                 specified.
         """
-        if self._default_launcher is None and launcher is None:
+        if self._default_executor is None and executor is None:
             raise ValueError(
-                'Must specify the launcher when no default is set.',
+                'Must specify the executor when no default is set.',
             )
-        launcher = launcher if launcher is not None else self._default_launcher
-        assert launcher is not None
-        launcher_instance = self._launchers[launcher]
-        bound = await launcher_instance.launch(
-            behavior,
-            exchange=self.exchange_client,
-            name=name,
-            registration=registration,
+        executor = executor if executor is not None else self._default_executor
+        assert executor is not None
+        executor_instance = self._executors[executor]
+
+        if registration is None:
+            registration = await self.exchange_client.register_agent(
+                type(behavior),
+                name=name,
+            )
+        elif registration.agent_id in self._acbs:
+            raise RuntimeError(
+                f'{registration.agent_id} has already been executed.',
+            )
+
+        agent_id = registration.agent_id
+        config = AgentRunConfig()
+
+        task = asyncio.create_task(
+            self._run_agent_in_executor(
+                executor_instance,
+                behavior,
+                config,
+                registration,
+            ),
+            name=f'launcher-run-{agent_id}',
         )
-        self._aid_to_launcher[bound.agent_id] = launcher
-        logger.info('Launched agent (%s; %s)', bound.agent_id, behavior)
-        self._handles[bound.agent_id] = bound
-        logger.debug('Bound agent handle to manager (%s)', bound)
-        return bound
+
+        acb = _ACB(agent_id=agent_id, executor=executor, task=task)
+        self._acbs[agent_id] = acb
+
+        handle = await self.exchange_client.get_handle(agent_id)
+        self._handles[handle.agent_id] = handle
+
+        logger.info('Launched agent (%s; %s)', agent_id, behavior)
+        return handle
+
+    def running(self) -> set[AgentId[Any]]:
+        """Get a set of IDs of all running agents.
+
+        Returns:
+            Set of agent IDs corresponding to all agents launcher by this \
+            manager that have not completed yet.
+        """
+        running: set[AgentId[Any]] = set()
+        for acb in self._acbs.values():
+            if not acb.task.done():
+                running.add(acb.agent_id)
+        return running
 
     async def shutdown(
         self,
-        agent_id: AgentId[Any],
+        agent: AgentId[Any] | RemoteHandle[Any],
         *,
         blocking: bool = True,
+        raise_error: bool = True,
         timeout: float | None = None,
     ) -> None:
         """Shutdown a launched agent.
 
         Args:
-            agent_id: ID of launched agent.
+            agent: ID or handle to the launched agent.
             blocking: Wait for the agent to exit before returning.
+            raise_error: Raise the error returned by the agent if
+                `blocking=True`.
             timeout: Optional timeout is seconds when `blocking=True`.
 
         Raises:
             BadEntityIdError: If an agent with `agent_id` was not
-                launched by this launcher.
+                launched by this manager.
             TimeoutError: If `timeout` was exceeded while blocking for agent.
         """
+        agent_id = agent.agent_id if isinstance(agent, RemoteHandle) else agent
+
         try:
             handle = self._handles[agent_id]
         except KeyError:
@@ -278,27 +421,46 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             await handle.shutdown()
 
         if blocking:
-            await self.wait(agent_id, timeout=timeout)
+            await self.wait(agent_id, raise_error=raise_error, timeout=timeout)
 
     async def wait(
         self,
         agent: AgentId[Any] | RemoteHandle[Any],
         *,
+        raise_error: bool = True,
         timeout: float | None = None,
     ) -> None:
         """Wait for a launched agent to exit.
 
+        Note:
+            Calling `wait()` is only valid after `launch()` has succeeded.
+
         Args:
             agent: ID or handle to the launched agent.
+            raise_error: Raise the error returned by the agent.
             timeout: Optional timeout in seconds to wait for agent.
 
         Raises:
             BadEntityIdError: If the agent was not found. This likely means
                 the agent was not launched by this launcher.
             TimeoutError: If `timeout` was exceeded while waiting for agent.
+            Exception: Any exception raised by the agent if it exited due
+                to a failure and `raise_error=True`.
         """
         agent_id = agent.agent_id if isinstance(agent, RemoteHandle) else agent
-        if agent_id not in self._aid_to_launcher:
-            raise BadEntityIdError(agent_id)
-        launcher_name = self._aid_to_launcher[agent_id]
-        await self._launchers[launcher_name].wait(agent_id, timeout=timeout)
+
+        try:
+            acb = self._acbs[agent_id]
+        except KeyError:
+            raise BadEntityIdError(agent_id) from None
+
+        done, pending = await asyncio.wait({acb.task}, timeout=timeout)
+
+        if acb.task in pending:
+            raise TimeoutError(
+                f'Agent did not complete within {timeout}s timeout '
+                f'({acb.agent_id})',
+            )
+
+        if raise_error:
+            acb.task.result()

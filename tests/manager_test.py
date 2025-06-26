@@ -1,201 +1,231 @@
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
+from academy.behavior import Behavior
 from academy.exception import BadEntityIdError
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
-from academy.launcher import ThreadLauncher
 from academy.manager import Manager
-from academy.message import PingRequest
-from academy.message import PingResponse
 from testing.behavior import EmptyBehavior
 from testing.behavior import SleepBehavior
+from testing.constant import TEST_CONNECTION_TIMEOUT
 from testing.constant import TEST_LOOP_SLEEP
 from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 
 
 @pytest.mark.asyncio
-async def test_protocol() -> None:
+async def test_from_exchange_factory() -> None:
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
-        launcher=ThreadLauncher(),
+        executors=ThreadPoolExecutor(),
     ) as manager:
         assert isinstance(repr(manager), str)
         assert isinstance(str(manager), str)
 
 
 @pytest.mark.asyncio
-async def test_basic_usage(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+async def test_launch_and_shutdown(
+    manager: Manager[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with Manager(
-        exchange_client=exchange,
-        launcher=ThreadLauncher(),
-    ) as manager:
-        await manager.launch(behavior)
-        await manager.launch(behavior)
 
-        await asyncio.sleep(5 * TEST_LOOP_SLEEP)
+    handle1 = await manager.launch(behavior)
+    handle2 = await manager.launch(behavior)
+
+    assert len(manager.running()) == 2  # noqa: PLR2004
+
+    await asyncio.sleep(5 * TEST_LOOP_SLEEP)
+
+    await handle1.shutdown()
+    await handle2.shutdown()
+
+    await manager.wait(handle1)
+    await manager.wait(handle2)
+
+    assert len(manager.running()) == 0
 
 
 @pytest.mark.asyncio
-async def test_reply_to_requests_with_error(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+async def test_shutdown_on_exit(
+    manager: Manager[LocalExchangeTransport],
 ) -> None:
-    factory = exchange.factory()
-    async with Manager(
-        exchange_client=exchange,
-        launcher=ThreadLauncher(),
-    ) as manager:
-        async with await factory.create_user_client(
-            start_listener=False,
-        ) as client:
-            request = PingRequest(
-                src=client.client_id,
-                dest=manager.user_id,
-            )
-            await client.send(request)
-            response = await client._transport.recv()
-            assert isinstance(response, PingResponse)
-            assert isinstance(response.exception, TypeError)
+    behavior = SleepBehavior(TEST_LOOP_SLEEP)
+    # The manager fixture uses a context manager that when exited should
+    # shutdown this agent and wait on it
+    await manager.launch(behavior)
+    await asyncio.sleep(5 * TEST_LOOP_SLEEP)
+    assert len(manager.running()) == 1
 
 
 @pytest.mark.asyncio
 async def test_wait_bad_identifier(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    manager: Manager[LocalExchangeTransport],
 ) -> None:
-    async with Manager(
-        exchange_client=exchange,
-        launcher=ThreadLauncher(),
-    ) as manager:
-        registration = await manager.exchange_client.register_agent(
-            EmptyBehavior,
-        )
-
-        with pytest.raises(BadEntityIdError):
-            await manager.wait(registration.agent_id)
+    registration = await manager.exchange_client.register_agent(EmptyBehavior)
+    with pytest.raises(BadEntityIdError):
+        await manager.wait(registration.agent_id)
 
 
 @pytest.mark.asyncio
 async def test_wait_timeout(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    manager: Manager[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with Manager(
-        exchange_client=exchange,
-        launcher=ThreadLauncher(),
-    ) as manager:
-        handle = await manager.launch(behavior)
-
-        with pytest.raises(TimeoutError):
-            await manager.wait(handle.agent_id, timeout=TEST_LOOP_SLEEP)
+    handle = await manager.launch(behavior)
+    with pytest.raises(TimeoutError):
+        await manager.wait(handle, timeout=TEST_LOOP_SLEEP)
 
 
 @pytest.mark.asyncio
 async def test_shutdown_bad_identifier(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    manager: Manager[LocalExchangeTransport],
 ) -> None:
-    async with Manager(
-        exchange_client=exchange,
-        launcher=ThreadLauncher(),
-    ) as manager:
-        registration = await manager.exchange_client.register_agent(
-            EmptyBehavior,
-        )
+    registration = await manager.exchange_client.register_agent(EmptyBehavior)
+    with pytest.raises(BadEntityIdError):
+        await manager.shutdown(registration.agent_id)
 
-        with pytest.raises(BadEntityIdError):
-            await manager.shutdown(registration.agent_id)
+
+@pytest.mark.asyncio
+async def test_duplicate_launched_agents_error(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    registration = await manager.exchange_client.register_agent(EmptyBehavior)
+    await manager.launch(EmptyBehavior(), registration=registration)
+    with pytest.raises(
+        RuntimeError,
+        match=f'{registration.agent_id} has already been executed.',
+    ):
+        await manager.launch(EmptyBehavior(), registration=registration)
+    assert len(manager.running()) == 1
 
 
 @pytest.mark.asyncio
 async def test_shutdown_nonblocking(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    manager: Manager[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with Manager(
-        exchange_client=exchange,
-        launcher=ThreadLauncher(),
-    ) as manager:
-        handle = await manager.launch(behavior)
-        await manager.shutdown(handle.agent_id, blocking=False)
-        await manager.wait(handle.agent_id, timeout=TEST_THREAD_JOIN_TIMEOUT)
+    handle = await manager.launch(behavior)
+    await manager.shutdown(handle, blocking=False)
+    await manager.wait(handle, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 
 @pytest.mark.asyncio
 async def test_shutdown_blocking(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    manager: Manager[LocalExchangeTransport],
 ) -> None:
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    async with Manager(
-        exchange_client=exchange,
-        launcher=ThreadLauncher(),
-    ) as manager:
-        handle = await manager.launch(behavior)
-        await manager.shutdown(handle.agent_id, blocking=True)
-        await manager.wait(handle.agent_id, timeout=TEST_LOOP_SLEEP)
+    handle = await manager.launch(behavior)
+    await manager.shutdown(handle, blocking=True)
+    assert len(manager.running()) == 0
 
 
 @pytest.mark.asyncio
-async def test_bad_default_launcher(
+async def test_bad_default_executor(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    with pytest.raises(ValueError, match='No launcher named "second"'):
+    with pytest.raises(ValueError, match='No executor named "second"'):
         Manager(
             exchange_client=exchange,
-            launcher={'first': ThreadLauncher()},
-            default_launcher='second',
+            executors={'first': ThreadPoolExecutor()},
+            default_executor='second',
         )
 
 
 @pytest.mark.asyncio
-async def test_add_and_set_launcher_errors(
+async def test_add_and_set_executor_errors(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    launcher = ThreadLauncher()
+    executor = ThreadPoolExecutor()
     async with Manager(
         exchange_client=exchange,
-        launcher={'first': launcher},
+        executors={'first': executor},
     ) as manager:
         with pytest.raises(
             ValueError,
-            match='Launcher named "first" already exists.',
+            match='Executor named "first" already exists.',
         ):
-            manager.add_launcher('first', launcher)
+            manager.add_executor('first', executor)
         with pytest.raises(
             ValueError,
-            match='A launcher name "second" does not exist.',
+            match='An executor named "second" does not exist.',
         ):
-            manager.set_default_launcher('second')
+            manager.set_default_executor('second')
 
 
 @pytest.mark.asyncio
-async def test_multiple_launcher(
+async def test_multiple_executor(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     async with Manager(
         exchange_client=exchange,
-        launcher={'first': ThreadLauncher()},
+        executors={'first': ThreadPoolExecutor()},
     ) as manager:
-        await manager.launch(EmptyBehavior(), launcher='first')
+        await manager.launch(EmptyBehavior(), executor='first')
 
-        manager.add_launcher('second', ThreadLauncher())
-        manager.set_default_launcher('second')
+        manager.add_executor('second', ThreadPoolExecutor())
+        manager.set_default_executor('second')
         await manager.launch(EmptyBehavior())
-        await manager.launch(EmptyBehavior(), launcher='first')
+        await manager.launch(EmptyBehavior(), executor='first')
 
 
 @pytest.mark.asyncio
-async def test_multiple_launcher_no_default(
+async def test_multiple_executor_no_default(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     async with Manager(
         exchange_client=exchange,
-        launcher={'first': ThreadLauncher()},
+        executors={'first': ThreadPoolExecutor()},
     ) as manager:
         with pytest.raises(ValueError, match='no default is set.'):
             await manager.launch(EmptyBehavior())
+
+
+class FailOnStartupBehavior(Behavior):
+    def __init__(self, max_errors: int | None = None) -> None:
+        self.errors = 0
+        self.max_errors = max_errors
+
+    async def on_setup(self) -> None:
+        if self.max_errors is None or self.errors < self.max_errors:
+            self.errors += 1
+            raise RuntimeError('Agent startup failed')
+
+
+@pytest.mark.asyncio
+async def test_retry_on_error(
+    exchange: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    # Note: this test presently relies on behavior to be shared across
+    # each agent execution in other threads.
+    behavior = FailOnStartupBehavior(max_errors=2)
+    executor = ThreadPoolExecutor(max_workers=1)
+    async with Manager(exchange, executors=executor, max_retries=3) as manager:
+        handle = await manager.launch(behavior)
+        await handle.ping(timeout=TEST_CONNECTION_TIMEOUT)
+        assert behavior.errors == 2  # noqa: PLR2004
+        await handle.shutdown()
+
+
+@pytest.mark.parametrize('raise_error', (True, False))
+@pytest.mark.asyncio
+async def test_wait_ignore_agent_errors(
+    raise_error: bool,
+    exchange: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    behavior = FailOnStartupBehavior()
+    manager = Manager(exchange, executors=ThreadPoolExecutor(max_workers=1))
+    handle = await manager.launch(behavior)
+
+    if raise_error:
+        with pytest.raises(RuntimeError, match='Agent startup failed'):
+            await manager.wait(handle, raise_error=raise_error)
+    else:
+        await manager.wait(handle, raise_error=raise_error)
+
+    with pytest.raises(RuntimeError, match='Agent startup failed'):
+        await manager.close()

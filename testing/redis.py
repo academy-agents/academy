@@ -18,7 +18,7 @@ class MockRedis:
     async def blpop(
         self,
         keys: list[str],
-        timeout: int = 0,
+        timeout: float = 0,
     ) -> list[str] | None:
         result: list[str] = []
         for key in keys:

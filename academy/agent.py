@@ -5,9 +5,7 @@ import contextlib
 import dataclasses
 import enum
 import logging
-import sys
 from collections.abc import Awaitable
-from collections.abc import Sequence
 from typing import Any
 from typing import Callable
 from typing import Generic
@@ -16,6 +14,7 @@ from typing import TypeVar
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
+from academy.exception import raise_exceptions
 from academy.exchange import AgentExchangeClient
 from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
@@ -257,9 +256,11 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
             await self._shutdown()
 
             # Raise loop exceptions so the caller of run() sees the errors,
-            # even if the loop errors were not configure to shut down the
-            # agent.
-            _raise_exceptions(self._loop_exceptions)
+            # even if the loop errors didn't cause the shutdown.
+            raise_exceptions(
+                (e for _, e in self._loop_exceptions),
+                message='Caught failures in agent loops while shutting down.',
+            )
 
     async def _start(self) -> None:
         if self._shutdown_event.is_set():
@@ -394,16 +395,3 @@ async def _bind_behavior_handles(
             setattr(behavior, attr, bound_list)
         else:
             setattr(behavior, attr, await _bind(handles))
-
-
-def _raise_exceptions(exceptions: Sequence[tuple[str, Exception]]) -> None:
-    if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-        exceptions_only = [e for _, e in exceptions]
-        if len(exceptions_only) > 0:
-            raise ExceptionGroup(  # noqa: F821
-                'Caught failures in agent loops while shutting down.',
-                exceptions_only,
-            )
-    else:  # pragma: <3.11 cover
-        for _, exception in exceptions:
-            raise exception

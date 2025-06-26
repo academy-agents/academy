@@ -21,6 +21,7 @@ from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
+from academy.exception import raise_exceptions
 from academy.exchange import ExchangeFactory
 from academy.exchange import UserExchangeClient
 from academy.exchange.transport import AgentRegistration
@@ -183,13 +184,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         return self._user_id
 
     async def close(self) -> None:
-        """Close the manager and cleanup resources.
+        """Shutdown the manager and cleanup resources.
 
-        1. Call shutdown on all running agents.
-        1. Close all handles created by the manager.
-        1. Close the mailbox associated with the manager.
-        1. Close the exchange.
-        1. Close all launchers.
+        1. Request all running agents to shut down.
+        1. Wait for all running agents to shut down.
+        1. Close the exchange client.
+        1. Shutdown the executors.
+        1. Raise an exceptions returned by agents.
 
         Raises:
             Exception: Any exceptions raised by agents.
@@ -203,14 +204,19 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         for acb in self._acbs.values():
             await acb.task
-            # TODO: do this at the end as an exception group
-            # Raise possible errors from agents so user sees them.
-            acb.task.result()
         logger.debug('All agents have completed')
 
         await self.exchange_client.close()
         for executor in self._executors.values():
             executor.shutdown(wait=True, cancel_futures=True)
+
+        exceptions = (acb.task.exception() for acb in self._acbs.values())
+        exceptions_only = tuple(e for e in exceptions if e is not None)
+        raise_exceptions(
+            exceptions_only,
+            message='Caught failures in agent while shutting down.',
+        )
+
         logger.info('Closed manager (%s)', self.user_id)
 
     def add_executor(self, name: str, executor: Executor) -> Self:

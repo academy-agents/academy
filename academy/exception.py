@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+from collections.abc import Iterable
 from typing import Any
 
 from academy.identifier import AgentId
@@ -59,3 +61,36 @@ class MailboxClosedError(Exception):
 
     def __init__(self, uid: EntityId) -> None:
         super().__init__(f'Mailbox for {uid} has been closed.')
+
+
+def raise_exceptions(
+    exceptions: Iterable[BaseException],
+    *,
+    message: str | None = None,
+) -> None:
+    """Raise exceptions as a group.
+
+    Raises a set of exceptions as an [`ExceptionGroup`][ExceptionGroup]
+    in Python 3.11 and later. If only one exception is provided, it is raised
+    directly. In Python 3.10 and older, only one exception is raised.
+
+    This is a no-op if the size of `exceptions` is zero.
+
+    Args:
+        exceptions: An iterable of exceptions to raise.
+        message: Custom error message for the exception group.
+    """
+    excs = tuple(exceptions)
+    if len(excs) == 0:
+        return
+
+    if sys.version_info >= (3, 11) and len(excs) > 1:  # pragma: >=3.11 cover
+        message = (
+            message if message is not None else 'Caught multiple exceptions!'
+        )
+        # Note that BaseExceptionGroup will return ExceptionGroup if all
+        # of the errors are Exception, rather than BaseException, so that this
+        # can be caught by "except Exception".
+        raise BaseExceptionGroup(message, excs)  # noqa: F821
+    else:  # pragma: <3.11 cover
+        raise excs[0]

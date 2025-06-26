@@ -522,6 +522,10 @@ class RemoteHandle(Generic[BehaviorT]):
             for future in self._futures:
                 self._futures[future].cancel()
 
+    def closed(self) -> bool:
+        """Check if the handle has been closed."""
+        return self._closed
+
     async def action(
         self,
         action: str,

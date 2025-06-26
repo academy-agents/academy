@@ -41,13 +41,16 @@ async def test_launch_and_shutdown(
 
     await asyncio.sleep(5 * TEST_LOOP_SLEEP)
 
-    await handle1.shutdown()
-    await handle2.shutdown()
+    await manager.shutdown(handle1.agent_id)
+    await manager.shutdown(handle2)
 
     await manager.wait(handle1)
     await manager.wait(handle2)
 
     assert len(manager.running()) == 0
+
+    # Should be a no-op since the agent is already shutdown
+    await manager.shutdown(handle1)
 
 
 @pytest.mark.asyncio
@@ -66,7 +69,7 @@ async def test_shutdown_on_exit(
 async def test_wait_bad_identifier(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    registration = await manager.exchange_client.register_agent(EmptyBehavior)
+    registration = await manager.register_agent(EmptyBehavior)
     with pytest.raises(BadEntityIdError):
         await manager.wait(registration.agent_id)
 
@@ -85,7 +88,7 @@ async def test_wait_timeout(
 async def test_shutdown_bad_identifier(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    registration = await manager.exchange_client.register_agent(EmptyBehavior)
+    registration = await manager.register_agent(EmptyBehavior)
     with pytest.raises(BadEntityIdError):
         await manager.shutdown(registration.agent_id)
 
@@ -94,7 +97,7 @@ async def test_shutdown_bad_identifier(
 async def test_duplicate_launched_agents_error(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    registration = await manager.exchange_client.register_agent(EmptyBehavior)
+    registration = await manager.register_agent(EmptyBehavior)
     await manager.launch(EmptyBehavior(), registration=registration)
     with pytest.raises(
         RuntimeError,

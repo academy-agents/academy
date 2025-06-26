@@ -169,8 +169,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     @property
     def exchange_client(self) -> UserExchangeClient[ExchangeTransportT]:
-        """Exchange interface."""
+        """User client for the exchange."""
         return self._exchange_client
+
+    @property
+    def exchange_factory(self) -> ExchangeFactory[ExchangeTransportT]:
+        """Client factory for the exchange."""
+        return self._exchange_factory
 
     @property
     def user_id(self) -> UserId:
@@ -191,8 +196,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """
         for acb in self._acbs.values():
             if not acb.task.done():
+                handle = await self.get_handle(acb.agent_id)
                 with contextlib.suppress(MailboxClosedError):
-                    await self._handles[acb.agent_id].shutdown()
+                    await handle.shutdown()
         logger.debug('Requested shutdown from all agents')
 
         for acb in self._acbs.values():
@@ -289,7 +295,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                     _run_agent_on_worker,
                     behavior,
                     config,
-                    self._exchange_factory,
+                    self.exchange_factory,
                     registration,
                 )
             except asyncio.CancelledError:  # pragma: no cover
@@ -344,10 +350,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         executor_instance = self._executors[executor]
 
         if registration is None:
-            registration = await self.exchange_client.register_agent(
-                type(behavior),
-                name=name,
-            )
+            registration = await self.register_agent(type(behavior), name=name)
         elif registration.agent_id in self._acbs:
             raise RuntimeError(
                 f'{registration.agent_id} has already been executed.',
@@ -363,23 +366,63 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 config,
                 registration,
             ),
-            name=f'launcher-run-{agent_id}',
+            name=f'manager-run-{agent_id}',
         )
 
         acb = _ACB(agent_id=agent_id, executor=executor, task=task)
         self._acbs[agent_id] = acb
-
-        handle = await self.exchange_client.get_handle(agent_id)
-        self._handles[handle.agent_id] = handle
-
+        handle = await self.get_handle(agent_id)
         logger.info('Launched agent (%s; %s)', agent_id, behavior)
         return handle
+
+    async def get_handle(
+        self,
+        agent: AgentId[BehaviorT] | AgentRegistration[BehaviorT],
+    ) -> RemoteHandle[BehaviorT]:
+        """Create a new handle to an agent.
+
+        A handle acts like a reference to a remote agent, enabling a user
+        to manage the agent or asynchronously invoke actions.
+
+        Args:
+            agent: Agent ID or registration indicating the agent to create
+                a handle to. The agent must be registered with the same
+                exchange that this manager is a client of.
+
+        Returns:
+            Handle to the agent.
+        """
+        agent_id = agent if isinstance(agent, AgentId) else agent.agent_id
+        handle = self._handles.get(agent_id, None)
+        if handle is not None and not handle.closed():
+            return handle
+        handle = await self.exchange_client.get_handle(agent_id)
+        self._handles[agent_id] = handle
+        return handle
+
+    async def register_agent(
+        self,
+        behavior: type[BehaviorT],
+        *,
+        name: str | None = None,
+    ) -> AgentRegistration[BehaviorT]:
+        """Register a new agent with the exchange.
+
+        Args:
+            behavior: Behavior type of the agent.
+            name: Optional display name for the agent.
+
+        Returns:
+            Agent registration info that can be passed to
+            [`launch()`][academy.manager.Manager.launch].
+        """
+        return await self.exchange_client.register_agent(behavior, name=name)
 
     def running(self) -> set[AgentId[Any]]:
         """Get a set of IDs of all running agents.
 
         Returns:
-            Set of agent IDs corresponding to all agents launcher by this \
+            Set of agent IDs corresponding to all agents launched by this \
             manager that have not completed yet.
         """
         running: set[AgentId[Any]] = set()
@@ -412,11 +455,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """
         agent_id = agent.agent_id if isinstance(agent, RemoteHandle) else agent
 
-        try:
-            handle = self._handles[agent_id]
-        except KeyError:
+        if agent_id not in self._acbs:
             raise BadEntityIdError(agent_id) from None
+        if self._acbs[agent_id].task.done():
+            return
 
+        handle = await self.get_handle(agent_id)
         with contextlib.suppress(MailboxClosedError):
             await handle.shutdown()
 
@@ -442,7 +486,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         Raises:
             BadEntityIdError: If the agent was not found. This likely means
-                the agent was not launched by this launcher.
+                the agent was not launched by this manager.
             TimeoutError: If `timeout` was exceeded while waiting for agent.
             Exception: Any exception raised by the agent if it exited due
                 to a failure and `raise_error=True`.

@@ -149,6 +149,7 @@ async def test_remote_handle_closed_error(
     registration = await exchange.register_agent(EmptyBehavior)
     handle = RemoteHandle(exchange, registration.agent_id)
     await handle.close()
+    assert handle.closed()
 
     assert handle.client_id is not None
     with pytest.raises(HandleClosedError):
@@ -271,8 +272,8 @@ async def test_client_remote_handle_wait_futures(
     await handle.close(wait_futures=True)
     await sleep_future
 
-    # Still need to shutdown agent to exit properly
-    shutdown_handle = await manager.exchange_client.get_handle(handle.agent_id)
+    # Create a new, non-closed handle to shutdown the agent
+    shutdown_handle = await manager.get_handle(handle.agent_id)
     await shutdown_handle.shutdown()
     await manager.wait(handle.agent_id)
 
@@ -288,8 +289,8 @@ async def test_client_remote_handle_cancel_futures(
     with pytest.raises(asyncio.CancelledError):
         await sleep_future
 
-    # Still need to shutdown agent to exit properly
-    async with await manager.exchange_client.get_handle(
+    # Create a new, non-closed handle to shutdown the agent
+    async with await manager.get_handle(
         handle.agent_id,
     ) as shutdown_handle:
         await shutdown_handle.shutdown()

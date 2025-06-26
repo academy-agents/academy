@@ -168,6 +168,8 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
     ) -> None:
         self._transport = transport
         self._handles: dict[uuid.UUID, RemoteHandle[Any]] = {}
+        self._close_lock = asyncio.Lock()
+        self._closed = False
 
     async def __aenter__(self) -> Self:
         return self
@@ -373,9 +375,14 @@ class AgentExchangeClient(
         by this client. The agent's mailbox will not be terminated so the agent
         can be started again later.
         """
-        await self._close_handles()
-        await self._transport.close()
-        logger.info('Closed exchange client for %s', self.client_id)
+        async with self._close_lock:
+            if self._closed:
+                return
+
+            await self._close_handles()
+            await self._transport.close()
+            self._closed = True
+            logger.info('Closed exchange client for %s', self.client_id)
 
     async def _handle_message(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):
@@ -436,15 +443,20 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         This terminates the user's mailbox, closes the underlying exchange
         transport, and closes all handles produced by this client.
         """
-        await self._close_handles()
-        await self._transport.terminate(self.client_id)
-        logger.info(f'Terminated mailbox for {self.client_id}')
-        if self._listener_task is not None:
-            self._listener_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._listener_task
-        await self._transport.close()
-        logger.info('Closed exchange client for %s', self.client_id)
+        async with self._close_lock:
+            if self._closed:
+                return
+
+            await self._close_handles()
+            await self._transport.terminate(self.client_id)
+            logger.info(f'Terminated mailbox for {self.client_id}')
+            if self._listener_task is not None:
+                self._listener_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._listener_task
+            await self._transport.close()
+            self._closed = True
+            logger.info('Closed exchange client for %s', self.client_id)
 
     async def _handle_message(self, message: Message) -> None:
         if isinstance(message, get_args(RequestMessage)):

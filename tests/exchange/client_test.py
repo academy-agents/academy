@@ -67,6 +67,8 @@ async def test_create_agent_client(factory: ExchangeFactory[Any]) -> None:
         ) as agent_client:
             assert isinstance(repr(agent_client), str)
             assert isinstance(str(agent_client), str)
+            await agent_client.close()  # Idempotent check
+        await client.close()  # Idempotent check
 
 
 @pytest.mark.asyncio

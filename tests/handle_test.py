@@ -274,6 +274,7 @@ async def test_client_remote_handle_wait_futures(
     # Still need to shutdown agent to exit properly
     shutdown_handle = await manager.exchange_client.get_handle(handle.agent_id)
     await shutdown_handle.shutdown()
+    await manager.wait(handle.agent_id)
 
 
 @pytest.mark.asyncio
@@ -288,5 +289,8 @@ async def test_client_remote_handle_cancel_futures(
         await sleep_future
 
     # Still need to shutdown agent to exit properly
-    shutdown_handle = await manager.exchange_client.get_handle(handle.agent_id)
-    await shutdown_handle.shutdown()
+    async with await manager.exchange_client.get_handle(
+        handle.agent_id,
+    ) as shutdown_handle:
+        await shutdown_handle.shutdown()
+    await manager.wait(handle.agent_id)

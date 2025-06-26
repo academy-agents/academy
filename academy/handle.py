@@ -475,6 +475,8 @@ class RemoteHandle(Generic[BehaviorT]):
     async def _process_response(self, response: ResponseMessage) -> None:
         if isinstance(response, (ActionResponse, PingResponse)):
             future = self._futures.pop(response.tag)
+            if future.cancelled():
+                return
             if response.exception is not None:
                 future.set_exception(response.exception)
             elif isinstance(response, ActionResponse):

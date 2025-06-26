@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from academy.behavior import action
 from academy.behavior import Behavior
 from academy.exchange.local import LocalExchangeFactory
 from academy.handle import Handle
-from academy.launcher import ThreadLauncher
 from academy.logging import init_logging
 from academy.manager import Manager
 
@@ -49,7 +49,7 @@ async def main() -> int:
 
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
-        launcher=ThreadLauncher(),
+        executors=ThreadPoolExecutor(),
     ) as manager:
         lowerer = await manager.launch(Lowerer())
         reverser = await manager.launch(Reverser())

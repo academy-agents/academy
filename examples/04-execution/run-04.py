@@ -9,7 +9,6 @@ from academy.behavior import action
 from academy.behavior import Behavior
 from academy.exchange.cloud.client import spawn_http_exchange
 from academy.handle import Handle
-from academy.launcher import Launcher
 from academy.logging import init_logging
 from academy.manager import Manager
 
@@ -53,12 +52,12 @@ async def main() -> int:
     with spawn_http_exchange('localhost', EXCHANGE_PORT) as factory:
         mp_context = multiprocessing.get_context('spawn')
         executor = ProcessPoolExecutor(max_workers=3, mp_context=mp_context)
+
         async with await Manager.from_exchange_factory(
             factory=factory,
-            # Agents are launched using a Launcher. The Launcher can
-            # use any concurrent.futures.Executor (here, a ProcessPoolExecutor)
-            # to execute agents.
-            launcher=Launcher(executor),
+            # Agents are run by the manager in the processes of this
+            # process pool executor.
+            executors=executor,
         ) as manager:
             # Initialize and launch each of the three agents. The returned
             # type is a handle to that agent used to invoke actions.
@@ -79,8 +78,8 @@ async def main() -> int:
             assert result == expected
             logger.info('Received result: "%s"', result)
 
-        # Upon exit, the Manager context will instruct each agent to shutdown
-        # and then close the handles, exchange, and launcher interfaces.
+        # Upon exit, the Manager context will instruct each agent to shutdown,
+        # closing their respective handles, and shutting down the executors.
 
     return 0
 

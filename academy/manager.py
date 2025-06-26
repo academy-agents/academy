@@ -5,6 +5,7 @@ import contextlib
 import dataclasses
 import logging
 import sys
+from collections.abc import Iterable
 from collections.abc import MutableMapping
 from concurrent.futures import Executor
 from types import TracebackType
@@ -58,7 +59,7 @@ class _ACB(Generic[BehaviorT]):
     # Agent Control Block
     agent_id: AgentId[BehaviorT]
     executor: str
-    task: asyncio.Future[None]
+    task: asyncio.Task[None]
 
 
 class Manager(Generic[ExchangeTransportT], NoPickleMixin):
@@ -471,46 +472,74 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             await handle.shutdown()
 
         if blocking:
-            await self.wait(agent_id, raise_error=raise_error, timeout=timeout)
+            await self.wait(
+                {agent_id},
+                raise_error=raise_error,
+                timeout=timeout,
+            )
 
     async def wait(
         self,
-        agent: AgentId[Any] | RemoteHandle[Any],
+        agents: Iterable[AgentId[Any] | RemoteHandle[Any]],
         *,
-        raise_error: bool = True,
+        raise_error: bool = False,
+        return_when: str = asyncio.ALL_COMPLETED,
         timeout: float | None = None,
     ) -> None:
-        """Wait for a launched agent to exit.
+        """Wait for launched agents to complete.
 
         Note:
             Calling `wait()` is only valid after `launch()` has succeeded.
 
         Args:
-            agent: ID or handle to the launched agent.
-            raise_error: Raise the error returned by the agent.
-            timeout: Optional timeout in seconds to wait for agent.
+            agents: An iterable of agent IDs or handles to wait on.
+            raise_error: Raise errors returned by completed agents.
+            return_when: Indicate when this function should return. The
+                same as [`asyncio.wait()`][asyncio.wait].
+            timeout: Optional timeout in seconds to wait for agents.
 
         Raises:
-            BadEntityIdError: If the agent was not found. This likely means
-                the agent was not launched by this manager.
-            TimeoutError: If `timeout` was exceeded while waiting for agent.
-            Exception: Any exception raised by the agent if it exited due
-                to a failure and `raise_error=True`.
+            BadEntityIdError: If an agent was not launched by this manager.
+            TimeoutError: If `timeout` was exceeded while waiting for agents.
+            Exception: Any exception raised by an agent that completed due
+                to a failure and `raise_error=True` is set.
         """
-        agent_id = agent.agent_id if isinstance(agent, RemoteHandle) else agent
+        agent_ids = {
+            agent if isinstance(agent, AgentId) else agent.agent_id
+            for agent in agents
+        }
 
-        try:
-            acb = self._acbs[agent_id]
-        except KeyError:
-            raise BadEntityIdError(agent_id) from None
+        if len(agent_ids) == 0:
+            return
 
-        done, pending = await asyncio.wait({acb.task}, timeout=timeout)
+        agent_tasks: list[asyncio.Task[None]] = []
+        for agent_id in agent_ids:
+            try:
+                agent_tasks.append(self._acbs[agent_id].task)
+            except KeyError:
+                raise BadEntityIdError(agent_id) from None
 
-        if acb.task in pending:
+        done, pending = await asyncio.wait(
+            agent_tasks,
+            return_when=return_when,
+            timeout=timeout,
+        )
+
+        if len(done) == 0:
             raise TimeoutError(
-                f'Agent did not complete within {timeout}s timeout '
-                f'({acb.agent_id})',
+                f'No agents completed within {timeout} seconds: '
+                f'{len(pending)} pending agent(s).',
+            )
+        elif return_when == asyncio.ALL_COMPLETED and len(pending) > 0:
+            raise TimeoutError(
+                f'Not all agents completed within {timeout} seconds: '
+                f'{len(pending)} pending agent(s).',
             )
 
         if raise_error:
-            acb.task.result()
+            exceptions = (task.exception() for task in agent_tasks)
+            exceptions_only = tuple(e for e in exceptions if e is not None)
+            raise_exceptions(
+                exceptions_only,
+                message='Waited agents raised the following exceptions.',
+            )

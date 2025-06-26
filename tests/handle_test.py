@@ -275,7 +275,7 @@ async def test_client_remote_handle_wait_futures(
     # Create a new, non-closed handle to shutdown the agent
     shutdown_handle = await manager.get_handle(handle.agent_id)
     await shutdown_handle.shutdown()
-    await manager.wait(handle.agent_id)
+    await manager.wait({handle.agent_id})
 
 
 @pytest.mark.asyncio
@@ -294,4 +294,4 @@ async def test_client_remote_handle_cancel_futures(
         handle.agent_id,
     ) as shutdown_handle:
         await shutdown_handle.shutdown()
-    await manager.wait(handle.agent_id)
+    await manager.wait({handle.agent_id})

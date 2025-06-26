@@ -44,8 +44,8 @@ async def test_launch_and_shutdown(
     await manager.shutdown(handle1.agent_id)
     await manager.shutdown(handle2)
 
-    await manager.wait(handle1)
-    await manager.wait(handle2)
+    await manager.wait({handle1})
+    await manager.wait({handle2})
 
     assert len(manager.running()) == 0
 
@@ -66,12 +66,19 @@ async def test_shutdown_on_exit(
 
 
 @pytest.mark.asyncio
+async def test_wait_empty_iterable(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    await manager.wait({})
+
+
+@pytest.mark.asyncio
 async def test_wait_bad_identifier(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     registration = await manager.register_agent(EmptyBehavior)
     with pytest.raises(BadEntityIdError):
-        await manager.wait(registration.agent_id)
+        await manager.wait({registration.agent_id})
 
 
 @pytest.mark.asyncio
@@ -81,7 +88,23 @@ async def test_wait_timeout(
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
     handle = await manager.launch(behavior)
     with pytest.raises(TimeoutError):
-        await manager.wait(handle, timeout=TEST_LOOP_SLEEP)
+        await manager.wait({handle}, timeout=TEST_LOOP_SLEEP)
+
+
+@pytest.mark.asyncio
+async def test_wait_timeout_all_completed(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    behavior = SleepBehavior(TEST_LOOP_SLEEP)
+    handle1 = await manager.launch(behavior)
+    handle2 = await manager.launch(behavior)
+    await manager.shutdown(handle1, blocking=True)
+    with pytest.raises(TimeoutError):
+        await manager.wait(
+            {handle1, handle2},
+            timeout=TEST_LOOP_SLEEP,
+            return_when=asyncio.ALL_COMPLETED,
+        )
 
 
 @pytest.mark.asyncio
@@ -114,7 +137,7 @@ async def test_shutdown_nonblocking(
     behavior = SleepBehavior(TEST_LOOP_SLEEP)
     handle = await manager.launch(behavior)
     await manager.shutdown(handle, blocking=False)
-    await manager.wait(handle, timeout=TEST_THREAD_JOIN_TIMEOUT)
+    await manager.wait({handle}, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 
 @pytest.mark.asyncio
@@ -226,9 +249,9 @@ async def test_wait_ignore_agent_errors(
 
     if raise_error:
         with pytest.raises(RuntimeError, match='Agent startup failed'):
-            await manager.wait(handle, raise_error=raise_error)
+            await manager.wait({handle}, raise_error=raise_error)
     else:
-        await manager.wait(handle, raise_error=raise_error)
+        await manager.wait({handle}, raise_error=raise_error)
 
     with pytest.raises(RuntimeError, match='Agent startup failed'):
         await manager.close()

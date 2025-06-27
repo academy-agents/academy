@@ -375,7 +375,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             status=_FORBIDDEN_CODE,
             text='Incorrect permissions',
         )
-    except TimeoutError:
+    except asyncio.TimeoutError:
         return Response(status=_TIMEOUT_CODE, text='Request timeout')
     else:
         return json_response({'message': message.model_dump_json()})

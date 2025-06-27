@@ -260,6 +260,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 self._messages.get(),
                 timeout=timeout,
             )
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                f'Timeout waiting for next message for {self.mailbox_id} '
+                f'after {timeout} seconds.',
+            ) from None
         except QueueShutDown:
             raise MailboxClosedError(self.mailbox_id) from None
 

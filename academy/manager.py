@@ -75,6 +75,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         running agents will be shutdown, any agent handles created by the
         manager will be closed, and the executors will be shutdown.
 
+    Tip:
+        When using
+        [`ProcessPoolExecutors`][concurrent.futures.ProcessPoolExecutor],
+        use the `initializer` argument to configure logging in the worker
+        processes that will execute agents.
+
     Note:
         The manager takes ownership of the exchange client and executors,
         meaning the manager will clean up those resources when the manager

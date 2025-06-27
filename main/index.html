@@ -1400,29 +1400,6 @@
   
   
     <li class="md-nav__item">
-      <a href="api/launcher/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.launcher
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="api/logging/" class="md-nav__link">
         
   
@@ -1875,14 +1852,14 @@ Clients or peers can invoke the <code>get_last_reading()</code> and <code>set_pr
 </span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Entities communicate asynchronously through <em>handles</em>, sending messages to and receiving messages from a mailbox managed by an <em>exchange</em>.
-The <em>launcher</em> abstracts the remote execution of an agent, and the <code>Manager</code> provides easy management of handles, launchers, and the exchange.</p>
+The <em>manager</em> abstracts the remote execution and management of agents using <a href="https://docs.python.org/3/library/concurrent.futures.html">executors</a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.exchange.local</span><span class="w"> </span><span class="kn">import</span> <span class="n">LocalExchangeFactory</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.launcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadLauncher</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manager</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">Manager</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">Manager</span><span class="o">.</span><span class="n">from_exchange_factory</span><span class="p">(</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">factory</span><span class="o">=</span><span class="n">LocalExchangeFactory</span><span class="p">(),</span>  <span class="c1"># Replace with other implementations</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">launcher</span><span class="o">=</span><span class="n">ThreadLauncher</span><span class="p">(),</span>  <span class="c1"># for distributed deployments</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">executors</span><span class="o">=</span><span class="n">ThreadPoolExecutor</span><span class="p">(),</span>  <span class="c1"># for distributed deployments</span>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span> <span class="k">as</span> <span class="n">manager</span><span class="p">:</span>
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">behavior</span> <span class="o">=</span> <span class="n">SensorMonitorAgent</span><span class="p">()</span>  <span class="c1"># From the above block</span>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">agent_handle</span> <span class="o">=</span> <span class="k">await</span> <span class="n">manager</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">behavior</span><span class="p">)</span>

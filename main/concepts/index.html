@@ -607,18 +607,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#launcher" class="md-nav__link">
+  <a href="#manager" class="md-nav__link">
     <span class="md-ellipsis">
-      Launcher
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#managers" class="md-nav__link">
-    <span class="md-ellipsis">
-      Managers
+      Manager
     </span>
   </a>
   
@@ -1435,29 +1426,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/launcher/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.launcher
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../api/logging/" class="md-nav__link">
         
   
@@ -1862,18 +1830,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#launcher" class="md-nav__link">
+  <a href="#manager" class="md-nav__link">
     <span class="md-ellipsis">
-      Launcher
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#managers" class="md-nav__link">
-    <span class="md-ellipsis">
-      Managers
+      Manager
     </span>
   </a>
   
@@ -1904,11 +1863,11 @@
 <blockquote>
 <p>Agents and users in Academy interact via handles to invoke actions asynchronously.
 Agents implement a behavior, defined by their actions, control loops, and state.
-Academy decouples the control and data planes through the launcher and exchange components that manage spawning agents and communication, respectively.</p>
+Academy decouples the control and data planes through the exchange, used for user and agent communication, and launcher mechanisms that can remotely execute agents.</p>
 </blockquote>
 <p>An Academy application includes one or more <em>agents</em> and zero or more <em>users</em>.
 An agent is a process that executes a <em>behavior</em>, where a behavior is defined by a <em>local state</em>, a set of <em>actions</em>, and a set of <em>control loops</em>.
-Agents are executed remotely using a <em>launcher</em>.
+Agents can be executed remotely using a <em>manager</em> (previously referred to as a <em>launcher</em>).
 Once running, an agent concurrently executes all of its control loops and listens for messages from user programs or other agents.</p>
 <p>A user program interacts with an agent through a <em>handle</em>, which acts like a reference to the remote agent and translates method calls into action request messages.
 Each entity (i.e., user or agent) has an associated <em>mailbox</em> that maintains a queue of messages sent to that entity by other entities.
@@ -1979,19 +1938,15 @@ Closed indicates permanent termination of the entity and will cause <a class="au
 <li><a class="autorefs autorefs-internal" title="            RedisExchangeFactory" href="../api/exchange/redis/#academy.exchange.redis.RedisExchangeFactory"><strong>Redis</strong></a>: Stores state and mailboxes in a Redis server. Use of Redis enables optional replication and cloud-hosting for improved resilience and availability.</li>
 <li><a class="autorefs autorefs-internal" title="            HybridExchangeFactory" href="../api/exchange/hybrid/#academy.exchange.hybrid.HybridExchangeFactory"><strong>HybridExchange</strong></a>: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).</li>
 </ul>
-<h2 id="launcher">Launcher<a class="headerlink" href="#launcher" title="Permanent link">&para;</a></h2>
-<p>An agent can be run manually, but the intended method of execution is via the launcher, which manages the initialization and execution of agents on remote resources.
-The <a class="autorefs autorefs-internal" title="            Launcher" href="../api/launcher/#academy.launcher.Launcher"><code>Launcher</code></a> defines a <a class="autorefs autorefs-internal" title="            launch
+<h2 id="manager">Manager<a class="headerlink" href="#manager" title="Permanent link">&para;</a></h2>
+<p>Agents can be run manually via <a class="autorefs autorefs-internal" title="            run
 
 
   
       async
-  " href="../api/launcher/#academy.launcher.Launcher.launch"><code>launch()</code></a> method with parameters for the behavior, exchange, and agent ID and returns a handle to the launched agent.
-It runs agents in any <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor"><code>concurrent.futures.Executor</code></a> compatible executor, such as a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a>, <a href="https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops" target="_blank">Parsl</a>, or <a href="https://globus-compute.readthedocs.io/en/latest/index.html" target="_blank">Globus Compute</a>.</p>
-<h2 id="managers">Managers<a class="headerlink" href="#managers" title="Permanent link">&para;</a></h2>
-<p>An <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> combines an exchange and one or more launchers to provide a single interface for launching, using, and managing agents.
-Each manager has a single mailbox in the exchange and multiplexes that mailbox across handles to all of the agents that it manages.
-This reduces boilerplate code, improves communication efficiency, and ensures stateful resources and threads are appropriately cleaned up.</p>
+  " href="../api/agent/#academy.agent.Agent.run"><code>Agent.run()</code></a>, but typically applications want to run many agents concurrently across parallel or distributed resources.
+The <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> provides a single interface for launching and managing agents across one or more <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor"><code>Executors</code></a>, such as a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a>, <a href="https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops" target="_blank">Parsl</a>, or <a href="https://globus-compute.readthedocs.io/en/latest/index.html" target="_blank">Globus Compute</a>.
+A manager will handle common boilerplate, including registering agents, creating handles, and ensuring stateful resources are appropriately cleaned up.</p>
 
 
 

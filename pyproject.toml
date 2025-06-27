@@ -24,8 +24,8 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp",
-    "aiologic",
     "click!=8.1.4",
+    "culsans",
     "globus_sdk>=3.46,<4",
     "proxystore>=0.8.0",
     "pydantic>=2,<3",

@@ -18,6 +18,18 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
+    from asyncio import Queue
+    from asyncio import QueueShutDown
+
+    AsyncQueue = Queue
+else:  # pragma: <3.13 cover
+    # Use of queues here is isolated to a single thread/event loop so
+    # we only need culsans queues for the backport of shutdown() behavior
+    from culsans import AsyncQueue
+    from culsans import AsyncQueueShutDown as QueueShutDown
+    from culsans import Queue
+
 import redis.asyncio
 
 from academy.behavior import Behavior
@@ -25,8 +37,6 @@ from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange.queue import AsyncQueue
-from academy.exchange.queue import QueueClosedError
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
 from academy.exchange.transport import ExchangeTransportMixin
@@ -84,7 +94,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._interface = interface
 
         self._address_cache: dict[EntityId, str] = {}
-        self._messages: AsyncQueue[Message] = AsyncQueue()
+        if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
+            self._messages: AsyncQueue[Message] = Queue()
+        else:  # pragma: <3.13 cover
+            self._messages: AsyncQueue[Message] = Queue().async_q
         self._socket_pool = SocketPool()
         self._started = asyncio.Event()
         self._shutdown = asyncio.Event()
@@ -195,7 +208,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def close(self) -> None:
         self._shutdown.set()
-        await self._messages.close()
+        self._messages.shutdown(immediate=True)
         await self._socket_pool.close()
 
         await asyncio.wait_for(self._server_task, timeout=5)
@@ -243,8 +256,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def recv(self, timeout: float | None = None) -> Message:
         try:
-            return await self._messages.get(timeout=timeout)
-        except QueueClosedError:
+            return await asyncio.wait_for(
+                self._messages.get(),
+                timeout=timeout,
+            )
+        except QueueShutDown:
             raise MailboxClosedError(self.mailbox_id) from None
 
     async def register_agent(
@@ -356,7 +372,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         assert len(raw) == 2  # noqa: PLR2004
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
             self._shutdown.set()
-            await self._messages.close()
+            self._messages.shutdown(immediate=True)
             raise MailboxClosedError(self.mailbox_id)
         message = BaseMessage.model_deserialize(raw[1])
         assert isinstance(message, get_args(Message))
@@ -394,7 +410,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             )
         finally:
             self._shutdown.set()
-            await self._messages.close()
+            self._messages.shutdown(immediate=True)
             logger.debug(
                 'Stopped redis listener task for %s',
                 self.mailbox_id,

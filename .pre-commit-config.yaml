@@ -29,6 +29,7 @@ repos:
       - id: mypy
         additional_dependencies:
           - aiohttp
+          - culsans
           - globus-sdk>=3.46.0,<4
           - proxystore>=0.8.0
           - pydantic>=2,<3

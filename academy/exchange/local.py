@@ -1,6 +1,7 @@
 # ruff: noqa: D102
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import logging
 import sys
@@ -12,13 +13,15 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+from culsans import AsyncQueue
+from culsans import AsyncQueueShutDown as QueueShutDown
+from culsans import Queue
+
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
-from academy.exchange.queue import AsyncQueue
-from academy.exchange.queue import QueueClosedError
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
@@ -85,7 +88,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         """
         if mailbox_id is None:
             mailbox_id = UserId.new(name=name)
-            state.queues[mailbox_id] = AsyncQueue()
+            state.queues[mailbox_id] = Queue().async_q
             logger.info('Registered %s in exchange', mailbox_id)
         return cls(mailbox_id, state)
 
@@ -109,7 +112,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ):
                 found.append(aid)
         alive = tuple(
-            aid for aid in found if not self._state.queues[aid].closed()
+            aid for aid in found if not self._state.queues[aid].is_shutdown
         )
         return alive
 
@@ -119,9 +122,9 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     async def recv(self, timeout: float | None = None) -> Message:
         queue = self._state.queues[self.mailbox_id]
         try:
-            return await queue.get(timeout=timeout)
-        except QueueClosedError as e:
-            raise MailboxClosedError(self.mailbox_id) from e
+            return await asyncio.wait_for(queue.get(), timeout=timeout)
+        except QueueShutDown:
+            raise MailboxClosedError(self.mailbox_id) from None
 
     async def register_agent(
         self,
@@ -130,7 +133,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         name: str | None = None,
     ) -> LocalAgentRegistration[BehaviorT]:
         aid: AgentId[BehaviorT] = AgentId.new(name=name)
-        self._state.queues[aid] = AsyncQueue()
+        self._state.queues[aid] = Queue().async_q
         self._state.behaviors[aid] = behavior
         return LocalAgentRegistration(agent_id=aid)
 
@@ -140,20 +143,20 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             raise BadEntityIdError(message.dest)
         try:
             await queue.put(message)
-        except QueueClosedError as e:
-            raise MailboxClosedError(message.dest) from e
+        except QueueShutDown:
+            raise MailboxClosedError(message.dest) from None
 
     async def status(self, uid: EntityId) -> MailboxStatus:
         if uid not in self._state.queues:
             return MailboxStatus.MISSING
-        if self._state.queues[uid].closed():
+        if self._state.queues[uid].is_shutdown:
             return MailboxStatus.TERMINATED
         return MailboxStatus.ACTIVE
 
     async def terminate(self, uid: EntityId) -> None:
         queue = self._state.queues.get(uid, None)
-        if queue is not None and not queue.closed():
-            await queue.close()
+        if queue is not None and not queue.is_shutdown:
+            queue.shutdown(immediate=True)
             if isinstance(uid, AgentId):
                 self._state.behaviors.pop(uid, None)
 

@@ -28,6 +28,18 @@ from collections.abc import Sequence
 from typing import Any
 from typing import Callable
 
+if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
+    from asyncio import Queue
+    from asyncio import QueueShutDown
+
+    AsyncQueue = Queue
+else:  # pragma: <3.13 cover
+    # Use of queues here is isolated to a single thread/event loop so
+    # we only need culsans queues for the backport of shutdown() behavior
+    from culsans import AsyncQueue
+    from culsans import AsyncQueueShutDown as QueueShutDown
+    from culsans import Queue
+
 from aiohttp.web import AppKey
 from aiohttp.web import Application
 from aiohttp.web import json_response
@@ -47,8 +59,6 @@ from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.exceptions import ForbiddenError
 from academy.exchange.cloud.exceptions import UnauthorizedError
-from academy.exchange.queue import AsyncQueue
-from academy.exchange.queue import QueueClosedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.logging import init_logging
@@ -70,6 +80,7 @@ class _MailboxManager:
     def __init__(self) -> None:
         self._owners: dict[EntityId, str | None] = {}
         self._mailboxes: dict[EntityId, AsyncQueue[Message]] = {}
+        self._terminated: set[EntityId] = set()
         self._behaviors: dict[AgentId[Any], tuple[str, ...]] = {}
 
     def has_permissions(
@@ -90,7 +101,8 @@ class _MailboxManager:
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
-        elif self._mailboxes[uid].closed():
+
+        if uid in self._terminated:
             return MailboxStatus.TERMINATED
         else:
             return MailboxStatus.ACTIVE
@@ -106,8 +118,14 @@ class _MailboxManager:
                 'Client does not have correct permissions.',
             )
 
-        if uid not in self._mailboxes or self._mailboxes[uid].closed():
-            self._mailboxes[uid] = AsyncQueue()
+        mailbox = self._mailboxes.get(uid, None)
+        if mailbox is None:
+            if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
+                queue: AsyncQueue[Message] = Queue()
+            else:  # pragma: <3.13 cover
+                queue: AsyncQueue[Message] = Queue().async_q
+            self._mailboxes[uid] = queue
+            self._terminated.discard(uid)
             self._owners[uid] = client
             if behavior is not None and isinstance(uid, AgentId):
                 self._behaviors[uid] = behavior
@@ -119,9 +137,10 @@ class _MailboxManager:
                 'Client does not have correct permissions.',
             )
 
+        self._terminated.add(uid)
         mailbox = self._mailboxes.get(uid, None)
         if mailbox is not None:
-            await mailbox.close()
+            mailbox.shutdown(immediate=True)
             logger.info('Closed mailbox for %s', uid)
 
     async def discover(
@@ -134,7 +153,7 @@ class _MailboxManager:
         for aid, behaviors in self._behaviors.items():
             if not self.has_permissions(client, aid):
                 continue
-            if self._mailboxes[aid].closed():
+            if aid in self._terminated:
                 continue
             if behavior == behaviors[0] or (
                 allow_subclasses and behavior in behaviors
@@ -155,11 +174,13 @@ class _MailboxManager:
             )
 
         try:
-            return await self._mailboxes[uid].get(timeout=timeout)
+            queue = self._mailboxes[uid]
         except KeyError as e:
             raise BadEntityIdError(uid) from e
-        except QueueClosedError as e:
-            raise MailboxClosedError(uid) from e
+        try:
+            return await asyncio.wait_for(queue.get(), timeout=timeout)
+        except QueueShutDown:
+            raise MailboxClosedError(uid) from None
 
     async def put(self, client: str | None, message: Message) -> None:
         if not self.has_permissions(client, message.dest):
@@ -168,11 +189,13 @@ class _MailboxManager:
             )
 
         try:
-            await self._mailboxes[message.dest].put(message)
+            queue = self._mailboxes[message.dest]
         except KeyError as e:
             raise BadEntityIdError(message.dest) from e
-        except QueueClosedError as e:
-            raise MailboxClosedError(message.dest) from e
+        try:
+            await queue.put(message)
+        except QueueShutDown:
+            raise MailboxClosedError(message.dest) from None
 
 
 MANAGER_KEY = AppKey('manager', _MailboxManager)

@@ -255,3 +255,18 @@ async def test_wait_ignore_agent_errors(
 
     with pytest.raises(RuntimeError, match='Agent startup failed'):
         await manager.close()
+
+
+@pytest.mark.asyncio
+async def test_warn_executor_overload(
+    exchange: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    behavior = SleepBehavior(TEST_LOOP_SLEEP)
+    async with Manager(
+        exchange,
+        executors=ThreadPoolExecutor(max_workers=1),
+    ) as manager:
+        await manager.launch(behavior)
+        with pytest.warns(RuntimeWarning, match='Executor overload:'):
+            await manager.launch(behavior)
+        assert len(manager.running()) == 2  # noqa: PLR2004

@@ -5,6 +5,7 @@ import contextlib
 import dataclasses
 import logging
 import sys
+import warnings
 from collections.abc import Iterable
 from collections.abc import MutableMapping
 from concurrent.futures import Executor
@@ -380,6 +381,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._acbs[agent_id] = acb
         handle = await self.get_handle(agent_id)
         logger.info('Launched agent (%s; %s)', agent_id, behavior)
+        self._warn_executor_overloaded(executor_instance, executor)
         return handle
 
     async def get_handle(
@@ -543,3 +545,47 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 exceptions_only,
                 message='Waited agents raised the following exceptions.',
             )
+
+    def _warn_executor_overloaded(
+        self,
+        executor: Executor,
+        name: str,
+    ) -> None:
+        max_workers = _infer_max_workers(executor)
+        if max_workers is None:  # pragma: no cover
+            # If the user provided a third-party executor that we don't
+            # know how to get the number of workers for just return.
+            return
+        running_agents = len(self.running())
+        if running_agents > max_workers:
+            warnings.warn(
+                f'Executor overload: submitted agents exceeds worker count '
+                f'(executor: {name}, running agents: {running_agents}, max '
+                f'workers: {max_workers})',
+                RuntimeWarning,
+                # This stacklevel ensures the user see the line that called
+                # Manager.launch(), rather than seeing this line or the
+                # call to _warn_executor_overloaded
+                stacklevel=3,
+            )
+
+
+def _infer_max_workers(executor: Executor) -> int | None:  # pragma: no cover
+    """Infer the maximum workers of the executor.
+
+    The [`Executor`][concurrent.futures.Executor] specification does not
+    provide a standard mechanism to get the maximum number of workers.
+    """
+    if hasattr(executor, '_max_workers'):
+        # ProcessPoolExecutor and ThreadPoolExecutor
+        return executor._max_workers
+    elif hasattr(executor, 'scheduler_info') and callable(
+        executor.scheduler_info,
+    ):
+        # Dask distributed client
+        try:
+            return executor.scheduler_info()['workers']
+        except KeyError:
+            return None
+    else:
+        return None

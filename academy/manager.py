@@ -326,6 +326,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self,
         behavior: BehaviorT,
         *,
+        config: AgentRunConfig | None = None,
         executor: str | None = None,
         name: str | None = None,
         registration: AgentRegistration[BehaviorT] | None = None,
@@ -334,6 +335,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         Args:
             behavior: Behavior the agent will implement.
+            config: Agent run configuration.
             executor: Name of the executor instance to use. If `None`, uses
                 the default executor, if specified, otherwise raises an error.
             name: Readable name of the agent used when registering a new agent.
@@ -365,7 +367,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             )
 
         agent_id = registration.agent_id
-        config = AgentRunConfig()
+        config = AgentRunConfig() if config is None else config
 
         task = asyncio.create_task(
             self._run_agent_in_executor(

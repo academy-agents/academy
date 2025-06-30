@@ -593,6 +593,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#avoid-communication-operations-during-behavior-initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Avoid communication operations during behavior initialization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -897,6 +921,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../api/context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.context
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/event/" class="md-nav__link">
         
   
@@ -956,7 +1003,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -973,14 +1020,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_6" id="__nav_3_1_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_7" id="__nav_3_1_7_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_6">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_7">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
           </label>
@@ -1006,7 +1053,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7_1" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1023,14 +1070,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_6_1" id="__nav_3_1_6_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_7_1" id="__nav_3_1_7_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_6_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_6_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_7_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_7_1">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1725,6 +1772,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#avoid-communication-operations-during-behavior-initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Avoid communication operations during behavior initialization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1768,6 +1839,16 @@ For example, use the <code>initializer</code> argument when using a <a class="au
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">async</span> <span class="k">with</span> <span class="k">await</span> <span class="n">Manager</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">executors</span><span class="o">=</span><span class="n">executor</span><span class="p">)</span> <span class="k">as</span> <span class="n">manager</span><span class="p">:</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="o">...</span>
 </span></code></pre></div>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<p>This section highlights common best practices for developing applications in Academy.</p>
+<h3 id="avoid-communication-operations-during-behavior-initialization">Avoid communication operations during behavior initialization<a class="headerlink" href="#avoid-communication-operations-during-behavior-initialization" title="Permanent link">&para;</a></h3>
+<p>The <code>__init__</code> and <a class="autorefs autorefs-internal" title="            on_setup
+
+
+  
+      async
+  " href="../api/behavior/#academy.behavior.Behavior.on_setup"><code>on_setup()</code></a> methods of a <a class="autorefs autorefs-internal" title="            Behavior" href="../api/behavior/#academy.behavior.Behavior"><code>Behavior</code></a> are called during the setup process of an agent but before the agent is in a running state.
+Thus, communication operations, such as invoking an action on a remote agent, can cause setup to hang.</p>
 
 
 

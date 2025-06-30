@@ -12,13 +12,13 @@
         <meta name="author" content="Globus Labs">
       
       
-        <link rel="canonical" href="https://academy.proxystore.dev/latest/contributing/style-guide/">
+        <link rel="canonical" href="https://academy.proxystore.dev/latest/api/context/">
       
       
-        <link rel="prev" href="../">
+        <link rel="prev" href="../behavior/">
       
       
-        <link rel="next" href="../issues-pull-requests/">
+        <link rel="next" href="../event/">
       
       
       <link rel="icon" href="../../static/favicon.png">
@@ -26,7 +26,7 @@
     
     
       
-        <title>Style Guide - Academy</title>
+        <title>academy.context - Academy</title>
       
     
     
@@ -83,6 +83,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#academycontext" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -116,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Style Guide
+              academy.context
             
           </span>
         </div>
@@ -281,6 +286,8 @@
   
   
   
+    
+  
   
     
     
@@ -288,11 +295,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../api/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -311,11 +320,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="../" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
         
   
   
@@ -663,26 +670,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -695,7 +707,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             API Reference
@@ -706,26 +718,31 @@
                 
   
   
+    
   
   
+  
     
     
     
     
       
       
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
         
           
-          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
             
   
   
@@ -738,7 +755,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_1">
             <span class="md-nav__icon md-icon"></span>
             Academy
@@ -752,7 +769,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -775,7 +792,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/agent/" class="md-nav__link">
+      <a href="../agent/" class="md-nav__link">
         
   
   
@@ -798,7 +815,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/behavior/" class="md-nav__link">
+      <a href="../behavior/" class="md-nav__link">
         
   
   
@@ -818,10 +835,32 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../api/context/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    academy.context
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -832,6 +871,77 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#academy.context" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;context
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#academy.context.AgentContext" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AgentContext
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" AgentContext">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#academy.context.AgentContext.agent_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;agent_id
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.context.AgentContext.exchange_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;exchange_client
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.context.AgentContext.shutdown_event" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;shutdown_event
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -844,7 +954,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/event/" class="md-nav__link">
+      <a href="../event/" class="md-nav__link">
         
   
   
@@ -867,7 +977,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exception/" class="md-nav__link">
+      <a href="../exception/" class="md-nav__link">
         
   
   
@@ -907,7 +1017,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../api/exchange/" class="md-nav__link ">
+            <a href="../exchange/" class="md-nav__link ">
               
   
   
@@ -957,7 +1067,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../api/exchange/cloud/" class="md-nav__link ">
+            <a href="../exchange/cloud/" class="md-nav__link ">
               
   
   
@@ -990,7 +1100,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/cloud/authenticate/" class="md-nav__link">
+      <a href="../exchange/cloud/authenticate/" class="md-nav__link">
         
   
   
@@ -1013,7 +1123,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/cloud/client/" class="md-nav__link">
+      <a href="../exchange/cloud/client/" class="md-nav__link">
         
   
   
@@ -1036,7 +1146,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/cloud/config/" class="md-nav__link">
+      <a href="../exchange/cloud/config/" class="md-nav__link">
         
   
   
@@ -1059,7 +1169,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/cloud/exceptions/" class="md-nav__link">
+      <a href="../exchange/cloud/exceptions/" class="md-nav__link">
         
   
   
@@ -1082,7 +1192,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/cloud/login/" class="md-nav__link">
+      <a href="../exchange/cloud/login/" class="md-nav__link">
         
   
   
@@ -1105,7 +1215,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/cloud/server/" class="md-nav__link">
+      <a href="../exchange/cloud/server/" class="md-nav__link">
         
   
   
@@ -1136,7 +1246,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/hybrid/" class="md-nav__link">
+      <a href="../exchange/hybrid/" class="md-nav__link">
         
   
   
@@ -1159,7 +1269,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/local/" class="md-nav__link">
+      <a href="../exchange/local/" class="md-nav__link">
         
   
   
@@ -1182,7 +1292,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/proxystore/" class="md-nav__link">
+      <a href="../exchange/proxystore/" class="md-nav__link">
         
   
   
@@ -1205,7 +1315,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/redis/" class="md-nav__link">
+      <a href="../exchange/redis/" class="md-nav__link">
         
   
   
@@ -1228,7 +1338,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/exchange/transport/" class="md-nav__link">
+      <a href="../exchange/transport/" class="md-nav__link">
         
   
   
@@ -1259,7 +1369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/handle/" class="md-nav__link">
+      <a href="../handle/" class="md-nav__link">
         
   
   
@@ -1282,7 +1392,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/identifier/" class="md-nav__link">
+      <a href="../identifier/" class="md-nav__link">
         
   
   
@@ -1305,7 +1415,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/logging/" class="md-nav__link">
+      <a href="../logging/" class="md-nav__link">
         
   
   
@@ -1328,7 +1438,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/manager/" class="md-nav__link">
+      <a href="../manager/" class="md-nav__link">
         
   
   
@@ -1351,7 +1461,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/message/" class="md-nav__link">
+      <a href="../message/" class="md-nav__link">
         
   
   
@@ -1374,7 +1484,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/mypy_plugin/" class="md-nav__link">
+      <a href="../mypy_plugin/" class="md-nav__link">
         
   
   
@@ -1397,7 +1507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/serialize/" class="md-nav__link">
+      <a href="../serialize/" class="md-nav__link">
         
   
   
@@ -1420,7 +1530,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/socket/" class="md-nav__link">
+      <a href="../socket/" class="md-nav__link">
         
   
   
@@ -1443,7 +1553,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/state/" class="md-nav__link">
+      <a href="../state/" class="md-nav__link">
         
   
   
@@ -1478,32 +1588,27 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../contributing/" class="md-nav__link ">
               
   
   
@@ -1516,13 +1621,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Contributing
@@ -1533,17 +1638,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../contributing/style-guide/" class="md-nav__link">
         
   
   
@@ -1554,7 +1652,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1567,7 +1664,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../issues-pull-requests/" class="md-nav__link">
+      <a href="../../contributing/issues-pull-requests/" class="md-nav__link">
         
   
   
@@ -1590,7 +1687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/" class="md-nav__link">
+      <a href="../../contributing/releases/" class="md-nav__link">
         
   
   
@@ -1652,6 +1749,67 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#academy.context" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;context
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#academy.context.AgentContext" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AgentContext
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" AgentContext">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#academy.context.AgentContext.agent_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;agent_id
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.context.AgentContext.exchange_client" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;exchange_client
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.context.AgentContext.shutdown_event" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;shutdown_event
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1670,24 +1828,211 @@
   
 
 
-  <h1>Style Guide</h1>
+<h1 id="academycontext">academy.context<a class="headerlink" href="#academycontext" title="Permanent link">&para;</a></h1>
 
-<p>The Python code and docstring format mostly follows Google's <a href="https://google.github.io/styleguide/pyguide.html" target="_blank">Python Style Guide</a>, but the pre-commit config is the authoritative source for code format compliance.</p>
-<p><strong>Nits:</strong></p>
-<ul>
-<li>Avoid imports in <code>__init__.py</code> (reduces the likelihood of circular imports).</li>
-<li>Prefer pure functions where possible.</li>
-<li>Define all class attributes inside <code>__init__</code> so all attributes are visible in one place.
-  Attributes that are defined later can be set as <code>None</code> as a placeholder.</li>
-<li>Prefer f-strings (<code class="language-python highlight"><span class="sa">f</span><span class="s1">&#39;name: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span></code>) over string format (<code class="language-python highlight"><span class="s1">&#39;name: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>).
-  Never use the <code>%</code> operator.</li>
-<li>Prefer <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple">typing.NamedTuple</a> over <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/collections.html#collections.namedtuple">collections.namedtuple</a>.</li>
-<li>Use lower-case and no punctuation for log messages, but use upper-case and punctuation for exception values.
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;new connection opened to </span><span class="si">{</span><span class="n">address</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Name must contain alphanumeric characters only.&#39;</span><span class="p">)</span>
-</span></code></pre></div></li>
-<li>Document all exceptions that may be raised by a function in the docstring.</li>
-</ul>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="academy.context"></a>
+    <div class="doc doc-contents first">
+  <div style="display:flex; align-items: center">
+  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16" style="padding-right: 8px">
+    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+  </svg>
+  <a target="_blank" href="https://github.com/proxystore/academy/blob/main/academy/context.py">
+      <code>academy/context.py</code>
+  </a>
+  </div>
+  
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="academy.context.AgentContext" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">AgentContext</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#academy.context.AgentContext" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">AgentContext</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">agent_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentId
+
+
+  
+      pydantic-model
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+
+
+  
+      module-attribute
+   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">exchange_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentExchangeClient (academy.exchange.AgentExchangeClient)" href="../exchange/#academy.exchange.AgentExchangeClient">AgentExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+
+
+  
+      module-attribute
+   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">shutdown_event</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="asyncio.Event" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event">Event</a></span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+
+
+  
+      module-attribute
+   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code></p>
+
+
+        <p>Agent runtime context.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.context.AgentContext.agent_id" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">agent_id</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#academy.context.AgentContext.agent_id" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">agent_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentId
+
+
+  
+      pydantic-model
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+
+
+  
+      module-attribute
+   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>ID of the exchange as registered with the exchange.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.context.AgentContext.exchange_client" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">exchange_client</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#academy.context.AgentContext.exchange_client" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">exchange_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentExchangeClient (academy.exchange.AgentExchangeClient)" href="../exchange/#academy.exchange.AgentExchangeClient">AgentExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+
+
+  
+      module-attribute
+   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Client used by agent to communicate with the exchange.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.context.AgentContext.shutdown_event" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">shutdown_event</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#academy.context.AgentContext.shutdown_event" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">shutdown_event</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="asyncio.Event" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event">Event</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Shutdown event used to signal the agent to shutdown.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+
+    </div>
+
+</div>
 
 
 

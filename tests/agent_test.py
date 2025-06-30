@@ -531,3 +531,26 @@ async def test_agent_to_agent_handles(local_exchange_factory) -> None:
 
         await runner_handle.close()
         await runner_handle.close()
+
+
+class ShutdownBehavior(Behavior):
+    @action
+    async def end(self) -> None:
+        self.agent_shutdown()
+
+
+@pytest.mark.asyncio
+async def test_agent_self_termination(
+    exchange: UserExchangeClient[Any],
+) -> None:
+    registration = await exchange.register_agent(ShutdownBehavior)
+    agent = Agent(
+        ShutdownBehavior(),
+        exchange_factory=exchange.factory(),
+        registration=registration,
+    )
+
+    task = asyncio.create_task(agent.run(), name='test-agent-self-termination')
+    await agent._started_event.wait()
+    await agent.action('end', (), {})
+    await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)

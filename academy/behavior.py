@@ -18,8 +18,10 @@ from typing import TypeVar
 
 if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
     from typing import ParamSpec
+    from typing import TypeAlias
 else:  # pragma: <3.10 cover
     from typing_extensions import ParamSpec
+    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -40,11 +42,17 @@ if TYPE_CHECKING:
     from academy.exchange import AgentExchangeClient
     from academy.identifier import AgentId
 
+BehaviorT = TypeVar('BehaviorT', bound='Behavior')
+"""Type variable bound to [`Behavior`][academy.behavior.Behavior]."""
+
 P = ParamSpec('P')
 R = TypeVar('R')
 R_co = TypeVar('R_co', covariant=True)
-BehaviorT = TypeVar('BehaviorT', bound='Behavior')
-"""Type variable bound to [`Behavior`][academy.behavior.Behavior]."""
+ActionMethod: TypeAlias = Callable[P, Coroutine[None, None, R]]
+LoopMethod: TypeAlias = Callable[
+    [BehaviorT, asyncio.Event],
+    Coroutine[None, None, None],
+]
 
 logger = logging.getLogger(__name__)
 
@@ -278,9 +286,7 @@ class ControlLoop(Protocol):
         ...
 
 
-def action(
-    method: Callable[P, Coroutine[None, None, R]],
-) -> Callable[P, Coroutine[None, None, R]]:
+def action(method: ActionMethod[P, R]) -> ActionMethod[P, R]:
     """Decorator that annotates a method of a behavior as an action.
 
     Marking a method of a behavior as an action makes the method available
@@ -302,9 +308,7 @@ def action(
     return method
 
 
-def loop(
-    method: Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]],
-) -> Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]]:
+def loop(method: LoopMethod[BehaviorT]) -> LoopMethod[BehaviorT]:
     """Decorator that annotates a method of a behavior as a control loop.
 
     Control loop methods of a behavior are run as threads when an agent
@@ -359,7 +363,7 @@ def event(
     name: str,
 ) -> Callable[
     [Callable[[BehaviorT], Coroutine[None, None, None]]],
-    Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]],
+    LoopMethod[BehaviorT],
 ]:
     """Decorator that annotates a method of a behavior as an event loop.
 
@@ -395,7 +399,7 @@ def event(
 
     def decorator(
         method: Callable[[BehaviorT], Coroutine[None, None, None]],
-    ) -> Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]]:
+    ) -> LoopMethod[BehaviorT]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)
@@ -431,7 +435,7 @@ def timer(
     interval: float | timedelta,
 ) -> Callable[
     [Callable[[BehaviorT], Coroutine[None, None, None]]],
-    Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]],
+    LoopMethod[BehaviorT],
 ]:
     """Decorator that annotates a method of a behavior as a timer loop.
 
@@ -462,7 +466,7 @@ def timer(
 
     def decorator(
         method: Callable[[BehaviorT], Coroutine[None, None, None]],
-    ) -> Callable[[BehaviorT, asyncio.Event], Coroutine[None, None, None]]:
+    ) -> LoopMethod[BehaviorT]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)

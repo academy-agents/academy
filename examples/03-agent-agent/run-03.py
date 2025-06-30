@@ -20,6 +20,7 @@ class Coordinator(Behavior):
         lowerer: Handle[Lowerer],
         reverser: Handle[Reverser],
     ) -> None:
+        super().__init__()
         self.lowerer = lowerer
         self.reverser = reverser
 

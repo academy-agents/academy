@@ -32,6 +32,7 @@ from academy.behavior import Behavior, action, loop
 
 class SensorMonitorAgent(Behavior):
     def __init__(self) -> None:
+        super().__init__()
         self.last_reading: float | None = None
         self.process_threshold: float = 1.0
 

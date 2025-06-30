@@ -27,6 +27,7 @@ class FileState(shelve.DbfilenameShelf[ValueT]):
 
         class Example(Behavior):
             def __init__(self) -> None:
+                super().__init__()
                 self.state_path = '/tmp/agent-state.dbm'
 
             def on_setup(self) -> None:

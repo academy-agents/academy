@@ -36,6 +36,7 @@ from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 
 class SignalingBehavior(Behavior):
     def __init__(self) -> None:
+        super().__init__()
         self.setup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
 
@@ -365,6 +366,7 @@ async def test_behavior_handles_bind(
             handle: Handle[EmptyBehavior],
             proxy: ProxyHandle[EmptyBehavior],
         ) -> None:
+            super().__init__()
             self.direct = handle
             self.proxy = proxy
             self.sequence = HandleList([handle])
@@ -468,6 +470,7 @@ async def test_agent_run_bind_handles(
 
 class RunBehavior(Behavior):
     def __init__(self, doubler: Handle[DoubleBehavior]) -> None:
+        super().__init__()
         self.doubler = doubler
 
     async def on_shutdown(self) -> None:

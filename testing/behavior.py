@@ -23,6 +23,7 @@ class ErrorBehavior(Behavior):
 
 class HandleBehavior(Behavior):
     def __init__(self, handle: Handle[EmptyBehavior]) -> None:
+        super().__init__()
         self.handle = handle
 
 
@@ -40,6 +41,7 @@ class WaitBehavior(Behavior):
 
 class CounterBehavior(Behavior):
     def __init__(self) -> None:
+        super().__init__()
         self._count = 0
 
     async def on_setup(self) -> None:
@@ -56,6 +58,7 @@ class CounterBehavior(Behavior):
 
 class SleepBehavior(Behavior):
     def __init__(self, loop_sleep: float = 0.001) -> None:
+        super().__init__()
         self.loop_sleep = loop_sleep
         self.steps = 0
 

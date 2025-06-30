@@ -6,12 +6,14 @@ import inspect
 import logging
 import sys
 from collections.abc import Coroutine
+from collections.abc import Generator
 from datetime import timedelta
 from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import Literal
 from typing import Protocol
+from typing import TYPE_CHECKING
 from typing import TypeVar
 
 if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
@@ -25,12 +27,18 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 from academy.event import wait_event_async
+from academy.exception import AgentNotInitializedError
 from academy.handle import Handle
 from academy.handle import HandleDict
 from academy.handle import HandleList
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
+
+if TYPE_CHECKING:
+    from academy.context import AgentContext
+    from academy.exchange import AgentExchangeClient
+    from academy.identifier import AgentId
 
 P = ParamSpec('P')
 R = TypeVar('R')
@@ -71,11 +79,73 @@ class Behavior:
             )
         return super().__new__(cls)
 
+    def __init__(self) -> None:
+        self.__agent_context: AgentContext[Self] | None = None
+
     def __repr__(self) -> str:
         return f'{type(self).__name__}()'
 
     def __str__(self) -> str:
         return f'Behavior<{type(self).__name__}>'
+
+    def _agent_set_context(self, context: AgentContext[Self]) -> None:
+        self.__agent_context = context
+
+    @property
+    def agent_context(self) -> AgentContext[Self]:
+        """Agent runtime context.
+
+        Raises:
+            AgentNotInitializedError: If the agent runtime implementing
+                this behavior has not been started.
+        """
+        if (
+            # Check _Behavior__agent_context rather than __agent_context
+            # because of Python's name mangling
+            not hasattr(self, '_Behavior__agent_context')
+            or self.__agent_context is None
+        ):
+            raise AgentNotInitializedError
+        return self.__agent_context
+
+    @property
+    def agent_id(self) -> AgentId[Self]:
+        """Agent Id.
+
+        Raises:
+            AgentNotInitializedError: If the agent runtime implementing
+                this behavior has not been started.
+        """
+        return self.agent_context.agent_id
+
+    @property
+    def agent_exchange_client(self) -> AgentExchangeClient[Self, Any]:
+        """Agent exchange client.
+
+        Raises:
+            AgentNotInitializedError: If the agent runtime implementing
+                this behavior has not been started.
+        """
+        return self.agent_context.exchange_client
+
+    def agent_shutdown(self) -> None:
+        """Request the agent to shutdown.
+
+        Raises:
+            AgentNotInitializedError: If the agent runtime implementing
+                this behavior has not been started.
+        """
+        self.agent_context.shutdown_event.set()
+
+    def _behavior_attributes(self) -> Generator[tuple[str, Any]]:
+        for name in dir(self):
+            if name in Behavior.__dict__:
+                # Skip checking attributes of the base Behavior. Checking
+                # the type of properties that access agent_context may
+                # raise an AgentNotInitializedError.
+                continue
+            attr = getattr(self, name)
+            yield name, attr
 
     def behavior_actions(self) -> dict[str, Action[Any, Any]]:
         """Get methods of this behavior type that are decorated as actions.
@@ -84,8 +154,7 @@ class Behavior:
             Dictionary mapping method names to action methods.
         """
         actions: dict[str, Action[Any, Any]] = {}
-        for name in dir(self):
-            attr = getattr(self, name)
+        for name, attr in self._behavior_attributes():
             if _is_agent_method_type(attr, 'action'):
                 actions[name] = attr
         return actions
@@ -97,8 +166,7 @@ class Behavior:
             Dictionary mapping method names to loop methods.
         """
         loops: dict[str, ControlLoop] = {}
-        for name in dir(self):
-            attr = getattr(self, name)
+        for name, attr in self._behavior_attributes():
             if _is_agent_method_type(attr, 'loop'):
                 loops[name] = attr
         return loops
@@ -126,8 +194,7 @@ class Behavior:
             str,
             Handle[Any] | HandleDict[Any, Any] | HandleList[Any],
         ] = {}
-        for name in dir(self):
-            attr = getattr(self, name)
+        for name, attr in self._behavior_attributes():
             if isinstance(attr, handle_types):
                 handles[name] = attr
         return handles

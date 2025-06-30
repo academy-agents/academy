@@ -8,6 +8,20 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 
 
+class AgentNotInitializedError(Exception):
+    """Agent runtime context has not been initialized.
+
+    This error is typically raised when accessing the runtime context for
+    an agent from within a behavior class before the agent has been executed.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            'Agent runtime context has not been initialized. '
+            'Has the agent been started?',
+        )
+
+
 class BadEntityIdError(Exception):
     """Entity associated with the identifier is unknown."""
 

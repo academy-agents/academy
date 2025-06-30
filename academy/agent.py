@@ -12,6 +12,7 @@ from typing import Generic
 from typing import TypeVar
 
 from academy.behavior import BehaviorT
+from academy.context import AgentContext
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
 from academy.exception import raise_exceptions
@@ -218,6 +219,7 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
 
         Agent startup involves:
         1. Creates a new exchange client for the agent.
+        1. Sets the runtime context on the behavior.
         1. Binds all handles of the behavior to this agent's exchange client.
         1. Calls [`Behavior.on_setup()`][academy.behavior.Behavior.on_setup].
         1. Starts a [`Task`][asyncio.Task] for all control loops defined on
@@ -276,6 +278,13 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
             self.registration,
             request_handler=self._request_handler,
         )
+
+        context = AgentContext(
+            agent_id=self.agent_id,
+            exchange_client=self._exchange_client,
+            shutdown_event=self._shutdown_event,
+        )
+        self.behavior._agent_set_context(context)
 
         await _bind_behavior_handles(self.behavior, self._exchange_client)
         await self.behavior.on_setup()

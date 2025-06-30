@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 import pytest
 
@@ -8,6 +9,10 @@ from academy.behavior import Behavior
 from academy.behavior import event
 from academy.behavior import loop
 from academy.behavior import timer
+from academy.context import AgentContext
+from academy.exception import AgentNotInitializedError
+from academy.exchange import UserExchangeClient
+from academy.exchange.local import LocalExchangeTransport
 from academy.handle import ProxyHandle
 from testing.behavior import EmptyBehavior
 from testing.behavior import HandleBehavior
@@ -21,6 +26,50 @@ def test_initialize_base_type_error() -> None:
     error = 'The Behavior type cannot be instantiated directly'
     with pytest.raises(TypeError, match=error):
         Behavior()
+
+
+@pytest.mark.asyncio
+async def test_agent_context_initialized_ok(
+    exchange: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    behavior = EmptyBehavior()
+
+    async def _handler(_: Any) -> None:  # pragma: no cover
+        pass
+
+    registration = await exchange.register_agent(EmptyBehavior)
+    factory = exchange.factory()
+    async with await factory.create_agent_client(
+        registration,
+        _handler,
+    ) as client:
+        context = AgentContext(
+            agent_id=client.client_id,
+            exchange_client=client,
+            shutdown_event=asyncio.Event(),
+        )
+        behavior._agent_set_context(context)
+
+        assert behavior.agent_context is context
+        assert behavior.agent_id is context.agent_id
+        assert behavior.agent_exchange_client is context.exchange_client
+
+        behavior.agent_shutdown()
+        assert context.shutdown_event.is_set()
+
+
+@pytest.mark.asyncio
+async def test_agent_context_initialized_error() -> None:
+    behavior = EmptyBehavior()
+
+    with pytest.raises(AgentNotInitializedError):
+        _ = behavior.agent_context
+    with pytest.raises(AgentNotInitializedError):
+        _ = behavior.agent_id
+    with pytest.raises(AgentNotInitializedError):
+        _ = behavior.agent_exchange_client
+    with pytest.raises(AgentNotInitializedError):
+        behavior.agent_shutdown()
 
 
 @pytest.mark.asyncio

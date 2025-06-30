@@ -28,3 +28,12 @@ executor = ProcessPoolExecutor(
 async with await Manager(..., executors=executor) as manager:
     ...
 ```
+
+## Best Practices
+
+This section highlights common best practices for developing applications in Academy.
+
+### Avoid communication operations during behavior initialization
+
+The `__init__` and [`on_setup()`][academy.behavior.Behavior.on_setup] methods of a [`Behavior`][academy.behavior.Behavior] are called during the setup process of an agent but before the agent is in a running state.
+Thus, communication operations, such as invoking an action on a remote agent, can cause setup to hang.

@@ -1842,13 +1842,18 @@ For example, use the <code>initializer</code> argument when using a <a class="au
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <p>This section highlights common best practices for developing applications in Academy.</p>
 <h3 id="avoid-communication-operations-during-behavior-initialization">Avoid communication operations during behavior initialization<a class="headerlink" href="#avoid-communication-operations-during-behavior-initialization" title="Permanent link">&para;</a></h3>
-<p>The <code>__init__</code> and <a class="autorefs autorefs-internal" title="            on_setup
+<p>The <code>__init__</code> method of a <a class="autorefs autorefs-internal" title="            Behavior" href="../api/behavior/#academy.behavior.Behavior"><code>Behavior</code></a> is called in one of two places:</p>
+<ol>
+<li>On the client when submitting an instantiated behavior to be executed.</li>
+<li>On the agent at the start of the setup sequence when the behavior instantiation is deferred.</li>
+</ol>
+<p>In both scenarios, it is unsafe to perform communication operations (i.e., invoking an action on a remote agent) in <code>__init__</code> because connection resources and background tasks have not yet been initialized.</p>
+<p>The <a class="autorefs autorefs-internal" title="            on_setup
 
 
   
       async
-  " href="../api/behavior/#academy.behavior.Behavior.on_setup"><code>on_setup()</code></a> methods of a <a class="autorefs autorefs-internal" title="            Behavior" href="../api/behavior/#academy.behavior.Behavior"><code>Behavior</code></a> are called during the setup process of an agent but before the agent is in a running state.
-Thus, communication operations, such as invoking an action on a remote agent, can cause setup to hang.</p>
+  " href="../api/behavior/#academy.behavior.Behavior.on_setup"><code>Behavior.on_setup()</code></a> callback can be used instead to perform communication once the agent is in a running state.</p>
 
 
 

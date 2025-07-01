@@ -29,8 +29,8 @@ else:  # pragma: <3.11 cover
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
-from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxTerminatedError
+from academy.exception import BadEntityIdError
+from academy.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus

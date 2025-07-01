@@ -7,15 +7,15 @@ from unittest import mock
 import aiohttp
 import pytest
 
+from academy.exception import BadEntityIdError
+from academy.exception import ForbiddenError
+from academy.exception import MailboxTerminatedError
+from academy.exception import UnauthorizedError
 from academy.exchange.cloud.client import _raise_for_status
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.client import HttpExchangeTransport
 from academy.exchange.cloud.client import spawn_http_exchange
 from academy.exchange.cloud.server import StatusCode
-from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import ForbiddenError
-from academy.exchange.exception import MailboxTerminatedError
-from academy.exchange.exception import UnauthorizedError
 from academy.identifier import UserId
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT

@@ -8,8 +8,8 @@ import pytest
 
 from academy.exception import HandleClosedError
 from academy.exception import HandleNotBoundError
+from academy.exception import MailboxTerminatedError
 from academy.exchange import UserExchangeClient
-from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.handle import ProxyHandle

@@ -23,14 +23,14 @@ import aiohttp
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
+from academy.exception import BadEntityIdError
+from academy.exception import ForbiddenError
+from academy.exception import MailboxTerminatedError
+from academy.exception import UnauthorizedError
 from academy.exchange import ExchangeFactory
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.server import _run
 from academy.exchange.cloud.server import StatusCode
-from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import ForbiddenError
-from academy.exchange.exception import MailboxTerminatedError
-from academy.exchange.exception import UnauthorizedError
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId

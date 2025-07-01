@@ -28,7 +28,7 @@ else:  # pragma: <3.11 cover
 
 from academy.exception import HandleClosedError
 from academy.exception import HandleNotBoundError
-from academy.exchange.exception import MailboxTerminatedError
+from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId

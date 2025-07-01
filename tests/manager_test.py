@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from academy.behavior import Behavior
+from academy.exception import BadEntityIdError
 from academy.exchange import UserExchangeClient
-from academy.exchange.exception import BadEntityIdError
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
 from academy.manager import Manager

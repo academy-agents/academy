@@ -8,10 +8,10 @@ import pytest
 import pytest_asyncio
 
 from academy.behavior import Behavior
+from academy.exception import BadEntityIdError
+from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId

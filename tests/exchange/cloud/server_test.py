@@ -16,6 +16,8 @@ from aiohttp.test_utils import TestServer
 from aiohttp.web import Application
 from aiohttp.web import Request
 
+from academy.exception import BadEntityIdError
+from academy.exception import MailboxTerminatedError
 from academy.exchange import MailboxStatus
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.config import ExchangeAuthConfig
@@ -27,8 +29,6 @@ from academy.exchange.cloud.server import _main
 from academy.exchange.cloud.server import _run
 from academy.exchange.cloud.server import create_app
 from academy.exchange.cloud.server import StatusCode
-from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest

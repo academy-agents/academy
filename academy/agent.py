@@ -14,11 +14,11 @@ from typing import TypeVar
 from academy.behavior import BehaviorT
 from academy.context import ActionContext
 from academy.context import AgentContext
+from academy.exception import ExchangeError
+from academy.exception import MailboxTerminatedError
 from academy.exception import raise_exceptions
 from academy.exchange import AgentExchangeClient
 from academy.exchange import ExchangeFactory
-from academy.exchange.exception import ExchangeError
-from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import Handle

@@ -28,9 +28,13 @@ from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.server import _FORBIDDEN_CODE
 from academy.exchange.cloud.server import _NOT_FOUND_CODE
 from academy.exchange.cloud.server import _run
+from academy.exchange.cloud.server import _TERMINATED_CODE
 from academy.exchange.cloud.server import _TIMEOUT_CODE
+from academy.exchange.cloud.server import _UNAUTHORIZED_CODE
 from academy.exchange.exception import BadEntityIdError
+from academy.exchange.exception import ForbiddenError
 from academy.exchange.exception import MailboxTerminatedError
+from academy.exchange.exception import UnauthorizedError
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
@@ -130,7 +134,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 f'{scheme}://{host}:{port}/mailbox',
                 json={'mailbox': mailbox_id.model_dump_json()},
             ) as response:
-                response.raise_for_status()
+                _raise_for_status(response, mailbox_id)
             logger.info('Registered %s in exchange', mailbox_id)
 
         return cls(mailbox_id, session, connection_info)
@@ -156,7 +160,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 'allow_subclasses': allow_subclasses,
             },
         ) as response:
-            response.raise_for_status()
+            _raise_for_status(response, self.mailbox_id)
             agent_ids_str = (await response.json())['agent_ids']
         agent_ids = [aid for aid in agent_ids_str.split(',') if len(aid) > 0]
         return tuple(AgentId(uid=uuid.UUID(aid)) for aid in agent_ids)
@@ -180,11 +184,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 },
                 timeout=aiohttp.ClientTimeout(timeout),
             ) as response:
-                if response.status == _FORBIDDEN_CODE:
-                    raise MailboxTerminatedError(self.mailbox_id)
-                elif response.status == _TIMEOUT_CODE:
-                    raise TimeoutError()
-                response.raise_for_status()
+                _raise_for_status(response, self.mailbox_id)
                 message_raw = (await response.json()).get('message')
         except asyncio.TimeoutError as e:
             # In older versions of Python, ayncio.TimeoutError and TimeoutError
@@ -209,7 +209,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 'behavior': ','.join(behavior.behavior_mro()),
             },
         ) as response:
-            response.raise_for_status()
+            _raise_for_status(response, self.mailbox_id, aid)
         return HttpAgentRegistration(agent_id=aid)
 
     async def send(self, message: Message) -> None:
@@ -217,18 +217,14 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._message_url,
             json={'message': message.model_dump_json()},
         ) as response:
-            if response.status == _NOT_FOUND_CODE:
-                raise BadEntityIdError(message.dest)
-            elif response.status == _FORBIDDEN_CODE:
-                raise MailboxTerminatedError(message.dest)
-            response.raise_for_status()
+            _raise_for_status(response, self.mailbox_id, message.dest)
 
     async def status(self, uid: EntityId) -> MailboxStatus:
         async with self._session.get(
             self._mailbox_url,
             json={'mailbox': uid.model_dump_json()},
         ) as response:
-            response.raise_for_status()
+            _raise_for_status(response, self.mailbox_id, uid)
             status = (await response.json())['status']
             return MailboxStatus(status)
 
@@ -237,7 +233,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._mailbox_url,
             json={'mailbox': uid.model_dump_json()},
         ) as response:
-            response.raise_for_status()
+            _raise_for_status(response, self.mailbox_id, uid)
 
 
 class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
@@ -282,6 +278,36 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             mailbox_id=mailbox_id,
             name=name,
         )
+
+
+def _raise_for_status(
+    response: aiohttp.ClientResponse,
+    client_id: EntityId,
+    resource_id: EntityId | None = None,
+) -> None:
+    # Parse HTTP error codes into the correct error types.
+    #   - client_id is the ID of the transport client that is making
+    #     the request.
+    #   - resource_id is the ID of the resource being accessed in the case
+    #     of operations like send/status/terminate.
+    if response.status == _UNAUTHORIZED_CODE:
+        raise UnauthorizedError(
+            f'Exchange entity {client_id} does not have the required '
+            'authorization credentials.',
+        )
+    elif response.status == _FORBIDDEN_CODE:
+        raise ForbiddenError(
+            f'Exchange entity {client_id} is not authorized to access '
+            'this resource.',
+        )
+    elif response.status == _NOT_FOUND_CODE:
+        raise BadEntityIdError(resource_id or client_id)
+    elif response.status == _TERMINATED_CODE:
+        raise MailboxTerminatedError(resource_id or client_id)
+    elif response.status == _TIMEOUT_CODE:
+        raise TimeoutError()
+    else:
+        response.raise_for_status()
 
 
 @contextlib.contextmanager

@@ -73,6 +73,7 @@ _UNAUTHORIZED_CODE = 401
 _FORBIDDEN_CODE = 403
 _NOT_FOUND_CODE = 404
 _TIMEOUT_CODE = 408
+_TERMINATED_CODE = 419
 _NO_RESPONSE_CODE = 444
 
 
@@ -327,7 +328,7 @@ async def _send_message_route(request: Request) -> Response:
     except BadEntityIdError:
         return Response(status=_NOT_FOUND_CODE, text='Unknown mailbox ID')
     except MailboxTerminatedError:
-        return Response(status=_FORBIDDEN_CODE, text='Mailbox was closed')
+        return Response(status=_TERMINATED_CODE, text='Mailbox was closed')
     except ForbiddenError:
         return Response(
             status=_FORBIDDEN_CODE,
@@ -369,7 +370,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
     except BadEntityIdError:
         return Response(status=_NOT_FOUND_CODE, text='Unknown mailbox ID')
     except MailboxTerminatedError:
-        return Response(status=_FORBIDDEN_CODE, text='Mailbox was closed')
+        return Response(status=_TERMINATED_CODE, text='Mailbox was closed')
     except ForbiddenError:
         return Response(
             status=_FORBIDDEN_CODE,

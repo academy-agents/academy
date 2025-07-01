@@ -121,7 +121,7 @@ async def test_unbound_remote_handle_bind(
         match='An unbound handle has no client ID.',
     ):
         _ = handle.client_id
-    async with await handle.bind_to_client(exchange) as agent_bound:
+    async with handle.bind_to_client(exchange) as agent_bound:
         assert isinstance(agent_bound, RemoteHandle)
         assert isinstance(agent_bound.clone(), UnboundRemoteHandle)
 
@@ -194,7 +194,7 @@ async def test_agent_remote_handle_bind(
             ValueError,
             match='Cannot create handle to self.',
         ):
-            await client.get_handle(registration.agent_id)
+            client.get_handle(registration.agent_id)
 
 
 @pytest.mark.asyncio
@@ -273,7 +273,7 @@ async def test_client_remote_handle_wait_futures(
     await sleep_future
 
     # Create a new, non-closed handle to shutdown the agent
-    shutdown_handle = await manager.get_handle(handle.agent_id)
+    shutdown_handle = manager.get_handle(handle.agent_id)
     await shutdown_handle.shutdown()
     await manager.wait({handle.agent_id})
 
@@ -290,8 +290,6 @@ async def test_client_remote_handle_cancel_futures(
         await sleep_future
 
     # Create a new, non-closed handle to shutdown the agent
-    async with await manager.get_handle(
-        handle.agent_id,
-    ) as shutdown_handle:
+    async with manager.get_handle(handle.agent_id) as shutdown_handle:
         await shutdown_handle.shutdown()
     await manager.wait({handle.agent_id})

@@ -361,7 +361,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         """Raises [`RuntimeError`][RuntimeError] when unbound."""
         raise RuntimeError('An unbound handle has no client ID.')
 
-    async def bind_to_client(
+    def bind_to_client(
         self,
         client: ExchangeClient[Any],
     ) -> RemoteHandle[BehaviorT]:
@@ -373,7 +373,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         Returns:
             Remote handle bound to the exchange client.
         """
-        return await client.get_handle(self.agent_id)
+        return client.get_handle(self.agent_id)
 
     async def action(
         self,

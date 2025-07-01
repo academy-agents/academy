@@ -12,6 +12,7 @@ from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import Literal
+from typing import overload
 from typing import Protocol
 from typing import TYPE_CHECKING
 from typing import TypeVar
@@ -258,7 +259,8 @@ class Behavior:
 class Action(Generic[P, R_co], Protocol):
     """Action method protocol."""
 
-    _agent_method_type: Literal['action'] = 'action'
+    _agent_method_type: Literal['action']
+    _action_method_context: bool
 
     async def __call__(self, *arg: P.args, **kwargs: P.kwargs) -> R_co:
         """Expected signature of methods decorated as an action.
@@ -271,7 +273,7 @@ class Action(Generic[P, R_co], Protocol):
 class ControlLoop(Protocol):
     """Control loop method protocol."""
 
-    _agent_method_type: Literal['loop'] = 'loop'
+    _agent_method_type: Literal['loop']
 
     async def __call__(self, shutdown: asyncio.Event) -> None:
         """Expected signature of methods decorated as a control loop.
@@ -286,7 +288,22 @@ class ControlLoop(Protocol):
         ...
 
 
-def action(method: ActionMethod[P, R]) -> ActionMethod[P, R]:
+@overload
+def action(method: ActionMethod[P, R]) -> ActionMethod[P, R]: ...
+
+
+@overload
+def action(
+    *,
+    context: bool = False,
+) -> Callable[[ActionMethod[P, R]], ActionMethod[P, R]]: ...
+
+
+def action(
+    method: ActionMethod[P, R] | None = None,
+    *,
+    context: bool = False,
+) -> ActionMethod[P, R] | Callable[[ActionMethod[P, R]], ActionMethod[P, R]]:
     """Decorator that annotates a method of a behavior as an action.
 
     Marking a method of a behavior as an action makes the method available
@@ -297,15 +314,57 @@ def action(method: ActionMethod[P, R]) -> ActionMethod[P, R]:
     Example:
         ```python
         from academy.behavior import Behavior, action
+        from academy.context import ActionContext
 
         class Example(Behavior):
             @action
-            async def perform(self):
+            async def perform(self) -> ...:
+                ...
+
+            @action(context=True)
+            async def perform_with_ctx(self, *, context: ActionContext) -> ...:
                 ...
         ```
+
+    Args:
+        method: Method to decorate as an action.
+        context: Specify that the action method expects a context argument.
+            The `context` will be provided at runtime as a keyword argument.
+
+    Raises:
+        TypeError: If `context=True` and the method does not have a parameter
+            named `context` or if `context` is a positional only argument.
     """
-    method._agent_method_type = 'action'  # type: ignore[attr-defined]
-    return method
+
+    def decorator(method_: ActionMethod[P, R]) -> ActionMethod[P, R]:
+        # Typing the requirement that if context=True then params P should
+        # contain a keyword argument named "context" is not easily annotated
+        # for mypy so instead we check at runtime.
+        if context:
+            sig = inspect.signature(method_)
+            if 'context' not in sig.parameters:
+                raise TypeError(
+                    f'Action method "{method_.__name__}" must accept a '
+                    '"context" keyword argument when used with '
+                    '@action(context=True).',
+                )
+            if (
+                sig.parameters['context'].kind
+                != inspect.Parameter.KEYWORD_ONLY
+            ):
+                raise TypeError(
+                    'The "context" argument to action method '
+                    f'"{method_.__name__}" must be a keyword only argument.',
+                )
+
+        method_._agent_method_type = 'action'  # type: ignore[attr-defined]
+        method_._action_method_context = context  # type: ignore[attr-defined]
+        return method_
+
+    if method is None:
+        return decorator
+    else:
+        return decorator(method)
 
 
 def loop(method: LoopMethod[BehaviorT]) -> LoopMethod[BehaviorT]:

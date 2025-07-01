@@ -12,6 +12,7 @@ from typing import Generic
 from typing import TypeVar
 
 from academy.behavior import BehaviorT
+from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxClosedError
@@ -26,6 +27,7 @@ from academy.handle import HandleList
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
+from academy.identifier import EntityId
 from academy.message import ActionRequest
 from academy.message import PingRequest
 from academy.message import RequestMessage
@@ -146,8 +148,9 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         try:
             result = await self.action(
                 request.action,
-                request.pargs,
-                request.kargs,
+                request.src,
+                args=request.pargs,
+                kwargs=request.kargs,
             )
         except Exception as e:
             response = request.error(exception=e)
@@ -192,11 +195,19 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         else:
             raise AssertionError('Unreachable.')
 
-    async def action(self, action: str, args: Any, kwargs: Any) -> Any:
+    async def action(
+        self,
+        action: str,
+        source_id: EntityId,
+        *,
+        args: Any,
+        kwargs: Any,
+    ) -> Any:
         """Invoke an action of the agent's behavior.
 
         Args:
             action: Name of action to invoke.
+            source_id: ID of the source that requested the action.
             args: Tuple of positional arguments.
             kwargs: Dictionary of keyword arguments.
 
@@ -212,7 +223,13 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
             raise AttributeError(
                 f'{self.behavior} does not have an action named "{action}".',
             )
-        return await self._actions[action](*args, **kwargs)
+        action_method = self._actions[action]
+        if action_method._action_method_context:
+            assert self._exchange_client is not None
+            context = ActionContext(source_id, self._exchange_client)
+            return await action_method(*args, context=context, **kwargs)
+        else:
+            return await action_method(*args, **kwargs)
 
     async def run(self) -> None:
         """Run the agent.
@@ -286,7 +303,7 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         )
         self.behavior._agent_set_context(context)
 
-        await _bind_behavior_handles(self.behavior, self._exchange_client)
+        _bind_behavior_handles(self.behavior, self._exchange_client)
         await self.behavior.on_setup()
         self._behavior_startup_called = True
 
@@ -359,7 +376,7 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         self._shutdown_event.set()
 
 
-async def _bind_behavior_handles(
+def _bind_behavior_handles(
     behavior: BehaviorT,
     client: AgentExchangeClient[BehaviorT, Any],
 ) -> None:
@@ -374,7 +391,7 @@ async def _bind_behavior_handles(
         client: The agent's exchange client used to bind the handles.
     """
 
-    async def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
+    def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
         if isinstance(handle, ProxyHandle):
             return handle
         if (
@@ -384,7 +401,7 @@ async def _bind_behavior_handles(
             return handle
 
         assert isinstance(handle, (UnboundRemoteHandle, RemoteHandle))
-        bound = await client.get_handle(handle.agent_id)
+        bound = client.get_handle(handle.agent_id)
         logger.debug(
             'Bound %s of %s to %s',
             handle,
@@ -396,11 +413,11 @@ async def _bind_behavior_handles(
     for attr, handles in behavior.behavior_handles().items():
         if isinstance(handles, HandleDict):
             bound_dict = HandleDict(
-                {k: await _bind(h) for k, h in handles.items()},
+                {k: _bind(h) for k, h in handles.items()},
             )
             setattr(behavior, attr, bound_dict)
         elif isinstance(handles, HandleList):
-            bound_list = HandleList([await _bind(h) for h in handles])
+            bound_list = HandleList([_bind(h) for h in handles])
             setattr(behavior, attr, bound_list)
         else:
-            setattr(behavior, attr, await _bind(handles))
+            setattr(behavior, attr, _bind(handles))

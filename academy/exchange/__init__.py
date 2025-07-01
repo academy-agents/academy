@@ -230,10 +230,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Get an exchange factory."""
         return self._transport.factory()
 
-    async def get_handle(
-        self,
-        aid: AgentId[BehaviorT],
-    ) -> RemoteHandle[BehaviorT]:
+    def get_handle(self, aid: AgentId[BehaviorT]) -> RemoteHandle[BehaviorT]:
         """Create a new handle to an agent.
 
         A handle acts like a reference to a remote agent, enabling a user

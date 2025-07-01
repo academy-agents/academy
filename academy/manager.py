@@ -205,7 +205,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """
         for acb in self._acbs.values():
             if not acb.task.done():
-                handle = await self.get_handle(acb.agent_id)
+                handle = self.get_handle(acb.agent_id)
                 with contextlib.suppress(MailboxClosedError):
                     await handle.shutdown()
         logger.debug('Requested shutdown from all agents')
@@ -387,12 +387,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         acb = _ACB(agent_id=agent_id, executor=executor, task=task)
         self._acbs[agent_id] = acb
-        handle = await self.get_handle(agent_id)
+        handle = self.get_handle(agent_id)
         logger.info('Launched agent (%s; %s)', agent_id, behavior)
         self._warn_executor_overloaded(executor_instance, executor)
         return handle
 
-    async def get_handle(
+    def get_handle(
         self,
         agent: AgentId[BehaviorT] | AgentRegistration[BehaviorT],
     ) -> RemoteHandle[BehaviorT]:
@@ -413,7 +413,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         handle = self._handles.get(agent_id, None)
         if handle is not None and not handle.closed():
             return handle
-        handle = await self.exchange_client.get_handle(agent_id)
+        handle = self.exchange_client.get_handle(agent_id)
         self._handles[agent_id] = handle
         return handle
 
@@ -477,7 +477,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         if self._acbs[agent_id].task.done():
             return
 
-        handle = await self.get_handle(agent_id)
+        handle = self.get_handle(agent_id)
         with contextlib.suppress(MailboxClosedError):
             await handle.shutdown()
 

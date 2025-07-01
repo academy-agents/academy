@@ -13,6 +13,7 @@ from academy.agent import AgentRunConfig
 from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import loop
+from academy.context import ActionContext
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.transport import MailboxStatus
@@ -23,6 +24,7 @@ from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
+from academy.identifier import EntityId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import PingRequest
@@ -387,7 +389,7 @@ async def test_behavior_handles_bind(
         _request_handler,
     ) as agent_client:
         behavior = _TestBehavior(unbound_handle, proxy_handle)
-        await _bind_behavior_handles(behavior, agent_client)
+        _bind_behavior_handles(behavior, agent_client)
 
         assert behavior.proxy is proxy_handle
         assert behavior.direct.client_id == agent_client.client_id
@@ -495,8 +497,8 @@ async def test_agent_to_agent_handles(local_exchange_factory) -> None:
         runner_info = await client.register_agent(RunBehavior)
         doubler_info = await client.register_agent(DoubleBehavior)
 
-        runner_handle = await client.get_handle(runner_info.agent_id)
-        doubler_handle = await client.get_handle(doubler_info.agent_id)
+        runner_handle = client.get_handle(runner_info.agent_id)
+        doubler_handle = client.get_handle(doubler_info.agent_id)
 
         runner_behavior = RunBehavior(doubler_handle)
         doubler_behavior = DoubleBehavior()
@@ -552,5 +554,39 @@ async def test_agent_self_termination(
 
     task = asyncio.create_task(agent.run(), name='test-agent-self-termination')
     await agent._started_event.wait()
-    await agent.action('end', (), {})
+    await agent.action('end', AgentId.new(), args=(), kwargs={})
+    await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+
+
+class ContextBehavior(Behavior):
+    @action(context=True)
+    async def call(
+        self,
+        source_id: EntityId,
+        *,
+        context: ActionContext,
+    ) -> None:
+        assert source_id == context.source_id
+
+
+@pytest.mark.asyncio
+async def test_agent_action_context(
+    exchange: UserExchangeClient[Any],
+) -> None:
+    registration = await exchange.register_agent(ShutdownBehavior)
+    agent = Agent(
+        ContextBehavior(),
+        exchange_factory=exchange.factory(),
+        registration=registration,
+    )
+
+    task = asyncio.create_task(agent.run(), name='test-agent-action-context')
+    await agent._started_event.wait()
+    await agent.action(
+        'call',
+        exchange.client_id,
+        args=(exchange.client_id,),
+        kwargs={},
+    )
+    agent.signal_shutdown()
     await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)

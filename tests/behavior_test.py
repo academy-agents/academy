@@ -5,10 +5,12 @@ from typing import Any
 
 import pytest
 
+from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import event
 from academy.behavior import loop
 from academy.behavior import timer
+from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import AgentNotInitializedError
 from academy.exchange import UserExchangeClient
@@ -180,6 +182,41 @@ async def test_behavior_timer() -> None:
     shutdown.set()
 
     await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+
+
+@pytest.mark.asyncio
+async def test_behavior_action_decorator_usage_ok() -> None:
+    class _TestBehavior(Behavior):
+        @action
+        async def action1(self) -> None: ...
+
+        @action()
+        async def action2(self) -> None: ...
+
+        @action(context=True)
+        async def action3(self, *, context: ActionContext) -> None: ...
+
+    behavior = _TestBehavior()
+    assert len(behavior.behavior_actions()) == 3  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_behavior_action_decorator_usage_error() -> None:
+    class _TestBehavior(Behavior):
+        async def missing_arg(self) -> None: ...
+        async def pos_only(self, context: ActionContext, /) -> None: ...
+
+    with pytest.raises(
+        TypeError,
+        match='Action method "missing_arg" must accept a "context"',
+    ):
+        action(context=True)(_TestBehavior.missing_arg)
+
+    with pytest.raises(
+        TypeError,
+        match='The "context" argument to action method "pos_only"',
+    ):
+        action(context=True)(_TestBehavior.pos_only)
 
 
 @pytest.mark.asyncio

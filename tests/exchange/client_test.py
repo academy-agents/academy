@@ -98,7 +98,7 @@ async def test_client_get_factory(client: UserExchangeClient[Any]) -> None:
 @pytest.mark.asyncio
 async def test_client_get_handle(client: UserExchangeClient[Any]) -> None:
     registration = await client.register_agent(EmptyBehavior)
-    async with await client.get_handle(registration.agent_id):
+    async with client.get_handle(registration.agent_id):
         pass
 
 
@@ -107,7 +107,7 @@ async def test_client_get_handle_type_error(
     client: UserExchangeClient[Any],
 ) -> None:
     with pytest.raises(TypeError):
-        await client.get_handle(UserId.new())  # type: ignore[arg-type]
+        client.get_handle(UserId.new())  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio

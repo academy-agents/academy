@@ -62,9 +62,6 @@ class SleepBehavior(Behavior):
         self.loop_sleep = loop_sleep
         self.steps = 0
 
-    async def on_shutdown(self) -> None:
-        assert self.steps > 0
-
     @action
     async def sleep(self, sleep: float) -> None:
         await asyncio.sleep(sleep)

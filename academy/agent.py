@@ -234,25 +234,29 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
     async def run(self) -> None:
         """Run the agent.
 
-        Agent startup involves:
+        Agent setup involves:
+
         1. Creates a new exchange client for the agent.
         1. Sets the runtime context on the behavior.
         1. Binds all handles of the behavior to this agent's exchange client.
-        1. Calls [`Behavior.on_setup()`][academy.behavior.Behavior.on_setup].
-        1. Starts a [`Task`][asyncio.Task] for all control loops defined on
-           the behavior.
         1. Starts a [`Task`][asyncio.Task] to listen for messages in the
            agent's mailbox in the exchange.
-        1. Waits for the agent to be shutdown, such as due to a failure in
-           a control loop and a received shutdown message.
+        1. Starts a [`Task`][asyncio.Task] for all control loops defined on
+           the behavior.
+        1. Calls [`Behavior.on_setup()`][academy.behavior.Behavior.on_setup].
+
+        After setup succeeds, this method waits for the agent to be shutdown,
+        such as due to a failure in a control loop or receiving a shutdown
+        message.
 
         Agent shutdown involves:
-        1. Cancels the mailbox message listener so no new requests are
-           received.
-        1. Waits for any currently executing actions to complete.
-        1. Cancels running control loop tasks.
+
         1. Calls
            [`Behavior.on_shutdown()`][academy.behavior.Behavior.on_shutdown].
+        1. Cancels running control loop tasks.
+        1. Cancels the mailbox message listener task so no new requests are
+           received.
+        1. Waits for any currently executing actions to complete.
         1. Terminates the agent's mailbox in the exchange if configured.
         1. Closes the exchange client.
 
@@ -302,10 +306,12 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
             shutdown_event=self._shutdown_event,
         )
         self.behavior._agent_set_context(context)
-
         _bind_behavior_handles(self.behavior, self._exchange_client)
-        await self.behavior.on_setup()
-        self._behavior_startup_called = True
+
+        self._exchange_listener_task = asyncio.create_task(
+            self._exchange_client._listen_for_messages(),
+            name=f'exchange-listener-{self.agent_id}',
+        )
 
         for name, method in self._loops.items():
             task = asyncio.create_task(
@@ -314,10 +320,8 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
             )
             self._loop_tasks[name] = task
 
-        self._exchange_listener_task = asyncio.create_task(
-            self._exchange_client._listen_for_messages(),
-            name=f'exchange-listener-{self.agent_id}',
-        )
+        await self.behavior.on_setup()
+        self._behavior_startup_called = True
 
         self._started_event.set()
         logger.info('Running agent (%s; %s)', self.agent_id, self.behavior)
@@ -332,6 +336,16 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
             self.behavior,
         )
 
+        if self._behavior_startup_called:
+            # Don't call on_shutdown() if we never called on_setup()
+            await self.behavior.on_shutdown()
+
+        # Cancel running control loop tasks
+        for task in self._loop_tasks.values():
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
         # If _start() fails early, the listener task may not have started.
         if self._exchange_listener_task is not None:
             self._exchange_listener_task.cancel()
@@ -341,16 +355,6 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         # Wait for running actions to complete
         for task in tuple(self._action_tasks.values()):
             await task
-
-        # Cancel running control loop tasks
-        for task in self._loop_tasks.values():
-            task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
-
-        if self._behavior_startup_called:
-            # Don't call on_shutdown() if we never called on_setup()
-            await self.behavior.on_shutdown()
 
         terminate_for_success = (
             self.config.terminate_on_success and self._expected_shutdown

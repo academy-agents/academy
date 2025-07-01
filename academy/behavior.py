@@ -242,16 +242,18 @@ class Behavior:
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
     async def on_setup(self) -> None:
-        """Setup up resources needed for the agents execution.
+        """Callback invoked at the end of an agent's setup sequence.
 
-        This is called before any control loop threads are started.
+        See [`Agent.run()`][academy.agent.Agent.run] for more details on the
+        setup sequence.
         """
         pass
 
     async def on_shutdown(self) -> None:
-        """Shutdown resources after the agents execution.
+        """Callback invoked at the beginning of an agent's shutdown sequence.
 
-        This is called after control loop threads have exited.
+        See [`Agent.run()`][academy.agent.Agent.run] for more details on the
+        shutdown sequence.
         """
         pass
 

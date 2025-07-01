@@ -79,7 +79,7 @@ class HandleNotBoundError(Exception):
 
     An unbound handle can be turned into a usable handle by binding it to
     an exchange client with
-    [`UnboundRemoteHandle.bind_to_client()`][UnboundRemoteHandle.bind_to_client].
+    [`UnboundRemoteHandle.bind_to_client()`][academy.handle.UnboundRemoteHandle.bind_to_client].
     """
 
     def __init__(self, aid: AgentId[Any]) -> None:

@@ -58,7 +58,7 @@ from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.exceptions import ForbiddenError
 from academy.exchange.cloud.exceptions import UnauthorizedError
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.logging import init_logging
@@ -180,7 +180,7 @@ class _MailboxManager:
         try:
             return await asyncio.wait_for(queue.get(), timeout=timeout)
         except QueueShutDown:
-            raise MailboxClosedError(uid) from None
+            raise MailboxTerminatedError(uid) from None
 
     async def put(self, client: str | None, message: Message) -> None:
         if not self.has_permissions(client, message.dest):
@@ -195,7 +195,7 @@ class _MailboxManager:
         try:
             await queue.put(message)
         except QueueShutDown:
-            raise MailboxClosedError(message.dest) from None
+            raise MailboxTerminatedError(message.dest) from None
 
 
 MANAGER_KEY = AppKey('manager', _MailboxManager)
@@ -326,7 +326,7 @@ async def _send_message_route(request: Request) -> Response:
         await manager.put(client_id, message)
     except BadEntityIdError:
         return Response(status=_NOT_FOUND_CODE, text='Unknown mailbox ID')
-    except MailboxClosedError:
+    except MailboxTerminatedError:
         return Response(status=_FORBIDDEN_CODE, text='Mailbox was closed')
     except ForbiddenError:
         return Response(
@@ -368,7 +368,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         message = await manager.get(client_id, mailbox_id, timeout=timeout)
     except BadEntityIdError:
         return Response(status=_NOT_FOUND_CODE, text='Unknown mailbox ID')
-    except MailboxClosedError:
+    except MailboxTerminatedError:
         return Response(status=_FORBIDDEN_CODE, text='Mailbox was closed')
     except ForbiddenError:
         return Response(

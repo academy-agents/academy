@@ -69,7 +69,7 @@ Registering an entity involves creating a unique ID for the entity, which is als
 
 A mailbox has two states: active and terminated.
 Active indicates that the entity's mailbox is accepting messages, even if, for example, an agent has not yet started or is temporarily offline.
-Terminated indicates permanent termination of the entity and will cause [`MailboxClosedError`][academy.exception.MailboxClosedError] to be raised by subsequent send or receive operations to that mailbox.
+Terminated indicates permanent termination of the entity and will cause [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError] to be raised by subsequent send or receive operations to that mailbox.
 
 Academy provides many exchange implementations for different scenarios, such as:
 

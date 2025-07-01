@@ -25,7 +25,7 @@ from academy.exception import raise_exceptions
 from academy.exchange import ExchangeFactory
 from academy.exchange import UserExchangeClient
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
@@ -220,7 +220,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         for acb in self._acbs.values():
             if not acb.task.done():
                 handle = self.get_handle(acb.agent_id)
-                with contextlib.suppress(MailboxClosedError):
+                with contextlib.suppress(MailboxTerminatedError):
                     await handle.shutdown()
         logger.debug('Requested shutdown from all agents')
 
@@ -504,7 +504,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             return
 
         handle = self.get_handle(agent_id)
-        with contextlib.suppress(MailboxClosedError):
+        with contextlib.suppress(MailboxTerminatedError):
             await handle.shutdown(terminate=terminate)
 
         if blocking:

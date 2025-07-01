@@ -122,7 +122,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
                 next message or the mailbox is closed.
 
         Raises:
-            MailboxClosedError: If the mailbox was closed.
+            MailboxTerminatedError: If the mailbox was closed.
             TimeoutError: If a `timeout` was specified and exceeded.
         """
         ...
@@ -152,7 +152,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
 
         Raises:
             BadEntityIdError: If a mailbox for `message.dest` does not exist.
-            MailboxClosedError: If the mailbox was closed.
+            MailboxTerminatedError: If the mailbox was closed.
         """
         ...
 

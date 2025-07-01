@@ -36,7 +36,7 @@ from academy.behavior import Behavior
 from academy.behavior import BehaviorT
 from academy.exchange import ExchangeFactory
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
 from academy.exchange.transport import ExchangeTransportMixin
@@ -266,7 +266,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 f'after {timeout} seconds.',
             ) from None
         except QueueShutDown:
-            raise MailboxClosedError(self.mailbox_id) from None
+            raise MailboxTerminatedError(self.mailbox_id) from None
 
     async def register_agent(
         self,
@@ -313,7 +313,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if status is None:
             raise BadEntityIdError(message.dest)
         elif status == _MailboxState.INACTIVE.value:
-            raise MailboxClosedError(message.dest)
+            raise MailboxTerminatedError(message.dest)
 
         maybe_address = await self._redis_client.get(
             self._address_key(message.dest),
@@ -378,7 +378,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
             self._shutdown.set()
             self._messages.shutdown(immediate=True)
-            raise MailboxClosedError(self.mailbox_id)
+            raise MailboxTerminatedError(self.mailbox_id)
         message = BaseMessage.model_deserialize(raw[1])
         assert isinstance(message, get_args(Message))
         logger.debug(
@@ -406,7 +406,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 ):  # pragma: no cover
                     break
                 await self._get_message_from_redis()
-        except MailboxClosedError:  # pragma: no cover
+        except MailboxTerminatedError:  # pragma: no cover
             pass
         except Exception:
             logger.exception(

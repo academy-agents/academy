@@ -16,7 +16,7 @@ class BadEntityIdError(ExchangeError):
         super().__init__(f'Unknown identifier {uid}.')
 
 
-class MailboxClosedError(ExchangeError):
+class MailboxTerminatedError(ExchangeError):
     """Entity mailbox is terminated and cannot send or receive messages."""
 
     def __init__(self, uid: EntityId) -> None:

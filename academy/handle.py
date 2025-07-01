@@ -28,7 +28,7 @@ else:  # pragma: <3.11 cover
 
 from academy.exception import HandleClosedError
 from academy.exception import HandleNotBoundError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -98,7 +98,7 @@ class Handle(Protocol[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
@@ -134,7 +134,7 @@ class Handle(Protocol[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
             TimeoutError: If the timeout is exceeded.
@@ -152,7 +152,7 @@ class Handle(Protocol[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
@@ -249,12 +249,12 @@ class ProxyHandle(Generic[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
         if self._agent_closed:
-            raise MailboxClosedError(self.agent_id)
+            raise MailboxTerminatedError(self.agent_id)
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
 
@@ -304,13 +304,13 @@ class ProxyHandle(Generic[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
             TimeoutError: If the timeout is exceeded.
         """
         if self._agent_closed:
-            raise MailboxClosedError(self.agent_id)
+            raise MailboxTerminatedError(self.agent_id)
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
         return 0
@@ -326,12 +326,12 @@ class ProxyHandle(Generic[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
         if self._agent_closed:
-            raise MailboxClosedError(self.agent_id)
+            raise MailboxTerminatedError(self.agent_id)
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
         self._agent_closed = True if terminate is None else terminate
@@ -555,7 +555,7 @@ class RemoteHandle(Generic[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
@@ -597,7 +597,7 @@ class RemoteHandle(Generic[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
             TimeoutError: If the timeout is exceeded.
@@ -642,7 +642,7 @@ class RemoteHandle(Generic[BehaviorT]):
 
         Raises:
             HandleClosedError: If the handle was closed.
-            MailboxClosedError: If the agent's mailbox was closed. This
+            MailboxTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """

@@ -18,7 +18,7 @@ from academy.exception import raise_exceptions
 from academy.exchange import AgentExchangeClient
 from academy.exchange import ExchangeFactory
 from academy.exchange.exception import ExchangeError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import Handle
@@ -143,7 +143,7 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         assert self._exchange_client is not None
         try:
             await self._exchange_client.send(response)
-        except MailboxClosedError:  # pragma: no cover
+        except MailboxTerminatedError:  # pragma: no cover
             logger.warning(
                 'Failed to send response from %s to %s because the '
                 'destination mailbox was terminated.',

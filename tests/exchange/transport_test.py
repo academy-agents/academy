@@ -11,7 +11,7 @@ from academy.behavior import Behavior
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId
@@ -100,7 +100,7 @@ async def test_transport_send_mailbox_closed(
 ) -> None:
     registration = await transport.register_agent(EmptyBehavior)
     await transport.terminate(registration.agent_id)
-    with pytest.raises(MailboxClosedError):
+    with pytest.raises(MailboxTerminatedError):
         await transport.send(
             PingRequest(src=transport.mailbox_id, dest=registration.agent_id),
         )
@@ -111,7 +111,7 @@ async def test_transport_recv_mailbox_closed(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     await transport.terminate(transport.mailbox_id)
-    with pytest.raises(MailboxClosedError):
+    with pytest.raises(MailboxTerminatedError):
         await transport.recv()
 
 

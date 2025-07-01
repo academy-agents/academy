@@ -33,7 +33,7 @@ from academy.exchange.cloud.server import _TIMEOUT_CODE
 from academy.exchange.cloud.server import _UNAUTHORIZED_CODE
 from academy.exchange.cloud.server import create_app
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
@@ -187,10 +187,10 @@ async def test_mailbox_manager_mailbox_closed() -> None:
     await manager.terminate(None, uid)
     message = PingRequest(src=uid, dest=uid)
 
-    with pytest.raises(MailboxClosedError):
+    with pytest.raises(MailboxTerminatedError):
         await manager.get(None, uid)
 
-    with pytest.raises(MailboxClosedError):
+    with pytest.raises(MailboxTerminatedError):
         await manager.put(None, message)
 
 

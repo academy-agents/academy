@@ -22,7 +22,7 @@ from academy.behavior import Behavior
 from academy.behavior import BehaviorT
 from academy.exchange import ExchangeFactory
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
@@ -172,7 +172,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 'deleted the key.',
             )
         elif status == _MailboxState.INACTIVE.value:
-            raise MailboxClosedError(self.mailbox_id)
+            raise MailboxTerminatedError(self.mailbox_id)
 
         raw = await self._client.blpop(  # type: ignore[misc]
             [self._queue_key(self.mailbox_id)],
@@ -188,7 +188,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         assert isinstance(raw, (tuple, list))
         assert len(raw) == 2  # noqa: PLR2004
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
-            raise MailboxClosedError(self.mailbox_id)
+            raise MailboxTerminatedError(self.mailbox_id)
         message = BaseMessage.model_deserialize(raw[1])
         assert isinstance(message, get_args(Message))
         return message
@@ -215,7 +215,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if status is None:
             raise BadEntityIdError(message.dest)
         elif status == _MailboxState.INACTIVE.value:
-            raise MailboxClosedError(message.dest)
+            raise MailboxTerminatedError(message.dest)
         else:
             await self._client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),

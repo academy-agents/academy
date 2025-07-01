@@ -30,7 +30,7 @@ from academy.exchange.cloud.server import _NOT_FOUND_CODE
 from academy.exchange.cloud.server import _run
 from academy.exchange.cloud.server import _TIMEOUT_CODE
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
@@ -181,7 +181,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 timeout=aiohttp.ClientTimeout(timeout),
             ) as response:
                 if response.status == _FORBIDDEN_CODE:
-                    raise MailboxClosedError(self.mailbox_id)
+                    raise MailboxTerminatedError(self.mailbox_id)
                 elif response.status == _TIMEOUT_CODE:
                     raise TimeoutError()
                 response.raise_for_status()
@@ -220,7 +220,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if response.status == _NOT_FOUND_CODE:
                 raise BadEntityIdError(message.dest)
             elif response.status == _FORBIDDEN_CODE:
-                raise MailboxClosedError(message.dest)
+                raise MailboxTerminatedError(message.dest)
             response.raise_for_status()
 
     async def status(self, uid: EntityId) -> MailboxStatus:

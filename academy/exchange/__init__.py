@@ -30,7 +30,7 @@ else:  # pragma: <3.11 cover
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
 from academy.exchange.exception import BadEntityIdError
-from academy.exchange.exception import MailboxClosedError
+from academy.exchange.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
@@ -286,7 +286,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
         Raises:
             BadEntityIdError: If a mailbox for `message.dest` does not exist.
-            MailboxClosedError: If the mailbox was closed.
+            MailboxTerminatedError: If the mailbox was closed.
         """
         await self._transport.send(message)
         logger.debug('Sent %s to %s', type(message).__name__, message.dest)
@@ -317,7 +317,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         while True:
             try:
                 message = await self._transport.recv()
-            except (asyncio.CancelledError, MailboxClosedError):
+            except (asyncio.CancelledError, MailboxTerminatedError):
                 break
             logger.debug(
                 'Received %s from %s for %s',

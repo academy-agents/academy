@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import enum
 import logging
 import ssl
 import sys
@@ -67,14 +68,18 @@ from academy.message import Message
 
 logger = logging.getLogger(__name__)
 
-_OKAY_CODE = 200
-_BAD_REQUEST_CODE = 400
-_UNAUTHORIZED_CODE = 401
-_FORBIDDEN_CODE = 403
-_NOT_FOUND_CODE = 404
-_TIMEOUT_CODE = 408
-_TERMINATED_CODE = 419
-_NO_RESPONSE_CODE = 444
+
+class StatusCode(enum.Enum):
+    """Http status codes."""
+
+    OKAY = 200
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    TIMEOUT = 408
+    TERMINATED = 419
+    NO_RESPONSE = 444
 
 
 class _MailboxManager:
@@ -217,7 +222,7 @@ async def _create_mailbox_route(request: Request) -> Response:
         )
     except (KeyError, ValidationError):
         return Response(
-            status=_BAD_REQUEST_CODE,
+            status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
 
@@ -226,10 +231,10 @@ async def _create_mailbox_route(request: Request) -> Response:
         manager.create_mailbox(client_id, mailbox_id, behavior)
     except ForbiddenError:
         return Response(
-            status=_FORBIDDEN_CODE,
+            status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
-    return Response(status=_OKAY_CODE)
+    return Response(status=StatusCode.OKAY.value)
 
 
 async def _terminate_route(request: Request) -> Response:
@@ -243,7 +248,7 @@ async def _terminate_route(request: Request) -> Response:
         )
     except (KeyError, ValidationError):
         return Response(
-            status=_BAD_REQUEST_CODE,
+            status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
 
@@ -252,10 +257,10 @@ async def _terminate_route(request: Request) -> Response:
         await manager.terminate(client_id, mailbox_id)
     except ForbiddenError:
         return Response(
-            status=_FORBIDDEN_CODE,
+            status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
-    return Response(status=_OKAY_CODE)
+    return Response(status=StatusCode.OKAY.value)
 
 
 async def _discover_route(request: Request) -> Response:
@@ -267,7 +272,7 @@ async def _discover_route(request: Request) -> Response:
         allow_subclasses = data['allow_subclasses']
     except (KeyError, ValidationError):
         return Response(
-            status=_BAD_REQUEST_CODE,
+            status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid arguments',
         )
 
@@ -294,7 +299,7 @@ async def _check_mailbox_route(request: Request) -> Response:
         )
     except (KeyError, ValidationError):
         return Response(
-            status=_BAD_REQUEST_CODE,
+            status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
 
@@ -303,7 +308,7 @@ async def _check_mailbox_route(request: Request) -> Response:
         status = manager.check_mailbox(client_id, mailbox_id)
     except ForbiddenError:
         return Response(
-            status=_FORBIDDEN_CODE,
+            status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
     return json_response({'status': status.value})
@@ -318,7 +323,7 @@ async def _send_message_route(request: Request) -> Response:
         message = BaseMessage.model_from_json(raw_message)
     except (KeyError, ValidationError):
         return Response(
-            status=_BAD_REQUEST_CODE,
+            status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid message',
         )
 
@@ -326,16 +331,22 @@ async def _send_message_route(request: Request) -> Response:
     try:
         await manager.put(client_id, message)
     except BadEntityIdError:
-        return Response(status=_NOT_FOUND_CODE, text='Unknown mailbox ID')
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
     except MailboxTerminatedError:
-        return Response(status=_TERMINATED_CODE, text='Mailbox was closed')
+        return Response(
+            status=StatusCode.TERMINATED.value,
+            text='Mailbox was closed',
+        )
     except ForbiddenError:
         return Response(
-            status=_FORBIDDEN_CODE,
+            status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
     else:
-        return Response(status=_OKAY_CODE)
+        return Response(status=StatusCode.OKAY.value)
 
 
 async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
@@ -347,7 +358,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         # its connection. In this case, we don't need to do anything
         # because the client disconnected itself. If we don't catch this
         # error, aiohttp will just log an error message each time this happens.
-        return Response(status=_NO_RESPONSE_CODE)
+        return Response(status=StatusCode.NO_RESPONSE.value)
 
     manager: _MailboxManager = request.app[MANAGER_KEY]
 
@@ -358,7 +369,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         )
     except (KeyError, ValidationError):
         return Response(
-            status=_BAD_REQUEST_CODE,
+            status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
 
@@ -368,16 +379,25 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         client_id = request.headers.get('client_id', None)
         message = await manager.get(client_id, mailbox_id, timeout=timeout)
     except BadEntityIdError:
-        return Response(status=_NOT_FOUND_CODE, text='Unknown mailbox ID')
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
     except MailboxTerminatedError:
-        return Response(status=_TERMINATED_CODE, text='Mailbox was closed')
+        return Response(
+            status=StatusCode.TERMINATED.value,
+            text='Mailbox was closed',
+        )
     except ForbiddenError:
         return Response(
-            status=_FORBIDDEN_CODE,
+            status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
     except asyncio.TimeoutError:
-        return Response(status=_TIMEOUT_CODE, text='Request timeout')
+        return Response(
+            status=StatusCode.TIMEOUT.value,
+            text='Request timeout',
+        )
     else:
         return json_response({'message': message.model_dump_json()})
 
@@ -410,12 +430,12 @@ def authenticate_factory(
             )
         except ForbiddenError:
             return Response(
-                status=_FORBIDDEN_CODE,
+                status=StatusCode.FORBIDDEN.value,
                 text='Token expired or revoked.',
             )
         except UnauthorizedError:
             return Response(
-                status=_UNAUTHORIZED_CODE,
+                status=StatusCode.UNAUTHORIZED.value,
                 text='Missing required headers.',
             )
 
@@ -428,7 +448,7 @@ def authenticate_factory(
         if (
             request.transport is None or request.transport.is_closing()
         ):  # pragma: no cover
-            return Response(status=_NO_RESPONSE_CODE)
+            return Response(status=StatusCode.NO_RESPONSE.value)
 
         request = request.clone(headers=headers)
         return await handler(request)

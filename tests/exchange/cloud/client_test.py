@@ -11,12 +11,7 @@ from academy.exchange.cloud.client import _raise_for_status
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.client import HttpExchangeTransport
 from academy.exchange.cloud.client import spawn_http_exchange
-from academy.exchange.cloud.server import _FORBIDDEN_CODE
-from academy.exchange.cloud.server import _NOT_FOUND_CODE
-from academy.exchange.cloud.server import _OKAY_CODE
-from academy.exchange.cloud.server import _TERMINATED_CODE
-from academy.exchange.cloud.server import _TIMEOUT_CODE
-from academy.exchange.cloud.server import _UNAUTHORIZED_CODE
+from academy.exchange.cloud.server import StatusCode
 from academy.exchange.exception import BadEntityIdError
 from academy.exchange.exception import ForbiddenError
 from academy.exchange.exception import MailboxTerminatedError
@@ -40,7 +35,7 @@ async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     factory = HttpExchangeFactory(host, port)
 
     class MockResponse:
-        status = _TIMEOUT_CODE
+        status = StatusCode.TIMEOUT.value
 
         async def __aexit__(self, exc_type, exc, tb):
             pass
@@ -76,26 +71,26 @@ async def test_raise_for_status_error_conversion() -> None:
         def __init__(self, status: int) -> None:
             self.status = status
 
-    response = _MockResponse(_OKAY_CODE)
+    response = _MockResponse(StatusCode.OKAY.value)
     _raise_for_status(response, UserId.new())
 
-    response = _MockResponse(_UNAUTHORIZED_CODE)
+    response = _MockResponse(StatusCode.UNAUTHORIZED.value)
     with pytest.raises(UnauthorizedError):
         _raise_for_status(response, UserId.new())
 
-    response = _MockResponse(_FORBIDDEN_CODE)
+    response = _MockResponse(StatusCode.FORBIDDEN.value)
     with pytest.raises(ForbiddenError):
         _raise_for_status(response, UserId.new())
 
-    response = _MockResponse(_NOT_FOUND_CODE)
+    response = _MockResponse(StatusCode.NOT_FOUND.value)
     with pytest.raises(BadEntityIdError):
         _raise_for_status(response, UserId.new())
 
-    response = _MockResponse(_TERMINATED_CODE)
+    response = _MockResponse(StatusCode.TERMINATED.value)
     with pytest.raises(MailboxTerminatedError):
         _raise_for_status(response, UserId.new())
 
-    response = _MockResponse(_TIMEOUT_CODE)
+    response = _MockResponse(StatusCode.TIMEOUT.value)
     with pytest.raises(TimeoutError):
         _raise_for_status(response, UserId.new())
 

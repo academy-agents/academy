@@ -25,12 +25,8 @@ from academy.behavior import Behavior
 from academy.behavior import BehaviorT
 from academy.exchange import ExchangeFactory
 from academy.exchange.cloud.config import ExchangeServingConfig
-from academy.exchange.cloud.server import _FORBIDDEN_CODE
-from academy.exchange.cloud.server import _NOT_FOUND_CODE
 from academy.exchange.cloud.server import _run
-from academy.exchange.cloud.server import _TERMINATED_CODE
-from academy.exchange.cloud.server import _TIMEOUT_CODE
-from academy.exchange.cloud.server import _UNAUTHORIZED_CODE
+from academy.exchange.cloud.server import StatusCode
 from academy.exchange.exception import BadEntityIdError
 from academy.exchange.exception import ForbiddenError
 from academy.exchange.exception import MailboxTerminatedError
@@ -290,21 +286,21 @@ def _raise_for_status(
     #     the request.
     #   - resource_id is the ID of the resource being accessed in the case
     #     of operations like send/status/terminate.
-    if response.status == _UNAUTHORIZED_CODE:
+    if response.status == StatusCode.UNAUTHORIZED.value:
         raise UnauthorizedError(
             f'Exchange entity {client_id} does not have the required '
             'authorization credentials.',
         )
-    elif response.status == _FORBIDDEN_CODE:
+    elif response.status == StatusCode.FORBIDDEN.value:
         raise ForbiddenError(
             f'Exchange entity {client_id} is not authorized to access '
             'this resource.',
         )
-    elif response.status == _NOT_FOUND_CODE:
+    elif response.status == StatusCode.NOT_FOUND.value:
         raise BadEntityIdError(resource_id or client_id)
-    elif response.status == _TERMINATED_CODE:
+    elif response.status == StatusCode.TERMINATED.value:
         raise MailboxTerminatedError(resource_id or client_id)
-    elif response.status == _TIMEOUT_CODE:
+    elif response.status == StatusCode.TIMEOUT.value:
         raise TimeoutError()
     else:
         response.raise_for_status()

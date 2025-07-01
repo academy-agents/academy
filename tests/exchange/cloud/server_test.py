@@ -22,16 +22,11 @@ from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.exceptions import ForbiddenError
 from academy.exchange.cloud.login import AcademyExchangeScopes
-from academy.exchange.cloud.server import _BAD_REQUEST_CODE
-from academy.exchange.cloud.server import _FORBIDDEN_CODE
 from academy.exchange.cloud.server import _MailboxManager
 from academy.exchange.cloud.server import _main
-from academy.exchange.cloud.server import _NOT_FOUND_CODE
-from academy.exchange.cloud.server import _OKAY_CODE
 from academy.exchange.cloud.server import _run
-from academy.exchange.cloud.server import _TIMEOUT_CODE
-from academy.exchange.cloud.server import _UNAUTHORIZED_CODE
 from academy.exchange.cloud.server import create_app
+from academy.exchange.cloud.server import StatusCode
 from academy.exchange.exception import BadEntityIdError
 from academy.exchange.exception import MailboxTerminatedError
 from academy.identifier import AgentId
@@ -204,49 +199,49 @@ async def cli() -> AsyncGenerator[TestClient[Request, Application]]:
 @pytest.mark.asyncio
 async def test_create_mailbox_validation_error(cli) -> None:
     response = await cli.post('/mailbox', json={'mailbox': 'foo'})
-    assert response.status == _BAD_REQUEST_CODE
+    assert response.status == StatusCode.BAD_REQUEST.value
     assert await response.text() == 'Missing or invalid mailbox ID'
 
 
 @pytest.mark.asyncio
 async def test_terminate_validation_error(cli) -> None:
     response = await cli.delete('/mailbox', json={'mailbox': 'foo'})
-    assert response.status == _BAD_REQUEST_CODE
+    assert response.status == StatusCode.BAD_REQUEST.value
     assert await response.text() == 'Missing or invalid mailbox ID'
 
 
 @pytest.mark.asyncio
 async def test_discover_validation_error(cli) -> None:
     response = await cli.get('/discover', json={})
-    assert response.status == _BAD_REQUEST_CODE
+    assert response.status == StatusCode.BAD_REQUEST.value
     assert await response.text() == 'Missing or invalid arguments'
 
 
 @pytest.mark.asyncio
 async def test_check_mailbox_validation_error(cli) -> None:
     response = await cli.get('/mailbox', json={'mailbox': 'foo'})
-    assert response.status == _BAD_REQUEST_CODE
+    assert response.status == StatusCode.BAD_REQUEST.value
     assert await response.text() == 'Missing or invalid mailbox ID'
 
 
 @pytest.mark.asyncio
 async def test_send_mailbox_validation_error(cli) -> None:
     response = await cli.put('/message', json={'message': 'foo'})
-    assert response.status == _BAD_REQUEST_CODE
+    assert response.status == StatusCode.BAD_REQUEST.value
     assert await response.text() == 'Missing or invalid message'
 
 
 @pytest.mark.asyncio
 async def test_recv_mailbox_validation_error(cli) -> None:
     response = await cli.get('/message', json={'mailbox': 'foo'})
-    assert response.status == _BAD_REQUEST_CODE
+    assert response.status == StatusCode.BAD_REQUEST.value
     assert await response.text() == 'Missing or invalid mailbox ID'
 
     response = await cli.get(
         '/message',
         json={'mailbox': UserId.new().model_dump_json()},
     )
-    assert response.status == _NOT_FOUND_CODE
+    assert response.status == StatusCode.NOT_FOUND.value
     assert await response.text() == 'Unknown mailbox ID'
 
 
@@ -257,13 +252,13 @@ async def test_recv_timeout_error(cli) -> None:
         '/mailbox',
         json={'mailbox': uid.model_dump_json()},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     response = await cli.get(
         '/message',
         json={'mailbox': uid.model_dump_json(), 'timeout': 0.001},
     )
-    assert response.status == _TIMEOUT_CODE
+    assert response.status == StatusCode.TIMEOUT.value
 
 
 @pytest.mark.asyncio
@@ -272,14 +267,14 @@ async def test_null_auth_client() -> None:
     app = create_app(auth)
     async with TestClient(TestServer(app)) as client:
         response = await client.get('/message', json={'mailbox': 'foo'})
-        assert response.status == _BAD_REQUEST_CODE
+        assert response.status == StatusCode.BAD_REQUEST.value
         assert await response.text() == 'Missing or invalid mailbox ID'
 
         response = await client.get(
             '/message',
             json={'mailbox': UserId.new().model_dump_json()},
         )
-        assert response.status == _NOT_FOUND_CODE
+        assert response.status == StatusCode.NOT_FOUND.value
         assert await response.text() == 'Unknown mailbox ID'
 
 
@@ -338,14 +333,14 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
         json={'mailbox': aid, 'behavior': 'foo'},
         headers={'Authorization': 'Bearer user_1'},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     response = await auth_client.post(
         '/mailbox',
         json={'mailbox': aid, 'behavior': 'foo'},
         headers={'Authorization': 'Bearer user_2'},
     )
-    assert response.status == _FORBIDDEN_CODE
+    assert response.status == StatusCode.FORBIDDEN.value
 
     # Discover
     response = await auth_client.get(
@@ -358,7 +353,7 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
         aid for aid in response_json['agent_ids'].split(',') if len(aid) > 0
     ]
     assert len(agent_ids) == 1
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     response = await auth_client.get(
         '/discover',
@@ -370,7 +365,7 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
         aid for aid in response_json['agent_ids'].split(',') if len(aid) > 0
     ]
     assert len(agent_ids) == 0
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     # Check mailbox
     response = await auth_client.get(
@@ -378,14 +373,14 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
         json={'mailbox': aid},
         headers={'Authorization': 'Bearer user_1'},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     response = await auth_client.get(
         '/mailbox',
         json={'mailbox': aid},
         headers={'Authorization': 'Bearer user_2'},
     )
-    assert response.status == _FORBIDDEN_CODE
+    assert response.status == StatusCode.FORBIDDEN.value
 
     # Delete mailbox
     response = await auth_client.delete(
@@ -393,14 +388,14 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
         json={'mailbox': aid},
         headers={'Authorization': 'Bearer user_2'},
     )
-    assert response.status == _FORBIDDEN_CODE
+    assert response.status == StatusCode.FORBIDDEN.value
 
     response = await auth_client.delete(
         '/mailbox',
         json={'mailbox': aid},
         headers={'Authorization': 'Bearer user_1'},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
 
 @pytest.mark.asyncio
@@ -415,7 +410,7 @@ async def test_globus_auth_client_message(auth_client) -> None:
         json={'mailbox': aid.model_dump_json(), 'behavior': 'foo'},
         headers={'Authorization': 'Bearer user_1'},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     # Create client
     response = await auth_client.post(
@@ -423,7 +418,7 @@ async def test_globus_auth_client_message(auth_client) -> None:
         json={'mailbox': cid.model_dump_json()},
         headers={'Authorization': 'Bearer user_1'},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     # Send valid message
     response = await auth_client.put(
@@ -431,7 +426,7 @@ async def test_globus_auth_client_message(auth_client) -> None:
         json={'message': message.model_dump_json()},
         headers={'Authorization': 'Bearer user_1'},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     # Send unauthorized message
     response = await auth_client.put(
@@ -439,21 +434,21 @@ async def test_globus_auth_client_message(auth_client) -> None:
         json={'message': message.model_dump_json()},
         headers={'Authorization': 'Bearer user_2'},
     )
-    assert response.status == _FORBIDDEN_CODE
+    assert response.status == StatusCode.FORBIDDEN.value
 
     response = await auth_client.get(
         '/message',
         json={'mailbox': aid.model_dump_json()},
         headers={'Authorization': 'Bearer user_1'},
     )
-    assert response.status == _OKAY_CODE
+    assert response.status == StatusCode.OKAY.value
 
     response = await auth_client.get(
         '/message',
         json={'mailbox': aid.model_dump_json()},
         headers={'Authorization': 'Bearer user_2'},
     )
-    assert response.status == _FORBIDDEN_CODE
+    assert response.status == StatusCode.FORBIDDEN.value
 
 
 @pytest.mark.asyncio
@@ -462,7 +457,7 @@ async def test_globus_auth_client_missing_auth(auth_client) -> None:
         '/discover',
         json={'behavior': 'foo', 'allow_subclasses': False},
     )
-    assert response.status == _UNAUTHORIZED_CODE
+    assert response.status == StatusCode.UNAUTHORIZED.value
 
 
 @pytest.mark.asyncio
@@ -472,4 +467,4 @@ async def test_globus_auth_client_forbidden(auth_client) -> None:
         json={'behavior': 'foo', 'allow_subclasses': False},
         headers={'Authorization': 'Bearer user_3'},
     )
-    assert response.status == _FORBIDDEN_CODE
+    assert response.status == StatusCode.FORBIDDEN.value

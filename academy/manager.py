@@ -36,23 +36,37 @@ from academy.serialize import NoPickleMixin
 logger = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass
+class _RunSpec(Generic[BehaviorT, ExchangeTransportT]):
+    behavior: BehaviorT | type[BehaviorT]
+    config: AgentRunConfig
+    exchange_factory: ExchangeFactory[ExchangeTransportT]
+    registration: AgentRegistration[BehaviorT]
+    behavior_args: tuple[Any, ...]
+    behavior_kwargs: dict[str, Any]
+
+
 async def _run_agent_on_worker_async(
-    behavior: BehaviorT,
-    config: AgentRunConfig,
-    exchange_factory: ExchangeFactory[ExchangeTransportT],
-    registration: AgentRegistration[BehaviorT],
+    spec: _RunSpec[BehaviorT, ExchangeTransportT],
 ) -> None:
+    if isinstance(spec.behavior, type):
+        behavior = spec.behavior(*spec.behavior_args, **spec.behavior_kwargs)
+    else:
+        behavior = spec.behavior
+
     agent = Agent(
         behavior,
-        config=config,
-        exchange_factory=exchange_factory,
-        registration=registration,
+        config=spec.config,
+        exchange_factory=spec.exchange_factory,
+        registration=spec.registration,
     )
     await agent.run()
 
 
-def _run_agent_on_worker(*args: Any) -> None:
-    asyncio.run(_run_agent_on_worker_async(*args))
+def _run_agent_on_worker(
+    spec: _RunSpec[BehaviorT, ExchangeTransportT],
+) -> None:
+    asyncio.run(_run_agent_on_worker_async(spec))
 
 
 @dataclasses.dataclass
@@ -271,12 +285,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     async def _run_agent_in_executor(
         self,
         executor: Executor,
-        behavior: BehaviorT,
-        config: AgentRunConfig,
-        registration: AgentRegistration[BehaviorT],
+        spec: _RunSpec[BehaviorT, ExchangeTransportT],
     ) -> None:
-        agent_id = registration.agent_id
-        original_config = config
+        agent_id = spec.registration.agent_id
+        original_config = spec.config
         loop = asyncio.get_running_loop()
         run_count = 0
         retries = self._max_retries
@@ -287,30 +299,27 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 retries -= 1
                 # Override this configuration for the case where the agent
                 # fails and we will be restarting it.
-                config = dataclasses.replace(
+                spec.config = dataclasses.replace(
                     original_config,
                     terminate_on_error=False,
                 )
             else:
                 # Otherwise, keep the original config.
-                config = original_config
+                spec.config = original_config
 
             logger.debug(
                 'Launching agent (attempt: %s; retries: %s; %s; %s)',
                 run_count,
                 retries,
                 agent_id,
-                behavior,
+                spec.behavior,
             )
 
             try:
                 await loop.run_in_executor(
                     executor,
                     _run_agent_on_worker,
-                    behavior,
-                    config,
-                    self.exchange_factory,
-                    registration,
+                    spec,
                 )
             except asyncio.CancelledError:  # pragma: no cover
                 logger.warning('Cancelled %s task', agent_id)
@@ -328,10 +337,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 logger.debug('Completed %s task', agent_id)
                 break
 
-    async def launch(
+    async def launch(  # noqa: PLR0913
         self,
-        behavior: BehaviorT,
+        behavior: BehaviorT | type[BehaviorT],
         *,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
         config: AgentRunConfig | None = None,
         executor: str | None = None,
         name: str | None = None,
@@ -340,7 +351,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """Launch a new agent with a specified behavior.
 
         Args:
-            behavior: Behavior the agent will implement.
+            behavior: Behavior instance the agent will implement or the
+                behavior type that will be initialized on the worker using
+                `args` and `kwargs`.
+            args: Positional arguments used to initialize the behavior.
+                Ignored if `behavior` is already an instance.
+            kwargs: Keyword arguments used to initialize the behavior.
+                Ignored if `behavior` is already an instance.
             config: Agent run configuration.
             executor: Name of the executor instance to use. If `None`, uses
                 the default executor, if specified, otherwise raises an error.
@@ -366,22 +383,28 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         executor_instance = self._executors[executor]
 
         if registration is None:
-            registration = await self.register_agent(type(behavior), name=name)
+            behavior_type = (
+                behavior if isinstance(behavior, type) else type(behavior)
+            )
+            registration = await self.register_agent(behavior_type, name=name)
         elif registration.agent_id in self._acbs:
             raise RuntimeError(
                 f'{registration.agent_id} has already been executed.',
             )
 
         agent_id = registration.agent_id
-        config = AgentRunConfig() if config is None else config
+
+        spec = _RunSpec(
+            behavior=behavior,
+            config=AgentRunConfig() if config is None else config,
+            exchange_factory=self.exchange_factory,
+            registration=registration,
+            behavior_args=() if args is None else args,
+            behavior_kwargs={} if kwargs is None else kwargs,
+        )
 
         task = asyncio.create_task(
-            self._run_agent_in_executor(
-                executor_instance,
-                behavior,
-                config,
-                registration,
-            ),
+            self._run_agent_in_executor(executor_instance, spec),
             name=f'manager-run-{agent_id}',
         )
 

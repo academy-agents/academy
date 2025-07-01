@@ -32,10 +32,9 @@ async def test_from_exchange_factory() -> None:
 async def test_launch_and_shutdown(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    behavior = SleepBehavior(TEST_LOOP_SLEEP)
-
-    handle1 = await manager.launch(behavior)
-    handle2 = await manager.launch(behavior)
+    # Two ways to launch: behavior instance or deferred behavior initialization
+    handle1 = await manager.launch(SleepBehavior(TEST_LOOP_SLEEP))
+    handle2 = await manager.launch(SleepBehavior, args=(TEST_LOOP_SLEEP,))
 
     assert len(manager.running()) == 2  # noqa: PLR2004
 

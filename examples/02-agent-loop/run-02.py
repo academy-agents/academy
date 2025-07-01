@@ -38,8 +38,7 @@ async def main() -> int:
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
     ) as manager:
-        behavior = Counter()
-        agent = await manager.launch(behavior)
+        agent = await manager.launch(Counter)
 
         logger.info('Waiting 2s for agent loops to execute...')
         await asyncio.sleep(2)

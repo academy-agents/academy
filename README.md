@@ -66,8 +66,7 @@ async with await Manager.from_exchange_factory(
     factory=LocalExchangeFactory(),  # Replace with other implementations
     executors=ThreadPoolExecutor(),  # for distributed deployments
 ) as manager:
-    behavior = SensorMonitorAgent()  # From the above block
-    agent_handle = await manager.launch(behavior)
+    agent_handle = await manager.launch(SensorMonitorAgent)
 
     future = await agent_handle.set_process_threshold(2.0)
     await future

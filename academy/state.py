@@ -26,12 +26,9 @@ class FileState(shelve.DbfilenameShelf[ValueT]):
         from academy.state import FileState
 
         class Example(Behavior):
-            def __init__(self) -> None:
+            def __init__(self, state_path: str) -> None:
                 super().__init__()
-                self.state_path = '/tmp/agent-state.dbm'
-
-            def on_setup(self) -> None:
-                self.state: FileState[Any] = FileState(self.state_path)
+                self.state: FileState[Any] = FileState(state_path)
 
             def on_shutdown(self) -> None:
                 self.state.close()
@@ -43,6 +40,18 @@ class FileState(shelve.DbfilenameShelf[ValueT]):
             @action
             def modify_state(self, key: str, value: Any) -> None:
                 self.state[key] = value
+        ```
+
+    Note:
+        When using the [`Manager`][academy.manager.Manager], use the
+        deferred behavior initialization to ensure that the state is
+        initialized on the worker, rather than the client.
+
+        ```python
+        from academy.manager import Manager
+
+        async with Manager(...) as manager:
+            handle = manager.launch(Example, args=('/tmp/agent-state.dbm',))
         ```
 
     Args:

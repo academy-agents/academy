@@ -155,9 +155,12 @@ async def main() -> None:
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
     ) as manager:
-        lowerer = await manager.launch(Lowerer())
-        reverser = await manager.launch(Reverser())
-        coordinator = await manager.launch(Coordinator(lowerer, reverser))
+        lowerer = await manager.launch(Lowerer)
+        reverser = await manager.launch(Reverser)
+        coordinator = await manager.launch(
+            Coordinator,
+            args=(lowerer, reverser),
+        )
 
         text = 'DEADBEEF'
         expected = 'feebdaed'

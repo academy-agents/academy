@@ -33,8 +33,7 @@ async def main() -> int:
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
     ) as manager:
-        behavior = Counter()
-        agent_handle = await manager.launch(behavior)
+        agent_handle = await manager.launch(Counter)
 
         count_future = await agent_handle.get_count()
         await count_future

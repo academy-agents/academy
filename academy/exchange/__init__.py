@@ -29,8 +29,8 @@ else:  # pragma: <3.11 cover
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
-from academy.exception import BadEntityIdError
-from academy.exception import MailboxClosedError
+from academy.exchange.exception import BadEntityIdError
+from academy.exchange.exception import MailboxClosedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
@@ -156,7 +156,6 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         [`ExchangeFactory.create_agent_client()`][academy.exchange.ExchangeFactory.create_agent_client]
         or
         [`ExchangeFactory.create_user_client()`][academy.exchange.ExchangeFactory.create_user_client]!
-
 
     Args:
         transport: Exchange transport bound to a mailbox.

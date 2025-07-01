@@ -20,9 +20,9 @@ import redis.asyncio
 
 from academy.behavior import Behavior
 from academy.behavior import BehaviorT
-from academy.exception import BadEntityIdError
-from academy.exception import MailboxClosedError
 from academy.exchange import ExchangeFactory
+from academy.exchange.exception import BadEntityIdError
+from academy.exchange.exception import MailboxClosedError
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId

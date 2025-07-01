@@ -50,8 +50,6 @@ from aiohttp.web import run_app
 from pydantic import TypeAdapter
 from pydantic import ValidationError
 
-from academy.exception import BadEntityIdError
-from academy.exception import MailboxClosedError
 from academy.exchange import MailboxStatus
 from academy.exchange.cloud.authenticate import Authenticator
 from academy.exchange.cloud.authenticate import get_authenticator
@@ -59,6 +57,8 @@ from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.exceptions import ForbiddenError
 from academy.exchange.cloud.exceptions import UnauthorizedError
+from academy.exchange.exception import BadEntityIdError
+from academy.exchange.exception import MailboxClosedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.logging import init_logging

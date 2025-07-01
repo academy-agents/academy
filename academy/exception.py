@@ -22,13 +22,6 @@ class AgentNotInitializedError(Exception):
         )
 
 
-class BadEntityIdError(Exception):
-    """Entity associated with the identifier is unknown."""
-
-    def __init__(self, uid: EntityId) -> None:
-        super().__init__(f'Unknown identifier {uid}.')
-
-
 class HandleClosedError(Exception):
     """Agent handle has been closed."""
 
@@ -48,33 +41,20 @@ class HandleClosedError(Exception):
 class HandleNotBoundError(Exception):
     """Handle to agent is in an unbound state.
 
-    An unbound handle (typically, an instance of `UnboundRemoteHandle`) is
-    initialized with a target agent ID and exchange, but does not have an
-    identifier itself. Thus, the handle does not have a mailbox in the exchange
-    to receive response messages.
+    An [`UnboundRemoteHandle`][academy.handle.UnboundRemoteHandle] is
+    initialized with a target agent ID, but is not attached to an exchange
+    client that the handle can use for communication.
 
-    A handle must be bound to be used, either as a unique user program with its
-    own mailbox or as bound to a running agent where it shares a mailbox with
-    that running agent. To create a bound handle, use
-    `handle.bind_to_client()`.
-
-    Any agent behavior that has a handle to another agent as an instance
-    attribute will be automatically bound to the agent when the agent begins
-    running.
+    An unbound handle can be turned into a usable handle by binding it to
+    an exchange client with
+    [`UnboundRemoteHandle.bind_to_client()`][UnboundRemoteHandle.bind_to_client].
     """
 
     def __init__(self, aid: AgentId[Any]) -> None:
         super().__init__(
-            f'Handle to {aid} to an exchange. See the exception docstring '
-            'for troubleshooting.',
+            f'Handle to {aid} is not bound to an exchange client. See the '
+            'exception docstring for troubleshooting.',
         )
-
-
-class MailboxClosedError(Exception):
-    """Mailbox is closed and cannot send or receive messages."""
-
-    def __init__(self, uid: EntityId) -> None:
-        super().__init__(f'Mailbox for {uid} has been closed.')
 
 
 def raise_exceptions(

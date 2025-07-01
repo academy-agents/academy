@@ -7,10 +7,10 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
+from academy.exchange.exception import BadEntityIdError
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest

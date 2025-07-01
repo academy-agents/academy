@@ -21,11 +21,11 @@ else:  # pragma: <3.11 cover
 from academy.agent import Agent
 from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
-from academy.exception import BadEntityIdError
-from academy.exception import MailboxClosedError
 from academy.exception import raise_exceptions
 from academy.exchange import ExchangeFactory
 from academy.exchange import UserExchangeClient
+from academy.exchange.exception import BadEntityIdError
+from academy.exchange.exception import MailboxClosedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle

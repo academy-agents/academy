@@ -76,16 +76,16 @@ class AgentRunConfig:
     terminate_on_success: bool = True
 
 
-class Agent(Generic[BehaviorT], NoPickleMixin):
-    """Executable agent.
+class AgentRunner(Generic[BehaviorT], NoPickleMixin):
+    """Run a behavior as an agent.
 
-    An agent executes predefined [`Behavior`][academy.behavior.Behavior]. An
-    agent can operate independently or as part of a broader multi-agent
-    system.
+    The runner is responsible for instantiating the runtime context for the
+    agent, executing the agent, and managing its cleanup. Each runner
+    executes the agent's [`Behavior`][academy.behavior.Behavior].
 
     Note:
-        An agent can only be run once. Calling
-        [`run()`][academy.agent.Agent.run] multiple times will raise a
+        This can only be run once. Calling
+        [`run()`][academy.runner.AgentRunner.run] multiple times will raise a
         [`RuntimeError`][RuntimeError].
 
     Note:

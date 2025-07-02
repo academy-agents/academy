@@ -28,8 +28,8 @@ from academy.message import PingRequest
 from academy.message import PingResponse
 from academy.message import ShutdownRequest
 from academy.runner import _bind_behavior_handles
-from academy.runner import Agent
 from academy.runner import AgentRunConfig
+from academy.runner import AgentRunner
 from testing.behavior import CounterBehavior
 from testing.behavior import EmptyBehavior
 from testing.behavior import ErrorBehavior
@@ -56,7 +56,7 @@ class SignalingBehavior(Behavior):
 @pytest.mark.asyncio
 async def test_agent_run(exchange: UserExchangeClient[Any]) -> None:
     registration = await exchange.register_agent(SignalingBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         SignalingBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -76,7 +76,7 @@ async def test_agent_run(exchange: UserExchangeClient[Any]) -> None:
 @pytest.mark.asyncio
 async def test_agent_run_in_task(exchange: UserExchangeClient[Any]) -> None:
     registration = await exchange.register_agent(SignalingBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         SignalingBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -94,7 +94,7 @@ async def test_agent_shutdown_without_terminate(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(SignalingBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         SignalingBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -114,7 +114,7 @@ async def test_agent_shutdown_terminate_override(
     ) as exchange:
         registration = await exchange.register_agent(EmptyBehavior)
 
-        agent = Agent(
+        agent = AgentRunner(
             EmptyBehavior(),
             exchange_factory=exchange.factory(),
             registration=registration,
@@ -146,7 +146,7 @@ async def test_agent_startup_failure(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(SignalingBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         SignalingBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -175,7 +175,7 @@ async def test_loop_failure_triggers_shutdown(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(LoopFailureBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         LoopFailureBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -197,7 +197,7 @@ async def test_loop_failure_ignore_shutdown(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(LoopFailureBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         LoopFailureBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -233,7 +233,7 @@ async def test_agent_shutdown_message(
 ) -> None:
     registration = await exchange.register_agent(EmptyBehavior)
 
-    agent = Agent(
+    agent = AgentRunner(
         EmptyBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -255,7 +255,7 @@ async def test_agent_ping_message(
     ) as exchange:
         registration = await exchange.register_agent(EmptyBehavior)
 
-        agent = Agent(
+        agent = AgentRunner(
             EmptyBehavior(),
             exchange_factory=exchange.factory(),
             registration=registration,
@@ -282,7 +282,7 @@ async def test_agent_action_message(
     ) as exchange:
         registration = await exchange.register_agent(CounterBehavior)
 
-        agent = Agent(
+        agent = AgentRunner(
             CounterBehavior(),
             exchange_factory=exchange.factory(),
             registration=registration,
@@ -331,7 +331,7 @@ async def test_agent_action_message_error(
     ) as exchange:
         registration = await exchange.register_agent(ErrorBehavior)
 
-        agent = Agent(
+        agent = AgentRunner(
             ErrorBehavior(),
             exchange_factory=exchange.factory(),
             registration=registration,
@@ -367,7 +367,7 @@ async def test_agent_action_message_unknown(
     ) as exchange:
         registration = await exchange.register_agent(EmptyBehavior)
 
-        agent = Agent(
+        agent = AgentRunner(
             EmptyBehavior(),
             exchange_factory=exchange.factory(),
             registration=registration,
@@ -489,7 +489,7 @@ async def test_agent_run_bind_handles(
     # it to mock a handle already bound to the agent.
     await main_agent_client.close()
 
-    agent = Agent(
+    agent = AgentRunner(
         behavior,
         exchange_factory=factory,
         registration=main_agent_reg,
@@ -539,12 +539,12 @@ async def test_agent_to_agent_handles(local_exchange_factory) -> None:
         runner_behavior = RunBehavior(doubler_handle)
         doubler_behavior = DoubleBehavior()
 
-        runner_agent = Agent(
+        runner_agent = AgentRunner(
             runner_behavior,
             exchange_factory=factory,
             registration=runner_info,
         )
-        doubler_agent = Agent(
+        doubler_agent = AgentRunner(
             doubler_behavior,
             exchange_factory=factory,
             registration=doubler_info,
@@ -582,7 +582,7 @@ async def test_agent_self_termination(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(ShutdownBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         ShutdownBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
@@ -610,7 +610,7 @@ async def test_agent_action_context(
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(ShutdownBehavior)
-    agent = Agent(
+    agent = AgentRunner(
         ContextBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,

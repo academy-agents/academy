@@ -67,9 +67,9 @@ Mailboxes are managed by an exchange, and the [`ExchangeClient`][academy.exchang
 An [`ExchangeFactory`][academy.exchange.ExchangeFactory] is used to register a new entity with the exchange and create a client that the entity can use for communicating with the exchange.
 Registering an entity involves creating a unique ID for the entity, which is also the address of its mailbox, and initializing that mailbox within the exchange.
 
-A mailbox has two states: open and closed.
-Open indicates that the entity is accepting messages, even if, for example, an agent has not yet started or is temporarily offline.
-Closed indicates permanent termination of the entity and will cause [`MailboxClosedError`][academy.exception.MailboxClosedError] to be raised by subsequent send or receive operations to that mailbox.
+A mailbox has two states: active and terminated.
+Active indicates that the entity's mailbox is accepting messages, even if, for example, an agent has not yet started or is temporarily offline.
+Terminated indicates permanent termination of the entity and will cause [`MailboxClosedError`][academy.exception.MailboxClosedError] to be raised by subsequent send or receive operations to that mailbox.
 
 Academy provides many exchange implementations for different scenarios, such as:
 

@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
+from academy.exception import AgentTerminatedError
 from academy.exception import HandleClosedError
 from academy.exception import HandleNotBoundError
-from academy.exception import MailboxTerminatedError
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
@@ -89,11 +89,11 @@ async def test_proxy_handle_agent_shutdown_errors() -> None:
     handle = ProxyHandle(EmptyBehavior())
     await handle.shutdown()
 
-    with pytest.raises(MailboxTerminatedError):
+    with pytest.raises(AgentTerminatedError):
         await handle.action('test')
-    with pytest.raises(MailboxTerminatedError):
+    with pytest.raises(AgentTerminatedError):
         await handle.ping()
-    with pytest.raises(MailboxTerminatedError):
+    with pytest.raises(AgentTerminatedError):
         await handle.shutdown()
 
 

@@ -6,6 +6,7 @@ from typing import Any
 
 from academy.identifier import AgentId
 from academy.identifier import EntityId
+from academy.identifier import UserId
 
 
 class AgentNotInitializedError(Exception):
@@ -42,10 +43,39 @@ class ForbiddenError(ExchangeError):
 
 
 class MailboxTerminatedError(ExchangeError):
-    """Entity mailbox is terminated and cannot send or receive messages."""
+    """Entity mailbox is terminated and cannot send or receive messages.
+
+    Constructing this error type implicitly returns one of the derived types,
+    [`AgentTerminatedError`][academy.exception.AgentTerminatedError] or
+    [`UserTerminatedError`][academy.exception.UserTerminatedError], based
+    on the entity type.
+    """
+
+    def __new__(cls, uid: EntityId) -> MailboxTerminatedError:  # noqa: D102
+        if isinstance(uid, AgentId):
+            return super().__new__(AgentTerminatedError)
+        elif isinstance(uid, UserId):
+            return super().__new__(UserTerminatedError)
+        else:
+            raise AssertionError('Unreachable.')
 
     def __init__(self, uid: EntityId) -> None:
         super().__init__(f'Mailbox for {uid} has been terminated.')
+        self.uid = uid
+
+
+class AgentTerminatedError(MailboxTerminatedError):
+    """Agent mailbox is terminated and cannot send or receive messages."""
+
+    def __init__(self, uid: AgentId[Any]) -> None:
+        super().__init__(uid)
+
+
+class UserTerminatedError(MailboxTerminatedError):
+    """User mailbox is terminated and cannot send or receive messages."""
+
+    def __init__(self, uid: UserId) -> None:
+        super().__init__(uid)
 
 
 class UnauthorizedError(ExchangeError):

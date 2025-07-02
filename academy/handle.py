@@ -26,9 +26,9 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+from academy.exception import AgentTerminatedError
 from academy.exception import HandleClosedError
 from academy.exception import HandleNotBoundError
-from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -97,10 +97,10 @@ class Handle(Protocol[BehaviorT]):
             Future to the result of the action.
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
         """
         ...
 
@@ -133,10 +133,10 @@ class Handle(Protocol[BehaviorT]):
             Round-trip time in seconds.
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
             TimeoutError: If the timeout is exceeded.
         """
         ...
@@ -151,10 +151,10 @@ class Handle(Protocol[BehaviorT]):
                 in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
         """
         ...
 
@@ -248,13 +248,13 @@ class ProxyHandle(Generic[BehaviorT]):
             Future to the result of the action.
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
         """
         if self._agent_closed:
-            raise MailboxTerminatedError(self.agent_id)
+            raise AgentTerminatedError(self.agent_id)
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
 
@@ -303,14 +303,14 @@ class ProxyHandle(Generic[BehaviorT]):
             Round-trip time in seconds.
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
             TimeoutError: If the timeout is exceeded.
         """
         if self._agent_closed:
-            raise MailboxTerminatedError(self.agent_id)
+            raise AgentTerminatedError(self.agent_id)
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
         return 0
@@ -325,13 +325,13 @@ class ProxyHandle(Generic[BehaviorT]):
                 in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
         """
         if self._agent_closed:
-            raise MailboxTerminatedError(self.agent_id)
+            raise AgentTerminatedError(self.agent_id)
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
         self._agent_closed = True if terminate is None else terminate
@@ -554,10 +554,10 @@ class RemoteHandle(Generic[BehaviorT]):
             Future to the result of the action.
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
         """
         if self._closed:
             raise HandleClosedError(self.agent_id, self.client_id)
@@ -596,10 +596,10 @@ class RemoteHandle(Generic[BehaviorT]):
             Round-trip time in seconds.
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
             TimeoutError: If the timeout is exceeded.
         """
         if self._closed:
@@ -641,10 +641,10 @@ class RemoteHandle(Generic[BehaviorT]):
                 in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
 
         Raises:
-            HandleClosedError: If the handle was closed.
-            MailboxTerminatedError: If the agent's mailbox was closed. This
+            AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            HandleClosedError: If the handle was closed.
         """
         if self._closed:
             raise HandleClosedError(self.agent_id, self.client_id)

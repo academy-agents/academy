@@ -21,8 +21,8 @@ else:  # pragma: <3.11 cover
 from academy.agent import Agent
 from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
+from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
-from academy.exception import MailboxTerminatedError
 from academy.exception import raise_exceptions
 from academy.exchange import ExchangeFactory
 from academy.exchange import UserExchangeClient
@@ -220,7 +220,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         for acb in self._acbs.values():
             if not acb.task.done():
                 handle = self.get_handle(acb.agent_id)
-                with contextlib.suppress(MailboxTerminatedError):
+                with contextlib.suppress(AgentTerminatedError):
                     await handle.shutdown()
         logger.debug('Requested shutdown from all agents')
 
@@ -504,7 +504,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             return
 
         handle = self.get_handle(agent_id)
-        with contextlib.suppress(MailboxTerminatedError):
+        with contextlib.suppress(AgentTerminatedError):
             await handle.shutdown(terminate=terminate)
 
         if blocking:

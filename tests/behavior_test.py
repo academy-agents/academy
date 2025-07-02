@@ -184,8 +184,7 @@ async def test_behavior_timer() -> None:
     await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 
-@pytest.mark.asyncio
-async def test_behavior_action_decorator_usage_ok() -> None:
+def test_behavior_action_decorator_usage_ok() -> None:
     class _TestBehavior(Behavior):
         @action
         async def action1(self) -> None: ...
@@ -200,8 +199,7 @@ async def test_behavior_action_decorator_usage_ok() -> None:
     assert len(behavior.behavior_actions()) == 3  # noqa: PLR2004
 
 
-@pytest.mark.asyncio
-async def test_behavior_action_decorator_usage_error() -> None:
+def test_behavior_action_decorator_usage_error() -> None:
     class _TestBehavior(Behavior):
         async def missing_arg(self) -> None: ...
         async def pos_only(self, context: ActionContext, /) -> None: ...
@@ -217,6 +215,31 @@ async def test_behavior_action_decorator_usage_error() -> None:
         match='The "context" argument to action method "pos_only"',
     ):
         action(context=True)(_TestBehavior.pos_only)
+
+
+def test_behavior_action_decorator_name_clash_error() -> None:
+    class _TestBehavior(Behavior):
+        async def action(self) -> None: ...
+        async def ping(self) -> None: ...
+        async def shutdown(self) -> None: ...
+
+    with pytest.raises(
+        AttributeError,
+        match='The method name "action" clashes with the name of a protected',
+    ):
+        action(_TestBehavior.action)
+
+    with pytest.raises(
+        AttributeError,
+        match='The method name "ping" clashes with the name of a protected',
+    ):
+        action(_TestBehavior.ping)
+
+    with pytest.raises(
+        AttributeError,
+        match='The method name "shutdown" clashes with the name of a',
+    ):
+        action(_TestBehavior.shutdown)
 
 
 @pytest.mark.asyncio

@@ -290,6 +290,16 @@ class ControlLoop(Protocol):
         ...
 
 
+@functools.lru_cache(maxsize=1)
+def _get_handle_protected_methods() -> tuple[str, ...]:
+    methods: list[str] = []
+    for name, value in inspect.getmembers(Handle):
+        # Only include functions defined on Handle, not inherited ones
+        if inspect.isfunction(value) and name in Handle.__dict__:
+            methods.append(name)
+    return tuple(methods)
+
+
 @overload
 def action(method: ActionMethod[P, R]) -> ActionMethod[P, R]: ...
 
@@ -334,11 +344,20 @@ def action(
             The `context` will be provided at runtime as a keyword argument.
 
     Raises:
+        AttributeError: If the name of the decorated method clashes with
+            a method defined on [`Handle`][academy.handle.Handle].
         TypeError: If `context=True` and the method does not have a parameter
             named `context` or if `context` is a positional only argument.
     """
 
     def decorator(method_: ActionMethod[P, R]) -> ActionMethod[P, R]:
+        if method_.__name__ in _get_handle_protected_methods():
+            raise AttributeError(
+                f'The method name "{method_.__name__}" clashes with the '
+                'name of a protected method of Handle. Rename this action '
+                'method to avoid ambiguity when remotely invoking it via '
+                'a handle.',
+            )
         # Typing the requirement that if context=True then params P should
         # contain a keyword argument named "context" is not easily annotated
         # for mypy so instead we check at runtime.

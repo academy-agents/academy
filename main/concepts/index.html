@@ -1928,9 +1928,9 @@ The handle also listens for response messages and accordingly sets the result on
 Mailboxes are managed by an exchange, and the <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a> protocol defines methods for interacting with the exchange and creating handles to other agents.
 An <a class="autorefs autorefs-internal" title="            ExchangeFactory" href="../api/exchange/#academy.exchange.ExchangeFactory"><code>ExchangeFactory</code></a> is used to register a new entity with the exchange and create a client that the entity can use for communicating with the exchange.
 Registering an entity involves creating a unique ID for the entity, which is also the address of its mailbox, and initializing that mailbox within the exchange.</p>
-<p>A mailbox has two states: open and closed.
-Open indicates that the entity is accepting messages, even if, for example, an agent has not yet started or is temporarily offline.
-Closed indicates permanent termination of the entity and will cause <a class="autorefs autorefs-internal" title="            MailboxClosedError" href="../api/exception/#academy.exception.MailboxClosedError"><code>MailboxClosedError</code></a> to be raised by subsequent send or receive operations to that mailbox.</p>
+<p>A mailbox has two states: active and terminated.
+Active indicates that the entity's mailbox is accepting messages, even if, for example, an agent has not yet started or is temporarily offline.
+Terminated indicates permanent termination of the entity and will cause <a class="autorefs autorefs-internal" title="            MailboxClosedError" href="../api/exception/#academy.exception.MailboxClosedError"><code>MailboxClosedError</code></a> to be raised by subsequent send or receive operations to that mailbox.</p>
 <p>Academy provides many exchange implementations for different scenarios, such as:</p>
 <ul>
 <li><a class="autorefs autorefs-internal" title="            LocalExchangeFactory" href="../api/exchange/local/#academy.exchange.local.LocalExchangeFactory"><strong>Local</strong></a>: Uses in-memory queues for single-process, multiple-agent scenarios. Useful for testing and development.</li>

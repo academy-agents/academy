@@ -477,6 +477,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         blocking: bool = True,
         raise_error: bool = True,
+        terminate: bool | None = None,
         timeout: float | None = None,
     ) -> None:
         """Shutdown a launched agent.
@@ -486,6 +487,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             blocking: Wait for the agent to exit before returning.
             raise_error: Raise the error returned by the agent if
                 `blocking=True`.
+            terminate: Override the termination behavior of the agent defined
+                in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
             timeout: Optional timeout is seconds when `blocking=True`.
 
         Raises:
@@ -502,7 +505,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         handle = self.get_handle(agent_id)
         with contextlib.suppress(MailboxClosedError):
-            await handle.shutdown()
+            await handle.shutdown(terminate=terminate)
 
         if blocking:
             await self.wait(

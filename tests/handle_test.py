@@ -11,6 +11,7 @@ from academy.exception import HandleNotBoundError
 from academy.exception import MailboxClosedError
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeTransport
+from academy.exchange.transport import MailboxStatus
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
@@ -242,6 +243,22 @@ async def test_client_remote_handle_actions(
     assert await count_future == 2  # noqa: PLR2004
 
     await handle.shutdown()
+
+
+@pytest.mark.parametrize('terminate', (True, False))
+@pytest.mark.asyncio
+async def test_client_remote_shutdown_termination(
+    terminate: bool,
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    handle = await manager.launch(EmptyBehavior())
+    await handle.shutdown(terminate=terminate)
+    await manager.wait({handle})
+    status = await manager.exchange_client.status(handle.agent_id)
+    if terminate:
+        assert status == MailboxStatus.TERMINATED
+    else:
+        assert status == MailboxStatus.ACTIVE
 
 
 @pytest.mark.asyncio

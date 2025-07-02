@@ -141,10 +141,14 @@ class Handle(Protocol[BehaviorT]):
         """
         ...
 
-    async def shutdown(self) -> None:
+    async def shutdown(self, *, terminate: bool | None = None) -> None:
         """Instruct the agent to shutdown.
 
         This is non-blocking and will only send the message.
+
+        Args:
+            terminate: Override the termination behavior of the agent defined
+                in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
 
         Raises:
             HandleClosedError: If the handle was closed.
@@ -311,10 +315,14 @@ class ProxyHandle(Generic[BehaviorT]):
             raise HandleClosedError(self.agent_id, self.client_id)
         return 0
 
-    async def shutdown(self) -> None:
+    async def shutdown(self, *, terminate: bool | None = None) -> None:
         """Instruct the agent to shutdown.
 
         This is non-blocking and will only send the message.
+
+        Args:
+            terminate: Override the termination behavior of the agent defined
+                in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
 
         Raises:
             HandleClosedError: If the handle was closed.
@@ -326,7 +334,7 @@ class ProxyHandle(Generic[BehaviorT]):
             raise MailboxClosedError(self.agent_id)
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
-        self._agent_closed = True
+        self._agent_closed = True if terminate is None else terminate
 
 
 class UnboundRemoteHandle(Generic[BehaviorT]):
@@ -398,7 +406,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
-    async def shutdown(self) -> None:
+    async def shutdown(self, *, terminate: bool | None = None) -> None:
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
@@ -623,10 +631,14 @@ class RemoteHandle(Generic[BehaviorT]):
         )
         return elapsed
 
-    async def shutdown(self) -> None:
+    async def shutdown(self, *, terminate: bool | None = None) -> None:
         """Instruct the agent to shutdown.
 
         This is non-blocking and will only send the message.
+
+        Args:
+            terminate: Override the termination behavior of the agent defined
+                in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
 
         Raises:
             HandleClosedError: If the handle was closed.
@@ -641,6 +653,7 @@ class RemoteHandle(Generic[BehaviorT]):
             src=self.client_id,
             dest=self.agent_id,
             label=self.handle_id,
+            terminate=terminate,
         )
         await self.exchange.send(request)
         logger.debug(

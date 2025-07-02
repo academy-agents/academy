@@ -217,27 +217,34 @@ def test_behavior_action_decorator_usage_error() -> None:
         action(context=True)(_TestBehavior.pos_only)
 
 
+def test_behavior_action_decorator_name_clash_ok() -> None:
+    class _TestBehavior(Behavior):
+        async def ping(self) -> None: ...
+
+    action(allow_protected_name=True)(_TestBehavior.ping)
+
+
 def test_behavior_action_decorator_name_clash_error() -> None:
     class _TestBehavior(Behavior):
         async def action(self) -> None: ...
         async def ping(self) -> None: ...
         async def shutdown(self) -> None: ...
 
-    with pytest.raises(
-        AttributeError,
-        match='The method name "action" clashes with the name of a protected',
+    with pytest.warns(
+        UserWarning,
+        match='The name of the decorated method is "action" which clashes',
     ):
         action(_TestBehavior.action)
 
-    with pytest.raises(
-        AttributeError,
-        match='The method name "ping" clashes with the name of a protected',
+    with pytest.warns(
+        UserWarning,
+        match='The name of the decorated method is "ping" which clashes',
     ):
         action(_TestBehavior.ping)
 
-    with pytest.raises(
-        AttributeError,
-        match='The method name "shutdown" clashes with the name of a',
+    with pytest.warns(
+        UserWarning,
+        match='The name of the decorated method is "shutdown" which clashes',
     ):
         action(_TestBehavior.shutdown)
 

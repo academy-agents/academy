@@ -38,8 +38,8 @@ Instance attributes maintain the agent's state, and methods define the actions a
 
 ### Execution
 
-The [`Agent`][academy.agent.Agent] is an asynchronous entity that executes a provided behavior and manages communication with other entities.
-[`Agent.run()`][academy.agent.Agent.run] executed the agent by (1) invokes the [`on_setup()`][academy.behavior.Behavior.on_setup] callback of the behavior, (2) starts each [`@loop`][academy.behavior.loop] method in a separate task, (3) spawns a task to listen for new messages in the agent's mailbox, and (4) waits for the agent to be shut down.
+The [`Agent`][academy.runner.Agent] is an asynchronous entity that executes a provided behavior and manages communication with other entities.
+[`Agent.run()`][academy.runner.Agent.run] executed the agent by (1) invokes the [`on_setup()`][academy.behavior.Behavior.on_setup] callback of the behavior, (2) starts each [`@loop`][academy.behavior.loop] method in a separate task, (3) spawns a task to listen for new messages in the agent's mailbox, and (4) waits for the agent to be shut down.
 Each [`@action`][academy.behavior.action] method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.
 
 !!! note
@@ -80,6 +80,6 @@ Academy provides many exchange implementations for different scenarios, such as:
 
 ## Manager
 
-Agents can be run manually via [`Agent.run()`][academy.agent.Agent.run], but typically applications want to run many agents concurrently across parallel or distributed resources.
+Agents can be run manually via [`Agent.run()`][academy.runner.Agent.run], but typically applications want to run many agents concurrently across parallel or distributed resources.
 The [`Manager`][academy.manager.Manager] provides a single interface for launching and managing agents across one or more [`Executors`][concurrent.futures.Executor], such as a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor], [Parsl](https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops){target=_blank}, or [Globus Compute](https://globus-compute.readthedocs.io/en/latest/index.html){target=_blank}.
 A manager will handle common boilerplate, including registering agents, creating handles, and ensuring stateful resources are appropriately cleaned up.

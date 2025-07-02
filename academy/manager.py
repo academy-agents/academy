@@ -18,8 +18,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import Agent
-from academy.agent import AgentRunConfig
 from academy.behavior import BehaviorT
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
@@ -31,6 +29,8 @@ from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.runner import Agent
+from academy.runner import AgentRunConfig
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
@@ -488,7 +488,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             raise_error: Raise the error returned by the agent if
                 `blocking=True`.
             terminate: Override the termination behavior of the agent defined
-                in the [`AgentRunConfig`][academy.agent.AgentRunConfig].
+                in the [`AgentRunConfig`][academy.runner.AgentRunConfig].
             timeout: Optional timeout is seconds when `blocking=True`.
 
         Raises:

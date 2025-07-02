@@ -7,9 +7,6 @@ from unittest import mock
 
 import pytest
 
-from academy.agent import _bind_behavior_handles
-from academy.agent import Agent
-from academy.agent import AgentRunConfig
 from academy.behavior import action
 from academy.behavior import Behavior
 from academy.behavior import loop
@@ -30,6 +27,9 @@ from academy.message import ActionResponse
 from academy.message import PingRequest
 from academy.message import PingResponse
 from academy.message import ShutdownRequest
+from academy.runner import _bind_behavior_handles
+from academy.runner import Agent
+from academy.runner import AgentRunConfig
 from testing.behavior import CounterBehavior
 from testing.behavior import EmptyBehavior
 from testing.behavior import ErrorBehavior

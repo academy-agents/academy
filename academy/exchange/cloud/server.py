@@ -420,6 +420,15 @@ def authenticate_factory(
 
         headers = request.headers.copy()
         headers['client_id'] = str(client_uuid)
+
+        # Handle early client-side disconnect in Issue #142
+        # This is somewhat hard to reproduce in tests:
+        # https://github.com/aio-libs/aiohttp/issues/6978
+        if (
+            request.transport is None or request.transport.is_closing()
+        ):  # pragma: no cover
+            return Response(status=_NO_RESPONSE_CODE)
+
         request = request.clone(headers=headers)
         return await handler(request)
 

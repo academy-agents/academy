@@ -48,6 +48,14 @@ class _AgentState(enum.Enum):
     SHUTDOWN = 'shutdown'
 
 
+@dataclasses.dataclass
+class _AgentShutdownOptions:
+    # If the shutdown was expected or due to an error
+    expected_shutdown: bool = True
+    # Override the termination setting of the run config
+    terminate_override: bool | None = None
+
+
 @dataclasses.dataclass(frozen=True)
 class AgentRunConfig:
     """Agent run configuration.
@@ -110,7 +118,7 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
-        self._expected_shutdown = True
+        self._shutdown_options = _AgentShutdownOptions()
         self._behavior_startup_called = False
 
         self._action_tasks: dict[ActionRequest, asyncio.Task[None]] = {}
@@ -191,7 +199,7 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
             logger.info('Ping request received by %s', self.agent_id)
             await self._send_response(request.response())
         elif isinstance(request, ShutdownRequest):
-            self.signal_shutdown()
+            self.signal_shutdown(expected=True, terminate=request.terminate)
         else:
             raise AssertionError('Unreachable.')
 
@@ -326,12 +334,23 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         self._started_event.set()
         logger.info('Running agent (%s; %s)', self.agent_id, self.behavior)
 
+    def _should_terminate_mailbox(self) -> bool:
+        # Inspects the shutdown options and the run config to determine
+        # if the agent's mailbox should be terminated in the exchange.
+        if self._shutdown_options.terminate_override is not None:
+            return self._shutdown_options.terminate_override
+
+        expected = self._shutdown_options.expected_shutdown
+        terminate_for_success = self.config.terminate_on_success and expected
+        terminate_for_error = self.config.terminate_on_error and not expected
+        return terminate_for_success or terminate_for_error
+
     async def _shutdown(self) -> None:
         assert self._shutdown_event.is_set()
 
         logger.debug(
             'Shutting down agent... (expected: %s; %s; %s)',
-            self._expected_shutdown,
+            self._shutdown_options.expected_shutdown,
             self.agent_id,
             self.behavior,
         )
@@ -356,27 +375,35 @@ class Agent(Generic[BehaviorT], NoPickleMixin):
         for task in tuple(self._action_tasks.values()):
             await task
 
-        terminate_for_success = (
-            self.config.terminate_on_success and self._expected_shutdown
-        )
-        terminate_for_error = (
-            self.config.terminate_on_error and not self._expected_shutdown
-        )
         if self._exchange_client is not None:
-            if terminate_for_success or terminate_for_error:
+            if self._should_terminate_mailbox():
                 await self._exchange_client.terminate(self.agent_id)
             await self._exchange_client.close()
 
         logger.info('Shutdown agent (%s; %s)', self.agent_id, self.behavior)
 
-    def signal_shutdown(self, expected: bool = True) -> None:
+    def signal_shutdown(
+        self,
+        *,
+        expected: bool = True,
+        terminate: bool | None = None,
+    ) -> None:
         """Signal that the agent should exit.
 
         If the agent has not started, this will cause the agent to immediately
         shutdown when next started. If the agent is shutdown, this has no
         effect.
+
+        Args:
+            expected: If the reason for the shutdown was due to normal
+                expected reasons or due to unexpected errors.
+            terminate: Optionally override the mailbox termination settings
+                in the run config.
         """
-        self._expected_shutdown = expected
+        self._shutdown_options = _AgentShutdownOptions(
+            expected_shutdown=expected,
+            terminate_override=terminate,
+        )
         self._shutdown_event.set()
 
 

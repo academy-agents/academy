@@ -101,8 +101,44 @@ async def test_agent_shutdown_without_terminate(
         config=AgentRunConfig(terminate_on_success=False),
     )
     await agent.run()
-    assert agent._expected_shutdown
+    assert agent._shutdown_options.expected_shutdown
     assert await exchange.status(agent.agent_id) == MailboxStatus.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_agent_shutdown_terminate_override(
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    async with await local_exchange_factory.create_user_client(
+        start_listener=False,
+    ) as exchange:
+        registration = await exchange.register_agent(EmptyBehavior)
+
+        agent = Agent(
+            EmptyBehavior(),
+            exchange_factory=exchange.factory(),
+            registration=registration,
+            config=AgentRunConfig(
+                terminate_on_success=False,
+                terminate_on_error=False,
+            ),
+        )
+        task = asyncio.create_task(
+            agent.run(),
+            name='test-agent-shutdown-terminate-override',
+        )
+        await agent._started_event.wait()
+
+        shutdown = ShutdownRequest(
+            src=exchange.client_id,
+            dest=agent.agent_id,
+            terminate=True,
+        )
+        await exchange.send(shutdown)
+        await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+        assert (
+            await exchange.status(agent.agent_id) == MailboxStatus.TERMINATED
+        )
 
 
 @pytest.mark.asyncio

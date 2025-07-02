@@ -290,6 +290,7 @@ class ShutdownRequest(BaseMessage):
     """Agent shutdown request message."""
 
     kind: Literal['shutdown-request'] = Field('shutdown-request', repr=False)
+    terminate: Optional[bool] = None  # noqa: UP045
 
     @field_validator('dest', mode='after')
     @classmethod

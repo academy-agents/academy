@@ -18,7 +18,7 @@
         <link rel="prev" href="../message/">
       
       
-        <link rel="next" href="../serialize/">
+        <link rel="next" href="../runtime/">
       
       
       <link rel="icon" href="../../static/favicon.png">
@@ -815,29 +815,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../behavior/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.behavior
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../context/" class="md-nav__link">
         
   
@@ -920,7 +897,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -937,14 +914,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7" id="__nav_3_1_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6" id="__nav_3_1_6_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
           </label>
@@ -970,7 +947,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6_1" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -987,14 +964,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7_1" id="__nav_3_1_7_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6_1" id="__nav_3_1_6_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_7_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6_1">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1465,6 +1442,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.runtime
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../serialize/" class="md-nav__link">
         
   
@@ -1768,10 +1768,10 @@
 <p>For example, the return type of an action invocation on a remote agent via
 a handle is a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-future.html#asyncio.Future"><code>Future</code></a> wrapping the return
 type of the action.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.behavior</span><span class="w"> </span><span class="kn">import</span> <span class="n">Behavior</span><span class="p">,</span> <span class="n">action</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">action</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.handle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Handle</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Example</span><span class="p">(</span><span class="n">Behavior</span><span class="p">):</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Example</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="nd">@action</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
@@ -1787,7 +1787,7 @@ Without the plugin, mypy will default to <a class="autorefs autorefs-external" h
   <summary>Note</summary>
   <p>The plugin makes a best effort to warn users about incorrect use of
 agent handles. This includes raising errors when accessing attributes
-of a behavior, rather than methods, via a handle and when incorrect
+of a agent, rather than methods, via a handle and when incorrect
 parameter types are passed to an action. However, the plugin cannot
 distinguish which callable attributes of a handle are annotated as
 actions, but this will still produce an error at runtime.</p>

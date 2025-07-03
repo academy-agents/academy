@@ -566,15 +566,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#behaviors" class="md-nav__link">
-    <span class="md-ellipsis">
-      Behaviors
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#execution" class="md-nav__link">
     <span class="md-ellipsis">
       Execution
@@ -919,29 +910,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/behavior/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.behavior
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../api/context/" class="md-nav__link">
         
   
@@ -1024,7 +992,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1041,14 +1009,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7" id="__nav_3_1_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6" id="__nav_3_1_6_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
           </label>
@@ -1074,7 +1042,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6_1" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1091,14 +1059,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7_1" id="__nav_3_1_7_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6_1" id="__nav_3_1_6_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_7_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6_1">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1518,6 +1486,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../api/runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.runtime
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/serialize/" class="md-nav__link">
         
   
@@ -1789,15 +1780,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#behaviors" class="md-nav__link">
-    <span class="md-ellipsis">
-      Behaviors
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#execution" class="md-nav__link">
     <span class="md-ellipsis">
       Execution
@@ -1862,11 +1844,11 @@
 <p><img alt="Architecture" src="../static/architecture.jpg" /></p>
 <blockquote>
 <p>Agents and users in Academy interact via handles to invoke actions asynchronously.
-Agents implement a behavior, defined by their actions, control loops, and state.
+An agent's behavior is defined by its actions, control loops, and state.
 Academy decouples the control and data planes through the exchange, used for user and agent communication, and launcher mechanisms that can remotely execute agents.</p>
 </blockquote>
 <p>An Academy application includes one or more <em>agents</em> and zero or more <em>users</em>.
-An agent is a process that executes a <em>behavior</em>, where a behavior is defined by a <em>local state</em>, a set of <em>actions</em>, and a set of <em>control loops</em>.
+An agent is a process defined by a <em>local state</em>, a set of <em>actions</em>, and a set of <em>control loops</em>.
 Agents can be executed remotely using a <em>manager</em> (previously referred to as a <em>launcher</em>).
 Once running, an agent concurrently executes all of its control loops and listens for messages from user programs or other agents.</p>
 <p>A user program interacts with an agent through a <em>handle</em>, which acts like a reference to the remote agent and translates method calls into action request messages.
@@ -1880,44 +1862,36 @@ Mailboxes are maintained by an <em>exchange</em> such that any client with acces
 <li><strong>Communicates:</strong> Exchanges messages or data with other users, agents, or the environment.</li>
 </ul>
 <p>In essence, Academy agents can be thought of as building blocks for more complex or specialized agent-based systems.</p>
-<h3 id="behaviors">Behaviors<a class="headerlink" href="#behaviors" title="Permanent link">&para;</a></h3>
-<p>An academy.behavior is implemented as a Python class that inherits from the base <a class="autorefs autorefs-internal" title="            Behavior" href="../api/behavior/#academy.behavior.Behavior"><code>Behavior</code></a> type.
+<p>An agent is implemented as a Python class that inherits from the base <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> type.
 This class-based approach is extensible through inheritance and polymorphism.</p>
 <ul>
-<li><strong>State</strong> is stored as instance attributes on the agent's behavior type.
+<li><strong>State</strong> is stored as instance attributes on the agent class instance.
 Instance attributes maintain the agent's state, and methods define the actions and control loops.</li>
-<li><strong>Actions</strong> can be performed in two ways: <a class="autorefs autorefs-internal" title="            action" href="../api/behavior/#academy.behavior.action"><code>@action</code></a> decorated methods allow other entities to invoke the method remotely and <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a> decorated methods run non-terminating control loops that enable an agent to autonomously perform actions.</li>
+<li><strong>Actions</strong> can be performed in two ways: <a class="autorefs autorefs-internal" title="            action" href="../api/agent/#academy.agent.action"><code>@action</code></a> decorated methods allow other entities to invoke the method remotely and <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a> decorated methods run non-terminating control loops that enable an agent to autonomously perform actions.</li>
 <li><strong>Communication</strong> between entities in managed via <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handles</code></a> which are client interfaces to remote agents used to invoke actions, ping, and shutdown.</li>
 </ul>
 <h3 id="execution">Execution<a class="headerlink" href="#execution" title="Permanent link">&para;</a></h3>
-<p>The <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> is an asynchronous entity that executes a provided behavior and manages communication with other entities.
-<a class="autorefs autorefs-internal" title="            run
+<p>The <a class="autorefs autorefs-internal" title="            Runtime" href="../api/runtime/#academy.runtime.Runtime"><code>Runtime</code></a> manager takes an <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> and executes the agent by:
+(1) listening for new messages in the agent's mailbox and dispatching them appropriately,
+(2) starting each <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a> method,
+(3) calling the <a class="autorefs autorefs-internal" title="            on_setup
 
 
   
       async
-  " href="../api/agent/#academy.agent.Agent.run"><code>Agent.run()</code></a> executed the agent by (1) invokes the <a class="autorefs autorefs-internal" title="            on_setup
-
-
-  
-      async
-  " href="../api/behavior/#academy.behavior.Behavior.on_setup"><code>on_setup()</code></a> callback of the behavior, (2) starts each <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a> method in a separate task, (3) spawns a task to listen for new messages in the agent's mailbox, and (4) waits for the agent to be shut down.
-Each <a class="autorefs autorefs-internal" title="            action" href="../api/behavior/#academy.behavior.action"><code>@action</code></a> method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The use of multi-threading means that behavior implementations must be aware of the caveats of Python's global interpreter lock (GIL).
-Compute-heavy actions can dispatch work to other parallel executors, such as a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a>, <a href="https://distributed.dask.org/en/stable/" target="_blank">Dask Distributed</a>, <a href="https://github.com/parsl/parsl/" target="_blank">Parsl</a>, or <a href="https://github.com/ray-project/ray" target="_blank">Ray</a>.</p>
-</div>
+  " href="../api/agent/#academy.agent.Agent.on_setup"><code>on_setup()</code></a> callback,
+and (4) waiting for the agent to be shut down.
+Each <a class="autorefs autorefs-internal" title="            action" href="../api/agent/#academy.agent.action"><code>@action</code></a> method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.</p>
 <p>Agents are designed to be long-running, but can be terminated by sending a shutdown request.
-Upon shutdown, the shutdown <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event"><code>Event</code></a>, passed to each <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a>, is set; running tasks are cancelled and waited on; and the <a class="autorefs autorefs-internal" title="            on_shutdown
+Upon shutdown, the shutdown <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event"><code>Event</code></a>, passed to each <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a>, is set; running tasks are cancelled and waited on; and the <a class="autorefs autorefs-internal" title="            on_shutdown
 
 
   
       async
-  " href="../api/behavior/#academy.behavior.Behavior.on_shutdown"><code>on_shutdown()</code></a> callback is invoked.
-Agents can terminate themselves by setting the shutdown event;
-exceptions raised in <a class="autorefs autorefs-internal" title="            loop" href="../api/behavior/#academy.behavior.loop"><code>@loop</code></a> methods will shutdown the agent by default, and
-exceptions raised when executing <a class="autorefs autorefs-internal" title="            action" href="../api/behavior/#academy.behavior.action"><code>@action</code></a> methods are caught and returned to the remote caller.</p>
+  " href="../api/agent/#academy.agent.Agent.on_shutdown"><code>on_shutdown()</code></a> callback is invoked.
+Agents can terminate themselves by setting the shutdown event or calling <a class="autorefs autorefs-internal" title="            agent_shutdown" href="../api/agent/#academy.agent.Agent.agent_shutdown"><code>Agent.agent_shutdown()</code></a>;
+exceptions raised in <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a> methods will shutdown the agent by default, and
+exceptions raised when executing <a class="autorefs autorefs-internal" title="            action" href="../api/agent/#academy.agent.action"><code>@action</code></a> methods are caught and returned to the remote caller.</p>
 <h3 id="handles">Handles<a class="headerlink" href="#handles" title="Permanent link">&para;</a></h3>
 <p>Interacting with an agent is asynchronous; an entity sends a message to the agent's mailbox and waits to receive a response message in its own mailbox.
 A <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handle</code></a> is a client interface to a remote agent used to invoke actions, ping, and shutdown the agent.
@@ -1944,7 +1918,7 @@ Terminated indicates permanent termination of the entity and will cause <a class
 
   
       async
-  " href="../api/agent/#academy.agent.Agent.run"><code>Agent.run()</code></a>, but typically applications want to run many agents concurrently across parallel or distributed resources.
+  " href="../api/runtime/#academy.runtime.Runtime.run"><code>Runtime.run()</code></a>, but typically applications want to run many agents concurrently across parallel or distributed resources.
 The <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> provides a single interface for launching and managing agents across one or more <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor"><code>Executors</code></a>, such as a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a>, <a href="https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops" target="_blank">Parsl</a>, or <a href="https://globus-compute.readthedocs.io/en/latest/index.html" target="_blank">Globus Compute</a>.
 A manager will handle common boilerplate, including registering agents, creating handles, and ensuring stateful resources are appropriately cleaned up.</p>
 

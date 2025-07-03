@@ -815,29 +815,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../behavior/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.behavior
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../context/" class="md-nav__link">
         
   
@@ -922,7 +899,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -939,14 +916,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7" id="__nav_3_1_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6" id="__nav_3_1_6_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_1_7">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1_6">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
           </label>
@@ -974,7 +951,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6_1" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -991,14 +968,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7_1" id="__nav_3_1_7_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6_1" id="__nav_3_1_6_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_7_1_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_1_7_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_6_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1_6_1">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1496,6 +1473,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.runtime
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../serialize/" class="md-nav__link">
         
   
@@ -1939,7 +1939,11 @@ requests.</p>
 
             <details class="quote">
               <summary>Source code in <code>academy/exchange/cloud/server.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-405">405</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#__codelineno-0-405">405</a></span>
 <span class="normal"><a href="#__codelineno-0-406">406</a></span>
 <span class="normal"><a href="#__codelineno-0-407">407</a></span>
 <span class="normal"><a href="#__codelineno-0-408">408</a></span>
@@ -1986,62 +1990,58 @@ requests.</p>
 <span class="normal"><a href="#__codelineno-0-449">449</a></span>
 <span class="normal"><a href="#__codelineno-0-450">450</a></span>
 <span class="normal"><a href="#__codelineno-0-451">451</a></span>
-<span class="normal"><a href="#__codelineno-0-452">452</a></span>
-<span class="normal"><a href="#__codelineno-0-453">453</a></span>
-<span class="normal"><a href="#__codelineno-0-454">454</a></span>
-<span class="normal"><a href="#__codelineno-0-455">455</a></span>
-<span class="normal"><a href="#__codelineno-0-456">456</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-405"><a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="k">def</span><span class="w"> </span><span class="nf">authenticate_factory</span><span class="p">(</span>
-</span><span id="__span-0-406"><a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="n">authenticator</span><span class="p">:</span> <span class="n">Authenticator</span><span class="p">,</span>
-</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an authentication middleware for a given authenticator.</span>
-</span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a>
-</span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">        authenticator: Used to validate client id and transform token into id.</span>
-</span><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a>
-</span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">        A aiohttp.web.middleware function that will only allow authenticated</span>
-</span><span id="__span-0-415"><a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">            requests.</span>
-</span><span id="__span-0-416"><a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-417"><a id="__codelineno-0-417" name="__codelineno-0-417"></a>
-</span><span id="__span-0-418"><a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="nd">@middleware</span>
-</span><span id="__span-0-419"><a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">authenticate</span><span class="p">(</span>
-</span><span id="__span-0-420"><a id="__codelineno-0-420" name="__codelineno-0-420"></a>        <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
-</span><span id="__span-0-421"><a id="__codelineno-0-421" name="__codelineno-0-421"></a>        <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Request</span><span class="p">],</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">Response</span><span class="p">]],</span>
-</span><span id="__span-0-422"><a id="__codelineno-0-422" name="__codelineno-0-422"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
-</span><span id="__span-0-423"><a id="__codelineno-0-423" name="__codelineno-0-423"></a>        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_running_loop</span><span class="p">()</span>
-</span><span id="__span-0-424"><a id="__codelineno-0-424" name="__codelineno-0-424"></a>        <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-425"><a id="__codelineno-0-425" name="__codelineno-0-425"></a>            <span class="c1"># Needs to be run in executor because globus client is blocking</span>
-</span><span id="__span-0-426"><a id="__codelineno-0-426" name="__codelineno-0-426"></a>            <span class="n">client_uuid</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span> <span class="o">=</span> <span class="k">await</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
-</span><span id="__span-0-427"><a id="__codelineno-0-427" name="__codelineno-0-427"></a>                <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a>                <span class="n">authenticator</span><span class="o">.</span><span class="n">authenticate_user</span><span class="p">,</span>
-</span><span id="__span-0-429"><a id="__codelineno-0-429" name="__codelineno-0-429"></a>                <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span>
-</span><span id="__span-0-430"><a id="__codelineno-0-430" name="__codelineno-0-430"></a>            <span class="p">)</span>
-</span><span id="__span-0-431"><a id="__codelineno-0-431" name="__codelineno-0-431"></a>        <span class="k">except</span> <span class="n">ForbiddenError</span><span class="p">:</span>
-</span><span id="__span-0-432"><a id="__codelineno-0-432" name="__codelineno-0-432"></a>            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
-</span><span id="__span-0-433"><a id="__codelineno-0-433" name="__codelineno-0-433"></a>                <span class="n">status</span><span class="o">=</span><span class="n">StatusCode</span><span class="o">.</span><span class="n">FORBIDDEN</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-</span><span id="__span-0-434"><a id="__codelineno-0-434" name="__codelineno-0-434"></a>                <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Token expired or revoked.&#39;</span><span class="p">,</span>
-</span><span id="__span-0-435"><a id="__codelineno-0-435" name="__codelineno-0-435"></a>            <span class="p">)</span>
-</span><span id="__span-0-436"><a id="__codelineno-0-436" name="__codelineno-0-436"></a>        <span class="k">except</span> <span class="n">UnauthorizedError</span><span class="p">:</span>
-</span><span id="__span-0-437"><a id="__codelineno-0-437" name="__codelineno-0-437"></a>            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
-</span><span id="__span-0-438"><a id="__codelineno-0-438" name="__codelineno-0-438"></a>                <span class="n">status</span><span class="o">=</span><span class="n">StatusCode</span><span class="o">.</span><span class="n">UNAUTHORIZED</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-</span><span id="__span-0-439"><a id="__codelineno-0-439" name="__codelineno-0-439"></a>                <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Missing required headers.&#39;</span><span class="p">,</span>
-</span><span id="__span-0-440"><a id="__codelineno-0-440" name="__codelineno-0-440"></a>            <span class="p">)</span>
-</span><span id="__span-0-441"><a id="__codelineno-0-441" name="__codelineno-0-441"></a>
-</span><span id="__span-0-442"><a id="__codelineno-0-442" name="__codelineno-0-442"></a>        <span class="n">headers</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span><span id="__span-0-443"><a id="__codelineno-0-443" name="__codelineno-0-443"></a>        <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;client_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">client_uuid</span><span class="p">)</span>
-</span><span id="__span-0-444"><a id="__codelineno-0-444" name="__codelineno-0-444"></a>
-</span><span id="__span-0-445"><a id="__codelineno-0-445" name="__codelineno-0-445"></a>        <span class="c1"># Handle early client-side disconnect in Issue #142</span>
-</span><span id="__span-0-446"><a id="__codelineno-0-446" name="__codelineno-0-446"></a>        <span class="c1"># This is somewhat hard to reproduce in tests:</span>
-</span><span id="__span-0-447"><a id="__codelineno-0-447" name="__codelineno-0-447"></a>        <span class="c1"># https://github.com/aio-libs/aiohttp/issues/6978</span>
-</span><span id="__span-0-448"><a id="__codelineno-0-448" name="__codelineno-0-448"></a>        <span class="k">if</span> <span class="p">(</span>
-</span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a>            <span class="n">request</span><span class="o">.</span><span class="n">transport</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">transport</span><span class="o">.</span><span class="n">is_closing</span><span class="p">()</span>
-</span><span id="__span-0-450"><a id="__codelineno-0-450" name="__codelineno-0-450"></a>        <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
-</span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a>            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">StatusCode</span><span class="o">.</span><span class="n">NO_RESPONSE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-</span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a>
-</span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a>        <span class="n">request</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
-</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a>        <span class="k">return</span> <span class="k">await</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a>
-</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a>    <span class="k">return</span> <span class="n">authenticate</span>
+<span class="normal"><a href="#__codelineno-0-452">452</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-401"><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="k">def</span><span class="w"> </span><span class="nf">authenticate_factory</span><span class="p">(</span>
+</span><span id="__span-0-402"><a id="__codelineno-0-402" name="__codelineno-0-402"></a>    <span class="n">authenticator</span><span class="p">:</span> <span class="n">Authenticator</span><span class="p">,</span>
+</span><span id="__span-0-403"><a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span id="__span-0-404"><a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an authentication middleware for a given authenticator.</span>
+</span><span id="__span-0-405"><a id="__codelineno-0-405" name="__codelineno-0-405"></a>
+</span><span id="__span-0-406"><a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="sd">        authenticator: Used to validate client id and transform token into id.</span>
+</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a>
+</span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">        A aiohttp.web.middleware function that will only allow authenticated</span>
+</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">            requests.</span>
+</span><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a>
+</span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a>    <span class="nd">@middleware</span>
+</span><span id="__span-0-415"><a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">authenticate</span><span class="p">(</span>
+</span><span id="__span-0-416"><a id="__codelineno-0-416" name="__codelineno-0-416"></a>        <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+</span><span id="__span-0-417"><a id="__codelineno-0-417" name="__codelineno-0-417"></a>        <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Request</span><span class="p">],</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">Response</span><span class="p">]],</span>
+</span><span id="__span-0-418"><a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+</span><span id="__span-0-419"><a id="__codelineno-0-419" name="__codelineno-0-419"></a>        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_running_loop</span><span class="p">()</span>
+</span><span id="__span-0-420"><a id="__codelineno-0-420" name="__codelineno-0-420"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-421"><a id="__codelineno-0-421" name="__codelineno-0-421"></a>            <span class="c1"># Needs to be run in executor because globus client is blocking</span>
+</span><span id="__span-0-422"><a id="__codelineno-0-422" name="__codelineno-0-422"></a>            <span class="n">client_uuid</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span> <span class="o">=</span> <span class="k">await</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
+</span><span id="__span-0-423"><a id="__codelineno-0-423" name="__codelineno-0-423"></a>                <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-424"><a id="__codelineno-0-424" name="__codelineno-0-424"></a>                <span class="n">authenticator</span><span class="o">.</span><span class="n">authenticate_user</span><span class="p">,</span>
+</span><span id="__span-0-425"><a id="__codelineno-0-425" name="__codelineno-0-425"></a>                <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span>
+</span><span id="__span-0-426"><a id="__codelineno-0-426" name="__codelineno-0-426"></a>            <span class="p">)</span>
+</span><span id="__span-0-427"><a id="__codelineno-0-427" name="__codelineno-0-427"></a>        <span class="k">except</span> <span class="n">ForbiddenError</span><span class="p">:</span>
+</span><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a>            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+</span><span id="__span-0-429"><a id="__codelineno-0-429" name="__codelineno-0-429"></a>                <span class="n">status</span><span class="o">=</span><span class="n">StatusCode</span><span class="o">.</span><span class="n">FORBIDDEN</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+</span><span id="__span-0-430"><a id="__codelineno-0-430" name="__codelineno-0-430"></a>                <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Token expired or revoked.&#39;</span><span class="p">,</span>
+</span><span id="__span-0-431"><a id="__codelineno-0-431" name="__codelineno-0-431"></a>            <span class="p">)</span>
+</span><span id="__span-0-432"><a id="__codelineno-0-432" name="__codelineno-0-432"></a>        <span class="k">except</span> <span class="n">UnauthorizedError</span><span class="p">:</span>
+</span><span id="__span-0-433"><a id="__codelineno-0-433" name="__codelineno-0-433"></a>            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+</span><span id="__span-0-434"><a id="__codelineno-0-434" name="__codelineno-0-434"></a>                <span class="n">status</span><span class="o">=</span><span class="n">StatusCode</span><span class="o">.</span><span class="n">UNAUTHORIZED</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+</span><span id="__span-0-435"><a id="__codelineno-0-435" name="__codelineno-0-435"></a>                <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Missing required headers.&#39;</span><span class="p">,</span>
+</span><span id="__span-0-436"><a id="__codelineno-0-436" name="__codelineno-0-436"></a>            <span class="p">)</span>
+</span><span id="__span-0-437"><a id="__codelineno-0-437" name="__codelineno-0-437"></a>
+</span><span id="__span-0-438"><a id="__codelineno-0-438" name="__codelineno-0-438"></a>        <span class="n">headers</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span id="__span-0-439"><a id="__codelineno-0-439" name="__codelineno-0-439"></a>        <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;client_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">client_uuid</span><span class="p">)</span>
+</span><span id="__span-0-440"><a id="__codelineno-0-440" name="__codelineno-0-440"></a>
+</span><span id="__span-0-441"><a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="c1"># Handle early client-side disconnect in Issue #142</span>
+</span><span id="__span-0-442"><a id="__codelineno-0-442" name="__codelineno-0-442"></a>        <span class="c1"># This is somewhat hard to reproduce in tests:</span>
+</span><span id="__span-0-443"><a id="__codelineno-0-443" name="__codelineno-0-443"></a>        <span class="c1"># https://github.com/aio-libs/aiohttp/issues/6978</span>
+</span><span id="__span-0-444"><a id="__codelineno-0-444" name="__codelineno-0-444"></a>        <span class="k">if</span> <span class="p">(</span>
+</span><span id="__span-0-445"><a id="__codelineno-0-445" name="__codelineno-0-445"></a>            <span class="n">request</span><span class="o">.</span><span class="n">transport</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">request</span><span class="o">.</span><span class="n">transport</span><span class="o">.</span><span class="n">is_closing</span><span class="p">()</span>
+</span><span id="__span-0-446"><a id="__codelineno-0-446" name="__codelineno-0-446"></a>        <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+</span><span id="__span-0-447"><a id="__codelineno-0-447" name="__codelineno-0-447"></a>            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="n">StatusCode</span><span class="o">.</span><span class="n">NO_RESPONSE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</span><span id="__span-0-448"><a id="__codelineno-0-448" name="__codelineno-0-448"></a>
+</span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a>        <span class="n">request</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+</span><span id="__span-0-450"><a id="__codelineno-0-450" name="__codelineno-0-450"></a>        <span class="k">return</span> <span class="k">await</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+</span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a>
+</span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a>    <span class="k">return</span> <span class="n">authenticate</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2073,7 +2073,11 @@ requests.</p>
 
             <details class="quote">
               <summary>Source code in <code>academy/exchange/cloud/server.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-459">459</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-455">455</a></span>
+<span class="normal"><a href="#__codelineno-0-456">456</a></span>
+<span class="normal"><a href="#__codelineno-0-457">457</a></span>
+<span class="normal"><a href="#__codelineno-0-458">458</a></span>
+<span class="normal"><a href="#__codelineno-0-459">459</a></span>
 <span class="normal"><a href="#__codelineno-0-460">460</a></span>
 <span class="normal"><a href="#__codelineno-0-461">461</a></span>
 <span class="normal"><a href="#__codelineno-0-462">462</a></span>
@@ -2089,31 +2093,27 @@ requests.</p>
 <span class="normal"><a href="#__codelineno-0-472">472</a></span>
 <span class="normal"><a href="#__codelineno-0-473">473</a></span>
 <span class="normal"><a href="#__codelineno-0-474">474</a></span>
-<span class="normal"><a href="#__codelineno-0-475">475</a></span>
-<span class="normal"><a href="#__codelineno-0-476">476</a></span>
-<span class="normal"><a href="#__codelineno-0-477">477</a></span>
-<span class="normal"><a href="#__codelineno-0-478">478</a></span>
-<span class="normal"><a href="#__codelineno-0-479">479</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_app</span><span class="p">(</span>
-</span><span id="__span-0-460"><a id="__codelineno-0-460" name="__codelineno-0-460"></a>    <span class="n">auth_config</span><span class="p">:</span> <span class="n">ExchangeAuthConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-461"><a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Application</span><span class="p">:</span>
-</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new server application.&quot;&quot;&quot;</span>
-</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a>    <span class="n">middlewares</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-464"><a id="__codelineno-0-464" name="__codelineno-0-464"></a>    <span class="k">if</span> <span class="n">auth_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-465"><a id="__codelineno-0-465" name="__codelineno-0-465"></a>        <span class="n">authenticator</span> <span class="o">=</span> <span class="n">get_authenticator</span><span class="p">(</span><span class="n">auth_config</span><span class="p">)</span>
-</span><span id="__span-0-466"><a id="__codelineno-0-466" name="__codelineno-0-466"></a>        <span class="n">middlewares</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">authenticate_factory</span><span class="p">(</span><span class="n">authenticator</span><span class="p">))</span>
+<span class="normal"><a href="#__codelineno-0-475">475</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_app</span><span class="p">(</span>
+</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a>    <span class="n">auth_config</span><span class="p">:</span> <span class="n">ExchangeAuthConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Application</span><span class="p">:</span>
+</span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new server application.&quot;&quot;&quot;</span>
+</span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a>    <span class="n">middlewares</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-460"><a id="__codelineno-0-460" name="__codelineno-0-460"></a>    <span class="k">if</span> <span class="n">auth_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-461"><a id="__codelineno-0-461" name="__codelineno-0-461"></a>        <span class="n">authenticator</span> <span class="o">=</span> <span class="n">get_authenticator</span><span class="p">(</span><span class="n">auth_config</span><span class="p">)</span>
+</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a>        <span class="n">middlewares</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">authenticate_factory</span><span class="p">(</span><span class="n">authenticator</span><span class="p">))</span>
+</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a>
+</span><span id="__span-0-464"><a id="__codelineno-0-464" name="__codelineno-0-464"></a>    <span class="n">manager</span> <span class="o">=</span> <span class="n">_MailboxManager</span><span class="p">()</span>
+</span><span id="__span-0-465"><a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="n">app</span> <span class="o">=</span> <span class="n">Application</span><span class="p">(</span><span class="n">middlewares</span><span class="o">=</span><span class="n">middlewares</span><span class="p">)</span>
+</span><span id="__span-0-466"><a id="__codelineno-0-466" name="__codelineno-0-466"></a>    <span class="n">app</span><span class="p">[</span><span class="n">MANAGER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">manager</span>
 </span><span id="__span-0-467"><a id="__codelineno-0-467" name="__codelineno-0-467"></a>
-</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a>    <span class="n">manager</span> <span class="o">=</span> <span class="n">_MailboxManager</span><span class="p">()</span>
-</span><span id="__span-0-469"><a id="__codelineno-0-469" name="__codelineno-0-469"></a>    <span class="n">app</span> <span class="o">=</span> <span class="n">Application</span><span class="p">(</span><span class="n">middlewares</span><span class="o">=</span><span class="n">middlewares</span><span class="p">)</span>
-</span><span id="__span-0-470"><a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">app</span><span class="p">[</span><span class="n">MANAGER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">manager</span>
-</span><span id="__span-0-471"><a id="__codelineno-0-471" name="__codelineno-0-471"></a>
-</span><span id="__span-0-472"><a id="__codelineno-0-472" name="__codelineno-0-472"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_post</span><span class="p">(</span><span class="s1">&#39;/mailbox&#39;</span><span class="p">,</span> <span class="n">_create_mailbox_route</span><span class="p">)</span>
-</span><span id="__span-0-473"><a id="__codelineno-0-473" name="__codelineno-0-473"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_delete</span><span class="p">(</span><span class="s1">&#39;/mailbox&#39;</span><span class="p">,</span> <span class="n">_terminate_route</span><span class="p">)</span>
-</span><span id="__span-0-474"><a id="__codelineno-0-474" name="__codelineno-0-474"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/mailbox&#39;</span><span class="p">,</span> <span class="n">_check_mailbox_route</span><span class="p">)</span>
-</span><span id="__span-0-475"><a id="__codelineno-0-475" name="__codelineno-0-475"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_put</span><span class="p">(</span><span class="s1">&#39;/message&#39;</span><span class="p">,</span> <span class="n">_send_message_route</span><span class="p">)</span>
-</span><span id="__span-0-476"><a id="__codelineno-0-476" name="__codelineno-0-476"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/message&#39;</span><span class="p">,</span> <span class="n">_recv_message_route</span><span class="p">)</span>
-</span><span id="__span-0-477"><a id="__codelineno-0-477" name="__codelineno-0-477"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/discover&#39;</span><span class="p">,</span> <span class="n">_discover_route</span><span class="p">)</span>
-</span><span id="__span-0-478"><a id="__codelineno-0-478" name="__codelineno-0-478"></a>
-</span><span id="__span-0-479"><a id="__codelineno-0-479" name="__codelineno-0-479"></a>    <span class="k">return</span> <span class="n">app</span>
+</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_post</span><span class="p">(</span><span class="s1">&#39;/mailbox&#39;</span><span class="p">,</span> <span class="n">_create_mailbox_route</span><span class="p">)</span>
+</span><span id="__span-0-469"><a id="__codelineno-0-469" name="__codelineno-0-469"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_delete</span><span class="p">(</span><span class="s1">&#39;/mailbox&#39;</span><span class="p">,</span> <span class="n">_terminate_route</span><span class="p">)</span>
+</span><span id="__span-0-470"><a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/mailbox&#39;</span><span class="p">,</span> <span class="n">_check_mailbox_route</span><span class="p">)</span>
+</span><span id="__span-0-471"><a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_put</span><span class="p">(</span><span class="s1">&#39;/message&#39;</span><span class="p">,</span> <span class="n">_send_message_route</span><span class="p">)</span>
+</span><span id="__span-0-472"><a id="__codelineno-0-472" name="__codelineno-0-472"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/message&#39;</span><span class="p">,</span> <span class="n">_recv_message_route</span><span class="p">)</span>
+</span><span id="__span-0-473"><a id="__codelineno-0-473" name="__codelineno-0-473"></a>    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/discover&#39;</span><span class="p">,</span> <span class="n">_discover_route</span><span class="p">)</span>
+</span><span id="__span-0-474"><a id="__codelineno-0-474" name="__codelineno-0-474"></a>
+</span><span id="__span-0-475"><a id="__codelineno-0-475" name="__codelineno-0-475"></a>    <span class="k">return</span> <span class="n">app</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>

@@ -815,29 +815,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../behavior/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.behavior
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../context/" class="md-nav__link">
         
   
@@ -920,7 +897,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -937,14 +914,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7" id="__nav_3_1_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6" id="__nav_3_1_6_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
           </label>
@@ -970,7 +947,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6_1" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -987,14 +964,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7_1" id="__nav_3_1_7_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6_1" id="__nav_3_1_6_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_7_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6_1">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1741,6 +1718,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.runtime
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../serialize/" class="md-nav__link">
         
   
@@ -2344,12 +2344,12 @@
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code></p>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]</code></p>
 
 
         <p>Agent handle protocol.</p>
@@ -2390,12 +2390,12 @@
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2822,13 +2822,13 @@ typically indicates the agent shutdown for another reason
 )
           –
           <div class="doc-md-description">
-            <p>Override the termination behavior of the agent defined
-in the <a class="autorefs autorefs-internal" title="            AgentRunConfig
+            <p>Override the termination agent of the agent defined
+in the <a class="autorefs autorefs-internal" title="            RuntimeConfig
 
 
   
       dataclass
-  " href="../agent/#academy.agent.AgentRunConfig"><code>AgentRunConfig</code></a>.</p>
+  " href="../runtime/#academy.runtime.RuntimeConfig"><code>RuntimeConfig</code></a>.</p>
           </div>
         </li>
     </ul>
@@ -2878,8 +2878,8 @@ typically indicates the agent shutdown for another reason
 </span><span id="__span-0-147"><a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    This is non-blocking and will only send the message.</span>
 </span><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a>
 </span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">        terminate: Override the termination behavior of the agent defined</span>
-</span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">            in the [`AgentRunConfig`][academy.agent.AgentRunConfig].</span>
+</span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">        terminate: Override the termination agent of the agent defined</span>
+</span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">            in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].</span>
 </span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a>
 </span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">        AgentTerminatedError: If the agent&#39;s mailbox was closed. This</span>
@@ -2913,37 +2913,37 @@ typically indicates the agent shutdown for another reason
 <a href="#academy.handle.HandleDict" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">HandleDict</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">values</span><span class="p">:</span> <span class="p">(</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Mapping" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping">Mapping</a></span><span class="p">[</span><span class="n"><span title="academy.handle.K">K</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Mapping" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping">Mapping</a></span><span class="p">[</span><span class="n"><span title="academy.handle.K">K</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]]</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><span title="academy.handle.K">K</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]]</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><span title="academy.handle.K">K</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]]]</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]]]</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">)</span> <span class="o">=</span> <span class="p">(),</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="o">/</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]],</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]],</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<span title="academy.handle.K">K</span>, <a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<span title="academy.handle.K">K</span>, <a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]]</code></p>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]]</code></p>
 
 
         <p>Dictionary mapping keys to handles.</p>
@@ -2952,7 +2952,7 @@ typically indicates the agent shutdown for another reason
 <details class="tip" open>
   <summary>Tip</summary>
   <p>The <code>HandleDict</code> is required when storing a mapping of handles as
-attributes of a <code>Behavior</code> so that those handles get bound to the
+attributes of a <code>Agent</code> so that those handles get bound to the
 correct agent when running.</p>
 </details>
 
@@ -2972,10 +2972,10 @@ correct agent when running.</p>
 <span class="normal"><a href="#__codelineno-0-177">177</a></span>
 <span class="normal"><a href="#__codelineno-0-178">178</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="n">values</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">Handle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]]</span>
-</span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">Handle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="n">values</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]]</span>
+</span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">(),</span>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a>    <span class="o">/</span><span class="p">,</span>
-</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Handle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]],</span>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]],</span>
 </span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
@@ -3010,22 +3010,22 @@ correct agent when running.</p>
 
 
 <a href="#academy.handle.HandleList" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">HandleList</span><span class="p">(</span><span class="n">iterable</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">HandleList</span><span class="p">(</span><span class="n">iterable</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]]</span> <span class="o">=</span> <span class="p">())</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]]</span> <span class="o">=</span> <span class="p">())</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]]</code></p>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]]</code></p>
 
 
         <p>List of handles.</p>
@@ -3034,7 +3034,7 @@ correct agent when running.</p>
 <details class="tip" open>
   <summary>Tip</summary>
   <p>The <code>HandleList</code> is required when storing a list of handles as
-attributes of a <code>Behavior</code> so that those handles get bound to the
+attributes of a <code>Agent</code> so that those handles get bound to the
 correct agent when running.</p>
 </details>
 
@@ -3052,7 +3052,7 @@ correct agent when running.</p>
 <span class="normal"><a href="#__codelineno-0-194">194</a></span>
 <span class="normal"><a href="#__codelineno-0-195">195</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-190"><a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span id="__span-0-191"><a id="__codelineno-0-191" name="__codelineno-0-191"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-192"><a id="__codelineno-0-192" name="__codelineno-0-192"></a>    <span class="n">iterable</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Handle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span id="__span-0-192"><a id="__codelineno-0-192" name="__codelineno-0-192"></a>    <span class="n">iterable</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(),</span>
 </span><span id="__span-0-193"><a id="__codelineno-0-193" name="__codelineno-0-193"></a>    <span class="o">/</span><span class="p">,</span>
 </span><span id="__span-0-194"><a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-195"><a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
@@ -3088,28 +3088,28 @@ correct agent when running.</p>
 
 
 <a href="#academy.handle.ProxyHandle" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ProxyHandle</span><span class="p">(</span><span class="n">behavior</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ProxyHandle</span><span class="p">(</span><span class="n">agent</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">)</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code></p>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]</code></p>
 
 
         <p>Proxy handle.</p>
 <p>A proxy handle is thin wrapper around a
-<a class="autorefs autorefs-internal" title="            Behavior" href="../behavior/#academy.behavior.Behavior"><code>Behavior</code></a> instance that is useful for testing
-behaviors that are initialized with a handle to another agent without
+<a class="autorefs autorefs-internal" title="            Agent" href="../agent/#academy.agent.Agent"><code>Agent</code></a> instance that is useful for testing
+agents that are initialized with a handle to another agent without
 needing to spawn agents. This wrapper invokes actions synchronously.</p>
 
 
@@ -3125,9 +3125,9 @@ needing to spawn agents. This wrapper invokes actions synchronously.</p>
 <span class="normal"><a href="#__codelineno-0-209">209</a></span>
 <span class="normal"><a href="#__codelineno-0-210">210</a></span>
 <span class="normal"><a href="#__codelineno-0-211">211</a></span>
-<span class="normal"><a href="#__codelineno-0-212">212</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-207"><a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">behavior</span><span class="p">:</span> <span class="n">BehaviorT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-208"><a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">behavior</span> <span class="o">=</span> <span class="n">behavior</span>
-</span><span id="__span-0-209"><a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]</span> <span class="o">=</span> <span class="n">AgentId</span><span class="o">.</span><span class="n">new</span><span class="p">()</span>
+<span class="normal"><a href="#__codelineno-0-212">212</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-207"><a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="p">:</span> <span class="n">AgentT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-208"><a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">agent</span>
+</span><span id="__span-0-209"><a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]</span> <span class="o">=</span> <span class="n">AgentId</span><span class="o">.</span><span class="n">new</span><span class="p">()</span>
 </span><span id="__span-0-210"><a id="__codelineno-0-210" name="__codelineno-0-210"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">client_id</span><span class="p">:</span> <span class="n">EntityId</span> <span class="o">=</span> <span class="n">UserId</span><span class="o">.</span><span class="n">new</span><span class="p">()</span>
 </span><span id="__span-0-211"><a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_agent_closed</span> <span class="o">=</span> <span class="kc">False</span>
 </span><span id="__span-0-212"><a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_handle_closed</span> <span class="o">=</span> <span class="kc">False</span>
@@ -3302,7 +3302,7 @@ typically indicates the agent shutdown for another reason
 </span><span id="__span-0-260"><a id="__codelineno-0-260" name="__codelineno-0-260"></a>
 </span><span id="__span-0-261"><a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="n">future</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Future</span><span class="p">[</span><span class="n">R</span><span class="p">]</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_running_loop</span><span class="p">()</span><span class="o">.</span><span class="n">create_future</span><span class="p">()</span>
 </span><span id="__span-0-262"><a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-263"><a id="__codelineno-0-263" name="__codelineno-0-263"></a>        <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+</span><span id="__span-0-263"><a id="__codelineno-0-263" name="__codelineno-0-263"></a>        <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
 </span><span id="__span-0-264"><a id="__codelineno-0-264" name="__codelineno-0-264"></a>        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 </span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
 </span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a>        <span class="n">future</span><span class="o">.</span><span class="n">set_exception</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
@@ -3587,13 +3587,13 @@ typically indicates the agent shutdown for another reason
 )
           –
           <div class="doc-md-description">
-            <p>Override the termination behavior of the agent defined
-in the <a class="autorefs autorefs-internal" title="            AgentRunConfig
+            <p>Override the termination agent of the agent defined
+in the <a class="autorefs autorefs-internal" title="            RuntimeConfig
 
 
   
       dataclass
-  " href="../agent/#academy.agent.AgentRunConfig"><code>AgentRunConfig</code></a>.</p>
+  " href="../runtime/#academy.runtime.RuntimeConfig"><code>RuntimeConfig</code></a>.</p>
           </div>
         </li>
     </ul>
@@ -3647,8 +3647,8 @@ typically indicates the agent shutdown for another reason
 </span><span id="__span-0-321"><a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="sd">    This is non-blocking and will only send the message.</span>
 </span><span id="__span-0-322"><a id="__codelineno-0-322" name="__codelineno-0-322"></a>
 </span><span id="__span-0-323"><a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-324"><a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">        terminate: Override the termination behavior of the agent defined</span>
-</span><span id="__span-0-325"><a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">            in the [`AgentRunConfig`][academy.agent.AgentRunConfig].</span>
+</span><span id="__span-0-324"><a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">        terminate: Override the termination agent of the agent defined</span>
+</span><span id="__span-0-325"><a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">            in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].</span>
 </span><span id="__span-0-326"><a id="__codelineno-0-326" name="__codelineno-0-326"></a>
 </span><span id="__span-0-327"><a id="__codelineno-0-327" name="__codelineno-0-327"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-328"><a id="__codelineno-0-328" name="__codelineno-0-328"></a><span class="sd">        AgentTerminatedError: If the agent&#39;s mailbox was closed. This</span>
@@ -3689,22 +3689,22 @@ typically indicates the agent shutdown for another reason
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">])</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">])</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code></p>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]</code></p>
 
 
         <p>Handle to a remote agent that not bound to a mailbox.</p>
@@ -3726,12 +3726,12 @@ to the remote agent.</p>
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code>)
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]</code>)
           –
           <div class="doc-md-description">
             <p>EntityId of the agent.</p>
@@ -3748,7 +3748,7 @@ to the remote agent.</p>
                   <details class="quote">
                     <summary>Source code in <code>academy/handle.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-352">352</a></span>
-<span class="normal"><a href="#__codelineno-0-353">353</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-352"><a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-353">353</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-352"><a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">AgentT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-353"><a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span> <span class="o">=</span> <span class="n">agent_id</span>
 </span></code></pre></div></td></tr></table></div>
                   </details>
@@ -3804,12 +3804,12 @@ to the remote agent.</p>
 <a href="#academy.handle.UnboundRemoteHandle.bind_to_client" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">bind_to_client</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3833,12 +3833,12 @@ to the remote agent.</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              <code><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]</code>
           –
           <div class="doc-md-description">
             <p>Remote handle bound to the exchange client.</p>
@@ -3864,7 +3864,7 @@ to the remote agent.</p>
 <span class="normal"><a href="#__codelineno-0-384">384</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-372"><a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="k">def</span><span class="w"> </span><span class="nf">bind_to_client</span><span class="p">(</span>
 </span><span id="__span-0-373"><a id="__codelineno-0-373" name="__codelineno-0-373"></a>    <span class="bp">self</span><span class="p">,</span>
 </span><span id="__span-0-374"><a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="n">client</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-</span><span id="__span-0-375"><a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]:</span>
+</span><span id="__span-0-375"><a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]:</span>
 </span><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Bind the handle to an existing mailbox.</span>
 </span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a>
 </span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    Args:</span>
@@ -4058,29 +4058,28 @@ to the remote agent.</p>
 
 <a href="#academy.handle.RemoteHandle" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">RemoteHandle</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">agent_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentId
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClient (academy.exchange.ExchangeClient)" href="../exchange/#academy.exchange.ExchangeClient">ExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentId
 
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code></p>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]</code></p>
 
 
         <p>Handle to a remote agent bound to an exchange client.</p>
@@ -4103,12 +4102,12 @@ to the remote agent.</p>
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code>)
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a>]</code>)
           –
           <div class="doc-md-description">
             <p>EntityId of the target agent of this handle.</p>
@@ -4146,7 +4145,7 @@ to the remote agent.</p>
 <span class="normal"><a href="#__codelineno-0-441">441</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-422"><a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span id="__span-0-423"><a id="__codelineno-0-423" name="__codelineno-0-423"></a>    <span class="bp">self</span><span class="p">,</span>
 </span><span id="__span-0-424"><a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="n">exchange</span><span class="p">:</span> <span class="n">ExchangeClient</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-</span><span id="__span-0-425"><a id="__codelineno-0-425" name="__codelineno-0-425"></a>    <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">],</span>
+</span><span id="__span-0-425"><a id="__codelineno-0-425" name="__codelineno-0-425"></a>    <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">AgentT</span><span class="p">],</span>
 </span><span id="__span-0-426"><a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-427"><a id="__codelineno-0-427" name="__codelineno-0-427"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">exchange</span> <span class="o">=</span> <span class="n">exchange</span>
 </span><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span> <span class="o">=</span> <span class="n">agent_id</span>
@@ -4186,12 +4185,12 @@ to the remote agent.</p>
 
 
 <a href="#academy.handle.RemoteHandle.clone" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">clone</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            UnboundRemoteHandle (academy.handle.UnboundRemoteHandle)" href="#academy.handle.UnboundRemoteHandle">UnboundRemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">clone</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            UnboundRemoteHandle (academy.handle.UnboundRemoteHandle)" href="#academy.handle.UnboundRemoteHandle">UnboundRemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">]</span>
+   (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4203,7 +4202,7 @@ to the remote agent.</p>
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-481">481</a></span>
 <span class="normal"><a href="#__codelineno-0-482">482</a></span>
-<span class="normal"><a href="#__codelineno-0-483">483</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-481"><a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UnboundRemoteHandle</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">]:</span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-481"><a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UnboundRemoteHandle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]:</span>
 </span><span id="__span-0-482"><a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an unbound copy of this handle.&quot;&quot;&quot;</span>
 </span><span id="__span-0-483"><a id="__codelineno-0-483" name="__codelineno-0-483"></a>    <span class="k">return</span> <span class="n">UnboundRemoteHandle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
@@ -4759,13 +4758,13 @@ typically indicates the agent shutdown for another reason
 )
           –
           <div class="doc-md-description">
-            <p>Override the termination behavior of the agent defined
-in the <a class="autorefs autorefs-internal" title="            AgentRunConfig
+            <p>Override the termination agent of the agent defined
+in the <a class="autorefs autorefs-internal" title="            RuntimeConfig
 
 
   
       dataclass
-  " href="../agent/#academy.agent.AgentRunConfig"><code>AgentRunConfig</code></a>.</p>
+  " href="../runtime/#academy.runtime.RuntimeConfig"><code>RuntimeConfig</code></a>.</p>
           </div>
         </li>
     </ul>
@@ -4829,8 +4828,8 @@ typically indicates the agent shutdown for another reason
 </span><span id="__span-0-637"><a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">    This is non-blocking and will only send the message.</span>
 </span><span id="__span-0-638"><a id="__codelineno-0-638" name="__codelineno-0-638"></a>
 </span><span id="__span-0-639"><a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-640"><a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">        terminate: Override the termination behavior of the agent defined</span>
-</span><span id="__span-0-641"><a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">            in the [`AgentRunConfig`][academy.agent.AgentRunConfig].</span>
+</span><span id="__span-0-640"><a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">        terminate: Override the termination agent of the agent defined</span>
+</span><span id="__span-0-641"><a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">            in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].</span>
 </span><span id="__span-0-642"><a id="__codelineno-0-642" name="__codelineno-0-642"></a>
 </span><span id="__span-0-643"><a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-644"><a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">        AgentTerminatedError: If the agent&#39;s mailbox was closed. This</span>

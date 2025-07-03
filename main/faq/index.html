@@ -604,9 +604,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#avoid-communication-operations-during-behavior-initialization" class="md-nav__link">
+  <a href="#avoid-communication-operations-during-agent-initialization" class="md-nav__link">
     <span class="md-ellipsis">
-      Avoid communication operations during behavior initialization
+      Avoid communication operations during agent initialization
     </span>
   </a>
   
@@ -898,29 +898,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/behavior/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.behavior
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../api/context/" class="md-nav__link">
         
   
@@ -1003,7 +980,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1020,14 +997,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7" id="__nav_3_1_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6" id="__nav_3_1_6_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
           </label>
@@ -1053,7 +1030,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6_1" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1070,14 +1047,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7_1" id="__nav_3_1_7_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6_1" id="__nav_3_1_6_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_7_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6_1">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1497,6 +1474,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../api/runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.runtime
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/serialize/" class="md-nav__link">
         
   
@@ -1783,9 +1783,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#avoid-communication-operations-during-behavior-initialization" class="md-nav__link">
+  <a href="#avoid-communication-operations-during-agent-initialization" class="md-nav__link">
     <span class="md-ellipsis">
-      Avoid communication operations during behavior initialization
+      Avoid communication operations during agent initialization
     </span>
   </a>
   
@@ -1841,11 +1841,11 @@ For example, use the <code>initializer</code> argument when using a <a class="au
 </span></code></pre></div>
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <p>This section highlights common best practices for developing applications in Academy.</p>
-<h3 id="avoid-communication-operations-during-behavior-initialization">Avoid communication operations during behavior initialization<a class="headerlink" href="#avoid-communication-operations-during-behavior-initialization" title="Permanent link">&para;</a></h3>
-<p>The <code>__init__</code> method of a <a class="autorefs autorefs-internal" title="            Behavior" href="../api/behavior/#academy.behavior.Behavior"><code>Behavior</code></a> is called in one of two places:</p>
+<h3 id="avoid-communication-operations-during-agent-initialization">Avoid communication operations during agent initialization<a class="headerlink" href="#avoid-communication-operations-during-agent-initialization" title="Permanent link">&para;</a></h3>
+<p>The <code>__init__</code> method of an <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> is called in one of two places:</p>
 <ol>
-<li>On the client when submitting an instantiated behavior to be executed.</li>
-<li>On the agent at the start of the setup sequence when the behavior instantiation is deferred.</li>
+<li>On the client when submitting an agent to be executed.</li>
+<li>On the worker at the start of the setup sequence when agent instantiation is deferred.</li>
 </ol>
 <p>In both scenarios, it is unsafe to perform communication operations (i.e., invoking an action on a remote agent) in <code>__init__</code> because connection resources and background tasks have not yet been initialized.</p>
 <p>The <a class="autorefs autorefs-internal" title="            on_setup
@@ -1853,7 +1853,7 @@ For example, use the <code>initializer</code> argument when using a <a class="au
 
   
       async
-  " href="../api/behavior/#academy.behavior.Behavior.on_setup"><code>Behavior.on_setup()</code></a> callback can be used instead to perform communication once the agent is in a running state.</p>
+  " href="../api/agent/#academy.agent.Agent.on_setup"><code>Agent.on_setup()</code></a> callback can be used instead to perform communication once the agent is in a running state.</p>
 
 
 

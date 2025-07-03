@@ -815,29 +815,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../behavior/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    academy.behavior
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../context/" class="md-nav__link">
         
   
@@ -922,7 +899,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -939,14 +916,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7" id="__nav_3_1_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6" id="__nav_3_1_6_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_1_7">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1_6">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
           </label>
@@ -972,7 +949,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_7_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1_6_1" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -989,14 +966,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1_7_1" id="__nav_3_1_7_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_1_6_1" id="__nav_3_1_6_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_7_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_1_7_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_1_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1_6_1">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1624,6 +1601,29 @@
   
   <span class="md-ellipsis">
     academy.mypy_plugin
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.runtime
     
   </span>
   
@@ -2314,12 +2314,12 @@
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+              Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code></p>
+   (academy.agent.AgentT)" href="../../agent/#academy.agent.AgentT">AgentT</a>]</code></p>
 
 
         <p>Agent exchange registration information.</p>
@@ -2334,12 +2334,12 @@
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+   (academy.identifier.AgentId)" href="../../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code>)
+   (academy.agent.AgentT)" href="../../agent/#academy.agent.AgentT">AgentT</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Unique agent identifier returned by the exchange.</p>
@@ -2402,7 +2402,7 @@ instance is "bound" to a specific mailbox in the exchange.</p>
   <summary>Warning</summary>
   <p>A specific exchange transport should not be replicated because multiple
 client instances receiving from the same mailbox produces undefined
-behavior.</p>
+agent.</p>
 </details>
 
 
@@ -2514,10 +2514,8 @@ to. I.e., the mailbox will not be terminated.</p>
 
 <a href="#academy.exchange.transport.ExchangeTransport.discover" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">discover</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">behavior</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Behavior (academy.behavior.Behavior)" href="../../behavior/#academy.behavior.Behavior">Behavior</a></span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">allow_subclasses</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">True</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentId
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">agent</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Agent (academy.agent.Agent)" href="../../agent/#academy.agent.Agent">Agent</a></span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">allow_subclasses</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentId
 
 
   
@@ -2527,7 +2525,7 @@ to. I.e., the mailbox will not be terminated.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Discover peer agents with a given behavior.</p>
+        <p>Discover peer agents with a given agent.</p>
 
 
 <details class="warning" open>
@@ -2539,11 +2537,11 @@ of all agents registered to the exchange.</p>
 <p><span class="doc-section-title">Parameters:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-            <b><code>behavior</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a>[<a class="autorefs autorefs-internal" title="            Behavior (academy.behavior.Behavior)" href="../../behavior/#academy.behavior.Behavior">Behavior</a>]</code>)
+            <b><code>agent</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a>[<a class="autorefs autorefs-internal" title="            Agent (academy.agent.Agent)" href="../../agent/#academy.agent.Agent">Agent</a>]</code>)
           –
           <div class="doc-md-description">
-            <p>Behavior type of interest.</p>
+            <p>Agent type of interest.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -2554,7 +2552,7 @@ of all agents registered to the exchange.</p>
           –
           <div class="doc-md-description">
             <p>Return agents implementing subclasses of the
-behavior.</p>
+agent.</p>
           </div>
         </li>
     </ul>
@@ -2571,7 +2569,7 @@ behavior.</p>
    (academy.identifier.AgentId)" href="../../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>], ...]</code>
           –
           <div class="doc-md-description">
-            <p>Tuple of agent IDs implementing the behavior.</p>
+            <p>Tuple of agent IDs implementing the agent.</p>
           </div>
         </li>
     </ul>
@@ -2616,23 +2614,23 @@ behavior.</p>
 <span class="normal"><a href="#__codelineno-0-109">109</a></span>
 <span class="normal"><a href="#__codelineno-0-110">110</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">discover</span><span class="p">(</span>
 </span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="n">behavior</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Behavior</span><span class="p">],</span>
+</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="n">agent</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Agent</span><span class="p">],</span>
 </span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="n">allow_subclasses</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
-</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Discover peer agents with a given behavior.</span>
+</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Discover peer agents with a given agent.</span>
 </span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a>
 </span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">    Warning:</span>
 </span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">        Implementations of this method are often O(n) and scan the types</span>
 </span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">        of all agents registered to the exchange.</span>
 </span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>
 </span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        behavior: Behavior type of interest.</span>
+</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        agent: Agent type of interest.</span>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">        allow_subclasses: Return agents implementing subclasses of the</span>
-</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">            behavior.</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">            agent.</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">        Tuple of agent IDs implementing the behavior.</span>
+</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">        Tuple of agent IDs implementing the agent.</span>
 </span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>
 </span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">        ExchangeError: Error returned by the exchange.</span>
@@ -2797,12 +2795,12 @@ next message or the mailbox is closed.</p>
 
 <a href="#academy.exchange.transport.ExchangeTransport.register_agent" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_agent</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">behavior</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            BehaviorT
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">agent</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../../behavior/#academy.behavior.BehaviorT">BehaviorT</a></span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+   (academy.agent.AgentT)" href="../../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="academy.exchange.transport.AgentRegistrationT_co">AgentRegistrationT_co</span></span>
 </span></code></pre></div>
 
@@ -2814,16 +2812,16 @@ next message or the mailbox is closed.</p>
 <p><span class="doc-section-title">Parameters:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-            <b><code>behavior</code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a>[<a class="autorefs autorefs-internal" title="            BehaviorT
+            <b><code>agent</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
       module-attribute
-   (academy.behavior.BehaviorT)" href="../../behavior/#academy.behavior.BehaviorT">BehaviorT</a>]</code>)
+   (academy.agent.AgentT)" href="../../agent/#academy.agent.AgentT">AgentT</a>]</code>)
           –
           <div class="doc-md-description">
-            <p>Behavior type of the agent.</p>
+            <p>Agent type of the agent.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -2885,14 +2883,14 @@ next message or the mailbox is closed.</p>
 <span class="normal"><a href="#__codelineno-0-151">151</a></span>
 <span class="normal"><a href="#__codelineno-0-152">152</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">register_agent</span><span class="p">(</span>
 </span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="n">behavior</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BehaviorT</span><span class="p">],</span>
+</span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="n">agent</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">AgentT</span><span class="p">],</span>
 </span><span id="__span-0-137"><a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-138"><a id="__codelineno-0-138" name="__codelineno-0-138"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-139"><a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentRegistrationT_co</span><span class="p">:</span>
 </span><span id="__span-0-140"><a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Register a new agent and associated mailbox with the exchange.</span>
 </span><span id="__span-0-141"><a id="__codelineno-0-141" name="__codelineno-0-141"></a>
 </span><span id="__span-0-142"><a id="__codelineno-0-142" name="__codelineno-0-142"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-143"><a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">        behavior: Behavior type of the agent.</span>
+</span><span id="__span-0-143"><a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">        agent: Agent type of the agent.</span>
 </span><span id="__span-0-144"><a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">        name: Optional display name for the agent.</span>
 </span><span id="__span-0-145"><a id="__codelineno-0-145" name="__codelineno-0-145"></a>
 </span><span id="__span-0-146"><a id="__codelineno-0-146" name="__codelineno-0-146"></a><span class="sd">    Returns:</span>

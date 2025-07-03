@@ -38,9 +38,9 @@ Instance attributes maintain the agent's state, and methods define the actions a
 
 ### Execution
 
-The [`AgentRunner`][academy.runtime.AgentRunner] is an asynchronous entity that executes a provided behavior and manages communication with other entities.
+The [`Runtime`][academy.runtime.Runtime] is an asynchronous entity that executes a provided behavior and manages communication with other entities.
 Thus, an *agent* is a behavior executed by a runner.
-[`AgentRunner.run()`][academy.runtime.AgentRunner.run] executes the agent by
+[`Runtime.run()`][academy.runtime.Runtime.run] executes the agent by
 (1) listening for new messages in the agent's mailbox and dispatching them appropriately,
 (2) starting each [`@loop`][academy.behavior.loop] method,
 (3) calling the [`on_setup()`][academy.behavior.Behavior.on_setup] callback of the behavior,
@@ -85,6 +85,6 @@ Academy provides many exchange implementations for different scenarios, such as:
 
 ## Manager
 
-Agents can be run manually via [`AgentRunner.run()`][academy.runtime.AgentRunner.run], but typically applications want to run many agents concurrently across parallel or distributed resources.
+Agents can be run manually via [`Runtime.run()`][academy.runtime.Runtime.run], but typically applications want to run many agents concurrently across parallel or distributed resources.
 The [`Manager`][academy.manager.Manager] provides a single interface for launching and managing agents across one or more [`Executors`][concurrent.futures.Executor], such as a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor], [Parsl](https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops){target=_blank}, or [Globus Compute](https://globus-compute.readthedocs.io/en/latest/index.html){target=_blank}.
 A manager will handle common boilerplate, including registering agents, creating handles, and ensuring stateful resources are appropriately cleaned up.

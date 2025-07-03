@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 class Behavior:
     """Agent behavior base class.
 
-    An [`AgentRunner`][academy.runtime.AgentRunner] executes an agent that
+    An [`Runtime`][academy.runtime.Runtime] executes an agent that
     implements a given behavior defined by a
     [`Behavior`][academy.behavior.Behavior] instance. Each behavior is
     composed of three parts:
@@ -246,7 +246,7 @@ class Behavior:
     async def on_setup(self) -> None:
         """Callback invoked at the end of an agent's setup sequence.
 
-        See [`AgentRunner.run()`][academy.runtime.AgentRunner.run] for more
+        See [`Runtime.run()`][academy.runtime.Runtime.run] for more
         details on the setup sequence.
         """
         pass
@@ -254,7 +254,7 @@ class Behavior:
     async def on_shutdown(self) -> None:
         """Callback invoked at the beginning of an agent's shutdown sequence.
 
-        See [`AgentRunner.run()`][academy.runtime.AgentRunner.run] for more
+        See [`Runtime.run()`][academy.runtime.Runtime.run] for more
         details on the shutdown sequence.
         """
         pass

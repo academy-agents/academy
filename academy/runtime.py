@@ -76,7 +76,7 @@ class AgentRunConfig:
     terminate_on_success: bool = True
 
 
-class AgentRunner(Generic[BehaviorT], NoPickleMixin):
+class Runtime(Generic[BehaviorT], NoPickleMixin):
     """Run a behavior as an agent.
 
     The runner is responsible for instantiating the runtime context for the
@@ -85,7 +85,7 @@ class AgentRunner(Generic[BehaviorT], NoPickleMixin):
 
     Note:
         This can only be run once. Calling
-        [`run()`][academy.runtime.AgentRunner.run] multiple times will raise a
+        [`run()`][academy.runtime.Runtime.run] multiple times will raise a
         [`RuntimeError`][RuntimeError].
 
     Note:

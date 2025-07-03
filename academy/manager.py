@@ -30,7 +30,7 @@ from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.runtime import AgentRunConfig
-from academy.runtime import AgentRunner
+from academy.runtime import Runtime
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ async def _run_agent_on_worker_async(
     else:
         behavior = spec.behavior
 
-    agent = AgentRunner(
+    agent = Runtime(
         behavior,
         config=spec.config,
         exchange_factory=spec.exchange_factory,

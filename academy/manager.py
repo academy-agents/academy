@@ -29,8 +29,8 @@ from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
-from academy.runner import AgentRunConfig
-from academy.runner import AgentRunner
+from academy.runtime import AgentRunConfig
+from academy.runtime import AgentRunner
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
@@ -488,7 +488,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             raise_error: Raise the error returned by the agent if
                 `blocking=True`.
             terminate: Override the termination behavior of the agent defined
-                in the [`AgentRunConfig`][academy.runner.AgentRunConfig].
+                in the [`AgentRunConfig`][academy.runtime.AgentRunConfig].
             timeout: Optional timeout is seconds when `blocking=True`.
 
         Raises:

@@ -85,7 +85,7 @@ class AgentRunner(Generic[BehaviorT], NoPickleMixin):
 
     Note:
         This can only be run once. Calling
-        [`run()`][academy.runner.AgentRunner.run] multiple times will raise a
+        [`run()`][academy.runtime.AgentRunner.run] multiple times will raise a
         [`RuntimeError`][RuntimeError].
 
     Note:

@@ -72,8 +72,8 @@ $ python example.py
 INFO (root) Configured logger (stdout-level=INFO, logfile=None, logfile-level=None)
 INFO (academy.manager) Initialized manager (UserId<6e890226>; ThreadExchange<4401447664>)
 INFO (academy.manager) Launched agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
-INFO (academy.runner) Running agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
-INFO (academy.runner) Shutdown agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
+INFO (academy.runtime) Running agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
+INFO (academy.runtime) Shutdown agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
 INFO (academy.manager) Closed manager (UserId<6e890226>)
 ```
 

@@ -27,9 +27,9 @@ from academy.message import ActionResponse
 from academy.message import PingRequest
 from academy.message import PingResponse
 from academy.message import ShutdownRequest
-from academy.runner import _bind_behavior_handles
-from academy.runner import AgentRunConfig
-from academy.runner import AgentRunner
+from academy.runtime import _bind_behavior_handles
+from academy.runtime import AgentRunConfig
+from academy.runtime import AgentRunner
 from testing.behavior import CounterBehavior
 from testing.behavior import EmptyBehavior
 from testing.behavior import ErrorBehavior

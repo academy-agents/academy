@@ -28,8 +28,8 @@ from academy.message import PingRequest
 from academy.message import PingResponse
 from academy.message import ShutdownRequest
 from academy.runtime import _bind_behavior_handles
-from academy.runtime import AgentRunConfig
 from academy.runtime import Runtime
+from academy.runtime import RuntimeConfig
 from testing.behavior import CounterBehavior
 from testing.behavior import EmptyBehavior
 from testing.behavior import ErrorBehavior
@@ -98,7 +98,7 @@ async def test_agent_shutdown_without_terminate(
         SignalingBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
-        config=AgentRunConfig(terminate_on_success=False),
+        config=RuntimeConfig(terminate_on_success=False),
     )
     await agent.run()
     assert agent._shutdown_options.expected_shutdown
@@ -118,7 +118,7 @@ async def test_agent_shutdown_terminate_override(
             EmptyBehavior(),
             exchange_factory=exchange.factory(),
             registration=registration,
-            config=AgentRunConfig(
+            config=RuntimeConfig(
                 terminate_on_success=False,
                 terminate_on_error=False,
             ),
@@ -201,7 +201,7 @@ async def test_loop_failure_ignore_shutdown(
         LoopFailureBehavior(),
         exchange_factory=exchange.factory(),
         registration=registration,
-        config=AgentRunConfig(shutdown_on_loop_error=False),
+        config=RuntimeConfig(shutdown_on_loop_error=False),
     )
 
     task = asyncio.create_task(

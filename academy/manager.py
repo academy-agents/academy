@@ -29,8 +29,8 @@ from academy.exchange.transport import ExchangeTransportT
 from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
-from academy.runtime import AgentRunConfig
 from academy.runtime import Runtime
+from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class _RunSpec(Generic[BehaviorT, ExchangeTransportT]):
     behavior: BehaviorT | type[BehaviorT]
-    config: AgentRunConfig
+    config: RuntimeConfig
     exchange_factory: ExchangeFactory[ExchangeTransportT]
     registration: AgentRegistration[BehaviorT]
     behavior_args: tuple[Any, ...]
@@ -343,7 +343,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
-        config: AgentRunConfig | None = None,
+        config: RuntimeConfig | None = None,
         executor: str | None = None,
         name: str | None = None,
         registration: AgentRegistration[BehaviorT] | None = None,
@@ -396,7 +396,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         spec = _RunSpec(
             behavior=behavior,
-            config=AgentRunConfig() if config is None else config,
+            config=RuntimeConfig() if config is None else config,
             exchange_factory=self.exchange_factory,
             registration=registration,
             behavior_args=() if args is None else args,
@@ -488,7 +488,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             raise_error: Raise the error returned by the agent if
                 `blocking=True`.
             terminate: Override the termination behavior of the agent defined
-                in the [`AgentRunConfig`][academy.runtime.AgentRunConfig].
+                in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
             timeout: Optional timeout is seconds when `blocking=True`.
 
         Raises:

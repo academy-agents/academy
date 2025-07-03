@@ -148,7 +148,7 @@ class Handle(Protocol[BehaviorT]):
 
         Args:
             terminate: Override the termination behavior of the agent defined
-                in the [`AgentRunConfig`][academy.runtime.AgentRunConfig].
+                in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This
@@ -322,7 +322,7 @@ class ProxyHandle(Generic[BehaviorT]):
 
         Args:
             terminate: Override the termination behavior of the agent defined
-                in the [`AgentRunConfig`][academy.runtime.AgentRunConfig].
+                in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This
@@ -638,7 +638,7 @@ class RemoteHandle(Generic[BehaviorT]):
 
         Args:
             terminate: Override the termination behavior of the agent defined
-                in the [`AgentRunConfig`][academy.runtime.AgentRunConfig].
+                in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This

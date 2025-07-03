@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import dataclasses
-import enum
 import logging
 from collections.abc import Awaitable
 from typing import Any
@@ -40,16 +39,8 @@ logger = logging.getLogger(__name__)
 T = TypeVar('T')
 
 
-class _AgentState(enum.Enum):
-    INITIALIZED = 'initialized'
-    STARTING = 'starting'
-    RUNNING = 'running'
-    TERMINTATING = 'terminating'
-    SHUTDOWN = 'shutdown'
-
-
 @dataclasses.dataclass
-class _AgentShutdownOptions:
+class _ShutdownState:
     # If the shutdown was expected or due to an error
     expected_shutdown: bool = True
     # Override the termination setting of the run config
@@ -57,8 +48,8 @@ class _AgentShutdownOptions:
 
 
 @dataclasses.dataclass(frozen=True)
-class AgentRunConfig:
-    """Agent run configuration.
+class RuntimeConfig:
+    """Agent runtime configuration.
 
     Attributes:
         max_action_concurrency: Maximum size of the thread pool used to
@@ -77,11 +68,10 @@ class AgentRunConfig:
 
 
 class Runtime(Generic[BehaviorT], NoPickleMixin):
-    """Run a behavior as an agent.
+    """Agent runtime manager.
 
-    The runner is responsible for instantiating the runtime context for the
-    agent, executing the agent, and managing its cleanup. Each runner
-    executes the agent's [`Behavior`][academy.behavior.Behavior].
+    The runtime is used to execute an agent by managing stateful resources,
+    setup/teardown, lifecycle hooks, and concurrency.
 
     Note:
         This can only be run once. Calling
@@ -105,20 +95,20 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
         *,
         exchange_factory: ExchangeFactory[ExchangeTransportT],
         registration: AgentRegistrationT,
-        config: AgentRunConfig | None = None,
+        config: RuntimeConfig | None = None,
     ) -> None:
         self.agent_id = registration.agent_id
         self.behavior = behavior
         self.factory = exchange_factory
         self.registration = registration
-        self.config = config if config is not None else AgentRunConfig()
+        self.config = config if config is not None else RuntimeConfig()
 
         self._actions = behavior.behavior_actions()
         self._loops = behavior.behavior_loops()
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
-        self._shutdown_options = _AgentShutdownOptions()
+        self._shutdown_options = _ShutdownState()
         self._behavior_startup_called = False
 
         self._action_tasks: dict[ActionRequest, asyncio.Task[None]] = {}
@@ -405,7 +395,7 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
             terminate: Optionally override the mailbox termination settings
                 in the run config.
         """
-        self._shutdown_options = _AgentShutdownOptions(
+        self._shutdown_options = _ShutdownState(
             expected_shutdown=expected,
             terminate_override=terminate,
         )

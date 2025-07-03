@@ -1,8 +1,4 @@
 # Guides
 
-!!! warning
-
-    Guides are under development!
-
 <!-- Links are relative to file -->
-- [Example](example.md)
+- [Migrating to v0.2](migrating-to-v0.2.md)

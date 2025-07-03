@@ -63,17 +63,18 @@ class Agent:
     """Agent base class.
 
     An agent is composed of three parts:
-      1. The [`on_startup()`][academy.agent.Agent.on_setup] and
-         [`on_shutdown()`][academy.agent.Agent.on_shutdown] methods
-         define callbacks that are invoked once at the start and end of an
-         agent's execution, respectively. The methods should be used to
-         initialize and cleanup stateful resources. Resource initialization
-         should not be performed in `__init__`.
-      2. Action methods annotated with [`@action`][academy.agent.action]
-         are methods that other agents can invoke on this agent. An agent
-         may also call it's own action methods as normal methods.
-      3. Control loop methods annotated with [`@loop`][academy.agent.loop]
-         are executed in separate threads when the agent is executed.
+
+    1. The [`on_startup()`][academy.agent.Agent.on_setup] and
+       [`on_shutdown()`][academy.agent.Agent.on_shutdown] methods
+       define callbacks that are invoked once at the start and end of an
+       agent's execution, respectively. The methods should be used to
+       initialize and cleanup stateful resources. Resource initialization
+       should not be performed in `__init__`.
+    1. Action methods annotated with [`@action`][academy.agent.action]
+       are methods that other agents can invoke on this agent. An agent
+       may also call it's own action methods as normal methods.
+    1. Control loop methods annotated with [`@loop`][academy.agent.loop]
+       are executed in separate threads when the agent is executed.
 
     The [`Runtime`][academy.runtime.Runtime] is used to execute an agent
     definition.

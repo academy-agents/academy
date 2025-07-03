@@ -17,26 +17,26 @@ from academy.handle import RemoteHandle
 from academy.handle import UnboundRemoteHandle
 from academy.manager import Manager
 from academy.message import PingRequest
-from testing.behavior import CounterBehavior
-from testing.behavior import EmptyBehavior
-from testing.behavior import ErrorBehavior
-from testing.behavior import SleepBehavior
+from testing.agents import CounterAgent
+from testing.agents import EmptyAgent
+from testing.agents import ErrorAgent
+from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP
 
 
 @pytest.mark.asyncio
 async def test_proxy_handle_protocol() -> None:
-    behavior = EmptyBehavior()
-    handle = ProxyHandle(behavior)
-    assert str(behavior) in str(handle)
-    assert repr(behavior) in repr(handle)
+    agent = EmptyAgent()
+    handle = ProxyHandle(agent)
+    assert str(agent) in str(handle)
+    assert repr(agent) in repr(handle)
     assert await handle.ping() >= 0
     await handle.shutdown()
 
 
 @pytest.mark.asyncio
 async def test_proxy_handle_actions() -> None:
-    handle = ProxyHandle(CounterBehavior())
+    handle = ProxyHandle(CounterAgent())
 
     # Via Handle.action()
     add_future: asyncio.Future[None] = await handle.action('add', 1)
@@ -53,7 +53,7 @@ async def test_proxy_handle_actions() -> None:
 
 @pytest.mark.asyncio
 async def test_proxy_handle_action_errors() -> None:
-    handle = ProxyHandle(ErrorBehavior())
+    handle = ProxyHandle(ErrorAgent())
 
     fails_future: asyncio.Future[None] = await handle.action('fails')
     with pytest.raises(RuntimeError, match='This action always fails.'):
@@ -66,14 +66,14 @@ async def test_proxy_handle_action_errors() -> None:
     with pytest.raises(AttributeError, match='null'):
         await handle.null()  # type: ignore[attr-defined]
 
-    handle.behavior.foo = 1  # type: ignore[attr-defined]
+    handle.agent.foo = 1  # type: ignore[attr-defined]
     with pytest.raises(AttributeError, match='not a method'):
         await handle.foo()  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
 async def test_proxy_handle_closed_errors() -> None:
-    handle = ProxyHandle(EmptyBehavior())
+    handle = ProxyHandle(EmptyAgent())
     await handle.close()
 
     with pytest.raises(HandleClosedError):
@@ -86,7 +86,7 @@ async def test_proxy_handle_closed_errors() -> None:
 
 @pytest.mark.asyncio
 async def test_proxy_handle_agent_shutdown_errors() -> None:
-    handle = ProxyHandle(EmptyBehavior())
+    handle = ProxyHandle(EmptyAgent())
     await handle.shutdown()
 
     with pytest.raises(AgentTerminatedError):
@@ -101,7 +101,7 @@ async def test_proxy_handle_agent_shutdown_errors() -> None:
 async def test_unbound_remote_handle_serialize(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
     handle = UnboundRemoteHandle(registration.agent_id)
 
     dumped = pickle.dumps(handle)
@@ -115,7 +115,7 @@ async def test_unbound_remote_handle_serialize(
 async def test_unbound_remote_handle_bind(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
     handle = UnboundRemoteHandle(registration.agent_id)
     with pytest.raises(
         RuntimeError,
@@ -131,7 +131,7 @@ async def test_unbound_remote_handle_bind(
 async def test_unbound_remote_handle_errors(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
     handle = UnboundRemoteHandle(registration.agent_id)
     with pytest.raises(HandleNotBoundError):
         await handle.action('foo')
@@ -147,7 +147,7 @@ async def test_unbound_remote_handle_errors(
 async def test_remote_handle_closed_error(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
     handle = RemoteHandle(exchange, registration.agent_id)
     await handle.close()
     assert handle.closed()
@@ -165,7 +165,7 @@ async def test_remote_handle_closed_error(
 async def test_agent_remote_handle_serialize(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
     async with RemoteHandle(exchange, registration.agent_id) as handle:
         # Note: don't call pickle.dumps here because ThreadExchange
         # is not pickleable so we test __reduce__ directly.
@@ -181,7 +181,7 @@ async def test_agent_remote_handle_serialize(
 async def test_agent_remote_handle_bind(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
     factory = exchange.factory()
 
     async def _handler(_: Any) -> None:  # pragma: no cover
@@ -202,7 +202,7 @@ async def test_agent_remote_handle_bind(
 async def test_client_remote_handle_ping_timeout(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
     handle = RemoteHandle(exchange, registration.agent_id)
     with pytest.raises(TimeoutError):
         await handle.ping(timeout=0.001)
@@ -212,7 +212,7 @@ async def test_client_remote_handle_ping_timeout(
 async def test_client_remote_handle_log_bad_response(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    handle = await manager.launch(EmptyBehavior())
+    handle = await manager.launch(EmptyAgent())
     # Should log two messages but not crash:
     #   - User client got an unexpected ping request from agent client
     #   - Agent client got an unexpected ping response (containing an
@@ -229,7 +229,7 @@ async def test_client_remote_handle_log_bad_response(
 async def test_client_remote_handle_actions(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    handle = await manager.launch(CounterBehavior())
+    handle = await manager.launch(CounterAgent())
     assert await handle.ping() > 0
 
     future: asyncio.Future[None] = await handle.action('add', 1)
@@ -251,7 +251,7 @@ async def test_client_remote_shutdown_termination(
     terminate: bool,
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    handle = await manager.launch(EmptyBehavior())
+    handle = await manager.launch(EmptyAgent())
     await handle.shutdown(terminate=terminate)
     await manager.wait({handle})
     status = await manager.exchange_client.status(handle.agent_id)
@@ -265,7 +265,7 @@ async def test_client_remote_shutdown_termination(
 async def test_client_remote_handle_errors(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    handle = await manager.launch(ErrorBehavior())
+    handle = await manager.launch(ErrorAgent())
     action_future = await handle.fails()
     with pytest.raises(
         RuntimeError,
@@ -284,7 +284,7 @@ async def test_client_remote_handle_errors(
 async def test_client_remote_handle_wait_futures(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    handle = await manager.launch(SleepBehavior())
+    handle = await manager.launch(SleepAgent())
     sleep_future = await handle.sleep(TEST_SLEEP)
     await handle.close(wait_futures=True)
     await sleep_future
@@ -299,7 +299,7 @@ async def test_client_remote_handle_wait_futures(
 async def test_client_remote_handle_cancel_futures(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    handle = await manager.launch(SleepBehavior())
+    handle = await manager.launch(SleepAgent())
     sleep_future = await handle.sleep(TEST_SLEEP)
     await handle.close(wait_futures=False)
 

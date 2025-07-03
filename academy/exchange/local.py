@@ -17,8 +17,8 @@ from culsans import AsyncQueue
 from culsans import AsyncQueueShutDown as QueueShutDown
 from culsans import Queue
 
-from academy.behavior import Behavior
-from academy.behavior import BehaviorT
+from academy.agent import Agent
+from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
@@ -43,14 +43,14 @@ class _LocalExchangeState(NoPickleMixin):
 
     def __init__(self) -> None:
         self.queues: dict[EntityId, AsyncQueue[Message]] = {}
-        self.behaviors: dict[AgentId[Any], type[Behavior]] = {}
+        self.agents: dict[AgentId[Any], type[Agent]] = {}
 
 
 @dataclasses.dataclass
-class LocalAgentRegistration(Generic[BehaviorT]):
+class LocalAgentRegistration(Generic[AgentT]):
     """Agent registration for thread exchanges."""
 
-    agent_id: AgentId[BehaviorT]
+    agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
 
 
@@ -101,14 +101,14 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        behavior: type[Behavior],
+        agent: type[Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
-        for aid, type_ in self._state.behaviors.items():
-            if behavior is type_ or (
-                allow_subclasses and issubclass(type_, behavior)
+        for aid, type_ in self._state.agents.items():
+            if agent is type_ or (
+                allow_subclasses and issubclass(type_, agent)
             ):
                 found.append(aid)
         alive = tuple(
@@ -133,13 +133,13 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
-    ) -> LocalAgentRegistration[BehaviorT]:
-        aid: AgentId[BehaviorT] = AgentId.new(name=name)
+    ) -> LocalAgentRegistration[AgentT]:
+        aid: AgentId[AgentT] = AgentId.new(name=name)
         self._state.queues[aid] = Queue().async_q
-        self._state.behaviors[aid] = behavior
+        self._state.agents[aid] = agent
         return LocalAgentRegistration(agent_id=aid)
 
     async def send(self, message: Message) -> None:
@@ -163,7 +163,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if queue is not None and not queue.is_shutdown:
             queue.shutdown(immediate=True)
             if isinstance(uid, AgentId):
-                self._state.behaviors.pop(uid, None)
+                self._state.agents.pop(uid, None)
 
 
 class LocalExchangeFactory(

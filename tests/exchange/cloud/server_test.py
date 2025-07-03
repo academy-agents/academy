@@ -330,14 +330,14 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
     # Create agent
     response = await auth_client.post(
         '/mailbox',
-        json={'mailbox': aid, 'behavior': 'foo'},
+        json={'mailbox': aid, 'agent': 'foo'},
         headers={'Authorization': 'Bearer user_1'},
     )
     assert response.status == StatusCode.OKAY.value
 
     response = await auth_client.post(
         '/mailbox',
-        json={'mailbox': aid, 'behavior': 'foo'},
+        json={'mailbox': aid, 'agent': 'foo'},
         headers={'Authorization': 'Bearer user_2'},
     )
     assert response.status == StatusCode.FORBIDDEN.value
@@ -345,7 +345,7 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
     # Discover
     response = await auth_client.get(
         '/discover',
-        json={'behavior': 'foo', 'allow_subclasses': False},
+        json={'agent': 'foo', 'allow_subclasses': False},
         headers={'Authorization': 'Bearer user_1'},
     )
     response_json = await response.json()
@@ -357,7 +357,7 @@ async def test_globus_auth_client_create_discover_close(auth_client) -> None:
 
     response = await auth_client.get(
         '/discover',
-        json={'behavior': 'foo', 'allow_subclasses': False},
+        json={'agent': 'foo', 'allow_subclasses': False},
         headers={'Authorization': 'Bearer user_2'},
     )
     response_json = await response.json()
@@ -407,7 +407,7 @@ async def test_globus_auth_client_message(auth_client) -> None:
     # Create agent
     response = await auth_client.post(
         '/mailbox',
-        json={'mailbox': aid.model_dump_json(), 'behavior': 'foo'},
+        json={'mailbox': aid.model_dump_json(), 'agent': 'foo'},
         headers={'Authorization': 'Bearer user_1'},
     )
     assert response.status == StatusCode.OKAY.value
@@ -455,7 +455,7 @@ async def test_globus_auth_client_message(auth_client) -> None:
 async def test_globus_auth_client_missing_auth(auth_client) -> None:
     response = await auth_client.get(
         '/discover',
-        json={'behavior': 'foo', 'allow_subclasses': False},
+        json={'agent': 'foo', 'allow_subclasses': False},
     )
     assert response.status == StatusCode.UNAUTHORIZED.value
 
@@ -464,7 +464,7 @@ async def test_globus_auth_client_missing_auth(auth_client) -> None:
 async def test_globus_auth_client_forbidden(auth_client) -> None:
     response = await auth_client.get(
         '/discover',
-        json={'behavior': 'foo', 'allow_subclasses': False},
+        json={'agent': 'foo', 'allow_subclasses': False},
         headers={'Authorization': 'Bearer user_3'},
     )
     assert response.status == StatusCode.FORBIDDEN.value

@@ -29,12 +29,12 @@ Click on the plus (`+`) signs to learn more.
 ```python title="example.py" linenums="1"
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from academy.behavior import Behavior, action
+from academy.agent import Agent, action
 from academy.exchange.local import LocalExchangeFactory
 from academy.logging import init_logging
 from academy.manager import Manager
 
-class ExampleAgent(Behavior):  # (1)!
+class ExampleAgent(Agent):  # (1)!
     @action  # (2)!
     async def square(self, value: float) -> float:
         return value * value
@@ -57,8 +57,8 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-1. Running agents implement a [`Behavior`][academy.behavior.Behavior].
-2. Async behavior methods decorated with [`@action`][academy.behavior.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
+1. Running agents implement a [`Agent`][academy.agent.Agent].
+2. Async behavior methods decorated with [`@action`][academy.agent.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
 3. The [`Manager`][academy.manager.Manager] is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.
 4. The [local exchange][academy.exchange.local.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
 5. The manager uses an [`Executor`][concurrent.futures.Executor] to run agents concurrently across parallel/distributed resources. Here, a [`ThreadPoolExecutor`][concurrent.futures.Executor] runs agents in different threads of the main process.
@@ -71,20 +71,20 @@ Running this script with logging enabled produces the following output:
 $ python example.py
 INFO (root) Configured logger (stdout-level=INFO, logfile=None, logfile-level=None)
 INFO (academy.manager) Initialized manager (UserId<6e890226>; ThreadExchange<4401447664>)
-INFO (academy.manager) Launched agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
-INFO (academy.runtime) Running agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
-INFO (academy.runtime) Shutdown agent (AgentID<ad6faf7e>; Behavior<ExampleAgent>)
+INFO (academy.manager) Launched agent (AgentID<ad6faf7e>; Agent<ExampleAgent>)
+INFO (academy.runtime) Running agent (AgentID<ad6faf7e>; Agent<ExampleAgent>)
+INFO (academy.runtime) Shutdown agent (AgentID<ad6faf7e>; Agent<ExampleAgent>)
 INFO (academy.manager) Closed manager (UserId<6e890226>)
 ```
 
 ## Control Loops
 
-Control loops define the autonomous behavior of a running agent and are created by decorating a method with [`@loop`][academy.behavior.loop].
+Control loops define the autonomous behavior of a running agent and are created by decorating a method with [`@loop`][academy.agent.loop].
 
 ```python
-from academy.behavior import loop
+from academy.agent import loop
 
-class ExampleAgent(Behavior):
+class ExampleAgent(Agent):
     @loop
     async def counter(self, shutdown: asyncio.Event) -> None:
         count = 0
@@ -103,11 +103,11 @@ Agent handles can be passed to other agents to facilitate agent-to-agent interac
 Here, a `Coordinator` is initialized with handles to two other agents implementing the `Lowerer` and `Reverser` behaviors, respectively.
 
 ```python
-from academy.behavior import action
-from academy.behavior import Behavior
+from academy.agent import action
+from academy.agent import Agent
 from academy.handle import Handle
 
-class Coordinator(Behavior):
+class Coordinator(Agent):
     def __init__(
         self,
         lowerer: Handle[Lowerer],
@@ -126,13 +126,13 @@ class Coordinator(Behavior):
         return text
 
 
-class Lowerer(Behavior):
+class Lowerer(Agent):
     @action
     async def lower(self, text: str) -> str:
         return text.lower()
 
 
-class Reverser(Behavior):
+class Reverser(Agent):
     @action
     async def reverse(self, text: str) -> str:
         return text[::-1]
@@ -143,7 +143,7 @@ After launching the `Lowerer` and `Reverser`, the respective handles can be used
 ```python
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from academy.behavior import Behavior, action
+from academy.agent import Agent, action
 from academy.exchange.local import LocalExchangeFactory
 from academy.logging import init_logging
 from academy.manager import Manager

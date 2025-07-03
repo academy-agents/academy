@@ -8,7 +8,7 @@ import pytest
 from academy.logging import init_logging
 
 # Note: these tests are just for coverage to make sure the code is functional.
-# It does not test the behavior of init_logging because pytest captures
+# It does not test the agent of init_logging because pytest captures
 # logging already.
 
 

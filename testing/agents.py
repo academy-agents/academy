@@ -3,43 +3,43 @@ from __future__ import annotations
 import asyncio
 from typing import TypeVar
 
-from academy.behavior import action
-from academy.behavior import Behavior
-from academy.behavior import loop
+from academy.agent import action
+from academy.agent import Agent
+from academy.agent import loop
 from academy.handle import Handle
 
 T = TypeVar('T')
 
 
-class EmptyBehavior(Behavior):
+class EmptyAgent(Agent):
     pass
 
 
-class ErrorBehavior(Behavior):
+class ErrorAgent(Agent):
     @action
     async def fails(self) -> None:
         raise RuntimeError('This action always fails.')
 
 
-class HandleBehavior(Behavior):
-    def __init__(self, handle: Handle[EmptyBehavior]) -> None:
+class HandleAgent(Agent):
+    def __init__(self, handle: Handle[EmptyAgent]) -> None:
         super().__init__()
         self.handle = handle
 
 
-class IdentityBehavior(Behavior):
+class IdentityAgent(Agent):
     @action
     async def identity(self, value: T) -> T:
         return value
 
 
-class WaitBehavior(Behavior):
+class WaitAgent(Agent):
     @loop
     async def wait(self, shutdown: asyncio.Event) -> None:
         await shutdown.wait()
 
 
-class CounterBehavior(Behavior):
+class CounterAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
         self._count = 0
@@ -56,7 +56,7 @@ class CounterBehavior(Behavior):
         return self._count
 
 
-class SleepBehavior(Behavior):
+class SleepAgent(Agent):
     def __init__(self, loop_sleep: float = 0.001) -> None:
         super().__init__()
         self.loop_sleep = loop_sleep

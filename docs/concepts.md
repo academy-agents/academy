@@ -26,14 +26,14 @@ In Academy, the concept of an "agent" is intentionally simple. The agent primiti
 
 In essence, Academy agents can be thought of as building blocks for more complex or specialized agent-based systems.
 
-### Behaviors
+### Agents
 
-An academy.behavior is implemented as a Python class that inherits from the base [`Behavior`][academy.behavior.Behavior] type.
+An academy.agent is implemented as a Python class that inherits from the base [`Agent`][academy.agent.Agent] type.
 This class-based approach is extensible through inheritance and polymorphism.
 
 * **State** is stored as instance attributes on the agent's behavior type.
 Instance attributes maintain the agent's state, and methods define the actions and control loops.
-* **Actions** can be performed in two ways: [`@action`][academy.behavior.action] decorated methods allow other entities to invoke the method remotely and [`@loop`][academy.behavior.loop] decorated methods run non-terminating control loops that enable an agent to autonomously perform actions.
+* **Actions** can be performed in two ways: [`@action`][academy.agent.action] decorated methods allow other entities to invoke the method remotely and [`@loop`][academy.agent.loop] decorated methods run non-terminating control loops that enable an agent to autonomously perform actions.
 * **Communication** between entities in managed via [`Handles`][academy.handle.Handle] which are client interfaces to remote agents used to invoke actions, ping, and shutdown.
 
 ### Execution
@@ -42,10 +42,10 @@ The [`Runtime`][academy.runtime.Runtime] is an asynchronous entity that executes
 Thus, an *agent* is a behavior executed by a runner.
 [`Runtime.run()`][academy.runtime.Runtime.run] executes the agent by
 (1) listening for new messages in the agent's mailbox and dispatching them appropriately,
-(2) starting each [`@loop`][academy.behavior.loop] method,
-(3) calling the [`on_setup()`][academy.behavior.Behavior.on_setup] callback of the behavior,
+(2) starting each [`@loop`][academy.agent.loop] method,
+(3) calling the [`on_setup()`][academy.agent.Agent.on_setup] callback of the behavior,
 and (4) waiting for the agent to be shut down.
-Each [`@action`][academy.behavior.action] method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.
+Each [`@action`][academy.agent.action] method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.
 
 !!! note
 
@@ -53,10 +53,10 @@ Each [`@action`][academy.behavior.action] method is executed concurrently in the
 	Compute-heavy actions can dispatch work to other parallel executors, such as a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor], [Dask Distributed](https://distributed.dask.org/en/stable/){target=_blank}, [Parsl](https://github.com/parsl/parsl/){target=_blank}, or [Ray](https://github.com/ray-project/ray){target=_blank}.
 
 Agents are designed to be long-running, but can be terminated by sending a shutdown request.
-Upon shutdown, the shutdown [`Event`][asyncio.Event], passed to each [`@loop`][academy.behavior.loop], is set; running tasks are cancelled and waited on; and the [`on_shutdown()`][academy.behavior.Behavior.on_shutdown] callback is invoked.
+Upon shutdown, the shutdown [`Event`][asyncio.Event], passed to each [`@loop`][academy.agent.loop], is set; running tasks are cancelled and waited on; and the [`on_shutdown()`][academy.agent.Agent.on_shutdown] callback is invoked.
 Agents can terminate themselves by setting the shutdown event;
-exceptions raised in [`@loop`][academy.behavior.loop] methods will shutdown the agent by default, and
-exceptions raised when executing [`@action`][academy.behavior.action] methods are caught and returned to the remote caller.
+exceptions raised in [`@loop`][academy.agent.loop] methods will shutdown the agent by default, and
+exceptions raised when executing [`@action`][academy.agent.action] methods are caught and returned to the remote caller.
 
 ### Handles
 

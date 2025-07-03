@@ -14,8 +14,8 @@ from proxystore.store import register_store
 from proxystore.store import Store
 from proxystore.store.utils import resolve_async
 
-from academy.behavior import Behavior
-from academy.behavior import BehaviorT
+from academy.agent import Agent
+from academy.agent import AgentT
 from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import AgentRegistrationT
@@ -96,12 +96,12 @@ class ProxyStoreExchangeTransport(
 
     async def discover(
         self,
-        behavior: type[Behavior],
+        agent: type[Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         return await self.transport.discover(
-            behavior,
+            agent,
             allow_subclasses=allow_subclasses,
         )
 
@@ -129,11 +129,11 @@ class ProxyStoreExchangeTransport(
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
-    ) -> AgentRegistration[BehaviorT]:
-        return await self.transport.register_agent(behavior, name=name)
+    ) -> AgentRegistration[AgentT]:
+        return await self.transport.register_agent(agent, name=name)
 
     async def send(self, message: Message) -> None:
         if isinstance(message, ActionRequest):

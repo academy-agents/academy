@@ -4,9 +4,9 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
-from academy.behavior import action
-from academy.behavior import Behavior
-from academy.behavior import loop
+from academy.agent import action
+from academy.agent import Agent
+from academy.agent import loop
 from academy.exchange.local import LocalExchangeFactory
 from academy.logging import init_logging
 from academy.manager import Manager
@@ -14,7 +14,7 @@ from academy.manager import Manager
 logger = logging.getLogger(__name__)
 
 
-class Counter(Behavior):
+class Counter(Agent):
     count: int
 
     async def on_setup(self) -> None:

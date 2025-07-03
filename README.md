@@ -21,16 +21,16 @@ pip install academy-py
 
 ## Example
 
-Agents in Academy are defined by a `Behavior`, a class with methods decorated with `@action` can be invoked by peers and method decorated with `@loop` run autonomous control loops.
+Agents in Academy are defined by a `Agent`, a class with methods decorated with `@action` can be invoked by peers and method decorated with `@loop` run autonomous control loops.
 
-The below sensor monitoring behavior periodically reads a sensor in the `monitor()` loop and processes the reading if a threshold is met.
+The below sensor monitoring agent periodically reads a sensor in the `monitor()` loop and processes the reading if a threshold is met.
 Clients or peers can invoke the `get_last_reading()` and `set_process_threshold()` actions remotely to interact with the monitor agent.
 
 ```python
 import asyncio
-from academy.behavior import Behavior, action, loop
+from academy.agent import Agent, action, loop
 
-class SensorMonitorAgent(Behavior):
+class SensorMonitorAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
         self.last_reading: float | None = None

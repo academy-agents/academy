@@ -22,10 +22,10 @@ class FileState(shelve.DbfilenameShelf[ValueT]):
     Example:
         ```python
         from typing import Any
-        from academy.behavior import Behavior, action
+        from academy.agent import Agent, action
         from academy.state import FileState
 
-        class Example(Behavior):
+        class Example(Agent):
             def __init__(self, state_path: str) -> None:
                 super().__init__()
                 self.state: FileState[Any] = FileState(state_path)
@@ -44,7 +44,7 @@ class FileState(shelve.DbfilenameShelf[ValueT]):
 
     Note:
         When using the [`Manager`][academy.manager.Manager], use the
-        deferred behavior initialization to ensure that the state is
+        deferred agent initialization to ensure that the state is
         initialized on the worker, rather than the client.
 
         ```python

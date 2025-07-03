@@ -4,8 +4,8 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
-from academy.behavior import action
-from academy.behavior import Behavior
+from academy.agent import action
+from academy.agent import Agent
 from academy.exchange.local import LocalExchangeFactory
 from academy.handle import Handle
 from academy.logging import init_logging
@@ -14,7 +14,7 @@ from academy.manager import Manager
 logger = logging.getLogger(__name__)
 
 
-class Coordinator(Behavior):
+class Coordinator(Agent):
     def __init__(
         self,
         lowerer: Handle[Lowerer],
@@ -33,13 +33,13 @@ class Coordinator(Behavior):
         return text
 
 
-class Lowerer(Behavior):
+class Lowerer(Agent):
     @action
     async def lower(self, text: str) -> str:
         return text.lower()
 
 
-class Reverser(Behavior):
+class Reverser(Agent):
     @action
     async def reverse(self, text: str) -> str:
         return text[::-1]

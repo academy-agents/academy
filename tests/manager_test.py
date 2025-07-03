@@ -5,14 +5,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from academy.behavior import Behavior
+from academy.agent import Agent
 from academy.exception import BadEntityIdError
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
 from academy.manager import Manager
-from testing.behavior import EmptyBehavior
-from testing.behavior import SleepBehavior
+from testing.agents import EmptyAgent
+from testing.agents import SleepAgent
 from testing.constant import TEST_CONNECTION_TIMEOUT
 from testing.constant import TEST_LOOP_SLEEP
 from testing.constant import TEST_THREAD_JOIN_TIMEOUT
@@ -32,9 +32,9 @@ async def test_from_exchange_factory() -> None:
 async def test_launch_and_shutdown(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    # Two ways to launch: behavior instance or deferred behavior initialization
-    handle1 = await manager.launch(SleepBehavior(TEST_LOOP_SLEEP))
-    handle2 = await manager.launch(SleepBehavior, args=(TEST_LOOP_SLEEP,))
+    # Two ways to launch: agent instance or deferred agent initialization
+    handle1 = await manager.launch(SleepAgent(TEST_LOOP_SLEEP))
+    handle2 = await manager.launch(SleepAgent, args=(TEST_LOOP_SLEEP,))
 
     assert len(manager.running()) == 2  # noqa: PLR2004
 
@@ -56,10 +56,10 @@ async def test_launch_and_shutdown(
 async def test_shutdown_on_exit(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    behavior = SleepBehavior(TEST_LOOP_SLEEP)
+    agent = SleepAgent(TEST_LOOP_SLEEP)
     # The manager fixture uses a context manager that when exited should
     # shutdown this agent and wait on it
-    await manager.launch(behavior)
+    await manager.launch(agent)
     await asyncio.sleep(5 * TEST_LOOP_SLEEP)
     assert len(manager.running()) == 1
 
@@ -75,7 +75,7 @@ async def test_wait_empty_iterable(
 async def test_wait_bad_identifier(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    registration = await manager.register_agent(EmptyBehavior)
+    registration = await manager.register_agent(EmptyAgent)
     with pytest.raises(BadEntityIdError):
         await manager.wait({registration.agent_id})
 
@@ -84,8 +84,8 @@ async def test_wait_bad_identifier(
 async def test_wait_timeout(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    handle = await manager.launch(behavior)
+    agent = SleepAgent(TEST_LOOP_SLEEP)
+    handle = await manager.launch(agent)
     with pytest.raises(TimeoutError):
         await manager.wait({handle}, timeout=TEST_LOOP_SLEEP)
 
@@ -94,9 +94,9 @@ async def test_wait_timeout(
 async def test_wait_timeout_all_completed(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    handle1 = await manager.launch(behavior)
-    handle2 = await manager.launch(behavior)
+    agent = SleepAgent(TEST_LOOP_SLEEP)
+    handle1 = await manager.launch(agent)
+    handle2 = await manager.launch(agent)
     await manager.shutdown(handle1, blocking=True)
     with pytest.raises(TimeoutError):
         await manager.wait(
@@ -110,7 +110,7 @@ async def test_wait_timeout_all_completed(
 async def test_shutdown_bad_identifier(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    registration = await manager.register_agent(EmptyBehavior)
+    registration = await manager.register_agent(EmptyAgent)
     with pytest.raises(BadEntityIdError):
         await manager.shutdown(registration.agent_id)
 
@@ -119,13 +119,13 @@ async def test_shutdown_bad_identifier(
 async def test_duplicate_launched_agents_error(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    registration = await manager.register_agent(EmptyBehavior)
-    await manager.launch(EmptyBehavior(), registration=registration)
+    registration = await manager.register_agent(EmptyAgent)
+    await manager.launch(EmptyAgent(), registration=registration)
     with pytest.raises(
         RuntimeError,
         match=f'{registration.agent_id} has already been executed.',
     ):
-        await manager.launch(EmptyBehavior(), registration=registration)
+        await manager.launch(EmptyAgent(), registration=registration)
     assert len(manager.running()) == 1
 
 
@@ -133,8 +133,8 @@ async def test_duplicate_launched_agents_error(
 async def test_shutdown_nonblocking(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    handle = await manager.launch(behavior)
+    agent = SleepAgent(TEST_LOOP_SLEEP)
+    handle = await manager.launch(agent)
     await manager.shutdown(handle, blocking=False)
     await manager.wait({handle}, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -143,8 +143,8 @@ async def test_shutdown_nonblocking(
 async def test_shutdown_blocking(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    behavior = SleepBehavior(TEST_LOOP_SLEEP)
-    handle = await manager.launch(behavior)
+    agent = SleepAgent(TEST_LOOP_SLEEP)
+    handle = await manager.launch(agent)
     await manager.shutdown(handle, blocking=True)
     assert len(manager.running()) == 0
 
@@ -190,12 +190,12 @@ async def test_multiple_executor(
         exchange_client=exchange,
         executors={'first': ThreadPoolExecutor()},
     ) as manager:
-        await manager.launch(EmptyBehavior(), executor='first')
+        await manager.launch(EmptyAgent(), executor='first')
 
         manager.add_executor('second', ThreadPoolExecutor())
         manager.set_default_executor('second')
-        await manager.launch(EmptyBehavior())
-        await manager.launch(EmptyBehavior(), executor='first')
+        await manager.launch(EmptyAgent())
+        await manager.launch(EmptyAgent(), executor='first')
 
 
 @pytest.mark.asyncio
@@ -207,10 +207,10 @@ async def test_multiple_executor_no_default(
         executors={'first': ThreadPoolExecutor()},
     ) as manager:
         with pytest.raises(ValueError, match='no default is set.'):
-            await manager.launch(EmptyBehavior())
+            await manager.launch(EmptyAgent())
 
 
-class FailOnStartupBehavior(Behavior):
+class FailOnStartupAgent(Agent):
     def __init__(self, max_errors: int | None = None) -> None:
         self.errors = 0
         self.max_errors = max_errors
@@ -225,14 +225,14 @@ class FailOnStartupBehavior(Behavior):
 async def test_retry_on_error(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    # Note: this test presently relies on behavior to be shared across
+    # Note: this test presently relies on agent to be shared across
     # each agent execution in other threads.
-    behavior = FailOnStartupBehavior(max_errors=2)
+    agent = FailOnStartupAgent(max_errors=2)
     executor = ThreadPoolExecutor(max_workers=1)
     async with Manager(exchange, executors=executor, max_retries=3) as manager:
-        handle = await manager.launch(behavior)
+        handle = await manager.launch(agent)
         await handle.ping(timeout=TEST_CONNECTION_TIMEOUT)
-        assert behavior.errors == 2  # noqa: PLR2004
+        assert agent.errors == 2  # noqa: PLR2004
         await handle.shutdown()
 
 
@@ -242,9 +242,9 @@ async def test_wait_ignore_agent_errors(
     raise_error: bool,
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    behavior = FailOnStartupBehavior()
+    agent = FailOnStartupAgent()
     manager = Manager(exchange, executors=ThreadPoolExecutor(max_workers=1))
-    handle = await manager.launch(behavior)
+    handle = await manager.launch(agent)
 
     if raise_error:
         with pytest.raises(RuntimeError, match='Agent startup failed'):
@@ -260,12 +260,12 @@ async def test_wait_ignore_agent_errors(
 async def test_warn_executor_overload(
     exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    behavior = SleepBehavior(TEST_LOOP_SLEEP)
+    agent = SleepAgent(TEST_LOOP_SLEEP)
     async with Manager(
         exchange,
         executors=ThreadPoolExecutor(max_workers=1),
     ) as manager:
-        await manager.launch(behavior)
+        await manager.launch(agent)
         with pytest.warns(RuntimeWarning, match='Executor overload:'):
-            await manager.launch(behavior)
+            await manager.launch(agent)
         assert len(manager.running()) == 2  # noqa: PLR2004

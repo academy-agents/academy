@@ -18,7 +18,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.behavior import BehaviorT
+from academy.agent import AgentT
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
@@ -37,42 +37,42 @@ logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
-class _RunSpec(Generic[BehaviorT, ExchangeTransportT]):
-    behavior: BehaviorT | type[BehaviorT]
+class _RunSpec(Generic[AgentT, ExchangeTransportT]):
+    agent: AgentT | type[AgentT]
     config: RuntimeConfig
     exchange_factory: ExchangeFactory[ExchangeTransportT]
-    registration: AgentRegistration[BehaviorT]
-    behavior_args: tuple[Any, ...]
-    behavior_kwargs: dict[str, Any]
+    registration: AgentRegistration[AgentT]
+    agent_args: tuple[Any, ...]
+    agent_kwargs: dict[str, Any]
 
 
 async def _run_agent_on_worker_async(
-    spec: _RunSpec[BehaviorT, ExchangeTransportT],
+    spec: _RunSpec[AgentT, ExchangeTransportT],
 ) -> None:
-    if isinstance(spec.behavior, type):
-        behavior = spec.behavior(*spec.behavior_args, **spec.behavior_kwargs)
+    if isinstance(spec.agent, type):
+        agent = spec.agent(*spec.agent_args, **spec.agent_kwargs)
     else:
-        behavior = spec.behavior
+        agent = spec.agent
 
-    agent = Runtime(
-        behavior,
+    runtime = Runtime(
+        agent,
         config=spec.config,
         exchange_factory=spec.exchange_factory,
         registration=spec.registration,
     )
-    await agent.run()
+    await runtime.run()
 
 
 def _run_agent_on_worker(
-    spec: _RunSpec[BehaviorT, ExchangeTransportT],
+    spec: _RunSpec[AgentT, ExchangeTransportT],
 ) -> None:
     asyncio.run(_run_agent_on_worker_async(spec))
 
 
 @dataclasses.dataclass
-class _ACB(Generic[BehaviorT]):
+class _ACB(Generic[AgentT]):
     # Agent Control Block
-    agent_id: AgentId[BehaviorT]
+    agent_id: AgentId[AgentT]
     executor: str
     task: asyncio.Task[None]
 
@@ -285,7 +285,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     async def _run_agent_in_executor(
         self,
         executor: Executor,
-        spec: _RunSpec[BehaviorT, ExchangeTransportT],
+        spec: _RunSpec[AgentT, ExchangeTransportT],
     ) -> None:
         agent_id = spec.registration.agent_id
         original_config = spec.config
@@ -312,7 +312,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 run_count,
                 retries,
                 agent_id,
-                spec.behavior,
+                spec.agent,
             )
 
             try:
@@ -339,25 +339,25 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     async def launch(  # noqa: PLR0913
         self,
-        behavior: BehaviorT | type[BehaviorT],
+        agent: AgentT | type[AgentT],
         *,
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
         config: RuntimeConfig | None = None,
         executor: str | None = None,
         name: str | None = None,
-        registration: AgentRegistration[BehaviorT] | None = None,
-    ) -> RemoteHandle[BehaviorT]:
-        """Launch a new agent with a specified behavior.
+        registration: AgentRegistration[AgentT] | None = None,
+    ) -> RemoteHandle[AgentT]:
+        """Launch a new agent with a specified agent.
 
         Args:
-            behavior: Behavior instance the agent will implement or the
-                behavior type that will be initialized on the worker using
+            agent: Agent instance the agent will implement or the
+                agent type that will be initialized on the worker using
                 `args` and `kwargs`.
-            args: Positional arguments used to initialize the behavior.
-                Ignored if `behavior` is already an instance.
-            kwargs: Keyword arguments used to initialize the behavior.
-                Ignored if `behavior` is already an instance.
+            args: Positional arguments used to initialize the agent.
+                Ignored if `agent` is already an instance.
+            kwargs: Keyword arguments used to initialize the agent.
+                Ignored if `agent` is already an instance.
             config: Agent run configuration.
             executor: Name of the executor instance to use. If `None`, uses
                 the default executor, if specified, otherwise raises an error.
@@ -383,10 +383,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         executor_instance = self._executors[executor]
 
         if registration is None:
-            behavior_type = (
-                behavior if isinstance(behavior, type) else type(behavior)
-            )
-            registration = await self.register_agent(behavior_type, name=name)
+            agent_type = agent if isinstance(agent, type) else type(agent)
+            registration = await self.register_agent(agent_type, name=name)
         elif registration.agent_id in self._acbs:
             raise RuntimeError(
                 f'{registration.agent_id} has already been executed.',
@@ -395,12 +393,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         agent_id = registration.agent_id
 
         spec = _RunSpec(
-            behavior=behavior,
+            agent=agent,
             config=RuntimeConfig() if config is None else config,
             exchange_factory=self.exchange_factory,
             registration=registration,
-            behavior_args=() if args is None else args,
-            behavior_kwargs={} if kwargs is None else kwargs,
+            agent_args=() if args is None else args,
+            agent_kwargs={} if kwargs is None else kwargs,
         )
 
         task = asyncio.create_task(
@@ -411,14 +409,14 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         acb = _ACB(agent_id=agent_id, executor=executor, task=task)
         self._acbs[agent_id] = acb
         handle = self.get_handle(agent_id)
-        logger.info('Launched agent (%s; %s)', agent_id, behavior)
+        logger.info('Launched agent (%s; %s)', agent_id, agent)
         self._warn_executor_overloaded(executor_instance, executor)
         return handle
 
     def get_handle(
         self,
-        agent: AgentId[BehaviorT] | AgentRegistration[BehaviorT],
-    ) -> RemoteHandle[BehaviorT]:
+        agent: AgentId[AgentT] | AgentRegistration[AgentT],
+    ) -> RemoteHandle[AgentT]:
         """Create a new handle to an agent.
 
         A handle acts like a reference to a remote agent, enabling a user
@@ -442,21 +440,21 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
-    ) -> AgentRegistration[BehaviorT]:
+    ) -> AgentRegistration[AgentT]:
         """Register a new agent with the exchange.
 
         Args:
-            behavior: Behavior type of the agent.
+            agent: Agent type of the agent.
             name: Optional display name for the agent.
 
         Returns:
             Agent registration info that can be passed to
             [`launch()`][academy.manager.Manager.launch].
         """
-        return await self.exchange_client.register_agent(behavior, name=name)
+        return await self.exchange_client.register_agent(agent, name=name)
 
     def running(self) -> set[AgentId[Any]]:
         """Get a set of IDs of all running agents.
@@ -487,7 +485,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             blocking: Wait for the agent to exit before returning.
             raise_error: Raise the error returned by the agent if
                 `blocking=True`.
-            terminate: Override the termination behavior of the agent defined
+            terminate: Override the termination agent of the agent defined
                 in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
             timeout: Optional timeout is seconds when `blocking=True`.
 

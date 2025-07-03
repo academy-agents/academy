@@ -14,8 +14,8 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.behavior import Behavior
-from academy.behavior import BehaviorT
+from academy.agent import Agent
+from academy.agent import AgentT
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import Message
@@ -36,14 +36,14 @@ class MailboxStatus(enum.Enum):
 
 
 @runtime_checkable
-class AgentRegistration(Protocol[BehaviorT]):
+class AgentRegistration(Protocol[AgentT]):
     """Agent exchange registration information.
 
     Attributes:
         agent_id: Unique agent identifier returned by the exchange.
     """
 
-    agent_id: AgentId[BehaviorT]
+    agent_id: AgentId[AgentT]
 
 
 AgentRegistrationT = TypeVar(
@@ -67,7 +67,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
     Warning:
         A specific exchange transport should not be replicated because multiple
         client instances receiving from the same mailbox produces undefined
-        behavior.
+        agent.
     """
 
     @property
@@ -86,23 +86,23 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
 
     async def discover(
         self,
-        behavior: type[Behavior],
+        agent: type[Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
-        """Discover peer agents with a given behavior.
+        """Discover peer agents with a given agent.
 
         Warning:
             Implementations of this method are often O(n) and scan the types
             of all agents registered to the exchange.
 
         Args:
-            behavior: Behavior type of interest.
+            agent: Agent type of interest.
             allow_subclasses: Return agents implementing subclasses of the
-                behavior.
+                agent.
 
         Returns:
-            Tuple of agent IDs implementing the behavior.
+            Tuple of agent IDs implementing the agent.
 
         Raises:
             ExchangeError: Error returned by the exchange.
@@ -133,14 +133,14 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
     ) -> AgentRegistrationT_co:
         """Register a new agent and associated mailbox with the exchange.
 
         Args:
-            behavior: Behavior type of the agent.
+            agent: Agent type of the agent.
             name: Optional display name for the agent.
 
         Returns:

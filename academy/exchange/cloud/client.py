@@ -21,8 +21,8 @@ else:  # pragma: <3.11 cover
 
 import aiohttp
 
-from academy.behavior import Behavior
-from academy.behavior import BehaviorT
+from academy.agent import Agent
+from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
@@ -53,10 +53,10 @@ class _HttpConnectionInfo(NamedTuple):
 
 
 @dataclasses.dataclass
-class HttpAgentRegistration(Generic[BehaviorT]):
+class HttpAgentRegistration(Generic[AgentT]):
     """Agent registration for Http exchanges."""
 
-    agent_id: AgentId[BehaviorT]
+    agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
 
 
@@ -144,15 +144,15 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        behavior: type[Behavior],
+        agent: type[Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
-        behavior_str = f'{behavior.__module__}.{behavior.__name__}'
+        agent_str = f'{agent.__module__}.{agent.__name__}'
         async with self._session.get(
             self._discover_url,
             json={
-                'behavior': behavior_str,
+                'agent': agent_str,
                 'allow_subclasses': allow_subclasses,
             },
         ) as response:
@@ -193,16 +193,16 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
-    ) -> HttpAgentRegistration[BehaviorT]:
-        aid: AgentId[BehaviorT] = AgentId.new(name=name)
+    ) -> HttpAgentRegistration[AgentT]:
+        aid: AgentId[AgentT] = AgentId.new(name=name)
         async with self._session.post(
             self._mailbox_url,
             json={
                 'mailbox': aid.model_dump_json(),
-                'behavior': ','.join(behavior.behavior_mro()),
+                'agent': ','.join(agent.agent_mro()),
             },
         ) as response:
             _raise_for_status(response, self.mailbox_id, aid)

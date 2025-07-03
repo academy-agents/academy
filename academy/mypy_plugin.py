@@ -7,10 +7,10 @@ For example, the return type of an action invocation on a remote agent via
 a handle is a [`Future`][asyncio.Future] wrapping the return
 type of the action.
 ```python
-from academy.behavior import Behavior, action
+from academy.agent import Agent, action
 from academy.handle import Handle
 
-class Example(Behavior):
+class Example(Agent):
     @action
     async def get_value(self) -> int: ...
 
@@ -24,7 +24,7 @@ Without the plugin, mypy will default to [`Any`][typing.Any].
 Note:
     The plugin makes a best effort to warn users about incorrect use of
     agent handles. This includes raising errors when accessing attributes
-    of a behavior, rather than methods, via a handle and when incorrect
+    of a agent, rather than methods, via a handle and when incorrect
     parameter types are passed to an action. However, the plugin cannot
     distinguish which callable attributes of a handle are annotated as
     actions, but this will still produce an error at runtime.

@@ -18,7 +18,7 @@ from academy.exchange.proxystore import ProxyStoreExchangeFactory
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import PingRequest
-from testing.behavior import EmptyBehavior
+from testing.agents import EmptyAgent
 
 
 @pytest.fixture
@@ -60,9 +60,7 @@ async def test_wrap_basic_transport_functionality(
         assert isinstance(new_factory, ProxyStoreExchangeFactory)
 
         src = wrapped_transport1.mailbox_id
-        dest = (
-            await wrapped_transport1.register_agent(EmptyBehavior)
-        ).agent_id
+        dest = (await wrapped_transport1.register_agent(EmptyAgent)).agent_id
         assert await wrapped_transport1.status(dest) == MailboxStatus.ACTIVE
 
         wrapped_transport2 = await wrapped_factory._create_transport(
@@ -108,7 +106,7 @@ async def test_wrap_basic_transport_functionality(
         )
         assert response.result == received.result
 
-        assert await wrapped_transport1.discover(EmptyBehavior) == (dest,)
+        assert await wrapped_transport1.discover(EmptyAgent) == (dest,)
 
         await wrapped_transport1.terminate(wrapped_transport1.mailbox_id)
         await wrapped_transport2.close()

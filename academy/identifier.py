@@ -19,12 +19,12 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
-# Normally this would be bound=Behavior, but Pydantic's mypy plugin crashes
+# Normally this would be bound=Agent, but Pydantic's mypy plugin crashes
 # here. See https://github.com/pydantic/pydantic/issues/11454
-BehaviorT = TypeVar('BehaviorT')
+AgentT = TypeVar('AgentT')
 
 
-class AgentId(BaseModel, Generic[BehaviorT]):
+class AgentId(BaseModel, Generic[AgentT]):
     """Unique identifier for an agent entity in a multi-agent system."""
 
     uid: uuid.UUID = Field()

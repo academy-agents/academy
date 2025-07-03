@@ -44,46 +44,46 @@ if TYPE_CHECKING:
     from academy.exchange import AgentExchangeClient
     from academy.identifier import AgentId
 
-BehaviorT = TypeVar('BehaviorT', bound='Behavior')
-"""Type variable bound to [`Behavior`][academy.behavior.Behavior]."""
+AgentT = TypeVar('AgentT', bound='Agent')
+"""Type variable bound to [`Agent`][academy.agent.Agent]."""
 
 P = ParamSpec('P')
 R = TypeVar('R')
 R_co = TypeVar('R_co', covariant=True)
 ActionMethod: TypeAlias = Callable[P, Coroutine[None, None, R]]
 LoopMethod: TypeAlias = Callable[
-    [BehaviorT, asyncio.Event],
+    [AgentT, asyncio.Event],
     Coroutine[None, None, None],
 ]
 
 logger = logging.getLogger(__name__)
 
 
-class Behavior:
-    """Agent behavior base class.
+class Agent:
+    """Agent base class.
 
-    An [`Runtime`][academy.runtime.Runtime] executes an agent that
-    implements a given behavior defined by a
-    [`Behavior`][academy.behavior.Behavior] instance. Each behavior is
-    composed of three parts:
-      1. The [`on_startup()`][academy.behavior.Behavior.on_setup] and
-         [`on_shutdown()`][academy.behavior.Behavior.on_shutdown] methods
+    An agent is composed of three parts:
+      1. The [`on_startup()`][academy.agent.Agent.on_setup] and
+         [`on_shutdown()`][academy.agent.Agent.on_shutdown] methods
          define callbacks that are invoked once at the start and end of an
          agent's execution, respectively. The methods should be used to
          initialize and cleanup stateful resources. Resource initialization
          should not be performed in `__init__`.
-      2. Action methods annotated with [`@action`][academy.behavior.action]
+      2. Action methods annotated with [`@action`][academy.agent.action]
          are methods that other agents can invoke on this agent. An agent
          may also call it's own action methods as normal methods.
-      3. Control loop methods annotated with [`@loop`][academy.behavior.loop]
+      3. Control loop methods annotated with [`@loop`][academy.agent.loop]
          are executed in separate threads when the agent is executed.
+
+    The [`Runtime`][academy.runtime.Runtime] is used to execute an agent
+    definition.
 
     Warning:
         This class cannot be instantiated directly and must be subclassed.
     """
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:  # noqa: D102
-        if cls is Behavior:
+        if cls is Agent:
             raise TypeError(
                 f'The {cls.__name__} type cannot be instantiated directly '
                 'and must be subclassed.',
@@ -97,7 +97,7 @@ class Behavior:
         return f'{type(self).__name__}()'
 
     def __str__(self) -> str:
-        return f'Behavior<{type(self).__name__}>'
+        return f'Agent<{type(self).__name__}>'
 
     def _agent_set_context(self, context: AgentContext[Self]) -> None:
         self.__agent_context = context
@@ -108,12 +108,12 @@ class Behavior:
 
         Raises:
             AgentNotInitializedError: If the agent runtime implementing
-                this behavior has not been started.
+                this agent has not been started.
         """
         if (
-            # Check _Behavior__agent_context rather than __agent_context
+            # Check _Agent__agent_context rather than __agent_context
             # because of Python's name mangling
-            not hasattr(self, '_Behavior__agent_context')
+            not hasattr(self, '_Agent__agent_context')
             or self.__agent_context is None
         ):
             raise AgentNotInitializedError
@@ -125,7 +125,7 @@ class Behavior:
 
         Raises:
             AgentNotInitializedError: If the agent runtime implementing
-                this behavior has not been started.
+                this agent has not been started.
         """
         return self.agent_context.agent_id
 
@@ -135,7 +135,7 @@ class Behavior:
 
         Raises:
             AgentNotInitializedError: If the agent runtime implementing
-                this behavior has not been started.
+                this agent has not been started.
         """
         return self.agent_context.exchange_client
 
@@ -144,45 +144,45 @@ class Behavior:
 
         Raises:
             AgentNotInitializedError: If the agent runtime implementing
-                this behavior has not been started.
+                this agent has not been started.
         """
         self.agent_context.shutdown_event.set()
 
-    def _behavior_attributes(self) -> Generator[tuple[str, Any]]:
+    def _agent_attributes(self) -> Generator[tuple[str, Any]]:
         for name in dir(self):
-            if name in Behavior.__dict__:
-                # Skip checking attributes of the base Behavior. Checking
+            if name in Agent.__dict__:
+                # Skip checking attributes of the base Agent. Checking
                 # the type of properties that access agent_context may
                 # raise an AgentNotInitializedError.
                 continue
             attr = getattr(self, name)
             yield name, attr
 
-    def behavior_actions(self) -> dict[str, Action[Any, Any]]:
-        """Get methods of this behavior type that are decorated as actions.
+    def agent_actions(self) -> dict[str, Action[Any, Any]]:
+        """Get methods of this agent type that are decorated as actions.
 
         Returns:
             Dictionary mapping method names to action methods.
         """
         actions: dict[str, Action[Any, Any]] = {}
-        for name, attr in self._behavior_attributes():
+        for name, attr in self._agent_attributes():
             if _is_agent_method_type(attr, 'action'):
                 actions[name] = attr
         return actions
 
-    def behavior_loops(self) -> dict[str, ControlLoop]:
-        """Get methods of this behavior type that are decorated as loops.
+    def agent_loops(self) -> dict[str, ControlLoop]:
+        """Get methods of this agent type that are decorated as loops.
 
         Returns:
             Dictionary mapping method names to loop methods.
         """
         loops: dict[str, ControlLoop] = {}
-        for name, attr in self._behavior_attributes():
+        for name, attr in self._agent_attributes():
             if _is_agent_method_type(attr, 'loop'):
                 loops[name] = attr
         return loops
 
-    def behavior_handles(
+    def agent_handles(
         self,
     ) -> dict[
         str,
@@ -205,41 +205,41 @@ class Behavior:
             str,
             Handle[Any] | HandleDict[Any, Any] | HandleList[Any],
         ] = {}
-        for name, attr in self._behavior_attributes():
+        for name, attr in self._agent_attributes():
             if isinstance(attr, handle_types):
                 handles[name] = attr
         return handles
 
     @classmethod
-    def behavior_mro(cls) -> tuple[str, ...]:
-        """Get the method resolution order of the behavior.
+    def agent_mro(cls) -> tuple[str, ...]:
+        """Get the method resolution order of the agent.
 
         Example:
             ```python
-            >>> from academy.behavior import Behavior
+            >>> from academy.agent import Agent
             >>>
-            >>> class A(Behavior): ...
-            >>> class B(Behavior): ...
+            >>> class A(Agent): ...
+            >>> class B(Agent): ...
             >>> class C(A): ...
             >>> class D(A, B): ...
             >>>
-            >>> A.behavior_mro()
+            >>> A.agent_mro()
             ('__main__.A',)
-            >>> B.behavior_mro()
+            >>> B.agent_mro()
             ('__main__.B',)
-            >>> C.behavior_mro()
+            >>> C.agent_mro()
             ('__main__.C', '__main__.A')
-            >>> D.behavior_mro()
+            >>> D.agent_mro()
             ('__main__.D', '__main__.A', '__main__.B')
             ```
 
         Returns:
             Tuple of fully-qualified paths of types in the MRO of this \
-            behavior type, not including the base \
-            [`Behavior`][academy.behavior.Behavior] or [`object`][object].
+            agent type, not including the base \
+            [`Agent`][academy.agent.Agent] or [`object`][object].
         """
         mro = cls.mro()
-        base_index = mro.index(Behavior)
+        base_index = mro.index(Agent)
         mro = mro[:base_index]
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
@@ -320,19 +320,19 @@ def action(
     allow_protected_name: bool = False,
     context: bool = False,
 ) -> ActionMethod[P, R] | Callable[[ActionMethod[P, R]], ActionMethod[P, R]]:
-    """Decorator that annotates a method of a behavior as an action.
+    """Decorator that annotates a method of a agent as an action.
 
-    Marking a method of a behavior as an action makes the method available
+    Marking a method of a agent as an action makes the method available
     to other agents. I.e., peers within a multi-agent system can only invoke
-    methods marked as actions on each other. This enables behaviors to
+    methods marked as actions on each other. This enables agents to
     define "private" methods.
 
     Example:
         ```python
-        from academy.behavior import Behavior, action
+        from academy.agent import Agent, action
         from academy.context import ActionContext
 
-        class Example(Behavior):
+        class Example(Agent):
             @action
             async def perform(self) -> ...:
                 ...
@@ -407,10 +407,10 @@ def action(
         return decorator(method)
 
 
-def loop(method: LoopMethod[BehaviorT]) -> LoopMethod[BehaviorT]:
-    """Decorator that annotates a method of a behavior as a control loop.
+def loop(method: LoopMethod[AgentT]) -> LoopMethod[AgentT]:
+    """Decorator that annotates a method of a agent as a control loop.
 
-    Control loop methods of a behavior are run as threads when an agent
+    Control loop methods of a agent are run as threads when an agent
     starts. A control loop can run for a well-defined period of time or
     indefinitely, provided the control loop exits when the `shutdown`
     event, passed as a parameter to all control loop methods, is set.
@@ -418,9 +418,9 @@ def loop(method: LoopMethod[BehaviorT]) -> LoopMethod[BehaviorT]:
     Example:
         ```python
         import asyncio
-        from academy.behavior import Behavior, loop
+        from academy.agent import Agent, loop
 
-        class Example(Behavior):
+        class Example(Agent):
             @loop
             async def listen(self, shutdown: asyncio.Event) -> None:
                 while not shutdown.is_set():
@@ -429,7 +429,7 @@ def loop(method: LoopMethod[BehaviorT]) -> LoopMethod[BehaviorT]:
 
     Raises:
         TypeError: if the method signature does not conform to the
-            [`ControlLoop`][academy.behavior.ControlLoop] protocol.
+            [`ControlLoop`][academy.agent.ControlLoop] protocol.
     """
     method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
@@ -446,11 +446,11 @@ def loop(method: LoopMethod[BehaviorT]) -> LoopMethod[BehaviorT]:
             f'but should be {expected_sig}. If the signatures look the same '
             'except that types are stringified, try importing '
             '"from __future__ import annotations" at the top of the module '
-            'where the behavior is defined.',
+            'where the agent is defined.',
         )
 
     @functools.wraps(method)
-    async def _wrapped(self: BehaviorT, shutdown: asyncio.Event) -> None:
+    async def _wrapped(self: AgentT, shutdown: asyncio.Event) -> None:
         logger.debug('Started %r loop for %s', method.__name__, self)
         await method(self, shutdown)
         logger.debug('Exited %r loop for %s', method.__name__, self)
@@ -461,10 +461,10 @@ def loop(method: LoopMethod[BehaviorT]) -> LoopMethod[BehaviorT]:
 def event(
     name: str,
 ) -> Callable[
-    [Callable[[BehaviorT], Coroutine[None, None, None]]],
-    LoopMethod[BehaviorT],
+    [Callable[[AgentT], Coroutine[None, None, None]]],
+    LoopMethod[AgentT],
 ]:
-    """Decorator that annotates a method of a behavior as an event loop.
+    """Decorator that annotates a method of a agent as an event loop.
 
     An event loop is a special type of control loop that runs when a
     [`asyncio.Event`][asyncio.Event] is set. The event is cleared
@@ -473,9 +473,9 @@ def event(
     Example:
         ```python
         import asyncio
-        from academy.behavior import Behavior, timer
+        from academy.agent import Agent, timer
 
-        class Example(Behavior):
+        class Example(Agent):
             def __init__(self) -> None:
                 self.alert = asyncio.Event()
 
@@ -491,18 +491,18 @@ def event(
 
     Raises:
         AttributeError: Raised at runtime if no attribute named `name`
-            exists on the behavior.
+            exists on the agent.
         TypeError: Raised at runtime if the attribute named `name` is not
             a [`asyncio.Event`][asyncio.Event].
     """
 
     def decorator(
-        method: Callable[[BehaviorT], Coroutine[None, None, None]],
-    ) -> LoopMethod[BehaviorT]:
+        method: Callable[[AgentT], Coroutine[None, None, None]],
+    ) -> LoopMethod[AgentT]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)
-        async def _wrapped(self: BehaviorT, shutdown: asyncio.Event) -> None:
+        async def _wrapped(self: AgentT, shutdown: asyncio.Event) -> None:
             event = getattr(self, name)
             if not isinstance(event, asyncio.Event):
                 raise TypeError(
@@ -533,10 +533,10 @@ def event(
 def timer(
     interval: float | timedelta,
 ) -> Callable[
-    [Callable[[BehaviorT], Coroutine[None, None, None]]],
-    LoopMethod[BehaviorT],
+    [Callable[[AgentT], Coroutine[None, None, None]]],
+    LoopMethod[AgentT],
 ]:
-    """Decorator that annotates a method of a behavior as a timer loop.
+    """Decorator that annotates a method of a agent as a timer loop.
 
     A timer loop is a special type of control loop that runs at a set
     interval. The method will always be called once before the first
@@ -544,9 +544,9 @@ def timer(
 
     Example:
         ```python
-        from academy.behavior import Behavior, timer
+        from academy.agent import Agent, timer
 
-        class Example(Behavior):
+        class Example(Agent):
             @timer(interval=1)
             async def listen(self) -> None:
                 # Runs every 1 second
@@ -564,12 +564,12 @@ def timer(
     )
 
     def decorator(
-        method: Callable[[BehaviorT], Coroutine[None, None, None]],
-    ) -> LoopMethod[BehaviorT]:
+        method: Callable[[AgentT], Coroutine[None, None, None]],
+    ) -> LoopMethod[AgentT]:
         method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
         @functools.wraps(method)
-        async def _wrapped(self: BehaviorT, shutdown: asyncio.Event) -> None:
+        async def _wrapped(self: AgentT, shutdown: asyncio.Event) -> None:
             logger.debug(
                 'Started %r timer loop for %s (interval: %fs)',
                 method.__name__,

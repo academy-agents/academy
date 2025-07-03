@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from academy.behavior import Behavior
+from academy.agent import Agent
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
@@ -17,7 +17,7 @@ from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
-from testing.behavior import EmptyBehavior
+from testing.agents import EmptyAgent
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
 
@@ -51,7 +51,7 @@ async def test_transport_create_factory(
 async def test_transport_register_agent(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    registration = await transport.register_agent(EmptyBehavior)
+    registration = await transport.register_agent(EmptyAgent)
     status = await transport.status(registration.agent_id)
     assert status == MailboxStatus.ACTIVE
 
@@ -63,7 +63,7 @@ async def test_transport_status(
     uid = UserId.new()
     status = await transport.status(uid)
     assert status == MailboxStatus.MISSING
-    registration = await transport.register_agent(EmptyBehavior)
+    registration = await transport.register_agent(EmptyAgent)
     status = await transport.status(registration.agent_id)
     assert status == MailboxStatus.ACTIVE
     await transport.terminate(registration.agent_id)
@@ -98,7 +98,7 @@ async def test_transport_send_bad_identifier_error(
 async def test_transport_send_mailbox_closed(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    registration = await transport.register_agent(EmptyBehavior)
+    registration = await transport.register_agent(EmptyAgent)
     await transport.terminate(registration.agent_id)
     with pytest.raises(MailboxTerminatedError):
         await transport.send(
@@ -131,10 +131,10 @@ async def test_transport_non_pickleable(
         pickle.dumps(transport)
 
 
-class A(Behavior): ...
+class A(Agent): ...
 
 
-class B(Behavior): ...
+class B(Agent): ...
 
 
 class C(B): ...

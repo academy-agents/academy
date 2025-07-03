@@ -41,11 +41,11 @@ from academy.message import ShutdownRequest
 from academy.message import ShutdownResponse
 
 if TYPE_CHECKING:
-    from academy.behavior import BehaviorT
+    from academy.agent import AgentT
     from academy.exchange import ExchangeClient
 else:
-    # Behavior is only used in the bounding of the BehaviorT TypeVar.
-    BehaviorT = TypeVar('BehaviorT')
+    # Agent is only used in the bounding of the AgentT TypeVar.
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ R = TypeVar('R')
 
 
 @runtime_checkable
-class Handle(Protocol[BehaviorT]):
+class Handle(Protocol[AgentT]):
     """Agent handle protocol.
 
     A handle enables an agent or user to invoke actions on another agent.
@@ -66,11 +66,11 @@ class Handle(Protocol[BehaviorT]):
         # any attribute access is "valid" on a Handle type. This forces
         # mypy into calling our mypy plugin (academy.mypy_plugin) which then
         # validates the exact semantics of the attribute access depending
-        # on the concrete type for the BehaviorT that Handle is generic on.
+        # on the concrete type for the AgentT that Handle is generic on.
         ...
 
     @property
-    def agent_id(self) -> AgentId[BehaviorT]:
+    def agent_id(self) -> AgentId[AgentT]:
         """ID of the agent this is a handle to."""
         ...
 
@@ -147,7 +147,7 @@ class Handle(Protocol[BehaviorT]):
         This is non-blocking and will only send the message.
 
         Args:
-            terminate: Override the termination behavior of the agent defined
+            terminate: Override the termination agent of the agent defined
                 in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
 
         Raises:
@@ -159,69 +159,69 @@ class Handle(Protocol[BehaviorT]):
         ...
 
 
-class HandleDict(dict[K, Handle[BehaviorT]]):
+class HandleDict(dict[K, Handle[AgentT]]):
     """Dictionary mapping keys to handles.
 
     Tip:
         The `HandleDict` is required when storing a mapping of handles as
-        attributes of a `Behavior` so that those handles get bound to the
+        attributes of a `Agent` so that those handles get bound to the
         correct agent when running.
     """
 
     def __init__(
         self,
-        values: Mapping[K, Handle[BehaviorT]]
-        | Iterable[tuple[K, Handle[BehaviorT]]] = (),
+        values: Mapping[K, Handle[AgentT]]
+        | Iterable[tuple[K, Handle[AgentT]]] = (),
         /,
-        **kwargs: dict[str, Handle[BehaviorT]],
+        **kwargs: dict[str, Handle[AgentT]],
     ) -> None:
         super().__init__(values, **kwargs)
 
 
-class HandleList(list[Handle[BehaviorT]]):
+class HandleList(list[Handle[AgentT]]):
     """List of handles.
 
     Tip:
         The `HandleList` is required when storing a list of handles as
-        attributes of a `Behavior` so that those handles get bound to the
+        attributes of a `Agent` so that those handles get bound to the
         correct agent when running.
     """
 
     def __init__(
         self,
-        iterable: Iterable[Handle[BehaviorT]] = (),
+        iterable: Iterable[Handle[AgentT]] = (),
         /,
     ) -> None:
         super().__init__(iterable)
 
 
-class ProxyHandle(Generic[BehaviorT]):
+class ProxyHandle(Generic[AgentT]):
     """Proxy handle.
 
     A proxy handle is thin wrapper around a
-    [`Behavior`][academy.behavior.Behavior] instance that is useful for testing
-    behaviors that are initialized with a handle to another agent without
+    [`Agent`][academy.agent.Agent] instance that is useful for testing
+    agents that are initialized with a handle to another agent without
     needing to spawn agents. This wrapper invokes actions synchronously.
     """
 
-    def __init__(self, behavior: BehaviorT) -> None:
-        self.behavior = behavior
-        self.agent_id: AgentId[BehaviorT] = AgentId.new()
+    def __init__(self, agent: AgentT) -> None:
+        self.agent = agent
+        self.agent_id: AgentId[AgentT] = AgentId.new()
         self.client_id: EntityId = UserId.new()
         self._agent_closed = False
         self._handle_closed = False
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}(behavior={self.behavior!r})'
+        return f'{type(self).__name__}(agent={self.agent!r})'
 
     def __str__(self) -> str:
-        return f'{type(self).__name__}<{self.behavior}>'
+        return f'{type(self).__name__}<{self.agent}>'
 
     def __getattr__(self, name: str) -> Any:
-        method = getattr(self.behavior, name)
+        method = getattr(self.agent, name)
         if not callable(method):
             raise AttributeError(
-                f'Attribute {name} of {type(self.behavior)} is not a method.',
+                f'Attribute {name} of {type(self.agent)} is not a method.',
             )
 
         @functools.wraps(method)
@@ -260,7 +260,7 @@ class ProxyHandle(Generic[BehaviorT]):
 
         future: asyncio.Future[R] = asyncio.get_running_loop().create_future()
         try:
-            method = getattr(self.behavior, action)
+            method = getattr(self.agent, action)
             result = await method(*args, **kwargs)
         except Exception as e:
             future.set_exception(e)
@@ -321,7 +321,7 @@ class ProxyHandle(Generic[BehaviorT]):
         This is non-blocking and will only send the message.
 
         Args:
-            terminate: Override the termination behavior of the agent defined
+            terminate: Override the termination agent of the agent defined
                 in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
 
         Raises:
@@ -337,7 +337,7 @@ class ProxyHandle(Generic[BehaviorT]):
         self._agent_closed = True if terminate is None else terminate
 
 
-class UnboundRemoteHandle(Generic[BehaviorT]):
+class UnboundRemoteHandle(Generic[AgentT]):
     """Handle to a remote agent that not bound to a mailbox.
 
     Warning:
@@ -349,7 +349,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         agent_id: EntityId of the agent.
     """
 
-    def __init__(self, agent_id: AgentId[BehaviorT]) -> None:
+    def __init__(self, agent_id: AgentId[AgentT]) -> None:
         self.agent_id = agent_id
 
     def __repr__(self) -> str:
@@ -372,7 +372,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
     def bind_to_client(
         self,
         client: ExchangeClient[Any],
-    ) -> RemoteHandle[BehaviorT]:
+    ) -> RemoteHandle[AgentT]:
         """Bind the handle to an existing mailbox.
 
         Args:
@@ -411,7 +411,7 @@ class UnboundRemoteHandle(Generic[BehaviorT]):
         raise HandleNotBoundError(self.agent_id)
 
 
-class RemoteHandle(Generic[BehaviorT]):
+class RemoteHandle(Generic[AgentT]):
     """Handle to a remote agent bound to an exchange client.
 
     Args:
@@ -422,7 +422,7 @@ class RemoteHandle(Generic[BehaviorT]):
     def __init__(
         self,
         exchange: ExchangeClient[Any],
-        agent_id: AgentId[BehaviorT],
+        agent_id: AgentId[AgentT],
     ) -> None:
         self.exchange = exchange
         self.agent_id = agent_id
@@ -455,7 +455,7 @@ class RemoteHandle(Generic[BehaviorT]):
         self,
     ) -> tuple[
         type[UnboundRemoteHandle[Any]],
-        tuple[AgentId[BehaviorT]],
+        tuple[AgentId[AgentT]],
     ]:
         return (UnboundRemoteHandle, (self.agent_id,))
 
@@ -478,7 +478,7 @@ class RemoteHandle(Generic[BehaviorT]):
 
         return remote_method_call
 
-    def clone(self) -> UnboundRemoteHandle[BehaviorT]:
+    def clone(self) -> UnboundRemoteHandle[AgentT]:
         """Create an unbound copy of this handle."""
         return UnboundRemoteHandle(self.agent_id)
 
@@ -637,7 +637,7 @@ class RemoteHandle(Generic[BehaviorT]):
         This is non-blocking and will only send the message.
 
         Args:
-            terminate: Override the termination behavior of the agent defined
+            terminate: Override the termination agent of the agent defined
                 in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
 
         Raises:

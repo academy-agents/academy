@@ -13,7 +13,7 @@ class AgentNotInitializedError(Exception):
     """Agent runtime context has not been initialized.
 
     This error is typically raised when accessing the runtime context for
-    an agent from within a behavior class before the agent has been executed.
+    an agent before the agent has been executed.
     """
 
     def __init__(self) -> None:

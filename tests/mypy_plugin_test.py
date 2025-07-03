@@ -11,8 +11,8 @@ else:  # pragma: <3.11 cover
 
 import pytest
 
-from academy.behavior import action
-from academy.behavior import Behavior
+from academy.agent import action
+from academy.agent import Agent
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId
@@ -34,7 +34,7 @@ def test_is_handle_type(type_name: str, expected: bool) -> None:
     assert is_handle_type(type_name) == expected
 
 
-class Example(Behavior):
+class Example(Agent):
     def __init__(self) -> None:
         self.value = 42
 
@@ -55,7 +55,7 @@ async def test_handle_attribute_access_resolved() -> None:
     assert_type(handle.agent_id, AgentId[Example])
     assert_type(await handle.ping(), float)
 
-    # Methods defined on the Behavior should have their return type
+    # Methods defined on the Agent should have their return type
     # wrapped in a future
     coro = handle.method()
     assert_type(coro, Coroutine[None, None, asyncio.Future[int]])  # type: ignore[unused-coroutine]

@@ -25,15 +25,15 @@ if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     AsyncQueue = Queue
 else:  # pragma: <3.13 cover
     # Use of queues here is isolated to a single thread/event loop so
-    # we only need culsans queues for the backport of shutdown() behavior
+    # we only need culsans queues for the backport of shutdown() agent
     from culsans import AsyncQueue
     from culsans import AsyncQueueShutDown as QueueShutDown
     from culsans import Queue
 
 import redis.asyncio
 
-from academy.behavior import Behavior
-from academy.behavior import BehaviorT
+from academy.agent import Agent
+from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
@@ -64,10 +64,10 @@ _SOCKET_POLL_TIMEOUT_MS = 50
 
 
 @dataclasses.dataclass
-class HybridAgentRegistration(Generic[BehaviorT]):
+class HybridAgentRegistration(Generic[AgentT]):
     """Agent registration for hybrid exchanges."""
 
-    agent_id: AgentId[BehaviorT]
+    agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
 
 
@@ -119,8 +119,8 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def _address_key(self, uid: EntityId) -> str:
         return f'{self._namespace}:address:{uuid_to_base32(uid.uid)}'
 
-    def _behavior_key(self, aid: AgentId[Any]) -> str:
-        return f'{self._namespace}:behavior:{uuid_to_base32(aid.uid)}'
+    def _agent_key(self, aid: AgentId[Any]) -> str:
+        return f'{self._namespace}:agent:{uuid_to_base32(aid.uid)}'
 
     def _status_key(self, uid: EntityId) -> str:
         return f'{self._namespace}:status:{uuid_to_base32(uid.uid)}'
@@ -221,14 +221,14 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        behavior: type[Behavior],
+        agent: type[Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
-        fqp = f'{behavior.__module__}.{behavior.__name__}'
+        fqp = f'{agent.__module__}.{agent.__name__}'
         async for key in self._redis_client.scan_iter(  # pragma: no branch
-            f'{self._namespace}:behavior:*',
+            f'{self._namespace}:agent:*',
         ):
             mro_str = await self._redis_client.get(key)
             assert isinstance(mro_str, str)
@@ -270,18 +270,18 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
-    ) -> HybridAgentRegistration[BehaviorT]:
-        aid: AgentId[BehaviorT] = AgentId.new(name=name)
+    ) -> HybridAgentRegistration[AgentT]:
+        aid: AgentId[AgentT] = AgentId.new(name=name)
         await self._redis_client.set(
             self._status_key(aid),
             _MailboxState.ACTIVE.value,
         )
         await self._redis_client.set(
-            self._behavior_key(aid),
-            ','.join(behavior.behavior_mro()),
+            self._agent_key(aid),
+            ','.join(agent.agent_mro()),
         )
         return HybridAgentRegistration(agent_id=aid)
 
@@ -363,7 +363,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # This assumes that only one entity is reading from the mailbox.
         await self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
         if isinstance(uid, AgentId):
-            await self._redis_client.delete(self._behavior_key(uid))
+            await self._redis_client.delete(self._agent_key(uid))
 
     async def _get_message_from_redis(self) -> None:
         # Block indefinitely with timeout=0

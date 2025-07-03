@@ -36,7 +36,7 @@ if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     AsyncQueue = Queue
 else:  # pragma: <3.13 cover
     # Use of queues here is isolated to a single thread/event loop so
-    # we only need culsans queues for the backport of shutdown() behavior
+    # we only need culsans queues for the backport of shutdown() agent
     from culsans import AsyncQueue
     from culsans import AsyncQueueShutDown as QueueShutDown
     from culsans import Queue
@@ -87,7 +87,7 @@ class _MailboxManager:
         self._owners: dict[EntityId, str | None] = {}
         self._mailboxes: dict[EntityId, AsyncQueue[Message]] = {}
         self._terminated: set[EntityId] = set()
-        self._behaviors: dict[AgentId[Any], tuple[str, ...]] = {}
+        self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
 
     def has_permissions(
         self,
@@ -117,7 +117,7 @@ class _MailboxManager:
         self,
         client: str | None,
         uid: EntityId,
-        behavior: tuple[str, ...] | None = None,
+        agent: tuple[str, ...] | None = None,
     ) -> None:
         if not self.has_permissions(client, uid):
             raise ForbiddenError(
@@ -133,8 +133,8 @@ class _MailboxManager:
             self._mailboxes[uid] = queue
             self._terminated.discard(uid)
             self._owners[uid] = client
-            if behavior is not None and isinstance(uid, AgentId):
-                self._behaviors[uid] = behavior
+            if agent is not None and isinstance(uid, AgentId):
+                self._agents[uid] = agent
             logger.info('Created mailbox for %s', uid)
 
     async def terminate(self, client: str | None, uid: EntityId) -> None:
@@ -152,18 +152,16 @@ class _MailboxManager:
     async def discover(
         self,
         client: str | None,
-        behavior: str,
+        agent: str,
         allow_subclasses: bool,
     ) -> list[AgentId[Any]]:
         found: list[AgentId[Any]] = []
-        for aid, behaviors in self._behaviors.items():
+        for aid, agents in self._agents.items():
             if not self.has_permissions(client, aid):
                 continue
             if aid in self._terminated:
                 continue
-            if behavior == behaviors[0] or (
-                allow_subclasses and behavior in behaviors
-            ):
+            if agent == agents[0] or (allow_subclasses and agent in agents):
                 found.append(aid)
         return found
 
@@ -216,10 +214,8 @@ async def _create_mailbox_route(request: Request) -> Response:
         mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
             raw_mailbox_id,
         )
-        behavior_raw = data.get('behavior', None)
-        behavior = (
-            behavior_raw.split(',') if behavior_raw is not None else None
-        )
+        agent_raw = data.get('agent', None)
+        agent = agent_raw.split(',') if agent_raw is not None else None
     except (KeyError, ValidationError):
         return Response(
             status=StatusCode.BAD_REQUEST.value,
@@ -228,7 +224,7 @@ async def _create_mailbox_route(request: Request) -> Response:
 
     client_id = request.headers.get('client_id', None)
     try:
-        manager.create_mailbox(client_id, mailbox_id, behavior)
+        manager.create_mailbox(client_id, mailbox_id, agent)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,
@@ -268,7 +264,7 @@ async def _discover_route(request: Request) -> Response:
     manager: _MailboxManager = request.app[MANAGER_KEY]
 
     try:
-        behavior = data['behavior']
+        agent = data['agent']
         allow_subclasses = data['allow_subclasses']
     except (KeyError, ValidationError):
         return Response(
@@ -279,7 +275,7 @@ async def _discover_route(request: Request) -> Response:
     client_id = request.headers.get('client_id', None)
     agent_ids = await manager.discover(
         client_id,
-        behavior,
+        agent,
         allow_subclasses,
     )
 

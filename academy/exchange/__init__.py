@@ -27,8 +27,8 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.behavior import Behavior
-from academy.behavior import BehaviorT
+from academy.agent import Agent
+from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
@@ -82,9 +82,9 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
 
     async def create_agent_client(
         self,
-        registration: AgentRegistration[BehaviorT],
+        registration: AgentRegistration[AgentT],
         request_handler: RequestHandler,
-    ) -> AgentExchangeClient[BehaviorT, ExchangeTransportT]:
+    ) -> AgentExchangeClient[AgentT, ExchangeTransportT]:
         """Create a new agent exchange client.
 
         An agent must be registered with the exchange before an exchange
@@ -107,7 +107,7 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
             BadEntityIdError: If an agent with `registration.agent_id` is not
                 already registered with the exchange.
         """
-        agent_id: AgentId[BehaviorT] = registration.agent_id
+        agent_id: AgentId[AgentT] = registration.agent_id
         transport = await self._create_transport(
             mailbox_id=agent_id,
             registration=registration,
@@ -206,22 +206,22 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def discover(
         self,
-        behavior: type[Behavior],
+        agent: type[Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
-        """Discover peer agents with a given behavior.
+        """Discover peer agents with a given agent.
 
         Args:
-            behavior: Behavior type of interest.
+            agent: Agent type of interest.
             allow_subclasses: Return agents implementing subclasses of the
-                behavior.
+                agent.
 
         Returns:
-            Tuple of agent IDs implementing the behavior.
+            Tuple of agent IDs implementing the agent.
         """
         return await self._transport.discover(
-            behavior,
+            agent,
             allow_subclasses=allow_subclasses,
         )
 
@@ -229,7 +229,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Get an exchange factory."""
         return self._transport.factory()
 
-    def get_handle(self, aid: AgentId[BehaviorT]) -> RemoteHandle[BehaviorT]:
+    def get_handle(self, aid: AgentId[AgentT]) -> RemoteHandle[AgentT]:
         """Create a new handle to an agent.
 
         A handle acts like a reference to a remote agent, enabling a user
@@ -258,21 +258,21 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
-    ) -> AgentRegistration[BehaviorT]:
+    ) -> AgentRegistration[AgentT]:
         """Register a new agent and associated mailbox with the exchange.
 
         Args:
-            behavior: Behavior type of the agent.
+            agent: Agent type of the agent.
             name: Optional display name for the agent.
 
         Returns:
             Agent registration info.
         """
         registration = await self._transport.register_agent(
-            behavior,
+            agent,
             name=name,
         )
         logger.info('Registered %s in exchange', registration.agent_id)
@@ -333,7 +333,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
 class AgentExchangeClient(
     ExchangeClient[ExchangeTransportT],
-    Generic[BehaviorT, ExchangeTransportT],
+    Generic[AgentT, ExchangeTransportT],
 ):
     """Agent exchange client.
 
@@ -351,7 +351,7 @@ class AgentExchangeClient(
 
     def __init__(
         self,
-        agent_id: AgentId[BehaviorT],
+        agent_id: AgentId[AgentT],
         transport: ExchangeTransportT,
         request_handler: RequestHandler,
     ) -> None:
@@ -360,7 +360,7 @@ class AgentExchangeClient(
         self._request_handler = request_handler
 
     @property
-    def client_id(self) -> AgentId[BehaviorT]:
+    def client_id(self) -> AgentId[AgentT]:
         """Agent ID of the client."""
         return self._agent_id
 

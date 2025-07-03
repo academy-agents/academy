@@ -7,9 +7,9 @@ from unittest import mock
 
 import pytest
 
-from academy.behavior import action
-from academy.behavior import Behavior
-from academy.behavior import loop
+from academy.agent import action
+from academy.agent import Agent
+from academy.agent import loop
 from academy.context import ActionContext
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
@@ -27,16 +27,16 @@ from academy.message import ActionResponse
 from academy.message import PingRequest
 from academy.message import PingResponse
 from academy.message import ShutdownRequest
-from academy.runtime import _bind_behavior_handles
+from academy.runtime import _bind_agent_handles
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
-from testing.behavior import CounterBehavior
-from testing.behavior import EmptyBehavior
-from testing.behavior import ErrorBehavior
+from testing.agents import CounterAgent
+from testing.agents import EmptyAgent
+from testing.agents import ErrorAgent
 from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 
 
-class SignalingBehavior(Behavior):
+class SignalingAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
         self.setup_event = asyncio.Event()
@@ -55,54 +55,54 @@ class SignalingBehavior(Behavior):
 
 @pytest.mark.asyncio
 async def test_agent_run(exchange: UserExchangeClient[Any]) -> None:
-    registration = await exchange.register_agent(SignalingBehavior)
-    agent = Runtime(
-        SignalingBehavior(),
+    registration = await exchange.register_agent(SignalingAgent)
+    runtime = Runtime(
+        SignalingAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
     )
-    assert isinstance(repr(agent), str)
-    assert isinstance(str(agent), str)
+    assert isinstance(repr(runtime), str)
+    assert isinstance(str(runtime), str)
 
-    await agent.run()
+    await runtime.run()
 
     with pytest.raises(RuntimeError, match='Agent has already been shutdown.'):
-        await agent.run()
+        await runtime.run()
 
-    assert agent.behavior.setup_event.is_set()
-    assert agent.behavior.shutdown_event.is_set()
+    assert runtime.agent.setup_event.is_set()
+    assert runtime.agent.shutdown_event.is_set()
 
 
 @pytest.mark.asyncio
 async def test_agent_run_in_task(exchange: UserExchangeClient[Any]) -> None:
-    registration = await exchange.register_agent(SignalingBehavior)
-    agent = Runtime(
-        SignalingBehavior(),
+    registration = await exchange.register_agent(SignalingAgent)
+    runtime = Runtime(
+        SignalingAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
     )
 
-    task = asyncio.create_task(agent.run(), name='test-agent-run-in-task')
+    task = asyncio.create_task(runtime.run(), name='test-agent-run-in-task')
     await task
 
-    assert agent.behavior.setup_event.is_set()
-    assert agent.behavior.shutdown_event.is_set()
+    assert runtime.agent.setup_event.is_set()
+    assert runtime.agent.shutdown_event.is_set()
 
 
 @pytest.mark.asyncio
 async def test_agent_shutdown_without_terminate(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(SignalingBehavior)
-    agent = Runtime(
-        SignalingBehavior(),
+    registration = await exchange.register_agent(SignalingAgent)
+    runtime = Runtime(
+        SignalingAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
         config=RuntimeConfig(terminate_on_success=False),
     )
-    await agent.run()
-    assert agent._shutdown_options.expected_shutdown
-    assert await exchange.status(agent.agent_id) == MailboxStatus.ACTIVE
+    await runtime.run()
+    assert runtime._shutdown_options.expected_shutdown
+    assert await exchange.status(runtime.agent_id) == MailboxStatus.ACTIVE
 
 
 @pytest.mark.asyncio
@@ -112,10 +112,10 @@ async def test_agent_shutdown_terminate_override(
     async with await local_exchange_factory.create_user_client(
         start_listener=False,
     ) as exchange:
-        registration = await exchange.register_agent(EmptyBehavior)
+        registration = await exchange.register_agent(EmptyAgent)
 
-        agent = Runtime(
-            EmptyBehavior(),
+        runtime = Runtime(
+            EmptyAgent(),
             exchange_factory=exchange.factory(),
             registration=registration,
             config=RuntimeConfig(
@@ -124,20 +124,20 @@ async def test_agent_shutdown_terminate_override(
             ),
         )
         task = asyncio.create_task(
-            agent.run(),
+            runtime.run(),
             name='test-agent-shutdown-terminate-override',
         )
-        await agent._started_event.wait()
+        await runtime._started_event.wait()
 
         shutdown = ShutdownRequest(
             src=exchange.client_id,
-            dest=agent.agent_id,
+            dest=runtime.agent_id,
             terminate=True,
         )
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
         assert (
-            await exchange.status(agent.agent_id) == MailboxStatus.TERMINATED
+            await exchange.status(runtime.agent_id) == MailboxStatus.TERMINATED
         )
 
 
@@ -145,22 +145,22 @@ async def test_agent_shutdown_terminate_override(
 async def test_agent_startup_failure(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(SignalingBehavior)
-    agent = Runtime(
-        SignalingBehavior(),
+    registration = await exchange.register_agent(SignalingAgent)
+    runtime = Runtime(
+        SignalingAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
     )
 
-    with mock.patch.object(agent, '_start', side_effect=Exception('Oops!')):
+    with mock.patch.object(runtime, '_start', side_effect=Exception('Oops!')):
         with pytest.raises(Exception, match='Oops!'):
-            await agent.run()
+            await runtime.run()
 
-    assert not agent.behavior.setup_event.is_set()
-    assert not agent.behavior.shutdown_event.is_set()
+    assert not runtime.agent.setup_event.is_set()
+    assert not runtime.agent.shutdown_event.is_set()
 
 
-class LoopFailureBehavior(Behavior):
+class LoopFailureAgent(Agent):
     @loop
     async def bad1(self, shutdown: asyncio.Event) -> None:
         raise RuntimeError('Loop failure 1.')
@@ -174,9 +174,9 @@ class LoopFailureBehavior(Behavior):
 async def test_loop_failure_triggers_shutdown(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(LoopFailureBehavior)
-    agent = Runtime(
-        LoopFailureBehavior(),
+    registration = await exchange.register_agent(LoopFailureAgent)
+    runtime = Runtime(
+        LoopFailureAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
     )
@@ -184,36 +184,36 @@ async def test_loop_failure_triggers_shutdown(
     if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
         # In Python 3.11 and later, all exceptions are raised in a group.
         with pytest.raises(ExceptionGroup) as exc_info:  # noqa: F821
-            await asyncio.wait_for(agent.run(), timeout=1)
+            await asyncio.wait_for(runtime.run(), timeout=1)
         assert len(exc_info.value.exceptions) == 2  # noqa: PLR2004
     else:  # pragma: <3.11 cover
         # In Python 3.10 and older, only the first error will be raised.
         with pytest.raises(RuntimeError, match='Loop failure'):
-            await asyncio.wait_for(agent.run(), timeout=1)
+            await asyncio.wait_for(runtime.run(), timeout=1)
 
 
 @pytest.mark.asyncio
 async def test_loop_failure_ignore_shutdown(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(LoopFailureBehavior)
-    agent = Runtime(
-        LoopFailureBehavior(),
+    registration = await exchange.register_agent(LoopFailureAgent)
+    runtime = Runtime(
+        LoopFailureAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
         config=RuntimeConfig(shutdown_on_loop_error=False),
     )
 
     task = asyncio.create_task(
-        agent.run(),
+        runtime.run(),
         name='test-loop-failure-ignore-shutdown',
     )
-    await agent._started_event.wait()
+    await runtime._started_event.wait()
 
     # Should timeout because agent did not shutdown after loop errors
     done, pending = await asyncio.wait({task}, timeout=0.001)
     assert len(done) == 0
-    agent.signal_shutdown()
+    runtime.signal_shutdown()
 
     # Loop errors raised on shutdown
     if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -231,17 +231,20 @@ async def test_loop_failure_ignore_shutdown(
 async def test_agent_shutdown_message(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
 
-    agent = Runtime(
-        EmptyBehavior(),
+    runtime = Runtime(
+        EmptyAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
     )
-    task = asyncio.create_task(agent.run(), name='test-agent-shutdown-message')
-    await agent._started_event.wait()
+    task = asyncio.create_task(
+        runtime.run(),
+        name='test-agent-shutdown-message',
+    )
+    await runtime._started_event.wait()
 
-    shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
+    shutdown = ShutdownRequest(src=exchange.client_id, dest=runtime.agent_id)
     await exchange.send(shutdown)
     await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -253,22 +256,28 @@ async def test_agent_ping_message(
     async with await local_exchange_factory.create_user_client(
         start_listener=False,
     ) as exchange:
-        registration = await exchange.register_agent(EmptyBehavior)
+        registration = await exchange.register_agent(EmptyAgent)
 
-        agent = Runtime(
-            EmptyBehavior(),
+        runtime = Runtime(
+            EmptyAgent(),
             exchange_factory=exchange.factory(),
             registration=registration,
         )
-        task = asyncio.create_task(agent.run(), name='test-agent-ping-message')
-        await agent._started_event.wait()
+        task = asyncio.create_task(
+            runtime.run(),
+            name='test-agent-ping-message',
+        )
+        await runtime._started_event.wait()
 
-        ping = PingRequest(src=exchange.client_id, dest=agent.agent_id)
+        ping = PingRequest(src=exchange.client_id, dest=runtime.agent_id)
         await exchange.send(ping)
         message = await exchange._transport.recv()
         assert isinstance(message, PingResponse)
 
-        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(
+            src=exchange.client_id,
+            dest=runtime.agent_id,
+        )
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -280,23 +289,23 @@ async def test_agent_action_message(
     async with await local_exchange_factory.create_user_client(
         start_listener=False,
     ) as exchange:
-        registration = await exchange.register_agent(CounterBehavior)
+        registration = await exchange.register_agent(CounterAgent)
 
-        agent = Runtime(
-            CounterBehavior(),
+        runtime = Runtime(
+            CounterAgent(),
             exchange_factory=exchange.factory(),
             registration=registration,
         )
         task = asyncio.create_task(
-            agent.run(),
+            runtime.run(),
             name='test-agent-action-message',
         )
-        await agent._started_event.wait()
+        await runtime._started_event.wait()
 
         value = 42
         request = ActionRequest(
             src=exchange.client_id,
-            dest=agent.agent_id,
+            dest=runtime.agent_id,
             action='add',
             pargs=(value,),
         )
@@ -308,7 +317,7 @@ async def test_agent_action_message(
 
         request = ActionRequest(
             src=exchange.client_id,
-            dest=agent.agent_id,
+            dest=runtime.agent_id,
             action='count',
         )
         await exchange.send(request)
@@ -317,7 +326,10 @@ async def test_agent_action_message(
         assert message.exception is None
         assert message.result == value
 
-        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(
+            src=exchange.client_id,
+            dest=runtime.agent_id,
+        )
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -329,22 +341,22 @@ async def test_agent_action_message_error(
     async with await local_exchange_factory.create_user_client(
         start_listener=False,
     ) as exchange:
-        registration = await exchange.register_agent(ErrorBehavior)
+        registration = await exchange.register_agent(ErrorAgent)
 
-        agent = Runtime(
-            ErrorBehavior(),
+        runtime = Runtime(
+            ErrorAgent(),
             exchange_factory=exchange.factory(),
             registration=registration,
         )
         task = asyncio.create_task(
-            agent.run(),
+            runtime.run(),
             name='test-agent-action-message-error',
         )
-        await agent._started_event.wait()
+        await runtime._started_event.wait()
 
         request = ActionRequest(
             src=exchange.client_id,
-            dest=agent.agent_id,
+            dest=runtime.agent_id,
             action='fails',
         )
         await exchange.send(request)
@@ -353,7 +365,10 @@ async def test_agent_action_message_error(
         assert isinstance(message.exception, RuntimeError)
         assert 'This action always fails.' in str(message.exception)
 
-        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(
+            src=exchange.client_id,
+            dest=runtime.agent_id,
+        )
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -365,22 +380,22 @@ async def test_agent_action_message_unknown(
     async with await local_exchange_factory.create_user_client(
         start_listener=False,
     ) as exchange:
-        registration = await exchange.register_agent(EmptyBehavior)
+        registration = await exchange.register_agent(EmptyAgent)
 
-        agent = Runtime(
-            EmptyBehavior(),
+        runtime = Runtime(
+            EmptyAgent(),
             exchange_factory=exchange.factory(),
             registration=registration,
         )
         task = asyncio.create_task(
-            agent.run(),
+            runtime.run(),
             name='test-agent-action-message-unknown',
         )
-        await agent._started_event.wait()
+        await runtime._started_event.wait()
 
         request = ActionRequest(
             src=exchange.client_id,
-            dest=agent.agent_id,
+            dest=runtime.agent_id,
             action='null',
         )
         await exchange.send(request)
@@ -389,20 +404,23 @@ async def test_agent_action_message_unknown(
         assert isinstance(message.exception, AttributeError)
         assert 'null' in str(message.exception)
 
-        shutdown = ShutdownRequest(src=exchange.client_id, dest=agent.agent_id)
+        shutdown = ShutdownRequest(
+            src=exchange.client_id,
+            dest=runtime.agent_id,
+        )
         await exchange.send(shutdown)
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 
 @pytest.mark.asyncio
-async def test_behavior_handles_bind(
+async def test_agent_handles_bind(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    class _TestBehavior(Behavior):
+    class _TestAgent(Agent):
         def __init__(
             self,
-            handle: Handle[EmptyBehavior],
-            proxy: ProxyHandle[EmptyBehavior],
+            handle: Handle[EmptyAgent],
+            proxy: ProxyHandle[EmptyAgent],
         ) -> None:
             super().__init__()
             self.direct = handle
@@ -411,10 +429,10 @@ async def test_behavior_handles_bind(
             self.mapping = HandleDict({'x': handle})
 
     factory = exchange.factory()
-    registration = await exchange.register_agent(_TestBehavior)
-    proxy_handle = ProxyHandle(EmptyBehavior())
+    registration = await exchange.register_agent(_TestAgent)
+    proxy_handle = ProxyHandle(EmptyAgent())
     unbound_handle = UnboundRemoteHandle(
-        (await exchange.register_agent(EmptyBehavior)).agent_id,
+        (await exchange.register_agent(EmptyAgent)).agent_id,
     )
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
@@ -424,23 +442,23 @@ async def test_behavior_handles_bind(
         registration,
         _request_handler,
     ) as agent_client:
-        behavior = _TestBehavior(unbound_handle, proxy_handle)
-        _bind_behavior_handles(behavior, agent_client)
+        agent = _TestAgent(unbound_handle, proxy_handle)
+        _bind_agent_handles(agent, agent_client)
 
-        assert behavior.proxy is proxy_handle
-        assert behavior.direct.client_id == agent_client.client_id
-        for handle in behavior.sequence:
+        assert agent.proxy is proxy_handle
+        assert agent.direct.client_id == agent_client.client_id
+        for handle in agent.sequence:
             assert handle.client_id == agent_client.client_id
-        for handle in behavior.mapping.values():
+        for handle in agent.mapping.values():
             assert handle.client_id == agent_client.client_id
 
 
-class HandleBindingBehavior(Behavior):
+class HandleBindingAgent(Agent):
     def __init__(
         self,
-        unbound: UnboundRemoteHandle[EmptyBehavior],
-        agent_bound: RemoteHandle[EmptyBehavior],
-        self_bound: RemoteHandle[EmptyBehavior],
+        unbound: UnboundRemoteHandle[EmptyAgent],
+        agent_bound: RemoteHandle[EmptyAgent],
+        self_bound: RemoteHandle[EmptyAgent],
     ) -> None:
         self.unbound = unbound
         self.agent_bound = agent_bound
@@ -461,10 +479,10 @@ async def test_agent_run_bind_handles(
     exchange: UserExchangeClient[Any],
 ) -> None:
     factory = exchange.factory()
-    main_agent_reg = await exchange.register_agent(HandleBindingBehavior)
-    remote_agent1_reg = await exchange.register_agent(EmptyBehavior)
+    main_agent_reg = await exchange.register_agent(HandleBindingAgent)
+    remote_agent1_reg = await exchange.register_agent(EmptyAgent)
     remote_agent1_id = remote_agent1_reg.agent_id
-    remote_agent2_reg = await exchange.register_agent(EmptyBehavior)
+    remote_agent2_reg = await exchange.register_agent(EmptyAgent)
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
         pass
@@ -478,7 +496,7 @@ async def test_agent_run_bind_handles(
         _request_handler,
     )
 
-    behavior = HandleBindingBehavior(
+    agent = HandleBindingAgent(
         unbound=UnboundRemoteHandle(remote_agent1_id),
         agent_bound=RemoteHandle(remote_agent2_client, remote_agent1_id),
         self_bound=RemoteHandle(main_agent_client, remote_agent1_id),
@@ -489,25 +507,28 @@ async def test_agent_run_bind_handles(
     # it to mock a handle already bound to the agent.
     await main_agent_client.close()
 
-    agent = Runtime(
-        behavior,
+    runtime = Runtime(
+        agent,
         exchange_factory=factory,
         registration=main_agent_reg,
     )
-    task = asyncio.create_task(agent.run(), name='test-agent-run-bind-handles')
-    await agent._started_event.wait()
+    task = asyncio.create_task(
+        runtime.run(),
+        name='test-agent-run-bind-handles',
+    )
+    await runtime._started_event.wait()
 
     # The self-bound remote handles should be ignored.
-    assert agent._exchange_client is not None
-    assert len(agent._exchange_client._handles) == 2  # noqa: PLR2004
+    assert runtime._exchange_client is not None
+    assert len(runtime._exchange_client._handles) == 2  # noqa: PLR2004
 
-    agent.signal_shutdown()
+    runtime.signal_shutdown()
     await task
     await remote_agent2_client.close()
 
 
-class RunBehavior(Behavior):
-    def __init__(self, doubler: Handle[DoubleBehavior]) -> None:
+class RunAgent(Agent):
+    def __init__(self, doubler: Handle[DoubleAgent]) -> None:
         super().__init__()
         self.doubler = doubler
 
@@ -520,7 +541,7 @@ class RunBehavior(Behavior):
         return await (await self.doubler.action('double', value))
 
 
-class DoubleBehavior(Behavior):
+class DoubleAgent(Agent):
     @action
     async def double(self, value: int) -> int:
         return 2 * value
@@ -530,32 +551,32 @@ class DoubleBehavior(Behavior):
 async def test_agent_to_agent_handles(local_exchange_factory) -> None:
     factory = local_exchange_factory
     async with await factory.create_user_client() as client:
-        runner_info = await client.register_agent(RunBehavior)
-        doubler_info = await client.register_agent(DoubleBehavior)
+        runner_info = await client.register_agent(RunAgent)
+        doubler_info = await client.register_agent(DoubleAgent)
 
         runner_handle = client.get_handle(runner_info.agent_id)
         doubler_handle = client.get_handle(doubler_info.agent_id)
 
-        runner_behavior = RunBehavior(doubler_handle)
-        doubler_behavior = DoubleBehavior()
+        runner_agent = RunAgent(doubler_handle)
+        doubler_agent = DoubleAgent()
 
-        runner_agent = Runtime(
-            runner_behavior,
+        runner_runtime = Runtime(
+            runner_agent,
             exchange_factory=factory,
             registration=runner_info,
         )
-        doubler_agent = Runtime(
-            doubler_behavior,
+        doubler_runtime = Runtime(
+            doubler_agent,
             exchange_factory=factory,
             registration=doubler_info,
         )
 
         runner_task = asyncio.create_task(
-            runner_agent.run(),
+            runner_runtime.run(),
             name='test-agent-to-agent-handles-runner',
         )
         doubler_task = asyncio.create_task(
-            doubler_agent.run(),
+            doubler_runtime.run(),
             name='test-agent-to-agent-handles-doubler',
         )
 
@@ -571,7 +592,7 @@ async def test_agent_to_agent_handles(local_exchange_factory) -> None:
         await runner_handle.close()
 
 
-class ShutdownBehavior(Behavior):
+class ShutdownAgent(Agent):
     @action
     async def end(self) -> None:
         self.agent_shutdown()
@@ -581,20 +602,23 @@ class ShutdownBehavior(Behavior):
 async def test_agent_self_termination(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(ShutdownBehavior)
-    agent = Runtime(
-        ShutdownBehavior(),
+    registration = await exchange.register_agent(ShutdownAgent)
+    runtime = Runtime(
+        ShutdownAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
     )
 
-    task = asyncio.create_task(agent.run(), name='test-agent-self-termination')
-    await agent._started_event.wait()
-    await agent.action('end', AgentId.new(), args=(), kwargs={})
+    task = asyncio.create_task(
+        runtime.run(),
+        name='test-agent-self-termination',
+    )
+    await runtime._started_event.wait()
+    await runtime.action('end', AgentId.new(), args=(), kwargs={})
     await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 
-class ContextBehavior(Behavior):
+class ContextAgent(Agent):
     @action(context=True)
     async def call(
         self,
@@ -609,20 +633,20 @@ class ContextBehavior(Behavior):
 async def test_agent_action_context(
     exchange: UserExchangeClient[Any],
 ) -> None:
-    registration = await exchange.register_agent(ShutdownBehavior)
-    agent = Runtime(
-        ContextBehavior(),
+    registration = await exchange.register_agent(ShutdownAgent)
+    runtime = Runtime(
+        ContextAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
     )
 
-    task = asyncio.create_task(agent.run(), name='test-agent-action-context')
-    await agent._started_event.wait()
-    await agent.action(
+    task = asyncio.create_task(runtime.run(), name='test-agent-action-context')
+    await runtime._started_event.wait()
+    await runtime.action(
         'call',
         exchange.client_id,
         args=(exchange.client_id,),
         kwargs={},
     )
-    agent.signal_shutdown()
+    runtime.signal_shutdown()
     await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)

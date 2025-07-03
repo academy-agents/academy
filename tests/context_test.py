@@ -8,7 +8,7 @@ from academy.context import ActionContext
 from academy.exchange import UserExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import UserId
-from testing.behavior import EmptyBehavior
+from testing.agents import EmptyAgent
 
 
 @pytest.mark.asyncio
@@ -16,8 +16,8 @@ async def test_action_context_agent_source(
     exchange: UserExchangeClient[Any],
 ) -> None:
     factory = exchange.factory()
-    source_id: AgentId[EmptyBehavior] = AgentId.new()
-    registration = await exchange.register_agent(EmptyBehavior)
+    source_id: AgentId[EmptyAgent] = AgentId.new()
+    registration = await exchange.register_agent(EmptyAgent)
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
         pass
@@ -41,7 +41,7 @@ async def test_action_context_user_source(
 ) -> None:
     factory = exchange.factory()
     source_id = UserId.new()
-    registration = await exchange.register_agent(EmptyBehavior)
+    registration = await exchange.register_agent(EmptyAgent)
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
         pass

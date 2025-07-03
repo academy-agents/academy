@@ -18,8 +18,8 @@ else:  # pragma: <3.11 cover
 
 import redis.asyncio
 
-from academy.behavior import Behavior
-from academy.behavior import BehaviorT
+from academy.agent import Agent
+from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
@@ -49,10 +49,10 @@ class _MailboxState(enum.Enum):
 
 
 @dataclasses.dataclass
-class RedisAgentRegistration(Generic[BehaviorT]):
+class RedisAgentRegistration(Generic[AgentT]):
     """Agent registration for redis exchanges."""
 
-    agent_id: AgentId[BehaviorT]
+    agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
 
 
@@ -73,8 +73,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def _active_key(self, uid: EntityId) -> str:
         return f'active:{uid.uid}'
 
-    def _behavior_key(self, uid: AgentId[Any]) -> str:
-        return f'behavior:{uid.uid}'
+    def _agent_key(self, uid: AgentId[Any]) -> str:
+        return f'agent:{uid.uid}'
 
     def _queue_key(self, uid: EntityId) -> str:
         return f'queue:{uid.uid}'
@@ -131,14 +131,14 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        behavior: type[Behavior],
+        agent: type[Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
-        fqp = f'{behavior.__module__}.{behavior.__name__}'
+        fqp = f'{agent.__module__}.{agent.__name__}'
         async for key in self._client.scan_iter(
-            'behavior:*',
+            'agent:*',
         ):  # pragma: no branch
             mro_str = await self._client.get(key)
             assert isinstance(mro_str, str)
@@ -195,18 +195,18 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def register_agent(
         self,
-        behavior: type[BehaviorT],
+        agent: type[AgentT],
         *,
         name: str | None = None,
-    ) -> RedisAgentRegistration[BehaviorT]:
-        aid: AgentId[BehaviorT] = AgentId.new(name=name)
+    ) -> RedisAgentRegistration[AgentT]:
+        aid: AgentId[AgentT] = AgentId.new(name=name)
         await self._client.set(
             self._active_key(aid),
             _MailboxState.ACTIVE.value,
         )
         await self._client.set(
-            self._behavior_key(aid),
-            ','.join(behavior.behavior_mro()),
+            self._agent_key(aid),
+            ','.join(agent.agent_mro()),
         )
         return RedisAgentRegistration(agent_id=aid)
 
@@ -241,7 +241,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # This assumes that only one entity is reading from the mailbox.
         await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
         if isinstance(uid, AgentId):
-            await self._client.delete(self._behavior_key(uid))
+            await self._client.delete(self._agent_key(uid))
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

@@ -14,9 +14,9 @@ from academy.identifier import EntityId
 from academy.identifier import UserId
 
 if TYPE_CHECKING:
-    from academy.behavior import BehaviorT
+    from academy.agent import AgentT
 else:
-    BehaviorT = TypeVar('BehaviorT')
+    AgentT = TypeVar('AgentT')
 
 
 class ActionContext:
@@ -66,12 +66,12 @@ class ActionContext:
 
 
 @dataclasses.dataclass(frozen=True)
-class AgentContext(Generic[BehaviorT]):
+class AgentContext(Generic[AgentT]):
     """Agent runtime context."""
 
-    agent_id: AgentId[BehaviorT]
+    agent_id: AgentId[AgentT]
     """ID of the exchange as registered with the exchange."""
-    exchange_client: AgentExchangeClient[BehaviorT, Any]
+    exchange_client: AgentExchangeClient[AgentT, Any]
     """Client used by agent to communicate with the exchange."""
     shutdown_event: asyncio.Event
     """Shutdown event used to signal the agent to shutdown."""

@@ -14,7 +14,7 @@ from academy.exchange.hybrid import uuid_to_base32
 from academy.identifier import UserId
 from academy.message import PingRequest
 from academy.socket import open_port
-from testing.behavior import EmptyBehavior
+from testing.agents import EmptyAgent
 from testing.constant import TEST_CONNECTION_TIMEOUT
 
 
@@ -70,7 +70,7 @@ async def test_send_to_mailbox_indirect(
     factory = hybrid_exchange_factory
     messages = 3
     async with await factory._create_transport() as transport1:
-        aid = (await transport1.register_agent(EmptyBehavior)).agent_id
+        aid = (await transport1.register_agent(EmptyAgent)).agent_id
         message = PingRequest(src=transport1.mailbox_id, dest=aid)
         for _ in range(messages):
             await transport1.send(message)
@@ -108,7 +108,7 @@ async def test_send_to_mailbox_bad_cached_address(
     factory = hybrid_exchange_factory
     port1, port2 = open_port(), open_port()
     async with await factory._create_transport() as transport1:
-        aid = (await transport1.register_agent(EmptyBehavior)).agent_id
+        aid = (await transport1.register_agent(EmptyAgent)).agent_id
 
         factory1 = HybridExchangeFactory(
             redis_host='localhost',

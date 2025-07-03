@@ -10,7 +10,7 @@ from typing import Callable
 from typing import Generic
 from typing import TypeVar
 
-from academy.behavior import BehaviorT
+from academy.agent import AgentT
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import ExchangeError
@@ -67,7 +67,7 @@ class RuntimeConfig:
     terminate_on_success: bool = True
 
 
-class Runtime(Generic[BehaviorT], NoPickleMixin):
+class Runtime(Generic[AgentT], NoPickleMixin):
     """Agent runtime manager.
 
     The runtime is used to execute an agent by managing stateful resources,
@@ -83,7 +83,7 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
         to shutdown if `shutdown_on_loop_error` is set in the `config`.
 
     Args:
-        behavior: Behavior that the agent will exhibit.
+        agent: Agent that the agent will exhibit.
         exchange_factory: Message exchange factory.
         registration: Agent registration info returned by the exchange.
         config: Agent execution parameters.
@@ -91,43 +91,43 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
 
     def __init__(
         self,
-        behavior: BehaviorT,
+        agent: AgentT,
         *,
         exchange_factory: ExchangeFactory[ExchangeTransportT],
         registration: AgentRegistrationT,
         config: RuntimeConfig | None = None,
     ) -> None:
         self.agent_id = registration.agent_id
-        self.behavior = behavior
+        self.agent = agent
         self.factory = exchange_factory
         self.registration = registration
         self.config = config if config is not None else RuntimeConfig()
 
-        self._actions = behavior.behavior_actions()
-        self._loops = behavior.behavior_loops()
+        self._actions = agent.agent_actions()
+        self._loops = agent.agent_loops()
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
         self._shutdown_options = _ShutdownState()
-        self._behavior_startup_called = False
+        self._agent_startup_called = False
 
         self._action_tasks: dict[ActionRequest, asyncio.Task[None]] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
         self._loop_exceptions: list[tuple[str, Exception]] = []
 
         self._exchange_client: (
-            AgentExchangeClient[BehaviorT, ExchangeTransportT] | None
+            AgentExchangeClient[AgentT, ExchangeTransportT] | None
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
 
     def __repr__(self) -> str:
         name = type(self).__name__
-        return f'{name}({self.behavior!r}, {self._exchange_client!r})'
+        return f'{name}({self.agent!r}, {self._exchange_client!r})'
 
     def __str__(self) -> str:
         name = type(self).__name__
-        behavior = type(self.behavior).__name__
-        return f'{name}<{behavior}; {self.agent_id}>'
+        agent = type(self.agent).__name__
+        return f'{name}<{agent}; {self.agent_id}>'
 
     async def _send_response(self, response: ResponseMessage) -> None:
         assert self._exchange_client is not None
@@ -206,7 +206,7 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
         args: Any,
         kwargs: Any,
     ) -> Any:
-        """Invoke an action of the agent's behavior.
+        """Invoke an action of the agent's agent.
 
         Args:
             action: Name of action to invoke.
@@ -219,12 +219,12 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
 
         Raises:
             AttributeError: If an action with this name is not implemented by
-                the agent's behavior.
+                the agent's agent.
         """
         logger.debug('Invoking "%s" action on %s', action, self.agent_id)
         if action not in self._actions:
             raise AttributeError(
-                f'{self.behavior} does not have an action named "{action}".',
+                f'{self.agent} does not have an action named "{action}".',
             )
         action_method = self._actions[action]
         if action_method._action_method_context:
@@ -240,13 +240,13 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
         Agent setup involves:
 
         1. Creates a new exchange client for the agent.
-        1. Sets the runtime context on the behavior.
-        1. Binds all handles of the behavior to this agent's exchange client.
+        1. Sets the runtime context on the agent.
+        1. Binds all handles of the agent to this agent's exchange client.
         1. Starts a [`Task`][asyncio.Task] to listen for messages in the
            agent's mailbox in the exchange.
         1. Starts a [`Task`][asyncio.Task] for all control loops defined on
-           the behavior.
-        1. Calls [`Behavior.on_setup()`][academy.behavior.Behavior.on_setup].
+           the agent.
+        1. Calls [`Agent.on_setup()`][academy.agent.Agent.on_setup].
 
         After setup succeeds, this method waits for the agent to be shutdown,
         such as due to a failure in a control loop or receiving a shutdown
@@ -255,7 +255,7 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
         Agent shutdown involves:
 
         1. Calls
-           [`Behavior.on_shutdown()`][academy.behavior.Behavior.on_shutdown].
+           [`Agent.on_shutdown()`][academy.agent.Agent.on_shutdown].
         1. Cancels running control loop tasks.
         1. Cancels the mailbox message listener task so no new requests are
            received.
@@ -295,7 +295,7 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
         logger.debug(
             'Starting agent... (%s; %s)',
             self.agent_id,
-            self.behavior,
+            self.agent,
         )
 
         self._exchange_client = await self.factory.create_agent_client(
@@ -308,8 +308,8 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
             exchange_client=self._exchange_client,
             shutdown_event=self._shutdown_event,
         )
-        self.behavior._agent_set_context(context)
-        _bind_behavior_handles(self.behavior, self._exchange_client)
+        self.agent._agent_set_context(context)
+        _bind_agent_handles(self.agent, self._exchange_client)
 
         self._exchange_listener_task = asyncio.create_task(
             self._exchange_client._listen_for_messages(),
@@ -323,11 +323,11 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
             )
             self._loop_tasks[name] = task
 
-        await self.behavior.on_setup()
-        self._behavior_startup_called = True
+        await self.agent.on_setup()
+        self._agent_startup_called = True
 
         self._started_event.set()
-        logger.info('Running agent (%s; %s)', self.agent_id, self.behavior)
+        logger.info('Running agent (%s; %s)', self.agent_id, self.agent)
 
     def _should_terminate_mailbox(self) -> bool:
         # Inspects the shutdown options and the run config to determine
@@ -347,12 +347,12 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
             'Shutting down agent... (expected: %s; %s; %s)',
             self._shutdown_options.expected_shutdown,
             self.agent_id,
-            self.behavior,
+            self.agent,
         )
 
-        if self._behavior_startup_called:
+        if self._agent_startup_called:
             # Don't call on_shutdown() if we never called on_setup()
-            await self.behavior.on_shutdown()
+            await self.agent.on_shutdown()
 
         # Cancel running control loop tasks
         for task in self._loop_tasks.values():
@@ -375,7 +375,7 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
                 await self._exchange_client.terminate(self.agent_id)
             await self._exchange_client.close()
 
-        logger.info('Shutdown agent (%s; %s)', self.agent_id, self.behavior)
+        logger.info('Shutdown agent (%s; %s)', self.agent_id, self.agent)
 
     def signal_shutdown(
         self,
@@ -402,22 +402,22 @@ class Runtime(Generic[BehaviorT], NoPickleMixin):
         self._shutdown_event.set()
 
 
-def _bind_behavior_handles(
-    behavior: BehaviorT,
-    client: AgentExchangeClient[BehaviorT, Any],
+def _bind_agent_handles(
+    agent: AgentT,
+    client: AgentExchangeClient[AgentT, Any],
 ) -> None:
-    """Bind all handle instance attributes on a behavior.
+    """Bind all handle instance attributes on a agent.
 
     Warning:
-        This mutates the behavior, replacing the attributes with new handles
+        This mutates the agent, replacing the attributes with new handles
         bound to the agent's exchange client.
 
     Args:
-        behavior: The behavior to bind handles on.
+        agent: The agent to bind handles on.
         client: The agent's exchange client used to bind the handles.
     """
 
-    def _bind(handle: Handle[BehaviorT]) -> Handle[BehaviorT]:
+    def _bind(handle: Handle[AgentT]) -> Handle[AgentT]:
         if isinstance(handle, ProxyHandle):
             return handle
         if (
@@ -431,19 +431,19 @@ def _bind_behavior_handles(
         logger.debug(
             'Bound %s of %s to %s',
             handle,
-            behavior,
+            agent,
             client.client_id,
         )
         return bound
 
-    for attr, handles in behavior.behavior_handles().items():
+    for attr, handles in agent.agent_handles().items():
         if isinstance(handles, HandleDict):
             bound_dict = HandleDict(
                 {k: _bind(h) for k, h in handles.items()},
             )
-            setattr(behavior, attr, bound_dict)
+            setattr(agent, attr, bound_dict)
         elif isinstance(handles, HandleList):
             bound_list = HandleList([_bind(h) for h in handles])
-            setattr(behavior, attr, bound_list)
+            setattr(agent, attr, bound_list)
         else:
-            setattr(behavior, attr, _bind(handles))
+            setattr(agent, attr, _bind(handles))

@@ -4,12 +4,12 @@ import pathlib
 
 import pytest
 
-from academy.behavior import action
-from academy.behavior import Behavior
+from academy.agent import action
+from academy.agent import Agent
 from academy.state import FileState
 
 
-class _StatefulBehavior(Behavior):
+class _StatefulAgent(Agent):
     def __init__(self, state_path: pathlib.Path) -> None:
         self.state_path = state_path
 
@@ -32,14 +32,14 @@ class _StatefulBehavior(Behavior):
 async def test_file_state(tmp_path: pathlib.Path) -> None:
     state_path = tmp_path / 'state.dbm'
 
-    behavior = _StatefulBehavior(state_path)
-    await behavior.on_setup()
+    agent = _StatefulAgent(state_path)
+    await agent.on_setup()
     key, value = 'foo', 'bar'
-    await behavior.modify_state(key, value)
-    assert await behavior.get_state(key) == value
-    await behavior.on_shutdown()
+    await agent.modify_state(key, value)
+    assert await agent.get_state(key) == value
+    await agent.on_shutdown()
 
-    behavior = _StatefulBehavior(state_path)
-    await behavior.on_setup()
-    assert await behavior.get_state(key) == value
-    await behavior.on_shutdown()
+    agent = _StatefulAgent(state_path)
+    await agent.on_setup()
+    assert await agent.get_state(key) == value
+    await agent.on_shutdown()

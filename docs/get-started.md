@@ -57,12 +57,12 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-1. Running agents implement a [`Agent`][academy.agent.Agent].
-2. Async behavior methods decorated with [`@action`][academy.agent.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
+1. Agents are with derived classes of [`Agent`][academy.agent.Agent].
+2. Async agent methods decorated with [`@action`][academy.agent.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
 3. The [`Manager`][academy.manager.Manager] is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.
 4. The [local exchange][academy.exchange.local.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
 5. The manager uses an [`Executor`][concurrent.futures.Executor] to run agents concurrently across parallel/distributed resources. Here, a [`ThreadPoolExecutor`][concurrent.futures.Executor] runs agents in different threads of the main process.
-6. An instantiated behavior (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
+6. An instantiated agent (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
 7. Interact with running agents via a [`RemoteHandle`][academy.handle.RemoteHandle]. Invoking an action returns a future to the result.
 8. Agents can be shutdown via a handle or the manager.
 
@@ -100,7 +100,7 @@ If an agent is shutdown before the control loops exit, the corresponding task wi
 ## Agent to Agent Interaction
 
 Agent handles can be passed to other agents to facilitate agent-to-agent interaction.
-Here, a `Coordinator` is initialized with handles to two other agents implementing the `Lowerer` and `Reverser` behaviors, respectively.
+Here, a `Coordinator` is initialized with handles to two other agents implementing the `Lowerer` and `Reverser` agents, respectively.
 
 ```python
 from academy.agent import action

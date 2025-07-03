@@ -64,9 +64,8 @@ async def main() -> int:
             # process pool executor.
             executors=executor,
         ) as manager:
-            # Launch each of the three agents, each implementing a different
-            # behavior. The returned type is a handle to that agent used to
-            # invoke actions.
+            # Launch each of the three agents types. The returned type is
+            # a handle to that agent used to invoke actions.
             lowerer = await manager.launch(Lowerer)
             reverser = await manager.launch(Reverser)
             coordinator = await manager.launch(

@@ -1868,7 +1868,13 @@ Agents are now derived from <a class="autorefs autorefs-internal" title="       
   " href="../../api/identifier/#academy.identifier.UserId"><code>academy.identifier.UserId</code></a>.</li>
 </ul>
 <h2 id="changes-to-agents">Changes to Agents<a class="headerlink" href="#changes-to-agents" title="Permanent link">&para;</a></h2>
-<p><a class="autorefs autorefs-internal" title="            Agent" href="../../api/agent/#academy.agent.Agent"><code>Agent</code></a> runtime context is now exposed via <code>agent_.*</code> properties and methods.</p>
+<p>All special methods provided by <a class="autorefs autorefs-internal" title="            Agent" href="../../api/agent/#academy.agent.Agent"><code>Agent</code></a> are named <code>agent_.*</code>.
+For example, the startup and shutdown callbacks have been renamed:</p>
+<ul>
+<li><code>Agent.on_setup</code> is renamed <code>Agent.agent_on_startup</code></li>
+<li><code>Agent.on_shutdown</code> is renamed <code>Agent.agent_on_shutdown</code></li>
+</ul>
+<p>Runtime context is now available via additional methods.</p>
 <h2 id="changes-to-exchanges">Changes to Exchanges<a class="headerlink" href="#changes-to-exchanges" title="Permanent link">&para;</a></h2>
 <p>The <code>Exchange</code> and <code>Mailbox</code> protocols have been merged into a single <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a> which comes in two forms:</p>
 <ul>

@@ -1915,21 +1915,21 @@ Instance attributes maintain the agent's state, and methods define the actions a
 <p>The <a class="autorefs autorefs-internal" title="            Runtime" href="../api/runtime/#academy.runtime.Runtime"><code>Runtime</code></a> manager takes an <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> and executes the agent by:
 (1) listening for new messages in the agent's mailbox and dispatching them appropriately,
 (2) starting each <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a> method,
-(3) calling the <a class="autorefs autorefs-internal" title="            on_setup
+(3) calling the <a class="autorefs autorefs-internal" title="            agent_on_startup
 
 
   
       async
-  " href="../api/agent/#academy.agent.Agent.on_setup"><code>on_setup()</code></a> callback,
+  " href="../api/agent/#academy.agent.Agent.agent_on_startup"><code>agent_on_startup()</code></a> callback,
 and (4) waiting for the agent to be shut down.
 Each <a class="autorefs autorefs-internal" title="            action" href="../api/agent/#academy.agent.action"><code>@action</code></a> method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.</p>
 <p>Agents are designed to be long-running, but can be terminated by sending a shutdown request.
-Upon shutdown, the shutdown <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event"><code>Event</code></a>, passed to each <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a>, is set; running tasks are cancelled and waited on; and the <a class="autorefs autorefs-internal" title="            on_shutdown
+Upon shutdown, the shutdown <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event"><code>Event</code></a>, passed to each <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a>, is set; running tasks are cancelled and waited on; and the <a class="autorefs autorefs-internal" title="            agent_on_shutdown
 
 
   
       async
-  " href="../api/agent/#academy.agent.Agent.on_shutdown"><code>on_shutdown()</code></a> callback is invoked.
+  " href="../api/agent/#academy.agent.Agent.agent_on_shutdown"><code>agent_on_shutdown()</code></a> callback is invoked.
 Agents can terminate themselves by setting the shutdown event or calling <a class="autorefs autorefs-internal" title="            agent_shutdown" href="../api/agent/#academy.agent.Agent.agent_shutdown"><code>Agent.agent_shutdown()</code></a>;
 exceptions raised in <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a> methods will shutdown the agent by default, and
 exceptions raised when executing <a class="autorefs autorefs-internal" title="            action" href="../api/agent/#academy.agent.action"><code>@action</code></a> methods are caught and returned to the remote caller.</p>

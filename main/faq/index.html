@@ -1886,15 +1886,15 @@ For example, use the <code>initializer</code> argument when using a <a class="au
 <p>The <code>__init__</code> method of an <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> is called in one of two places:</p>
 <ol>
 <li>On the client when submitting an agent to be executed.</li>
-<li>On the worker at the start of the setup sequence when agent instantiation is deferred.</li>
+<li>On the worker when agent instantiation is deferred.</li>
 </ol>
 <p>In both scenarios, it is unsafe to perform communication operations (i.e., invoking an action on a remote agent) in <code>__init__</code> because connection resources and background tasks have not yet been initialized.</p>
-<p>The <a class="autorefs autorefs-internal" title="            on_setup
+<p>The <a class="autorefs autorefs-internal" title="            agent_on_startup
 
 
   
       async
-  " href="../api/agent/#academy.agent.Agent.on_setup"><code>Agent.on_setup()</code></a> callback can be used instead to perform communication once the agent is in a running state.</p>
+  " href="../api/agent/#academy.agent.Agent.agent_on_startup"><code>Agent.agent_on_startup()</code></a> callback can be used instead to perform communication once the agent is in a running state.</p>
 
 
 

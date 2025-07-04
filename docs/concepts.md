@@ -39,12 +39,12 @@ Instance attributes maintain the agent's state, and methods define the actions a
 The [`Runtime`][academy.runtime.Runtime] manager takes an [`Agent`][academy.agent.Agent] and executes the agent by:
 (1) listening for new messages in the agent's mailbox and dispatching them appropriately,
 (2) starting each [`@loop`][academy.agent.loop] method,
-(3) calling the [`on_setup()`][academy.agent.Agent.on_setup] callback,
+(3) calling the [`agent_on_startup()`][academy.agent.Agent.agent_on_startup] callback,
 and (4) waiting for the agent to be shut down.
 Each [`@action`][academy.agent.action] method is executed concurrently in the event loop when requested remotely so as to not block the handling of other messages.
 
 Agents are designed to be long-running, but can be terminated by sending a shutdown request.
-Upon shutdown, the shutdown [`Event`][asyncio.Event], passed to each [`@loop`][academy.agent.loop], is set; running tasks are cancelled and waited on; and the [`on_shutdown()`][academy.agent.Agent.on_shutdown] callback is invoked.
+Upon shutdown, the shutdown [`Event`][asyncio.Event], passed to each [`@loop`][academy.agent.loop], is set; running tasks are cancelled and waited on; and the [`agent_on_shutdown()`][academy.agent.Agent.agent_on_shutdown] callback is invoked.
 Agents can terminate themselves by setting the shutdown event or calling [`Agent.agent_shutdown()`][academy.agent.Agent.agent_shutdown];
 exceptions raised in [`@loop`][academy.agent.loop] methods will shutdown the agent by default, and
 exceptions raised when executing [`@action`][academy.agent.action] methods are caught and returned to the remote caller.

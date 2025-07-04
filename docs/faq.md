@@ -38,8 +38,8 @@ This section highlights common best practices for developing applications in Aca
 The `__init__` method of an [`Agent`][academy.agent.Agent] is called in one of two places:
 
 1. On the client when submitting an agent to be executed.
-1. On the worker at the start of the setup sequence when agent instantiation is deferred.
+1. On the worker when agent instantiation is deferred.
 
 In both scenarios, it is unsafe to perform communication operations (i.e., invoking an action on a remote agent) in `__init__` because connection resources and background tasks have not yet been initialized.
 
-The [`Agent.on_setup()`][academy.agent.Agent.on_setup] callback can be used instead to perform communication once the agent is in a running state.
+The [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup] callback can be used instead to perform communication once the agent is in a running state.

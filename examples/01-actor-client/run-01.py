@@ -14,7 +14,7 @@ from academy.manager import Manager
 class Counter(Agent):
     count: int
 
-    async def on_setup(self) -> None:
+    async def agent_on_startup(self) -> None:
         self.count = 0
 
     @action

@@ -44,7 +44,7 @@ class CounterAgent(Agent):
         super().__init__()
         self._count = 0
 
-    async def on_setup(self) -> None:
+    async def agent_on_startup(self) -> None:
         self._count = 0
 
     @action

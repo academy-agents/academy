@@ -215,7 +215,7 @@ class FailOnStartupAgent(Agent):
         self.errors = 0
         self.max_errors = max_errors
 
-    async def on_setup(self) -> None:
+    async def agent_on_startup(self) -> None:
         if self.max_errors is None or self.errors < self.max_errors:
             self.errors += 1
             raise RuntimeError('Agent startup failed')

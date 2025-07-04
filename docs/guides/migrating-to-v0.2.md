@@ -22,7 +22,13 @@ Summary:
 
 ## Changes to Agents
 
-[`Agent`][academy.agent.Agent] runtime context is now exposed via `agent_.*` properties and methods.
+All special methods provided by [`Agent`][academy.agent.Agent] are named `agent_.*`.
+For example, the startup and shutdown callbacks have been renamed:
+
+* `Agent.on_setup` is renamed `Agent.agent_on_startup`
+* `Agent.on_shutdown` is renamed `Agent.agent_on_shutdown`
+
+Runtime context is now available via additional methods.
 
 ## Changes to Exchanges
 

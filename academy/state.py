@@ -30,7 +30,7 @@ class FileState(shelve.DbfilenameShelf[ValueT]):
                 super().__init__()
                 self.state: FileState[Any] = FileState(state_path)
 
-            def on_shutdown(self) -> None:
+            def agent_on_shutdown(self) -> None:
                 self.state.close()
 
             @action

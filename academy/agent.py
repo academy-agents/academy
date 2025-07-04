@@ -64,8 +64,8 @@ class Agent:
 
     An agent is composed of three parts:
 
-    1. The [`on_startup()`][academy.agent.Agent.on_setup] and
-       [`on_shutdown()`][academy.agent.Agent.on_shutdown] methods
+    1. The [`agent_on_startup()`][academy.agent.Agent.agent_on_startup] and
+       [`agent_on_shutdown()`][academy.agent.Agent.agent_on_shutdown] methods
        define callbacks that are invoked once at the start and end of an
        agent's execution, respectively. The methods should be used to
        initialize and cleanup stateful resources. Resource initialization
@@ -244,15 +244,15 @@ class Agent:
         mro = mro[:base_index]
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
-    async def on_setup(self) -> None:
-        """Callback invoked at the end of an agent's setup sequence.
+    async def agent_on_startup(self) -> None:
+        """Callback invoked at the end of an agent's startup sequence.
 
         See [`Runtime.run()`][academy.runtime.Runtime.run] for more
-        details on the setup sequence.
+        details on the startup sequence.
         """
         pass
 
-    async def on_shutdown(self) -> None:
+    async def agent_on_shutdown(self) -> None:
         """Callback invoked at the beginning of an agent's shutdown sequence.
 
         See [`Runtime.run()`][academy.runtime.Runtime.run] for more

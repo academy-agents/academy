@@ -71,7 +71,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     """Agent runtime manager.
 
     The runtime is used to execute an agent by managing stateful resources,
-    setup/teardown, lifecycle hooks, and concurrency.
+    startup/shutdown, lifecycle hooks, and concurrency.
 
     Note:
         This can only be run once. Calling
@@ -237,7 +237,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     async def run(self) -> None:
         """Run the agent.
 
-        Agent setup involves:
+        Agent startup involves:
 
         1. Creates a new exchange client for the agent.
         1. Sets the runtime context on the agent.
@@ -246,16 +246,17 @@ class Runtime(Generic[AgentT], NoPickleMixin):
            agent's mailbox in the exchange.
         1. Starts a [`Task`][asyncio.Task] for all control loops defined on
            the agent.
-        1. Calls [`Agent.on_setup()`][academy.agent.Agent.on_setup].
+        1. Calls
+           [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup].
 
-        After setup succeeds, this method waits for the agent to be shutdown,
+        After startup succeeds, this method waits for the agent to be shutdown,
         such as due to a failure in a control loop or receiving a shutdown
         message.
 
         Agent shutdown involves:
 
         1. Calls
-           [`Agent.on_shutdown()`][academy.agent.Agent.on_shutdown].
+           [`Agent.agent_on_shutdown()`][academy.agent.Agent.agent_on_shutdown].
         1. Cancels running control loop tasks.
         1. Cancels the mailbox message listener task so no new requests are
            received.
@@ -323,7 +324,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             )
             self._loop_tasks[name] = task
 
-        await self.agent.on_setup()
+        await self.agent.agent_on_startup()
         self._agent_startup_called = True
 
         self._started_event.set()
@@ -351,8 +352,9 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         )
 
         if self._agent_startup_called:
-            # Don't call on_shutdown() if we never called on_setup()
-            await self.agent.on_shutdown()
+            # Don't call agent_on_shutdown() if we never called
+            # agent_on_startup()
+            await self.agent.agent_on_shutdown()
 
         # Cancel running control loop tasks
         for task in self._loop_tasks.values():

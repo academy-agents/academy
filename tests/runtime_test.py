@@ -39,13 +39,13 @@ from testing.constant import TEST_THREAD_JOIN_TIMEOUT
 class SignalingAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
-        self.setup_event = asyncio.Event()
+        self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
 
-    async def on_setup(self) -> None:
-        self.setup_event.set()
+    async def agent_on_startup(self) -> None:
+        self.startup_event.set()
 
-    async def on_shutdown(self) -> None:
+    async def agent_on_shutdown(self) -> None:
         self.shutdown_event.set()
 
     @loop
@@ -69,7 +69,7 @@ async def test_agent_run(exchange: UserExchangeClient[Any]) -> None:
     with pytest.raises(RuntimeError, match='Agent has already been shutdown.'):
         await runtime.run()
 
-    assert runtime.agent.setup_event.is_set()
+    assert runtime.agent.startup_event.is_set()
     assert runtime.agent.shutdown_event.is_set()
 
 
@@ -85,7 +85,7 @@ async def test_agent_run_in_task(exchange: UserExchangeClient[Any]) -> None:
     task = asyncio.create_task(runtime.run(), name='test-agent-run-in-task')
     await task
 
-    assert runtime.agent.setup_event.is_set()
+    assert runtime.agent.startup_event.is_set()
     assert runtime.agent.shutdown_event.is_set()
 
 
@@ -156,7 +156,7 @@ async def test_agent_startup_failure(
         with pytest.raises(Exception, match='Oops!'):
             await runtime.run()
 
-    assert not runtime.agent.setup_event.is_set()
+    assert not runtime.agent.startup_event.is_set()
     assert not runtime.agent.shutdown_event.is_set()
 
 
@@ -464,7 +464,7 @@ class HandleBindingAgent(Agent):
         self.agent_bound = agent_bound
         self.self_bound = self_bound
 
-    async def on_setup(self) -> None:
+    async def agent_on_startup(self) -> None:
         assert isinstance(self.unbound, RemoteHandle)
         assert isinstance(self.agent_bound, RemoteHandle)
         assert isinstance(self.self_bound, RemoteHandle)
@@ -532,7 +532,7 @@ class RunAgent(Agent):
         super().__init__()
         self.doubler = doubler
 
-    async def on_shutdown(self) -> None:
+    async def agent_on_shutdown(self) -> None:
         assert isinstance(self.doubler, RemoteHandle)
         await self.doubler.shutdown()
 

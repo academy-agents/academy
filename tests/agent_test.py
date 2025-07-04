@@ -77,7 +77,7 @@ async def test_agent_context_initialized_error() -> None:
 @pytest.mark.asyncio
 async def test_agent_empty() -> None:
     agent = EmptyAgent()
-    await agent.on_setup()
+    await agent.agent_on_startup()
 
     assert isinstance(agent, EmptyAgent)
     assert isinstance(str(agent), str)
@@ -87,26 +87,26 @@ async def test_agent_empty() -> None:
     assert len(agent.agent_loops()) == 0
     assert len(agent.agent_handles()) == 0
 
-    await agent.on_shutdown()
+    await agent.agent_on_shutdown()
 
 
 @pytest.mark.asyncio
 async def test_agent_actions() -> None:
     agent = IdentityAgent()
-    await agent.on_setup()
+    await agent.agent_on_startup()
 
     actions = agent.agent_actions()
     assert set(actions) == {'identity'}
 
     assert await agent.identity(1) == 1
 
-    await agent.on_shutdown()
+    await agent.agent_on_shutdown()
 
 
 @pytest.mark.asyncio
 async def test_agent_loops() -> None:
     agent = WaitAgent()
-    await agent.on_setup()
+    await agent.agent_on_startup()
 
     loops = agent.agent_loops()
     assert set(loops) == {'wait'}
@@ -115,7 +115,7 @@ async def test_agent_loops() -> None:
     shutdown.set()
     await agent.wait(shutdown)
 
-    await agent.on_shutdown()
+    await agent.agent_on_shutdown()
 
 
 @pytest.mark.asyncio
@@ -253,12 +253,12 @@ def test_agent_action_decorator_name_clash_error() -> None:
 async def test_agent_handles() -> None:
     handle = ProxyHandle(EmptyAgent())
     agent = HandleAgent(handle)
-    await agent.on_setup()
+    await agent.agent_on_startup()
 
     handles = agent.agent_handles()
     assert set(handles) == {'handle'}
 
-    await agent.on_shutdown()
+    await agent.agent_on_shutdown()
 
 
 class A(Agent): ...

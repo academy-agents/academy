@@ -13,6 +13,7 @@ from typing import TypeVar
 from academy.agent import AgentT
 from academy.context import ActionContext
 from academy.context import AgentContext
+from academy.exception import ActionCancelledError
 from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import raise_exceptions
@@ -52,6 +53,8 @@ class RuntimeConfig:
     """Agent runtime configuration.
 
     Attributes:
+        cancel_actions_on_shutdown: Cancel running actions when the agent
+            is shutdown, otherwise wait for the actions to finish.
         max_action_concurrency: Maximum size of the thread pool used to
             concurrently execute action requests.
         shutdown_on_loop_error: Shutdown the agent if any loop raises an error.
@@ -61,6 +64,7 @@ class RuntimeConfig:
             permanently if the agent shuts down without an error.
     """
 
+    cancel_actions_on_shutdown: bool = True
     max_action_concurrency: int | None = None
     shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
@@ -155,11 +159,17 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 args=request.pargs,
                 kwargs=request.kargs,
             )
+        except asyncio.CancelledError:
+            exception = ActionCancelledError(request.action)
+            response = request.error(exception=exception)
         except Exception as e:
             response = request.error(exception=e)
         else:
             response = request.response(result=result)
-        await self._send_response(response)
+        finally:
+            # Shield sending the result from being cancelled so the requester
+            # does not block on a response they will never get.
+            await asyncio.shield(self._send_response(response))
 
     async def _execute_loop(
         self,
@@ -364,13 +374,22 @@ class Runtime(Generic[AgentT], NoPickleMixin):
 
         # If _start() fails early, the listener task may not have started.
         if self._exchange_listener_task is not None:
+            # Stop exchange listener thread before cancelling waiting on
+            # running actions so we know that we won't receive an new
+            # action requests
             self._exchange_listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._exchange_listener_task
 
         # Wait for running actions to complete
         for task in tuple(self._action_tasks.values()):
-            await task
+            # Both branches should be covered by
+            # test_agent_action_message_cancelled but a slow test runner could
+            # not begin shutdown until all the tasks have completed anyways
+            if self.config.cancel_actions_on_shutdown:  # pragma: no branch
+                task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
         if self._exchange_client is not None:
             if self._should_terminate_mailbox():

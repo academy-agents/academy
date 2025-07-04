@@ -11,6 +11,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
+from academy.exception import ActionCancelledError
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.transport import MailboxStatus
@@ -331,6 +332,57 @@ async def test_agent_action_message(
             dest=runtime.agent_id,
         )
         await exchange.send(shutdown)
+        await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+
+
+@pytest.mark.parametrize('cancel', (True, False))
+@pytest.mark.asyncio
+async def test_agent_action_message_cancelled(
+    cancel: bool,
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    class NoReturnAgent(Agent):
+        @action
+        async def sleep(self) -> None:
+            await asyncio.sleep(1000 if cancel else 0.01)
+
+    async with await local_exchange_factory.create_user_client(
+        start_listener=False,
+    ) as exchange:
+        registration = await exchange.register_agent(ErrorAgent)
+
+        runtime = Runtime(
+            NoReturnAgent(),
+            exchange_factory=exchange.factory(),
+            registration=registration,
+            config=RuntimeConfig(cancel_actions_on_shutdown=cancel),
+        )
+        task = asyncio.create_task(
+            runtime.run(),
+            name='test-agent-action-message-cancelled',
+        )
+        await runtime._started_event.wait()
+
+        request = ActionRequest(
+            src=exchange.client_id,
+            dest=runtime.agent_id,
+            action='sleep',
+        )
+        await exchange.send(request)
+
+        shutdown = ShutdownRequest(
+            src=exchange.client_id,
+            dest=runtime.agent_id,
+        )
+        await exchange.send(shutdown)
+
+        message = await exchange._transport.recv()
+        assert isinstance(message, ActionResponse)
+        if cancel:
+            assert isinstance(message.exception, ActionCancelledError)
+        else:
+            assert message.exception is None
+
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
 

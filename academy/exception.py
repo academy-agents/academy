@@ -9,6 +9,17 @@ from academy.identifier import EntityId
 from academy.identifier import UserId
 
 
+class ActionCancelledError(Exception):
+    """Action was cancelled by the agent.
+
+    This often happens when an agent is shutdown mid-action execution and
+    configured to cancel running actions.
+    """
+
+    def __init__(self, name: str) -> None:
+        super().__init__(f'Action "{name}" was cancelled by the agent.')
+
+
 class AgentNotInitializedError(Exception):
     """Agent runtime context has not been initialized.
 

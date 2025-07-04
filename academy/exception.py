@@ -74,6 +74,13 @@ class MailboxTerminatedError(ExchangeError):
         super().__init__(f'Mailbox for {uid} has been terminated.')
         self.uid = uid
 
+    def __reduce__(self) -> Any:
+        # BaseException implements __reduce__ as
+        #     return type(self), self.args
+        # where args will contain the message passed to super().__init__
+        # rather than uid so it must be customized.
+        return type(self), (self.uid,)
+
 
 class AgentTerminatedError(MailboxTerminatedError):
     """Agent mailbox is terminated and cannot send or receive messages."""

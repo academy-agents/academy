@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 import enum
 import sys
+from collections.abc import Iterable
 from types import TracebackType
 from typing import Any
+from typing import get_args
 from typing import Protocol
 from typing import runtime_checkable
 from typing import TYPE_CHECKING
@@ -16,9 +19,11 @@ else:  # pragma: <3.11 cover
 
 from academy.agent import Agent
 from academy.agent import AgentT
+from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import Message
+from academy.message import RequestMessage
 
 if TYPE_CHECKING:
     from academy.exchange import ExchangeFactory
@@ -178,8 +183,18 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
     async def terminate(self, uid: EntityId) -> None:
         """Terminate a mailbox in the exchange.
 
-        Terminating a mailbox means that the corresponding entity will no
-        longer be able to receive messages.
+        Once an entity's mailbox is terminated:
+
+        * All request messages in the mailbox will be replied to with a
+          [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError].
+        * All calls to
+          [`recv()`][academy.exchange.transport.ExchangeTransport.recv]
+          will raise a
+          [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError].
+        * All attempts to
+          [`send()`][academy.exchange.transport.ExchangeTransport.send]
+          to this mailbox by other entities will raise a
+          [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError].
 
         Note:
             This method is a no-op if the mailbox does not exist.
@@ -222,3 +237,20 @@ class ExchangeTransportMixin:
         exc_traceback: TracebackType | None,
     ) -> None:
         await self.close()
+
+
+async def _respond_pending_requests_on_terminate(
+    messages: Iterable[Message],
+    transport: ExchangeTransport[Any],
+) -> None:
+    # Helper function used to parse all pending messages in a mailbox when
+    # it is terminated and reply to only request messages with a
+    # MailboxTerminatedError.
+    for message in messages:
+        if isinstance(message, get_args(RequestMessage)):
+            error = MailboxTerminatedError(transport.mailbox_id)
+            response = message.error(error)
+            # If the requester's mailbox was also terminated then they
+            # don't need to get a response.
+            with contextlib.suppress(MailboxTerminatedError):
+                await transport.send(response)

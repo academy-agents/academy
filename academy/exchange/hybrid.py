@@ -39,6 +39,7 @@ from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
+from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
@@ -354,14 +355,24 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             return MailboxStatus.ACTIVE
 
     async def terminate(self, uid: EntityId) -> None:
+        # Warning: terminating a hybrid exchange mailbox is not guaranteed
+        # to respond to all pending requests with a MailboxTerminatedError
+        # when messages are sent directly.
         await self._redis_client.set(
             self._status_key(uid),
             _MailboxState.INACTIVE.value,
         )
+
+        pending = await self._redis_client.lrange(self._queue_key(uid), 0, -1)  # type: ignore[misc]
+        await self._redis_client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
         await self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
+
+        messages = [BaseMessage.model_deserialize(raw) for raw in pending]
+        await _respond_pending_requests_on_terminate(messages, self)
+
         if isinstance(uid, AgentId):
             await self._redis_client.delete(self._agent_key(uid))
 

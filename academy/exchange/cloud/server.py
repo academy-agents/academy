@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import enum
 import logging
 import ssl
@@ -28,9 +29,11 @@ from collections.abc import Awaitable
 from collections.abc import Sequence
 from typing import Any
 from typing import Callable
+from typing import get_args
 
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
+    from asyncio import QueueEmpty
     from asyncio import QueueShutDown
 
     AsyncQueue = Queue
@@ -38,6 +41,7 @@ else:  # pragma: <3.13 cover
     # Use of queues here is isolated to a single thread/event loop so
     # we only need culsans queues for the backport of shutdown() agent
     from culsans import AsyncQueue
+    from culsans import AsyncQueueEmpty as QueueEmpty
     from culsans import AsyncQueueShutDown as QueueShutDown
     from culsans import Queue
 
@@ -65,6 +69,7 @@ from academy.identifier import EntityId
 from academy.logging import init_logging
 from academy.message import BaseMessage
 from academy.message import Message
+from academy.message import RequestMessage
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +93,7 @@ class _MailboxManager:
         self._mailboxes: dict[EntityId, AsyncQueue[Message]] = {}
         self._terminated: set[EntityId] = set()
         self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
+        self._locks: dict[EntityId, asyncio.Lock] = {}
 
     def has_permissions(
         self,
@@ -96,7 +102,7 @@ class _MailboxManager:
     ) -> bool:
         return entity not in self._owners or self._owners[entity] == client
 
-    def check_mailbox(
+    async def check_mailbox(
         self,
         client: str | None,
         uid: EntityId,
@@ -108,10 +114,11 @@ class _MailboxManager:
                 'Client does not have correct permissions.',
             )
 
-        if uid in self._terminated:
-            return MailboxStatus.TERMINATED
-        else:
-            return MailboxStatus.ACTIVE
+        async with self._locks[uid]:
+            if uid in self._terminated:
+                return MailboxStatus.TERMINATED
+            else:
+                return MailboxStatus.ACTIVE
 
     def create_mailbox(
         self,
@@ -133,6 +140,7 @@ class _MailboxManager:
             self._mailboxes[uid] = queue
             self._terminated.discard(uid)
             self._owners[uid] = client
+            self._locks[uid] = asyncio.Lock()
             if agent is not None and isinstance(uid, AgentId):
                 self._agents[uid] = agent
             logger.info('Created mailbox for %s', uid)
@@ -145,7 +153,18 @@ class _MailboxManager:
 
         self._terminated.add(uid)
         mailbox = self._mailboxes.get(uid, None)
-        if mailbox is not None:
+        if mailbox is None:
+            return
+
+        async with self._locks[uid]:
+            messages = await _drain_queue(mailbox)
+            for message in messages:
+                if isinstance(message, get_args(RequestMessage)):
+                    error = MailboxTerminatedError(uid)
+                    response = message.error(error)
+                    with contextlib.suppress(Exception):
+                        await self.put(client, response)
+
             mailbox.shutdown(immediate=True)
             logger.info('Closed mailbox for %s', uid)
 
@@ -196,10 +215,27 @@ class _MailboxManager:
             queue = self._mailboxes[message.dest]
         except KeyError as e:
             raise BadEntityIdError(message.dest) from e
+
+        async with self._locks[message.dest]:
+            try:
+                await queue.put(message)
+            except QueueShutDown:
+                raise MailboxTerminatedError(message.dest) from None
+
+
+async def _drain_queue(queue: AsyncQueue[Message]) -> list[Message]:
+    items: list[Message] = []
+
+    while True:
         try:
-            await queue.put(message)
-        except QueueShutDown:
-            raise MailboxTerminatedError(message.dest) from None
+            item = queue.get_nowait()
+        except (QueueShutDown, QueueEmpty):
+            break
+        else:
+            items.append(item)
+            queue.task_done()
+
+    return items
 
 
 MANAGER_KEY = AppKey('manager', _MailboxManager)
@@ -301,7 +337,7 @@ async def _check_mailbox_route(request: Request) -> Response:
 
     client_id = request.headers.get('client_id', None)
     try:
-        status = manager.check_mailbox(client_id, mailbox_id)
+        status = await manager.check_mailbox(client_id, mailbox_id)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,

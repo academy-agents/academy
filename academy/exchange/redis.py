@@ -23,6 +23,7 @@ from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
+from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
@@ -236,12 +237,18 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._active_key(uid),
             _MailboxState.INACTIVE.value,
         )
+
+        pending = await self._client.lrange(self._queue_key(uid), 0, -1)  # type: ignore[misc]
+        await self._client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
         await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
+
+        messages = [BaseMessage.model_deserialize(raw) for raw in pending]
+        await _respond_pending_requests_on_terminate(messages, self)
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

@@ -12,11 +12,13 @@ from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
+from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
+from academy.message import PingResponse
 from testing.agents import EmptyAgent
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
@@ -121,6 +123,54 @@ async def test_transport_recv_timeout(
 ) -> None:
     with pytest.raises(TimeoutError):
         await transport.recv(timeout=0.001)
+
+
+@pytest.mark.asyncio
+async def test_transport_terminate_unknown_ok(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
+    await transport.terminate(UserId.new())
+
+
+@pytest.mark.parametrize('factory_type', EXCHANGE_FACTORY_TYPES)
+async def test_transport_terminate_reply_pending_requests(
+    factory_type: type[ExchangeFactory[Any]],
+    get_factory,
+) -> None:
+    if factory_type is HybridExchangeFactory:
+        pytest.skip(
+            'HybridExchangeTransport termination behavior is unreliable.',
+        )
+
+    factory = get_factory(factory_type)
+    async with await factory._create_transport() as transport1:
+        async with await factory._create_transport() as transport2:
+            # Put a request and a response message in transport2 mailbox
+            message1 = PingRequest(
+                src=transport1.mailbox_id,
+                dest=transport2.mailbox_id,
+            )
+            message2 = PingResponse(
+                src=transport1.mailbox_id,
+                dest=transport2.mailbox_id,
+            )
+            await transport1.send(message1)
+            await transport1.send(message2)
+
+            # Terminate transport2 mailbox should reply to all *requests*
+            # with an error. Responses are ignored.
+            await transport2.terminate(transport2.mailbox_id)
+
+            # Check that transport1 gets a response to its request that
+            # was terminated.
+            response = await transport1.recv()
+            assert isinstance(response, PingResponse)
+            assert response.tag == message1.tag
+            assert isinstance(response.exception, MailboxTerminatedError)
+
+            # No other messages should have been received
+            with pytest.raises(TimeoutError):
+                await transport1.recv(timeout=0.001)
 
 
 @pytest.mark.asyncio

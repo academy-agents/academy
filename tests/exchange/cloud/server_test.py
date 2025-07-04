@@ -124,16 +124,16 @@ async def test_mailbox_manager_create_close() -> None:
     uid = UserId.new()
     # Should do nothing since mailbox doesn't exist
     await manager.terminate(user_id, uid)
-    assert manager.check_mailbox(user_id, uid) == MailboxStatus.MISSING
+    assert await manager.check_mailbox(user_id, uid) == MailboxStatus.MISSING
     manager.create_mailbox(user_id, uid)
-    assert manager.check_mailbox(user_id, uid) == MailboxStatus.ACTIVE
+    assert await manager.check_mailbox(user_id, uid) == MailboxStatus.ACTIVE
     manager.create_mailbox(user_id, uid)  # Idempotent check
 
     bad_user = str(uuid.uuid4())  # Authentication check
     with pytest.raises(ForbiddenError):
         manager.create_mailbox(bad_user, uid)
     with pytest.raises(ForbiddenError):
-        manager.check_mailbox(bad_user, uid)
+        await manager.check_mailbox(bad_user, uid)
     with pytest.raises(ForbiddenError):
         await manager.terminate(bad_user, uid)
 

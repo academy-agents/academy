@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import fnmatch
+from collections import defaultdict
 from collections.abc import AsyncGenerator
 from collections.abc import Generator
 from typing import Any
@@ -13,7 +14,11 @@ import pytest
 class MockRedis:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.values: dict[str, str] = {}
-        self.lists: dict[str, asyncio.Queue[str]] = {}
+        self.lists: dict[str, list[str]] = defaultdict(list)
+        self.events: dict[str, asyncio.Event] = defaultdict(asyncio.Event)
+
+    async def aclose(self) -> None:
+        pass
 
     async def blpop(
         self,
@@ -22,26 +27,28 @@ class MockRedis:
     ) -> list[str] | None:
         result: list[str] = []
         for key in keys:
-            if key not in self.lists:
-                self.lists[key] = asyncio.Queue()
-            try:
-                item = await asyncio.wait_for(
-                    self.lists[key].get(),
-                    timeout=None if timeout == 0 else timeout,
-                )
-            except asyncio.TimeoutError:
-                return None
+            if len(self.lists[key]) > 0:
+                item = self.lists[key].pop()
+                self.events[key].clear()
+            else:
+                try:
+                    await asyncio.wait_for(
+                        self.events[key].wait(),
+                        timeout=None if timeout == 0 else timeout,
+                    )
+                except asyncio.TimeoutError:
+                    return None
+                else:
+                    item = self.lists[key].pop()
+                    self.events[key].clear()
             result.extend([key, item])
         return result
-
-    async def aclose(self) -> None:
-        pass
 
     async def delete(self, key: str) -> None:  # pragma: no cover
         if key in self.values:
             del self.values[key]
         elif key in self.lists:
-            del self.lists[key]
+            self.lists[key].clear()
 
     async def exists(self, key: str) -> bool:  # pragma: no cover
         return key in self.values or key in self.lists
@@ -49,21 +56,26 @@ class MockRedis:
     async def get(
         self,
         key: str,
-    ) -> str | list[str] | None:  # pragma: no cover
+    ) -> str | list[str] | None:
         if key in self.values:
             return self.values[key]
         elif key in self.lists:
-            return await self.lists[key].get()
+            raise NotImplementedError()
         return None
+
+    async def lrange(self, key: str, start: int, end: int) -> list[str]:
+        items = self.lists.get(key, None)
+        if items is None:
+            return []
+        return items[start:end]
 
     async def ping(self, **kwargs) -> None:
         pass
 
     async def rpush(self, key: str, *values: str) -> None:
-        if key not in self.lists:
-            self.lists[key] = asyncio.Queue()
         for value in values:
-            await self.lists[key].put(value)
+            self.lists[key].append(value)
+            self.events[key].set()
 
     async def scan_iter(self, pattern: str) -> AsyncGenerator[str]:
         for key in self.values:

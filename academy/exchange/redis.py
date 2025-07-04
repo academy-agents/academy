@@ -206,7 +206,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
         await self._client.set(
             self._agent_key(aid),
-            ','.join(agent.agent_mro()),
+            ','.join(agent._agent_mro()),
         )
         return RedisAgentRegistration(agent_id=aid)
 

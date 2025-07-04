@@ -281,7 +281,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
         await self._redis_client.set(
             self._agent_key(aid),
-            ','.join(agent.agent_mro()),
+            ','.join(agent._agent_mro()),
         )
         return HybridAgentRegistration(agent_id=aid)
 

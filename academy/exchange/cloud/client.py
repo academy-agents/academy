@@ -202,7 +202,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._mailbox_url,
             json={
                 'mailbox': aid.model_dump_json(),
-                'agent': ','.join(agent.agent_mro()),
+                'agent': ','.join(agent._agent_mro()),
             },
         ) as response:
             _raise_for_status(response, self.mailbox_id, aid)

@@ -103,8 +103,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self.registration = registration
         self.config = config if config is not None else RuntimeConfig()
 
-        self._actions = agent.agent_actions()
-        self._loops = agent.agent_loops()
+        self._actions = agent._agent_actions()
+        self._loops = agent._agent_loops()
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
@@ -438,7 +438,7 @@ def _bind_agent_handles(
         )
         return bound
 
-    for attr, handles in agent.agent_handles().items():
+    for attr, handles in agent._agent_handles().items():
         if isinstance(handles, HandleDict):
             bound_dict = HandleDict(
                 {k: _bind(h) for k, h in handles.items()},

@@ -32,7 +32,8 @@ def test_factory_serialize(
 @pytest.mark.asyncio
 async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
-    factory = HttpExchangeFactory(host, port)
+    url = f'http://{host}:{port}'
+    factory = HttpExchangeFactory(url)
 
     class MockResponse:
         status = StatusCode.TIMEOUT.value
@@ -59,8 +60,9 @@ async def test_additional_headers(
     http_exchange_server: tuple[str, int],
 ) -> None:
     host, port = http_exchange_server
+    url = f'http://{host}:{port}'
     headers = {'Authorization': 'fake auth'}
-    factory = HttpExchangeFactory(host, port, headers)
+    factory = HttpExchangeFactory(url, additional_headers=headers)
     async with await factory._create_transport() as transport:
         assert isinstance(transport, HttpExchangeTransport)
         assert 'Authorization' in transport._session.headers

@@ -13,6 +13,7 @@ from typing import Any
 from typing import Generic
 from typing import Literal
 from typing import NamedTuple
+from urllib.parse import urlparse
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -29,6 +30,7 @@ from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
 from academy.exchange import ExchangeFactory
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.login import get_auth_headers
 from academy.exchange.cloud.server import _run
 from academy.exchange.cloud.server import StatusCode
 from academy.exchange.transport import ExchangeTransportMixin
@@ -45,10 +47,8 @@ logger = logging.getLogger(__name__)
 
 
 class _HttpConnectionInfo(NamedTuple):
-    host: str
-    port: int
+    url: str
     additional_headers: dict[str, str] | None = None
-    scheme: Literal['http', 'https'] = 'http'
     ssl_verify: bool | None = None
 
 
@@ -80,14 +80,10 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._session = session
         self._info = connection_info
 
-        scheme, host, port = (
-            connection_info.scheme,
-            connection_info.host,
-            connection_info.port,
-        )
-        self._mailbox_url = f'{scheme}://{host}:{port}/mailbox'
-        self._message_url = f'{scheme}://{host}:{port}/message'
-        self._discover_url = f'{scheme}://{host}:{port}/discover'
+        base_url = self._info.url
+        self._mailbox_url = f'{base_url}/mailbox'
+        self._message_url = f'{base_url}/message'
+        self._discover_url = f'{base_url}/discover'
 
     @classmethod
     async def new(
@@ -112,7 +108,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         """
         ssl_verify = connection_info.ssl_verify
         if ssl_verify is None:  # pragma: no branch
-            ssl_verify = connection_info.scheme == 'https'
+            scheme = urlparse(connection_info.url).scheme
+            ssl_verify = scheme == 'https'
 
         session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=ssl_verify),
@@ -120,14 +117,9 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
         if mailbox_id is None:
-            scheme, host, port = (
-                connection_info.scheme,
-                connection_info.host,
-                connection_info.port,
-            )
             mailbox_id = UserId.new(name=name)
             async with session.post(
-                f'{scheme}://{host}:{port}/mailbox',
+                f'{connection_info.url}/mailbox',
                 json={'mailbox': mailbox_id.model_dump_json()},
             ) as response:
                 _raise_for_status(response, mailbox_id)
@@ -162,11 +154,11 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return tuple(AgentId(uid=uuid.UUID(aid)) for aid in agent_ids)
 
     def factory(self) -> HttpExchangeFactory:
+        # Note: When getting factory, auth method is not preserved
+        # but auth headers (i.e. the bearer token) is.
         return HttpExchangeFactory(
-            host=self._info.host,
-            port=self._info.port,
+            url=self._info.url,
             additional_headers=self._info.additional_headers,
-            scheme=self._info.scheme,
             ssl_verify=self._info.ssl_verify,
         )
 
@@ -236,11 +228,10 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
     """Http exchange client factory.
 
     Args:
-        host: Host name of the exchange server.
-        port: Port of the exchange server.
+        url: Address of HTTP exchange
+        auth_method: Method to get authorization headers
         additional_headers: Any other information necessary to communicate
             with the exchange. Used for passing the Globus bearer token
-        scheme: HTTP scheme, non-protected "http" by default.
         ssl_verify: Same as requests.Session.verify. If the server's TLS
             certificate should be validated. Should be true if using HTTPS
             Only set to false for testing or local development.
@@ -248,17 +239,18 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
 
     def __init__(
         self,
-        host: str,
-        port: int,
+        url: str,
+        auth_method: Literal['globus'] | None = None,
         additional_headers: dict[str, str] | None = None,
-        scheme: Literal['http', 'https'] = 'http',
         ssl_verify: bool | None = None,
     ) -> None:
+        if additional_headers is None:
+            additional_headers = {}
+        additional_headers |= get_auth_headers(auth_method)
+
         self._info = _HttpConnectionInfo(
-            host=host,
-            port=port,
+            url=url,
             additional_headers=additional_headers,
-            scheme=scheme,
             ssl_verify=ssl_verify,
         )
 
@@ -350,7 +342,8 @@ def spawn_http_exchange(
     wait_connection(host, port, timeout=timeout)
     logger.info('Started exchange server!')
 
-    factory = HttpExchangeFactory(host, port)
+    base_url = f'http://{host}:{port}'
+    factory = HttpExchangeFactory(base_url)
     try:
         yield factory
     finally:

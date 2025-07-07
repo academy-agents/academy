@@ -27,7 +27,8 @@ async def http_exchange_factory(
     http_exchange_server: tuple[str, int],
 ) -> HttpExchangeFactory:
     host, port = http_exchange_server
-    return HttpExchangeFactory(host, port)
+    url = f'http://{host}:{port}'
+    return HttpExchangeFactory(url)
 
 
 @pytest.fixture
@@ -69,7 +70,8 @@ async def get_factory(
     ) -> ExchangeFactory[Any]:
         if factory_type is HttpExchangeFactory:
             host, port = http_exchange_server
-            return HttpExchangeFactory(host, port)
+            url = f'http://{host}:{port}'
+            return HttpExchangeFactory(url)
         elif factory_type is HybridExchangeFactory:
             return HybridExchangeFactory(redis_host='localhost', redis_port=0)
         elif factory_type is RedisExchangeFactory:

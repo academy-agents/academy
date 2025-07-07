@@ -9,7 +9,9 @@ Connect to the exchange through the client.
 ```python
 from academy.exchange.cloud.client import HttpExchangeFactory
 
-with HttpExchangeFactory('localhost', 1234).create_user_client() as exchange:
+with HttpExchangeFactory(
+    'http://localhost:1234'
+).create_user_client() as exchange:
     aid, agent_info = exchange.register_agent()
     ...
 ```

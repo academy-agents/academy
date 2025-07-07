@@ -11,9 +11,9 @@ from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
+from academy.exchange.cloud import HttpExchangeFactory
+from academy.exchange.cloud import HttpExchangeTransport
 from academy.exchange.cloud.client import _raise_for_status
-from academy.exchange.cloud.client import HttpExchangeFactory
-from academy.exchange.cloud.client import HttpExchangeTransport
 from academy.exchange.cloud.client import spawn_http_exchange
 from academy.exchange.cloud.server import StatusCode
 from academy.identifier import UserId

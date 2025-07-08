@@ -107,6 +107,7 @@ def test_action_request_lazy_deserialize() -> None:
 
     json = request.model_dump_json()
     reconstructed = BaseMessage.model_from_json(json)
+
     assert isinstance(reconstructed, ActionRequest)
     assert isinstance(reconstructed.pargs, str)
     assert isinstance(reconstructed.kargs, str)

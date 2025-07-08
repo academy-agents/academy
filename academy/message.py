@@ -132,6 +132,8 @@ class ActionRequest(BaseMessage):
 
     @field_serializer('pargs', 'kargs', when_used='json')
     def _pickle_and_encode_obj(self, obj: Any) -> str:
+        if isinstance(obj, str):  # pragma: no cover
+            return obj
         raw = pickle.dumps(obj)
         return base64.b64encode(raw).decode('utf-8')
 

@@ -58,6 +58,7 @@ def test_message_representations(message: Message) -> None:
     recreated = BaseMessage.model_from_json(jsoned)
     assert message == recreated
     assert hash(message) == hash(recreated)
+    assert message != object()
     pickled = message.model_serialize()
     recreated = BaseMessage.model_deserialize(pickled)
     assert message == recreated
@@ -93,6 +94,28 @@ def test_create_response_message(request_: RequestMessage) -> None:
     response = request_.error(exception)
     assert isinstance(response, get_args(ResponseMessage))
     assert response.exception == exception
+
+
+def test_action_request_lazy_deserialize() -> None:
+    request = ActionRequest(
+        src=_src,
+        dest=_dest,
+        action='foo',
+        pargs=('bar',),
+        kargs={'foo': 'bar'},
+    )
+
+    json = request.model_dump_json()
+    reconstructed = BaseMessage.model_from_json(json)
+    assert isinstance(reconstructed, ActionRequest)
+    assert isinstance(reconstructed.pargs, str)
+    assert isinstance(reconstructed.kargs, str)
+
+    reconstructed.get_args()
+    reconstructed.get_kwargs()
+
+    assert isinstance(reconstructed.pargs, tuple)
+    assert isinstance(reconstructed.kargs, dict)
 
 
 @pytest.mark.parametrize(

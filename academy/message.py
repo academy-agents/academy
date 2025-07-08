@@ -14,6 +14,7 @@ from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import field_serializer
 from pydantic import field_validator
+from pydantic import SkipValidation
 from pydantic import TypeAdapter
 
 from academy.identifier import AgentId
@@ -105,27 +106,52 @@ class ActionRequest(BaseMessage):
     """
 
     action: str = Field(description='Name of the requested action.')
-    pargs: tuple[Any, ...] = Field(
+    pargs: SkipValidation[tuple[Any, ...]] = Field(
         default_factory=tuple,
         description='Positional arguments to the action method.',
     )
-    kargs: dict[str, Any] = Field(
+    kargs: SkipValidation[dict[str, Any]] = Field(
         default_factory=dict,
         description='Keyword arguments to the action method.',
     )
     kind: Literal['action-request'] = Field('action-request', repr=False)
+
+    def __eq__(self, other: object, /) -> bool:
+        if not isinstance(other, ActionRequest):
+            return False
+        return (
+            self.tag == other.tag
+            and self.src == other.src
+            and self.dest == other.dest
+            and self.label == other.label
+            and self.action == other.action
+        )
+
+    def __hash__(self) -> int:
+        return hash((type(self), self.tag))
 
     @field_serializer('pargs', 'kargs', when_used='json')
     def _pickle_and_encode_obj(self, obj: Any) -> str:
         raw = pickle.dumps(obj)
         return base64.b64encode(raw).decode('utf-8')
 
-    @field_validator('pargs', 'kargs', mode='before')
-    @classmethod
-    def _decode_pickled_obj(cls, obj: Any) -> Any:
-        if not isinstance(obj, str):
-            return obj
-        return pickle.loads(base64.b64decode(obj))
+    def get_args(self) -> tuple[Any, ...]:
+        """Get the positional arguments.
+
+        Lazy deserializes the positional arguments and caches the result.
+        """
+        if isinstance(self.pargs, str):
+            self.pargs = pickle.loads(base64.b64decode(self.pargs))
+        return self.pargs
+
+    def get_kwargs(self) -> dict[str, Any]:
+        """Get the keyword arguments.
+
+        Lazy deserializes the keyword arguments and caches the result.
+        """
+        if isinstance(self.kargs, str):
+            self.kargs = pickle.loads(base64.b64decode(self.kargs))
+        return self.kargs
 
     def error(self, exception: Exception) -> ActionResponse:
         """Construct an error response to action request.

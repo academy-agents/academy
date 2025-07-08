@@ -85,7 +85,7 @@ async def test_wrap_basic_transport_functionality(
         assert isinstance(received, ActionRequest)
         assert request.tag == received.tag
 
-        for old, new in zip(request.pargs, received.pargs):
+        for old, new in zip(request.get_args(), received.get_args()):
             assert (type(new) is Proxy) == should_proxy(old)
             # will resolve the proxy if it exists
             assert old == new

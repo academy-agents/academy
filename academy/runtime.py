@@ -156,8 +156,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             result = await self.action(
                 request.action,
                 request.src,
-                args=request.pargs,
-                kwargs=request.kargs,
+                args=request.get_args(),
+                kwargs=request.get_kwargs(),
             )
         except asyncio.CancelledError:
             exception = ActionCancelledError(request.action)

@@ -116,7 +116,9 @@ class ProxyStoreExchangeTransport(
     async def recv(self, timeout: float | None = None) -> Message:
         message = await self.transport.recv(timeout)
         if self.resolve_async and isinstance(message, ActionRequest):
-            for arg in (*message.pargs, *message.kargs.values()):
+            args = message.get_args()
+            kwargs = message.get_kwargs()
+            for arg in (*args, *kwargs.values()):
                 if type(arg) is Proxy:
                     resolve_async(arg)
         elif (
@@ -138,12 +140,12 @@ class ProxyStoreExchangeTransport(
     async def send(self, message: Message) -> None:
         if isinstance(message, ActionRequest):
             message.pargs = _proxy_iterable(
-                message.pargs,
+                message.get_args(),
                 self.store,
                 self.should_proxy,
             )
             message.kargs = _proxy_mapping(
-                message.kargs,
+                message.get_kwargs(),
                 self.store,
                 self.should_proxy,
             )

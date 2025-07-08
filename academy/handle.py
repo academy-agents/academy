@@ -498,7 +498,7 @@ class RemoteHandle(Generic[AgentT]):
             elif (
                 isinstance(response, PingResponse)
                 and response.exception is not None
-            ):
+            ):  # pragma: no cover
                 future.set_exception(response.exception)
             elif isinstance(response, PingResponse):
                 future.set_result(None)

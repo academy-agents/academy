@@ -203,14 +203,23 @@ class ActionResponse(BaseMessage):
     kind: Literal['action-response'] = Field('action-response', repr=False)
 
     @field_serializer('result', when_used='json')
-    def _pickle_and_encode_result(self, obj: Any) -> Optional[tuple[str, str]]:  # noqa: UP045
+    def _pickle_and_encode_result(self, obj: Any) -> Optional[list[Any]]:  # noqa: UP045
         if obj is None:
             return None
+
+        if (
+            isinstance(obj, list)
+            and len(obj) == 2  # noqa PLR2004
+            and obj[0] == '__pickled__'
+        ):
+            # Prevent double serialization
+            return obj
+
         raw = pickle.dumps(obj)
         # This sential value at the start of the tuple is so we can
         # disambiguate a result that is a str versus the string of a
         # serialized result.
-        return ('__pickled__', base64.b64encode(raw).decode('utf-8'))
+        return ['__pickled__', base64.b64encode(raw).decode('utf-8')]
 
     def get_result(self) -> Any:
         """Get the result.

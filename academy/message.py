@@ -211,7 +211,7 @@ class ActionResponse(BaseMessage):
             isinstance(obj, list)
             and len(obj) == 2  # noqa PLR2004
             and obj[0] == '__pickled__'
-        ):
+        ):  # pragma: no cover
             # Prevent double serialization
             return obj
 

@@ -119,6 +119,25 @@ def test_action_request_lazy_deserialize() -> None:
     assert isinstance(reconstructed.kargs, dict)
 
 
+def test_action_response_lazy_deserialize() -> None:
+    response = ActionResponse(
+        src=_src,
+        dest=_dest,
+        action='foo',
+        result={'foo': 'bar'},
+    )
+
+    json = response.model_dump_json()
+    reconstructed = BaseMessage.model_from_json(json)
+
+    assert isinstance(reconstructed, ActionResponse)
+    assert isinstance(reconstructed.result, list)
+
+    reconstructed.get_result()
+
+    assert isinstance(reconstructed.result, dict)
+
+
 @pytest.mark.parametrize(
     'response',
     (

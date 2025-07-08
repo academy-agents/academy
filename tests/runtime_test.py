@@ -313,8 +313,8 @@ async def test_agent_action_message(
         await exchange.send(request)
         message = await exchange._transport.recv()
         assert isinstance(message, ActionResponse)
-        assert message.exception is None
-        assert message.result is None
+        assert message.get_exception() is None
+        assert message.get_result() is None
 
         request = ActionRequest(
             src=exchange.client_id,
@@ -324,8 +324,8 @@ async def test_agent_action_message(
         await exchange.send(request)
         message = await exchange._transport.recv()
         assert isinstance(message, ActionResponse)
-        assert message.exception is None
-        assert message.result == value
+        assert message.get_exception() is None
+        assert message.get_result() == value
 
         shutdown = ShutdownRequest(
             src=exchange.client_id,
@@ -379,9 +379,9 @@ async def test_agent_action_message_cancelled(
         message = await exchange._transport.recv()
         assert isinstance(message, ActionResponse)
         if cancel:
-            assert isinstance(message.exception, ActionCancelledError)
+            assert isinstance(message.get_exception(), ActionCancelledError)
         else:
-            assert message.exception is None
+            assert message.get_exception() is None
 
         await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
 
@@ -414,8 +414,8 @@ async def test_agent_action_message_error(
         await exchange.send(request)
         message = await exchange._transport.recv()
         assert isinstance(message, ActionResponse)
-        assert isinstance(message.exception, RuntimeError)
-        assert 'This action always fails.' in str(message.exception)
+        assert isinstance(message.get_exception(), RuntimeError)
+        assert 'This action always fails.' in str(message.get_exception())
 
         shutdown = ShutdownRequest(
             src=exchange.client_id,
@@ -453,8 +453,8 @@ async def test_agent_action_message_unknown(
         await exchange.send(request)
         message = await exchange._transport.recv()
         assert isinstance(message, ActionResponse)
-        assert isinstance(message.exception, AttributeError)
-        assert 'null' in str(message.exception)
+        assert isinstance(message.get_exception(), AttributeError)
+        assert 'null' in str(message.get_exception())
 
         shutdown = ShutdownRequest(
             src=exchange.client_id,

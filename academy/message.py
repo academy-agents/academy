@@ -192,18 +192,18 @@ class ActionResponse(BaseMessage):
     """Agent action response message."""
 
     action: str = Field(description='Name of the requested action.')
-    result: Any = Field(
+    result: SkipValidation[Any] = Field(
         None,
         description='Result of the action, if successful.',
     )
-    exception: Optional[Exception] = Field(  # noqa: UP045
+    exception: SkipValidation[Optional[Exception]] = Field(  # noqa: UP045
         None,
         description='Exception of the action, if unsuccessful.',
     )
     kind: Literal['action-response'] = Field('action-response', repr=False)
 
-    @field_serializer('exception', 'result', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> Optional[tuple[str, str]]:  # noqa: UP045
+    @field_serializer('result', when_used='json')
+    def _pickle_and_encode_result(self, obj: Any) -> Optional[tuple[str, str]]:  # noqa: UP045
         if obj is None:
             return None
         raw = pickle.dumps(obj)
@@ -212,16 +212,34 @@ class ActionResponse(BaseMessage):
         # serialized result.
         return ('__pickled__', base64.b64encode(raw).decode('utf-8'))
 
-    @field_validator('exception', 'result', mode='before')
-    @classmethod
-    def _decode_pickled_obj(cls, obj: Any) -> Any:
+    def get_result(self) -> Any:
+        """Get the result.
+
+        Lazy deserializes the result and caches the value.
+        """
         if (
-            isinstance(obj, (tuple, list))
-            and len(obj) == 2  # noqa: PLR2004
-            and obj[0] == '__pickled__'
+            isinstance(self.result, list)
+            and len(self.result) == 2  # noqa PLR2004
+            and self.result[0] == '__pickled__'
         ):
-            return pickle.loads(base64.b64decode(obj[1]))
-        return obj
+            self.result = pickle.loads(base64.b64decode(self.result[1]))
+        return self.result
+
+    @field_serializer('exception', when_used='json')
+    def _pickle_and_encode_exception(self, obj: Any) -> str:
+        if isinstance(obj, str):  # pragma: no cover
+            return obj
+        raw = pickle.dumps(obj)
+        return base64.b64encode(raw).decode('utf-8')
+
+    def get_exception(self) -> BaseException | None:
+        """Get the exception.
+
+        Lazy deserializes the exception and caches the value.
+        """
+        if isinstance(self.exception, str):
+            self.exception = pickle.loads(base64.b64decode(self.exception))
+        return self.exception
 
     def __eq__(self, other: object, /) -> bool:
         if not isinstance(other, ActionResponse):
@@ -232,11 +250,11 @@ class ActionResponse(BaseMessage):
             and self.dest == other.dest
             and self.label == other.label
             and self.action == other.action
-            and self.result == other.result
+            and self.get_result() == other.get_result()
             # Custom __eq__ is required because exception instances need
             # to be compared by type. I.e., Exception() == Exception() is
             # always False.
-            and type(self.exception) is type(other.exception)
+            and type(self.get_exception()) is type(other.get_exception())
         )
 
     def __hash__(self) -> int:

@@ -487,10 +487,19 @@ class RemoteHandle(Generic[AgentT]):
             future = self._futures.pop(response.tag)
             if future.cancelled():
                 return
-            if response.exception is not None:
+            if (
+                isinstance(response, ActionResponse)
+                and response.get_exception() is not None
+            ):
+                assert response.exception is not None  # for type checking
                 future.set_exception(response.exception)
             elif isinstance(response, ActionResponse):
-                future.set_result(response.result)
+                future.set_result(response.get_result())
+            elif (
+                isinstance(response, PingResponse)
+                and response.exception is not None
+            ):
+                future.set_exception(response.exception)
             elif isinstance(response, PingResponse):
                 future.set_result(None)
             else:

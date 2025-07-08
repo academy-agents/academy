@@ -124,9 +124,9 @@ class ProxyStoreExchangeTransport(
         elif (
             self.resolve_async
             and isinstance(message, ActionResponse)
-            and type(message.result) is Proxy
+            and type(message.get_result()) is Proxy
         ):
-            resolve_async(message.result)
+            resolve_async(message.get_result())
         return message
 
     async def register_agent(

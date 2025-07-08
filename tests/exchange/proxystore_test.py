@@ -101,10 +101,10 @@ async def test_wrap_basic_transport_functionality(
         received = await wrapped_transport1.recv()
         assert isinstance(received, ActionResponse)
         assert response.tag == received.tag
-        assert (type(received.result) is Proxy) == should_proxy(
+        assert (type(received.get_result()) is Proxy) == should_proxy(
             response.result,
         )
-        assert response.result == received.result
+        assert response.result == received.get_result()
 
         assert await wrapped_transport1.discover(EmptyAgent) == (dest,)
 

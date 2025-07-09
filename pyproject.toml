@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "academy-py"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     {name = "Greg Pauloski", email = "jgpauloski@uchicago.edu"},
     {name = "Globus Labs"},

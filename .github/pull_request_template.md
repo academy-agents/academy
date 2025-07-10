@@ -1,23 +1,24 @@
-# Description
-<!--- Describe your changes in detail --->
+## Summary
+<!--- Provide a summary of the changes --->
 
 
-### Fixes
+## Related Issue
 <!--- List any issue numbers above that this PR addresses --->
 
-- Fixes #XX
-- Fixes #XX
+- Closes #XX
+- Related to #XX _(if applicable)_
 
-### Type of Change
-<!--- Check which off the following types describe this PR --->
+### Changes
+<!--- Check which of the following changes were made --->
 
+- [ ] Breaking (backwards incompatible changes to public interfaces)
 - [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Refactoring (internal implementation changes)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update (no changes to the code)
-- [ ] CI change (changes to CI workflows, packages, templates, etc.)
-- [ ] Version changes (changes to the package or dependency versions)
+- [ ] Enhancement (non-breaking change or feature addition)
+- [ ] Refactor (internal code or design clean up)
+- [ ] Documentation (no changes to the code)
+- [ ] Test (changes or additions to testing)
+- [ ] Build (change to CI workflows or build processes)
+- [ ] Package (changes to package metadata or dependency versions)
 
 ## Testing
 <!--- Please describe the test ran to verify changes --->
@@ -27,7 +28,7 @@ N/A
 ## Pull Request Checklist
 
 Please confirm the PR meets the following requirements.
-- [ ] Relevant tags are added (breaking, bug, dependencies, documentation, enhancement, refactor).
+- [ ] Relevant tags are added based on the types of changes.
 - [ ] Code changes pass `pre-commit` (e.g., ruff, mypy, etc.).
 - [ ] Tests have been added to show the fix is effective or that the new feature works.
 - [ ] New and existing unit tests pass locally with the changes.

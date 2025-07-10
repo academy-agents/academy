@@ -5,41 +5,34 @@ changelog:
     authors:
       - pre-commit-ci
   categories:
-    # Provide steps for upgrading the package and adjusting for
-    # breaking changes. No PRs included here.
-    - title: Upgrade Steps
-      exclude:
-        labels:
-          - "*"
-    # All PRs tagged as "breaking"
     - title: Breaking Changes
       labels:
         - breaking
-    # All PRs tagged as "enhancement"
     - title: New Features
       labels:
         - enhancement
-    # All PRs tagged as "bug"
     - title: Bug Fixes
       labels:
         - bug
-    # All PRs not tagged as the above or below
-    - title: Improvements
+    - title: Security
+      labels:
+        - security
+    - title: Internal Changes
       labels:
         - refactor
+        - test
       exclude:
         labels:
-          - dependencies
+          - build
+          - package
           - documentation
-    # All PRs tagged as documentation
-    - title: Improvements
+    - title: Documentation
       labels:
         - documentation
-    # All PRs tagged "dependencies"
-    - title: Dependencies
+    - title: Build and Packaging
       labels:
-        - dependencies
-    # All PRs not tagged as the above
-    - title: Other Changes
+        - build
+        - package
+    - title: Uncategorized Changes
       labels:
         - "*"

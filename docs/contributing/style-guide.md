@@ -2,6 +2,9 @@ The Python code and docstring format mostly follows Google's [Python Style Guide
 
 **Nits:**
 
+* Avoid redundant comments---write _why_ and not _what_.
+* Keep comments and docstrings up-to-date when changing functions and classes.
+* Don't include unrelated formatting or refactors in a feature PR.
 * Avoid imports in `__init__.py` (reduces the likelihood of circular imports).
 * Prefer pure functions where possible.
 * Define all class attributes inside `__init__` so all attributes are visible in one place.
@@ -9,7 +12,7 @@ The Python code and docstring format mostly follows Google's [Python Style Guide
 * Prefer f-strings (`#!python f'name: {name}`) over string format (`#!python 'name: {}'.format(name)`).
   Never use the `%` operator.
 * Prefer [typing.NamedTuple][] over [collections.namedtuple][].
-* Use lower-case and no punctuation for log messages, but use upper-case and punctuation for exception values.
+* Use sentence case for error and log messages, but only include punctuation for errors.
   ```python
   logger.info(f'new connection opened to {address}')
   raise ValueError('Name must contain alphanumeric characters only.')

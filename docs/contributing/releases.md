@@ -1,13 +1,10 @@
 ## Release Timeline
 
 Releases are created on an as-needed basis.
-Milestones in the [Issue Tracker](https://github.com/proxystore/academy/issues){target=_blank} are used to track features to be included in upcoming releases.
 
 ## Versioning
 
 Academy uses [semver](https://semver.org/) as its versioning system.
-Rather, changes are only considered breaking if they change the way an application is run.
-For example, the command from a prior release no longer works in the following release.
 While Academy is in major version zero (0.y.z), breaking changes will be released in minor version updates.
 
 ## Creating Releases
@@ -19,8 +16,7 @@ While Academy is in major version zero (0.y.z), breaking changes will be release
    start at 0 and pre-release/post-release/dev-release segments start at 1.
 2. Update the version in `pyproject.toml` to `{VERSION}`.
 3. Commit and merge the version updates/changelogs into main.
-4. Tag the release commit and push (typically this is the commit updating the
-   version numbers).
+4. Pull the latest changes to main, tag the commit updating the version, and push the tag.
    ```bash
    $ git tag -s v{VERSION} -m "Academy v{VERSION}"
    $ git push origin v{VERSION}

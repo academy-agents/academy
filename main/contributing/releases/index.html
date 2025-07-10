@@ -1811,12 +1811,9 @@
   <h1>Releases</h1>
 
 <h2 id="release-timeline">Release Timeline<a class="headerlink" href="#release-timeline" title="Permanent link">&para;</a></h2>
-<p>Releases are created on an as-needed basis.
-Milestones in the <a href="https://github.com/proxystore/academy/issues" target="_blank">Issue Tracker</a> are used to track features to be included in upcoming releases.</p>
+<p>Releases are created on an as-needed basis.</p>
 <h2 id="versioning">Versioning<a class="headerlink" href="#versioning" title="Permanent link">&para;</a></h2>
 <p>Academy uses <a href="https://semver.org/">semver</a> as its versioning system.
-Rather, changes are only considered breaking if they change the way an application is run.
-For example, the command from a prior release no longer works in the following release.
 While Academy is in major version zero (0.y.z), breaking changes will be released in minor version updates.</p>
 <h2 id="creating-releases">Creating Releases<a class="headerlink" href="#creating-releases" title="Permanent link">&para;</a></h2>
 <ol>
@@ -1827,8 +1824,7 @@ While Academy is in major version zero (0.y.z), breaking changes will be release
    start at 0 and pre-release/post-release/dev-release segments start at 1.</li>
 <li>Update the version in <code>pyproject.toml</code> to <code>{VERSION}</code>.</li>
 <li>Commit and merge the version updates/changelogs into main.</li>
-<li>Tag the release commit and push (typically this is the commit updating the
-   version numbers).
+<li>Pull the latest changes to main, tag the commit updating the version, and push the tag.
    <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>git<span class="w"> </span>tag<span class="w"> </span>-s<span class="w"> </span>v<span class="o">{</span>VERSION<span class="o">}</span><span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Academy v{VERSION}&quot;</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>$<span class="w"> </span>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>v<span class="o">{</span>VERSION<span class="o">}</span>
 </span></code></pre></div>

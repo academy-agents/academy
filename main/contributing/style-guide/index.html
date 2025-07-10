@@ -1716,6 +1716,9 @@
 <p>The Python code and docstring format mostly follows Google's <a href="https://google.github.io/styleguide/pyguide.html" target="_blank">Python Style Guide</a>, but the pre-commit config is the authoritative source for code format compliance.</p>
 <p><strong>Nits:</strong></p>
 <ul>
+<li>Avoid redundant comments---write <em>why</em> and not <em>what</em>.</li>
+<li>Keep comments and docstrings up-to-date when changing functions and classes.</li>
+<li>Don't include unrelated formatting or refactors in a feature PR.</li>
 <li>Avoid imports in <code>__init__.py</code> (reduces the likelihood of circular imports).</li>
 <li>Prefer pure functions where possible.</li>
 <li>Define all class attributes inside <code>__init__</code> so all attributes are visible in one place.
@@ -1723,7 +1726,7 @@
 <li>Prefer f-strings (<code class="language-python highlight"><span class="sa">f</span><span class="s1">&#39;name: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span></code>) over string format (<code class="language-python highlight"><span class="s1">&#39;name: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>).
   Never use the <code>%</code> operator.</li>
 <li>Prefer <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple">typing.NamedTuple</a> over <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/collections.html#collections.namedtuple">collections.namedtuple</a>.</li>
-<li>Use lower-case and no punctuation for log messages, but use upper-case and punctuation for exception values.
+<li>Use sentence case for error and log messages, but only include punctuation for errors.
   <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;new connection opened to </span><span class="si">{</span><span class="n">address</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Name must contain alphanumeric characters only.&#39;</span><span class="p">)</span>
 </span></code></pre></div></li>

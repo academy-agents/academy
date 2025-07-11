@@ -238,16 +238,18 @@ class Agent:
     async def agent_on_startup(self) -> None:
         """Callback invoked at the end of an agent's startup sequence.
 
-        See [`Runtime.run()`][academy.runtime.Runtime.run] for more
-        details on the startup sequence.
+        See
+        [`Runtime.run_until_complete()`][academy.runtime.Runtime.run_until_complete]
+        for more details on the startup sequence.
         """
         pass
 
     async def agent_on_shutdown(self) -> None:
         """Callback invoked at the beginning of an agent's shutdown sequence.
 
-        See [`Runtime.run()`][academy.runtime.Runtime.run] for more
-        details on the shutdown sequence.
+        See
+        [`Runtime.run_until_complete()`][academy.runtime.Runtime.run_until_complete]
+        for more details on the shutdown sequence.
         """
         pass
 

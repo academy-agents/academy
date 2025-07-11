@@ -98,8 +98,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     ```
 
     Note:
-        This can only be run once. Calling
-        [`run()`][academy.runtime.Runtime.run] multiple times will raise a
+        A runtime can only be used once, after which attempts to run an
+        agent using the same runtime with raise a
         [`RuntimeError`][RuntimeError].
 
     Note:

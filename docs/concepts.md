@@ -76,6 +76,6 @@ Academy provides many exchange implementations for different scenarios, such as:
 
 ## Manager
 
-Agents can be run manually via [`Runtime.run()`][academy.runtime.Runtime.run], but typically applications want to run many agents concurrently across parallel or distributed resources.
+Agents can be run manually via [`Runtime.run_until_complete()`][academy.runtime.Runtime.run_until_complete], but typically applications want to run many agents concurrently across parallel or distributed resources.
 The [`Manager`][academy.manager.Manager] provides a single interface for launching and managing agents across one or more [`Executors`][concurrent.futures.Executor], such as a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor], [Parsl](https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops){target=_blank}, or [Globus Compute](https://globus-compute.readthedocs.io/en/latest/index.html){target=_blank}.
 A manager will handle common boilerplate, including registering agents, creating handles, and ensuring stateful resources are appropriately cleaned up.

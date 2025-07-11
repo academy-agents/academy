@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from testing.fixture import exchange
+from testing.fixture import exchange_client
 from testing.fixture import get_factory
 from testing.fixture import http_exchange_factory
 from testing.fixture import http_exchange_server

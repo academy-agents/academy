@@ -99,9 +99,9 @@ async def test_proxy_handle_agent_shutdown_errors() -> None:
 
 @pytest.mark.asyncio
 async def test_unbound_remote_handle_serialize(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    registration = await exchange.register_agent(EmptyAgent)
+    registration = await exchange_client.register_agent(EmptyAgent)
     handle = UnboundRemoteHandle(registration.agent_id)
 
     dumped = pickle.dumps(handle)
@@ -113,25 +113,25 @@ async def test_unbound_remote_handle_serialize(
 
 @pytest.mark.asyncio
 async def test_unbound_remote_handle_bind(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    registration = await exchange.register_agent(EmptyAgent)
+    registration = await exchange_client.register_agent(EmptyAgent)
     handle = UnboundRemoteHandle(registration.agent_id)
     with pytest.raises(
         RuntimeError,
         match='An unbound handle has no client ID.',
     ):
         _ = handle.client_id
-    async with handle.bind_to_client(exchange) as agent_bound:
+    async with handle.bind_to_client(exchange_client) as agent_bound:
         assert isinstance(agent_bound, RemoteHandle)
         assert isinstance(agent_bound.clone(), UnboundRemoteHandle)
 
 
 @pytest.mark.asyncio
 async def test_unbound_remote_handle_errors(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    registration = await exchange.register_agent(EmptyAgent)
+    registration = await exchange_client.register_agent(EmptyAgent)
     handle = UnboundRemoteHandle(registration.agent_id)
     with pytest.raises(HandleNotBoundError):
         await handle.action('foo')
@@ -145,10 +145,10 @@ async def test_unbound_remote_handle_errors(
 
 @pytest.mark.asyncio
 async def test_remote_handle_closed_error(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    registration = await exchange.register_agent(EmptyAgent)
-    handle = RemoteHandle(exchange, registration.agent_id)
+    registration = await exchange_client.register_agent(EmptyAgent)
+    handle = RemoteHandle(exchange_client, registration.agent_id)
     await handle.close()
     assert handle.closed()
 
@@ -163,10 +163,10 @@ async def test_remote_handle_closed_error(
 
 @pytest.mark.asyncio
 async def test_agent_remote_handle_serialize(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    registration = await exchange.register_agent(EmptyAgent)
-    async with RemoteHandle(exchange, registration.agent_id) as handle:
+    registration = await exchange_client.register_agent(EmptyAgent)
+    async with RemoteHandle(exchange_client, registration.agent_id) as handle:
         # Note: don't call pickle.dumps here because ThreadExchange
         # is not pickleable so we test __reduce__ directly.
         class_, args = handle.__reduce__()
@@ -179,10 +179,10 @@ async def test_agent_remote_handle_serialize(
 
 @pytest.mark.asyncio
 async def test_agent_remote_handle_bind(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    registration = await exchange.register_agent(EmptyAgent)
-    factory = exchange.factory()
+    registration = await exchange_client.register_agent(EmptyAgent)
+    factory = exchange_client.factory()
 
     async def _handler(_: Any) -> None:  # pragma: no cover
         pass
@@ -200,10 +200,10 @@ async def test_agent_remote_handle_bind(
 
 @pytest.mark.asyncio
 async def test_client_remote_handle_ping_timeout(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    registration = await exchange.register_agent(EmptyAgent)
-    handle = RemoteHandle(exchange, registration.agent_id)
+    registration = await exchange_client.register_agent(EmptyAgent)
+    handle = RemoteHandle(exchange_client, registration.agent_id)
     with pytest.raises(TimeoutError):
         await handle.ping(timeout=0.001)
 

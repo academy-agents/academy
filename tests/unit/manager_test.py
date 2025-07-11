@@ -151,11 +151,11 @@ async def test_shutdown_blocking(
 
 @pytest.mark.asyncio
 async def test_bad_default_executor(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     with pytest.raises(ValueError, match='No executor named "second"'):
         Manager(
-            exchange_client=exchange,
+            exchange_client=exchange_client,
             executors={'first': ThreadPoolExecutor()},
             default_executor='second',
         )
@@ -163,11 +163,11 @@ async def test_bad_default_executor(
 
 @pytest.mark.asyncio
 async def test_add_and_set_executor_errors(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     executor = ThreadPoolExecutor()
     async with Manager(
-        exchange_client=exchange,
+        exchange_client=exchange_client,
         executors={'first': executor},
     ) as manager:
         with pytest.raises(
@@ -184,10 +184,10 @@ async def test_add_and_set_executor_errors(
 
 @pytest.mark.asyncio
 async def test_multiple_executor(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     async with Manager(
-        exchange_client=exchange,
+        exchange_client=exchange_client,
         executors={'first': ThreadPoolExecutor()},
     ) as manager:
         await manager.launch(EmptyAgent(), executor='first')
@@ -200,10 +200,10 @@ async def test_multiple_executor(
 
 @pytest.mark.asyncio
 async def test_multiple_executor_no_default(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     async with Manager(
-        exchange_client=exchange,
+        exchange_client=exchange_client,
         executors={'first': ThreadPoolExecutor()},
     ) as manager:
         with pytest.raises(ValueError, match='no default is set.'):
@@ -223,13 +223,17 @@ class FailOnStartupAgent(Agent):
 
 @pytest.mark.asyncio
 async def test_retry_on_error(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     # Note: this test presently relies on agent to be shared across
     # each agent execution in other threads.
     agent = FailOnStartupAgent(max_errors=2)
     executor = ThreadPoolExecutor(max_workers=1)
-    async with Manager(exchange, executors=executor, max_retries=3) as manager:
+    async with Manager(
+        exchange_client,
+        executors=executor,
+        max_retries=3,
+    ) as manager:
         handle = await manager.launch(agent)
         await handle.ping(timeout=TEST_CONNECTION_TIMEOUT)
         assert agent.errors == 2  # noqa: PLR2004
@@ -240,10 +244,13 @@ async def test_retry_on_error(
 @pytest.mark.asyncio
 async def test_wait_ignore_agent_errors(
     raise_error: bool,
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     agent = FailOnStartupAgent()
-    manager = Manager(exchange, executors=ThreadPoolExecutor(max_workers=1))
+    manager = Manager(
+        exchange_client,
+        executors=ThreadPoolExecutor(max_workers=1),
+    )
     handle = await manager.launch(agent)
 
     if raise_error:
@@ -258,11 +265,11 @@ async def test_wait_ignore_agent_errors(
 
 @pytest.mark.asyncio
 async def test_warn_executor_overload(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     agent = SleepAgent(TEST_LOOP_SLEEP)
     async with Manager(
-        exchange,
+        exchange_client,
         executors=ThreadPoolExecutor(max_workers=1),
     ) as manager:
         await manager.launch(agent)

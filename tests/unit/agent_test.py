@@ -32,15 +32,15 @@ def test_initialize_base_type_error() -> None:
 
 @pytest.mark.asyncio
 async def test_agent_context_initialized_ok(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     agent = EmptyAgent()
 
     async def _handler(_: Any) -> None:  # pragma: no cover
         pass
 
-    registration = await exchange.register_agent(EmptyAgent)
-    factory = exchange.factory()
+    registration = await exchange_client.register_agent(EmptyAgent)
+    factory = exchange_client.factory()
     async with await factory.create_agent_client(
         registration,
         _handler,

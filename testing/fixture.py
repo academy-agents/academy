@@ -85,7 +85,7 @@ async def get_factory(
 
 
 @pytest_asyncio.fixture
-async def exchange() -> AsyncGenerator[
+async def exchange_client() -> AsyncGenerator[
     UserExchangeClient[LocalExchangeTransport]
 ]:
     factory = LocalExchangeFactory()
@@ -95,9 +95,9 @@ async def exchange() -> AsyncGenerator[
 
 @pytest.fixture
 async def manager(
-    exchange: UserExchangeClient[LocalExchangeTransport],
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> AsyncGenerator[Manager[LocalExchangeTransport]]:
-    async with Manager(exchange, ThreadPoolExecutor()) as manager:
+    async with Manager(exchange_client, ThreadPoolExecutor()) as manager:
         yield manager
 
 

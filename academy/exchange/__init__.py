@@ -446,10 +446,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
             await self._close_handles()
             await self._transport.terminate(self.client_id)
             logger.info(f'Terminated mailbox for {self.client_id}')
-            if self._listener_task is not None:
-                self._listener_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await self._listener_task
+            await self._stop_listener_task()
             await self._transport.close()
             self._closed = True
             logger.info('Closed exchange client for %s', self.client_id)
@@ -479,3 +476,10 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 await handle._process_response(message)
         else:
             raise AssertionError('Unreachable.')
+
+    async def _stop_listener_task(self) -> None:
+        if self._listener_task is not None:
+            self._listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._listener_task
+            self._listener_task = None

@@ -62,8 +62,8 @@ class RuntimeConfig:
     Attributes:
         cancel_actions_on_shutdown: Cancel running actions when the agent
             is shutdown, otherwise wait for the actions to finish.
-        max_action_concurrency: Maximum size of the thread pool used to
-            concurrently execute action requests.
+        raise_loop_errors_on_shutdown: Raise any captured loop errors when
+            the agent is shutdown.
         shutdown_on_loop_error: Shutdown the agent if any loop raises an error.
         terminate_on_error: Terminate the agent by closing its mailbox
             permanently if the agent shuts down due to an error.
@@ -72,7 +72,7 @@ class RuntimeConfig:
     """
 
     cancel_actions_on_shutdown: bool = True
-    max_action_concurrency: int | None = None
+    raise_loop_errors_on_shutdown: bool = True
     shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
     terminate_on_success: bool = True
@@ -160,13 +160,6 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         exc_traceback: TracebackType | None,
     ) -> None:
         await self._shutdown()
-
-        # Raise loop exceptions so the caller of run() sees the errors,
-        # even if the loop errors didn't cause the shutdown.
-        raise_exceptions(
-            (e for _, e in self._loop_exceptions),
-            message='Caught failures in agent loops while shutting down.',
-        )
 
     def __repr__(self) -> str:
         name = type(self).__name__
@@ -422,6 +415,14 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             if self._should_terminate_mailbox():
                 await self._exchange_client.terminate(self.agent_id)
             await self._exchange_client.close()
+
+        if self.config.raise_loop_errors_on_shutdown:
+            # Raise loop exceptions so the caller sees them, even if the loop
+            # errors didn't cause the shutdown.
+            raise_exceptions(
+                (e for _, e in self._loop_exceptions),
+                message='Caught failures in agent loops while shutting down.',
+            )
 
         logger.info('Shutdown agent (%s; %s)', self.agent_id, self.agent)
 

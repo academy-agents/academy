@@ -187,8 +187,10 @@ class LoopFailureAgent(Agent):
         raise RuntimeError('Loop failure 2.')
 
 
+@pytest.mark.parametrize('raise_errors', (True, False))
 @pytest.mark.asyncio
 async def test_loop_failure_triggers_shutdown(
+    raise_errors: bool,
     exchange: UserExchangeClient[Any],
 ) -> None:
     registration = await exchange.register_agent(LoopFailureAgent)
@@ -196,9 +198,12 @@ async def test_loop_failure_triggers_shutdown(
         LoopFailureAgent(),
         exchange_factory=exchange.factory(),
         registration=registration,
+        config=RuntimeConfig(raise_loop_errors_on_shutdown=raise_errors),
     )
 
-    if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+    if not raise_errors:
+        await asyncio.wait_for(runtime.run_until_complete(), timeout=1)
+    elif sys.version_info >= (3, 11):  # pragma: >=3.11 cover
         # In Python 3.11 and later, all exceptions are raised in a group.
         with pytest.raises(ExceptionGroup) as exc_info:  # noqa: F821
             await asyncio.wait_for(runtime.run_until_complete(), timeout=1)

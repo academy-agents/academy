@@ -20,8 +20,8 @@ from testing.agents import EmptyAgent
 from testing.agents import HandleAgent
 from testing.agents import IdentityAgent
 from testing.agents import WaitAgent
-from testing.constant import TEST_LOOP_SLEEP
-from testing.constant import TEST_THREAD_JOIN_TIMEOUT
+from testing.constant import TEST_SLEEP_INTERVAL
+from testing.constant import TEST_WAIT_TIMEOUT
 
 
 def test_initialize_base_type_error() -> None:
@@ -153,11 +153,11 @@ async def test_agent_event() -> None:
     for _ in range(5):
         assert not agent.ran.is_set()
         agent.event.set()
-        await asyncio.wait_for(agent.ran.wait(), timeout=1)
+        await asyncio.wait_for(agent.ran.wait(), timeout=TEST_WAIT_TIMEOUT)
         agent.ran.clear()
 
     shutdown.set()
-    await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+    await asyncio.wait_for(task, timeout=TEST_WAIT_TIMEOUT)
 
 
 @pytest.mark.asyncio
@@ -166,7 +166,7 @@ async def test_agent_timer() -> None:
         def __init__(self) -> None:
             self.count = 0
 
-        @timer(TEST_LOOP_SLEEP)
+        @timer(TEST_SLEEP_INTERVAL)
         async def counter(self) -> None:
             self.count += 1
 
@@ -178,10 +178,10 @@ async def test_agent_timer() -> None:
     shutdown = asyncio.Event()
     task: asyncio.Task[None] = asyncio.create_task(agent.counter(shutdown))
 
-    await asyncio.sleep(TEST_LOOP_SLEEP * 10)
+    await asyncio.sleep(TEST_SLEEP_INTERVAL * 10)
     shutdown.set()
 
-    await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+    await asyncio.wait_for(task, timeout=TEST_WAIT_TIMEOUT)
 
 
 def test_agent_action_decorator_usage_ok() -> None:

@@ -7,6 +7,7 @@ import pytest
 
 from academy.event import or_event
 from academy.event import wait_event_async
+from testing.constant import TEST_SLEEP_INTERVAL
 
 
 def test_or_event() -> None:
@@ -45,7 +46,7 @@ async def test_wait_single_event_set_later():
     event = asyncio.Event()
 
     async def set_event_later():
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(TEST_SLEEP_INTERVAL)
         event.set()
 
     task = asyncio.create_task(set_event_later())
@@ -69,7 +70,7 @@ async def test_wait_multiple_events_second_one_set_first():
     event2 = asyncio.Event()
 
     async def set_second():
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(TEST_SLEEP_INTERVAL)
         event2.set()
 
     task = asyncio.create_task(set_second())
@@ -82,4 +83,4 @@ async def test_wait_multiple_events_second_one_set_first():
 async def test_wait_timeout_raises():
     event = asyncio.Event()
     with pytest.raises(TimeoutError):
-        await wait_event_async(event, timeout=0.01)
+        await wait_event_async(event, timeout=TEST_SLEEP_INTERVAL)

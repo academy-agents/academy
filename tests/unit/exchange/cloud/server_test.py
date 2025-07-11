@@ -33,6 +33,7 @@ from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
 from academy.socket import open_port
+from testing.constant import TEST_SLEEP_INTERVAL
 from testing.ssl import SSLContextFixture
 
 
@@ -74,7 +75,7 @@ def test_server_run() -> None:
                 f'http://{config.host}:{config.port}/',
             ).create_user_client()
         except OSError:  # pragma: no cover
-            time.sleep(0.01)
+            time.sleep(TEST_SLEEP_INTERVAL)
         else:
             client.close()
             break
@@ -104,7 +105,7 @@ def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
                 ssl_verify=False,
             ).create_user_client()
         except OSError:  # pragma: no cover
-            time.sleep(0.01)
+            time.sleep(TEST_SLEEP_INTERVAL)
         else:
             client.close()
             break
@@ -252,7 +253,10 @@ async def test_recv_timeout_error(cli) -> None:
 
     response = await cli.get(
         '/message',
-        json={'mailbox': uid.model_dump_json(), 'timeout': 0.001},
+        json={
+            'mailbox': uid.model_dump_json(),
+            'timeout': TEST_SLEEP_INTERVAL,
+        },
     )
     assert response.status == StatusCode.TIMEOUT.value
 

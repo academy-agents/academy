@@ -21,7 +21,7 @@ from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
 from testing.agents import SleepAgent
-from testing.constant import TEST_SLEEP
+from testing.constant import TEST_SLEEP_INTERVAL
 
 
 @pytest.mark.asyncio
@@ -205,7 +205,7 @@ async def test_client_remote_handle_ping_timeout(
     registration = await exchange_client.register_agent(EmptyAgent)
     handle = RemoteHandle(exchange_client, registration.agent_id)
     with pytest.raises(TimeoutError):
-        await handle.ping(timeout=0.001)
+        await handle.ping(timeout=TEST_SLEEP_INTERVAL)
 
 
 @pytest.mark.asyncio
@@ -285,7 +285,7 @@ async def test_client_remote_handle_wait_futures(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(SleepAgent())
-    sleep_future = await handle.sleep(TEST_SLEEP)
+    sleep_future = await handle.sleep(TEST_SLEEP_INTERVAL)
     await handle.close(wait_futures=True)
     await sleep_future
 
@@ -300,7 +300,7 @@ async def test_client_remote_handle_cancel_futures(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(SleepAgent())
-    sleep_future = await handle.sleep(TEST_SLEEP)
+    sleep_future = await handle.sleep(TEST_SLEEP_INTERVAL)
     await handle.close(wait_futures=False)
 
     with pytest.raises(asyncio.CancelledError):

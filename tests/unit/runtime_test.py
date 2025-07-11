@@ -34,7 +34,8 @@ from academy.runtime import RuntimeConfig
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
-from testing.constant import TEST_THREAD_JOIN_TIMEOUT
+from testing.constant import TEST_SLEEP_INTERVAL
+from testing.constant import TEST_WAIT_TIMEOUT
 
 
 class SignalingAgent(Agent):
@@ -142,7 +143,7 @@ async def test_runtime_shutdown_terminate_override(
         ),
     ) as runtime:
         runtime.signal_shutdown(expected=True, terminate=True)
-        await runtime.wait_shutdown(timeout=TEST_THREAD_JOIN_TIMEOUT)
+        await runtime.wait_shutdown(timeout=TEST_WAIT_TIMEOUT)
 
     assert (
         await exchange_client.status(runtime.agent_id)
@@ -180,7 +181,7 @@ async def test_runtime_wait_shutdown_timeout(
         registration=registration,
     ) as runtime:
         with pytest.raises(TimeoutError):
-            await runtime.wait_shutdown(timeout=0.001)
+            await runtime.wait_shutdown(timeout=TEST_SLEEP_INTERVAL)
 
 
 class LoopFailureAgent(Agent):
@@ -208,16 +209,25 @@ async def test_runtime_loop_error_causes_shutdown(
     )
 
     if not raise_errors:
-        await asyncio.wait_for(runtime.run_until_complete(), timeout=1)
+        await asyncio.wait_for(
+            runtime.run_until_complete(),
+            timeout=TEST_WAIT_TIMEOUT,
+        )
     elif sys.version_info >= (3, 11):  # pragma: >=3.11 cover
         # In Python 3.11 and later, all exceptions are raised in a group.
         with pytest.raises(ExceptionGroup) as exc_info:  # noqa: F821
-            await asyncio.wait_for(runtime.run_until_complete(), timeout=1)
+            await asyncio.wait_for(
+                runtime.run_until_complete(),
+                timeout=TEST_WAIT_TIMEOUT,
+            )
         assert len(exc_info.value.exceptions) == 2  # noqa: PLR2004
     else:  # pragma: <3.11 cover
         # In Python 3.10 and older, only the first error will be raised.
         with pytest.raises(RuntimeError, match='Loop failure'):
-            await asyncio.wait_for(runtime.run_until_complete(), timeout=1)
+            await asyncio.wait_for(
+                runtime.run_until_complete(),
+                timeout=TEST_WAIT_TIMEOUT,
+            )
 
 
 @pytest.mark.asyncio
@@ -239,7 +249,7 @@ async def test_runtime_loop_error_without_shutdown(
     await runtime._started_event.wait()
 
     # Should timeout because agent did not shutdown after loop errors
-    done, pending = await asyncio.wait({task}, timeout=0.001)
+    done, pending = await asyncio.wait({task}, timeout=TEST_SLEEP_INTERVAL)
     assert len(done) == 0
     runtime.signal_shutdown()
 
@@ -271,7 +281,7 @@ async def test_runtime_shutdown_message(
             dest=runtime.agent_id,
         )
         await exchange_client.send(shutdown)
-        await runtime.wait_shutdown(timeout=TEST_THREAD_JOIN_TIMEOUT)
+        await runtime.wait_shutdown(timeout=TEST_WAIT_TIMEOUT)
 
 
 @pytest.mark.asyncio
@@ -343,7 +353,7 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     class NoReturnAgent(Agent):
         @action
         async def sleep(self) -> None:
-            await asyncio.sleep(1000 if cancel else 0.01)
+            await asyncio.sleep(1000 if cancel else TEST_SLEEP_INTERVAL)
 
     registration = await exchange_client.register_agent(ErrorAgent)
     # Cancel listener so test can intercept agent responses
@@ -381,7 +391,7 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     else:
         assert message.get_exception() is None
 
-    await asyncio.wait_for(task, timeout=TEST_THREAD_JOIN_TIMEOUT)
+    await asyncio.wait_for(task, timeout=TEST_WAIT_TIMEOUT)
 
 
 @pytest.mark.asyncio
@@ -559,7 +569,7 @@ async def test_runtime_agent_self_termination(
         registration=registration,
     ) as runtime:
         await runtime.action('end', AgentId.new(), args=(), kwargs={})
-        await runtime.wait_shutdown(timeout=TEST_THREAD_JOIN_TIMEOUT)
+        await runtime.wait_shutdown(timeout=TEST_WAIT_TIMEOUT)
 
 
 class ContextAgent(Agent):

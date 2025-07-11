@@ -20,6 +20,7 @@ from academy.identifier import UserId
 from academy.message import PingRequest
 from academy.message import PingResponse
 from testing.agents import EmptyAgent
+from testing.constant import TEST_SLEEP_INTERVAL
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
 
@@ -122,7 +123,7 @@ async def test_transport_recv_timeout(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     with pytest.raises(TimeoutError):
-        await transport.recv(timeout=0.001)
+        await transport.recv(timeout=TEST_SLEEP_INTERVAL)
 
 
 @pytest.mark.asyncio
@@ -170,7 +171,7 @@ async def test_transport_terminate_reply_pending_requests(
 
             # No other messages should have been received
             with pytest.raises(TimeoutError):
-                await transport1.recv(timeout=0.001)
+                await transport1.recv(timeout=TEST_SLEEP_INTERVAL)
 
 
 @pytest.mark.asyncio

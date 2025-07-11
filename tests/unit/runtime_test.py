@@ -13,6 +13,7 @@ from academy.agent import loop
 from academy.context import ActionContext
 from academy.exception import ActionCancelledError
 from academy.exchange import UserExchangeClient
+from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.handle import Handle
 from academy.handle import HandleDict
@@ -55,7 +56,7 @@ class SignalingAgent(Agent):
 
 @pytest.mark.asyncio
 async def test_runtime_context_manager(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(SignalingAgent)
     async with Runtime(
@@ -69,7 +70,7 @@ async def test_runtime_context_manager(
 
 @pytest.mark.asyncio
 async def test_runtime_run_until_complete(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(SignalingAgent)
     runtime = Runtime(
@@ -88,7 +89,7 @@ async def test_runtime_run_until_complete(
 
 @pytest.mark.asyncio
 async def test_runtime_run_until_complete_as_task(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(SignalingAgent)
     runtime = Runtime(
@@ -109,7 +110,7 @@ async def test_runtime_run_until_complete_as_task(
 
 @pytest.mark.asyncio
 async def test_runtime_shutdown_without_terminate(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(SignalingAgent)
     runtime = Runtime(
@@ -125,7 +126,7 @@ async def test_runtime_shutdown_without_terminate(
 
 @pytest.mark.asyncio
 async def test_runtime_shutdown_terminate_override(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(EmptyAgent)
 
@@ -146,7 +147,7 @@ async def test_runtime_shutdown_terminate_override(
 
 @pytest.mark.asyncio
 async def test_runtime_startup_failure(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(SignalingAgent)
     runtime = Runtime(
@@ -165,7 +166,7 @@ async def test_runtime_startup_failure(
 
 @pytest.mark.asyncio
 async def test_runtime_wait_shutdown_timeout(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(SignalingAgent)
     async with Runtime(
@@ -191,7 +192,7 @@ class LoopFailureAgent(Agent):
 @pytest.mark.asyncio
 async def test_runtime_loop_error_causes_shutdown(
     raise_errors: bool,
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(LoopFailureAgent)
     runtime = Runtime(
@@ -216,7 +217,7 @@ async def test_runtime_loop_error_causes_shutdown(
 
 @pytest.mark.asyncio
 async def test_runtime_loop_error_without_shutdown(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(LoopFailureAgent)
     runtime = Runtime(
@@ -251,7 +252,7 @@ async def test_runtime_loop_error_without_shutdown(
 
 @pytest.mark.asyncio
 async def test_runtime_shutdown_message(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(EmptyAgent)
 
@@ -270,7 +271,7 @@ async def test_runtime_shutdown_message(
 
 @pytest.mark.asyncio
 async def test_runtime_ping_message(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(EmptyAgent)
     # Cancel listener so test can intercept agent responses
@@ -289,7 +290,7 @@ async def test_runtime_ping_message(
 
 @pytest.mark.asyncio
 async def test_runtime_action_message(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(CounterAgent)
     # Cancel listener so test can intercept agent responses
@@ -329,7 +330,7 @@ async def test_runtime_action_message(
 @pytest.mark.asyncio
 async def test_runtime_cancel_action_requests_on_shutdown(
     cancel: bool,
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     class NoReturnAgent(Agent):
         @action
@@ -377,7 +378,7 @@ async def test_runtime_cancel_action_requests_on_shutdown(
 
 @pytest.mark.asyncio
 async def test_runtime_action_message_error(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(ErrorAgent)
     # Cancel listener so test can intercept agent responses
@@ -402,7 +403,7 @@ async def test_runtime_action_message_error(
 
 @pytest.mark.asyncio
 async def test_runtime_action_message_unknown(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(EmptyAgent)
     # Cancel listener so test can intercept agent responses
@@ -427,7 +428,7 @@ async def test_runtime_action_message_unknown(
 
 @pytest.mark.asyncio
 async def test_bind_agent_handles_helper(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     class _TestAgent(Agent):
         def __init__(
@@ -489,7 +490,7 @@ class HandleBindingAgent(Agent):
 
 @pytest.mark.asyncio
 async def test_runtime_bind_handles(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     factory = exchange.factory()
     main_agent_reg = await exchange.register_agent(HandleBindingAgent)
@@ -540,7 +541,7 @@ class ShutdownAgent(Agent):
 
 @pytest.mark.asyncio
 async def test_runtime_agent_self_termination(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(ShutdownAgent)
 
@@ -566,7 +567,7 @@ class ContextAgent(Agent):
 
 @pytest.mark.asyncio
 async def test_runtime_agent_action_context(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange.register_agent(ShutdownAgent)
 

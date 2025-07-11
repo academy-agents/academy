@@ -6,6 +6,7 @@ import pytest
 
 from academy.context import ActionContext
 from academy.exchange import UserExchangeClient
+from academy.exchange.local import LocalExchangeTransport
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from testing.agents import EmptyAgent
@@ -13,7 +14,7 @@ from testing.agents import EmptyAgent
 
 @pytest.mark.asyncio
 async def test_action_context_agent_source(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     factory = exchange.factory()
     source_id: AgentId[EmptyAgent] = AgentId.new()
@@ -37,7 +38,7 @@ async def test_action_context_agent_source(
 
 @pytest.mark.asyncio
 async def test_action_context_user_source(
-    exchange: UserExchangeClient[Any],
+    exchange: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     factory = exchange.factory()
     source_id = UserId.new()

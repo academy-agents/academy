@@ -118,6 +118,9 @@ allow_untyped_defs = true
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
+markers = [
+    "integration: marks integration tests",
+]
 
 [tool.ruff]
 line-length = 79

@@ -6,7 +6,7 @@ This will create a new virtual environment with all of the required packages ins
 ```bash
 $ git clone https://github.com/proxystore/academy
 $ cd academy
-$ tox --devenv venv -e py311
+$ tox --devenv venv -e py313
 $ . venv/bin/activate
 ```
 
@@ -42,17 +42,24 @@ $ pre-commit run --all-files
 The entire CI workflow can be run with `#!bash $ tox`.
 This will test against multiple versions of Python and can be slow.
 
-Module-level unit-test are located in the `tests/` directory and its structure is intended to match that of `academy/`.
-E.g. the tests for `academy/x/y.py` are located in `tests/x/y_test.py`; however, additional test files can be added as needed.
+Module-level unit-test are located in the `tests/unit` directory and its structure is intended to match that of `academy/`.
+E.g. the tests for `academy/x/y.py` are located in `tests/unit/x/y_test.py`; however, additional test files can be added as needed.
 Tests should be narrowly focused and target a single aspect of the code's functionality, tests should not test internal implementation details of the code, and tests should not be dependent on the order in which they are run.
+
+```bash
+# Run all unit tests
+$ tox -e py313
+# Run a specific unit test
+$ tox -e py313 -- tests/unit/x/y_test.py::test_z
+```
 
 Code that is useful for building tests but is not a test itself belongs in the `testing/` directory.
 
+Integration tests are located in `tests/integration`, and each file contains one integration test.
+
 ```bash
-# Run all tests in tests/
-$ tox -e py311
-# Run a specific test
-$ tox -e py311 -- tests/x/y_test.py::test_z
+# Run all integration testts
+$ tox -e py313-integration
 ```
 
 ## Docs

@@ -49,18 +49,25 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
 async def _run_agent_on_worker_async(
     spec: _RunSpec[AgentT, ExchangeTransportT],
 ) -> None:
-    if isinstance(spec.agent, type):
-        agent = spec.agent(*spec.agent_args, **spec.agent_kwargs)
-    else:
-        agent = spec.agent
+    try:
+        if isinstance(spec.agent, type):
+            agent = spec.agent(*spec.agent_args, **spec.agent_kwargs)
+        else:
+            agent = spec.agent
 
-    runtime = Runtime(
-        agent,
-        config=spec.config,
-        exchange_factory=spec.exchange_factory,
-        registration=spec.registration,
-    )
-    await runtime.run()
+        async with Runtime(
+            agent,
+            config=spec.config,
+            exchange_factory=spec.exchange_factory,
+            registration=spec.registration,
+        ) as runtime:
+            await runtime.wait_shutdown()
+    except:
+        logger.exception(
+            'Failure running agent on worker (%s)',
+            spec.registration.agent_id,
+        )
+        raise
 
 
 def _run_agent_on_worker(

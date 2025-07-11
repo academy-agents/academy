@@ -4,11 +4,18 @@ import asyncio
 import contextlib
 import dataclasses
 import logging
+import sys
 from collections.abc import Awaitable
+from types import TracebackType
 from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import TypeVar
+
+if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+    from typing import Self
+else:  # pragma: <3.11 cover
+    from typing_extensions import Self
 
 from academy.agent import AgentT
 from academy.context import ActionContext
@@ -77,6 +84,19 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     The runtime is used to execute an agent by managing stateful resources,
     startup/shutdown, lifecycle hooks, and concurrency.
 
+    An agent can be run in two ways:
+    ```python
+    runtime = Runtime(agent, ...)
+
+    # Option 1: Async context manager
+    async with runtime:
+        ...
+        await runtime.wait_shutdown()
+
+    # Option 2: Run until complete
+    await runtime.run_until_complete()
+    ```
+
     Note:
         This can only be run once. Calling
         [`run()`][academy.runtime.Runtime.run] multiple times will raise a
@@ -123,6 +143,30 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             AgentExchangeClient[AgentT, ExchangeTransportT] | None
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
+
+    async def __aenter__(self) -> Self:
+        try:
+            await self._start()
+        except:
+            self.signal_shutdown(expected=False)
+            await self._shutdown()
+            raise
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
+        await self._shutdown()
+
+        # Raise loop exceptions so the caller of run() sees the errors,
+        # even if the loop errors didn't cause the shutdown.
+        raise_exceptions(
+            (e for _, e in self._loop_exceptions),
+            message='Caught failures in agent loops while shutting down.',
+        )
 
     def __repr__(self) -> str:
         name = type(self).__name__
@@ -244,8 +288,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         else:
             return await action_method(*args, **kwargs)
 
-    async def run(self) -> None:
-        """Run the agent.
+    async def run_until_complete(self) -> None:
+        """Run the agent until shutdown.
 
         Agent startup involves:
 
@@ -279,25 +323,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             Exception: Any exceptions raised during startup, shutdown, or
                 inside of control loops.
         """
-        try:
-            await self._start()
-        except:
-            logger.exception('Agent startup failed (%r)', self)
-            self.signal_shutdown(expected=False)
-            await self._shutdown()
-            raise
-
-        try:
-            await self._shutdown_event.wait()
-        finally:
-            await self._shutdown()
-
-            # Raise loop exceptions so the caller of run() sees the errors,
-            # even if the loop errors didn't cause the shutdown.
-            raise_exceptions(
-                (e for _, e in self._loop_exceptions),
-                message='Caught failures in agent loops while shutting down.',
-            )
+        async with self:
+            await self.wait_shutdown()
 
     async def _start(self) -> None:
         if self._shutdown_event.is_set():
@@ -352,14 +379,14 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         return terminate_for_success or terminate_for_error
 
     async def _shutdown(self) -> None:
-        assert self._shutdown_event.is_set()
-
         logger.debug(
             'Shutting down agent... (expected: %s; %s; %s)',
             self._shutdown_options.expected_shutdown,
             self.agent_id,
             self.agent,
         )
+
+        self._shutdown_event.set()
 
         if self._agent_startup_called:
             # Don't call agent_on_shutdown() if we never called
@@ -421,6 +448,27 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             terminate_override=terminate,
         )
         self._shutdown_event.set()
+
+    async def wait_shutdown(self, timeout: float | None = None) -> None:
+        """Wait for agent shutdown to be signalled.
+
+        Args:
+            timeout: Optional timeout in seconds to wait for a shutdown event.
+
+        Raises:
+            TimeoutError: If `timeout` was exceeded while waiting for agents.
+        """
+        try:
+            await asyncio.wait_for(
+                self._shutdown_event.wait(),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            # In Python 3.10 and older, asyncio.TimeoutError and TimeoutError
+            # are different error types.
+            raise TimeoutError(
+                f'Agent shutdown was not signalled within {timeout} seconds.',
+            ) from None
 
 
 def _bind_agent_handles(

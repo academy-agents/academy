@@ -50,9 +50,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.PIP_CACHE_DIR }}
-          key: tests-${{ matrix.os }}-pip-${{ matrix.python }}-${{ hashFiles('pyproject.toml') }}
+          key: tests-unit-${{ matrix.os }}-pip-${{ matrix.python }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            tests-${{ matrix.os }}-pip-${{ matrix.python }}-
+            tests-unit-${{ matrix.os }}-pip-${{ matrix.python }}-
 
       - name: Install Packages
         run: python -mpip install --upgrade pip tox
@@ -102,9 +102,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.PIP_CACHE_DIR }}
-          key: tests-${{ matrix.os }}-pip-${{ matrix.python }}-${{ hashFiles('pyproject.toml') }}
+          key: tests-integration-${{ matrix.os }}-pip-${{ matrix.python }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
-            tests-${{ matrix.os }}-pip-${{ matrix.python }}-
+            tests-integration-${{ matrix.os }}-pip-${{ matrix.python }}-
 
       - name: Install Packages
         run: python -mpip install --upgrade pip tox

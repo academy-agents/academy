@@ -1954,12 +1954,12 @@ Terminated indicates permanent termination of the entity and will cause <a class
 <li><a class="autorefs autorefs-internal" title="            HybridExchangeFactory" href="../api/exchange/hybrid/#academy.exchange.hybrid.HybridExchangeFactory"><strong>HybridExchange</strong></a>: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).</li>
 </ul>
 <h2 id="manager">Manager<a class="headerlink" href="#manager" title="Permanent link">&para;</a></h2>
-<p>Agents can be run manually via <a class="autorefs autorefs-internal" title="            run
+<p>Agents can be run manually via <a class="autorefs autorefs-internal" title="            run_until_complete
 
 
   
       async
-  " href="../api/runtime/#academy.runtime.Runtime.run"><code>Runtime.run()</code></a>, but typically applications want to run many agents concurrently across parallel or distributed resources.
+  " href="../api/runtime/#academy.runtime.Runtime.run_until_complete"><code>Runtime.run_until_complete()</code></a>, but typically applications want to run many agents concurrently across parallel or distributed resources.
 The <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> provides a single interface for launching and managing agents across one or more <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor"><code>Executors</code></a>, such as a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor"><code>ProcessPoolExecutor</code></a>, <a href="https://parsl.readthedocs.io/en/stable/userguide/workflows/workflow.html#parallel-workflows-with-loops" target="_blank">Parsl</a>, or <a href="https://globus-compute.readthedocs.io/en/latest/index.html" target="_blank">Globus Compute</a>.
 A manager will handle common boilerplate, including registering agents, creating handles, and ensuring stateful resources are appropriately cleaned up.</p>
 

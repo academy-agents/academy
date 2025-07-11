@@ -1,0 +1,13 @@
+name: Documentation improvement
+description: Suggest improvements to the documentation.
+labels: ["documentation"]
+body:
+  - type: textarea
+    id: freeform
+    attributes:
+      label: Describe the Request
+      description: >
+        Please describe limitations of the current documentation or
+        suggested improvements.
+    validations:
+      required: true

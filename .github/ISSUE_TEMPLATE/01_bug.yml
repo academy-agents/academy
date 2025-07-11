@@ -1,0 +1,53 @@
+name: Bug report
+description: Report errors or unexpected results.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: freeform
+    attributes:
+      label: Describe the problem.
+      description: >
+        Please describe the issue encountered, what you expected to happen,
+        and steps to reproduce the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: install
+    attributes:
+      label: How did you install and run the code?
+      description: >
+        E.g., install via pip, install from source, etc. **Note:** this will
+        be rendered as console text automatically.
+      placeholder: |
+        $ pip install ...
+        $ python my_script.py
+      render: console
+    validations:
+      required: false
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Version
+      description: >
+        Academy version used or commit ID if installed from source.
+      placeholder: "v0.3.1"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      placeholder: "3.10"
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: OS and Platform
+      placeholder: "x86 Linux, ARM MacOS, etc."
+    validations:
+      required: true

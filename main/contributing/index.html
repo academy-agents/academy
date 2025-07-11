@@ -1774,7 +1774,7 @@
 This will create a new virtual environment with all of the required packages installed and TaPS installed in editable mode with the necessary extras options.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/proxystore/academy
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>academy
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>$<span class="w"> </span>tox<span class="w"> </span>--devenv<span class="w"> </span>venv<span class="w"> </span>-e<span class="w"> </span>py311
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>$<span class="w"> </span>tox<span class="w"> </span>--devenv<span class="w"> </span>venv<span class="w"> </span>-e<span class="w"> </span>py313
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>$<span class="w"> </span>.<span class="w"> </span>venv/bin/activate
 </span></code></pre></div>
 <div class="admonition warning">
@@ -1799,24 +1799,28 @@ E.g., if your Conda environment is Python 3.11, running <code class="language-ba
 <h3 id="tests-tox">Tests (tox)<a class="headerlink" href="#tests-tox" title="Permanent link">&para;</a></h3>
 <p>The entire CI workflow can be run with <code class="language-bash highlight">$<span class="w"> </span>tox</code>.
 This will test against multiple versions of Python and can be slow.</p>
-<p>Module-level unit-test are located in the <code>tests/</code> directory and its structure is intended to match that of <code>academy/</code>.
-E.g. the tests for <code>academy/x/y.py</code> are located in <code>tests/x/y_test.py</code>; however, additional test files can be added as needed.
+<p>Module-level unit-test are located in the <code>tests/unit</code> directory and its structure is intended to match that of <code>academy/</code>.
+E.g. the tests for <code>academy/x/y.py</code> are located in <code>tests/unit/x/y_test.py</code>; however, additional test files can be added as needed.
 Tests should be narrowly focused and target a single aspect of the code's functionality, tests should not test internal implementation details of the code, and tests should not be dependent on the order in which they are run.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Run all unit tests</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>$<span class="w"> </span>tox<span class="w"> </span>-e<span class="w"> </span>py313
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Run a specific unit test</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>$<span class="w"> </span>tox<span class="w"> </span>-e<span class="w"> </span>py313<span class="w"> </span>--<span class="w"> </span>tests/unit/x/y_test.py::test_z
+</span></code></pre></div>
 <p>Code that is useful for building tests but is not a test itself belongs in the <code>testing/</code> directory.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Run all tests in tests/</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>$<span class="w"> </span>tox<span class="w"> </span>-e<span class="w"> </span>py311
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Run a specific test</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>$<span class="w"> </span>tox<span class="w"> </span>-e<span class="w"> </span>py311<span class="w"> </span>--<span class="w"> </span>tests/x/y_test.py::test_z
+<p>Integration tests are located in <code>tests/integration</code>, and each file contains one integration test.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Run all integration testts</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>$<span class="w"> </span>tox<span class="w"> </span>-e<span class="w"> </span>py313-integration
 </span></code></pre></div>
 <h2 id="docs">Docs<a class="headerlink" href="#docs" title="Permanent link">&para;</a></h2>
 <p>If code changes require an update to the documentation (e.g., for function signature changes, new modules, etc.), the documentation can be built using MKDocs.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Manually</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>docs<span class="o">]</span><span class="w"> </span><span class="c1"># If you skipped this step earlier</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>$<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict<span class="w">  </span><span class="c1"># Build only to site/index.html</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>$<span class="w"> </span>mkdocs<span class="w"> </span>serve<span class="w">           </span><span class="c1"># Serve locally</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># With tox (will only build, does not serve)</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>$<span class="w"> </span>tox<span class="w"> </span>-e<span class="w"> </span>docs
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Manually</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>docs<span class="o">]</span><span class="w"> </span><span class="c1"># If you skipped this step earlier</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>$<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict<span class="w">  </span><span class="c1"># Build only to site/index.html</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>$<span class="w"> </span>mkdocs<span class="w"> </span>serve<span class="w">           </span><span class="c1"># Serve locally</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># With tox (will only build, does not serve)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>$<span class="w"> </span>tox<span class="w"> </span>-e<span class="w"> </span>docs
 </span></code></pre></div>
 <p>Docstrings are automatically generated, but it is recommended to check the generated docstrings to make sure details/links/etc. are correct.</p>
 

@@ -8,7 +8,7 @@
 - Closes #XX
 - Related to #XX _(if applicable)_
 
-### Changes
+## Changes
 <!--- Check which of the following changes were made --->
 
 - [ ] Breaking (backwards incompatible changes to public interfaces)

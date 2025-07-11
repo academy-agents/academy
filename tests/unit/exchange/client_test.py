@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator
 from typing import Any
+from unittest import mock
 
 import pytest
 import pytest_asyncio
@@ -11,6 +12,7 @@ from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
+from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import PingRequest
@@ -148,6 +150,37 @@ async def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
 
             await user_client.terminate(registration.agent_id)
             await task
+
+
+@pytest.mark.asyncio
+async def test_agent_handle_process_response(
+    factory: ExchangeFactory[Any],
+) -> None:
+    async def _handler(_: RequestMessage) -> None:  # pragma: no cover
+        pass
+
+    async with await factory.create_user_client(
+        start_listener=False,
+    ) as user_client:
+        registration = await user_client.register_agent(EmptyAgent)
+        async with await factory.create_agent_client(
+            registration,
+            _handler,
+        ) as agent_client:
+            handle: RemoteHandle[EmptyAgent] = agent_client.get_handle(
+                AgentId.new(),
+            )
+
+            message = PingResponse(
+                src=user_client.client_id,
+                dest=agent_client.client_id,
+                label=handle.handle_id,
+            )
+
+            with mock.patch.object(handle, '_process_response') as mocked:
+                await agent_client._handle_message(message)
+
+            mocked.assert_called()
 
 
 @pytest.mark.asyncio

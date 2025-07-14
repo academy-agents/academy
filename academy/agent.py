@@ -251,6 +251,11 @@ class Agent:
     async def agent_on_startup(self) -> None:
         """Callback invoked at the end of an agent's startup sequence.
 
+        Control loops will not start and action requests will not be
+        processed until after this callback completes. Thus, it is safe to
+        initialize resources in this callback that are needed by actions or
+        loops.
+
         See
         [`Runtime.run_until_complete()`][academy.runtime.Runtime.run_until_complete]
         for more details on the startup sequence.

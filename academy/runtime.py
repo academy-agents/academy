@@ -198,6 +198,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         body = request.get_body()
         response: Message[Response]
         try:
+            # Do not run the method until the startup sequence has finished
+            await self._started_event.wait()
             result = await self.action(
                 body.action,
                 request.src,
@@ -225,6 +227,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         method: Callable[[asyncio.Event], Awaitable[None]],
     ) -> None:
         try:
+            # Do not run the method until the startup sequence has finished
+            await self._started_event.wait()
             await method(self._shutdown_event)
         except asyncio.CancelledError:
             pass
@@ -302,10 +306,12 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         1. Creates a new exchange client for the agent.
         1. Sets the runtime context on the agent.
         1. Binds all handles of the agent to this agent's exchange client.
-        1. Starts a [`Task`][asyncio.Task] to listen for messages in the
-           agent's mailbox in the exchange.
-        1. Starts a [`Task`][asyncio.Task] for all control loops defined on
-           the agent.
+        1. Schedules a [`Task`][asyncio.Task] to listen for messages in the
+           agent's mailbox in the exchange. Agent requests will not start
+           processing until the end of the startup sequence.
+        1. Schedules a [`Task`][asyncio.Task] for all control loops defined on
+           the agent. Each task will block until the end of the startup
+           sequence before starting the loop.
         1. Calls
            [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup].
 

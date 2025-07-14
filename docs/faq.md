@@ -43,3 +43,9 @@ The `__init__` method of an [`Agent`][academy.agent.Agent] is called in one of t
 In both scenarios, it is unsafe to perform communication operations (i.e., invoking an action on a remote agent) in `__init__` because connection resources and background tasks have not yet been initialized.
 
 The [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup] callback can be used instead to perform communication once the agent is in a running state.
+
+!!! warning
+
+    Be careful when invoking actions on remote agents from the on startup callback.
+    An agent will not process incoming action requests until after [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup] has completed.
+    This can cause deadlocks when Agent A's startup callback makes a request to Agent B and then Agent B makes a request back to Agent A.

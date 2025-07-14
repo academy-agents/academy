@@ -455,6 +455,56 @@ async def test_runtime_action_message_unknown(
 
 
 @pytest.mark.asyncio
+async def test_runtime_delay_actions_and_loops_to_after_startup(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    class ExampleAgent(Agent):
+        def __init__(self) -> None:
+            self.startup_called = False
+
+        async def agent_on_startup(self) -> None:
+            # Simulate some work that yields execution to other scheduled
+            # tasks so that the scheduled action tasks gets run concurrently
+            # with the startup callback. The action task should wait
+            # on the startup sequence to finish and immediately yield back
+            # control so the callback can finish
+            for _ in range(10):
+                await asyncio.sleep(0)
+            self.startup_called = True
+
+        @action
+        async def check_action(self) -> None:
+            assert self.startup_called
+
+        @loop
+        async def check_loop(self, shutdown: asyncio.Event) -> None:
+            assert self.startup_called
+
+    registration = await exchange_client.register_agent(ExampleAgent)
+    # Cancel listener so test can intercept agent responses
+    await exchange_client._stop_listener_task()
+
+    # Send action request before starting agent so its immediately
+    # available when message listener task starts
+    request = Message.create(
+        src=exchange_client.client_id,
+        dest=registration.agent_id,
+        body=ActionRequest(action='check_action'),
+    )
+    await exchange_client.send(request)
+
+    async with Runtime(
+        ExampleAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ):
+        message = await exchange_client._transport.recv()
+        body = message.get_body()
+        assert isinstance(body, ActionResponse)
+        assert body.get_result() is None
+
+
+@pytest.mark.asyncio
 async def test_bind_agent_handles_helper(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:

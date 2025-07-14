@@ -3,9 +3,6 @@
 This plugin enables mypy to perform static type inference on
 [`Handle`][academy.handle.Handle] types.
 
-For example, the return type of an action invocation on a remote agent via
-a handle is a [`Future`][asyncio.Future] wrapping the return
-type of the action.
 ```python
 from academy.agent import Agent, action
 from academy.handle import Handle
@@ -17,7 +14,7 @@ class Example(Agent):
 handle: Handle[Example]
 
 reveal_type(await handle.get_value())
-# note: Revealed type is "asyncio.Future[int]"
+# note: Revealed type is "int"
 ```
 Without the plugin, mypy will default to [`Any`][typing.Any].
 
@@ -62,7 +59,6 @@ from mypy.checker import TypeChecker
 from mypy.errorcodes import ATTR_DEFINED
 from mypy.errorcodes import UNION_ATTR
 from mypy.messages import format_type
-from mypy.nodes import TypeInfo
 from mypy.options import Options
 from mypy.plugin import AttributeContext
 from mypy.plugin import MethodContext
@@ -80,7 +76,6 @@ P = ParamSpec('P')
 T = TypeVar('T')
 
 
-FUTURE_FULL_NAME = 'asyncio.Future'
 HANDLE_TYPE_PATTERN = (
     r'^academy\.handle\.([a-zA-Z_][a-zA-Z0-9_]*)?Handle'
     r'(?:\[\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\])?$'
@@ -139,28 +134,6 @@ def _assertion_fallback(function: Callable[P, Type]) -> Callable[P, Type]:
             return AnyType(TypeOfAny.implementation_artifact)
 
     return decorator
-
-
-def _get_future_instance(
-    ctx: AttributeContext | MethodContext,
-    return_type: Type,
-) -> Type:
-    assert isinstance(ctx.api, TypeChecker)
-    mod = ctx.api.modules.get('asyncio')
-    if not mod:
-        ctx.api.fail("Module 'asyncio' not found", ctx.context)
-        return return_type
-
-    sym = mod.names.get('Future')
-    if not sym or not isinstance(sym.node, TypeInfo):
-        ctx.api.fail(
-            "Symbol 'Future' not found in 'asyncio'",
-            ctx.context,
-        )
-        return return_type
-
-    future_info = sym.node
-    return Instance(future_info, [return_type])
 
 
 def _handle_attr_access(  # noqa: C901, PLR0911, PLR0912
@@ -241,12 +214,11 @@ def _handle_attr_access(  # noqa: C901, PLR0911, PLR0912
         and len(ret_ret_type.args) == 3  # noqa: PLR2004 (Coroutine[A, B, C])
     ):
         inner_type = ret_ret_type.args[2]
-        future_type = _get_future_instance(ctx, inner_type)
         assert isinstance(ctx.api, TypeChecker)
         coroutine_type = ctx.api.named_type('typing.Coroutine')
         ret_type = coroutine_type.copy_modified(
-            # Coroutine[None, None, asyncio.Future[T]]
-            args=[NoneType(), NoneType(), future_type],
+            # Coroutine[None, None, T]
+            args=[NoneType(), NoneType(), inner_type],
         )
     else:
         return fallback_type

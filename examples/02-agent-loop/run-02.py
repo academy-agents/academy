@@ -43,10 +43,9 @@ async def main() -> int:
         logger.info('Waiting 2s for agent loops to execute...')
         await asyncio.sleep(2)
 
-        future = await agent.get_count()
-        await future
-        assert future.result() >= 1
-        logger.info('Agent loop executed %s time(s)', future.result())
+        count = await agent.get_count()
+        assert count >= 1
+        logger.info('Agent loop executed %s time(s)', count)
 
     return 0
 

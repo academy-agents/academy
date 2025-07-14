@@ -80,13 +80,7 @@ class Handle(Protocol[AgentT]):
         """ID of the client for this handle."""
         ...
 
-    async def action(
-        self,
-        action: str,
-        /,
-        *args: Any,
-        **kwargs: Any,
-    ) -> asyncio.Future[R]:
+    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
         """Invoke an action on the agent.
 
         Args:
@@ -95,12 +89,13 @@ class Handle(Protocol[AgentT]):
             kwargs: Keywords arguments for the action.
 
         Returns:
-            Future to the result of the action.
+            Result of the action.
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            Exception: Any exception raised by the action.
             HandleClosedError: If the handle was closed.
         """
         ...
@@ -226,18 +221,12 @@ class ProxyHandle(Generic[AgentT]):
             )
 
         @functools.wraps(method)
-        async def func(*args: Any, **kwargs: Any) -> asyncio.Future[R]:
+        async def func(*args: Any, **kwargs: Any) -> R:
             return await self.action(name, *args, **kwargs)
 
         return func
 
-    async def action(
-        self,
-        action: str,
-        /,
-        *args: Any,
-        **kwargs: Any,
-    ) -> asyncio.Future[R]:
+    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
         """Invoke an action on the agent.
 
         Args:
@@ -246,12 +235,13 @@ class ProxyHandle(Generic[AgentT]):
             kwargs: Keywords arguments for the action.
 
         Returns:
-            Future to the result of the action.
+            Result of the action.
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            Exception: Any exception raised by the action.
             HandleClosedError: If the handle was closed.
         """
         if self._agent_closed:
@@ -259,15 +249,8 @@ class ProxyHandle(Generic[AgentT]):
         elif self._handle_closed:
             raise HandleClosedError(self.agent_id, self.client_id)
 
-        future: asyncio.Future[R] = asyncio.get_running_loop().create_future()
-        try:
-            method = getattr(self.agent, action)
-            result = await method(*args, **kwargs)
-        except Exception as e:
-            future.set_exception(e)
-        else:
-            future.set_result(result)
-        return future
+        method = getattr(self.agent, action)
+        return await method(*args, **kwargs)
 
     async def close(
         self,
@@ -384,13 +367,7 @@ class UnboundRemoteHandle(Generic[AgentT]):
         """
         return client.get_handle(self.agent_id)
 
-    async def action(
-        self,
-        action: str,
-        /,
-        *args: Any,
-        **kwargs: Any,
-    ) -> asyncio.Future[R]:
+    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
         """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
         raise HandleNotBoundError(self.agent_id)
 
@@ -471,10 +448,7 @@ class RemoteHandle(Generic[AgentT]):
         return f'{name}<agent: {self.agent_id}; mailbox: {self.client_id}>'
 
     def __getattr__(self, name: str) -> Any:
-        async def remote_method_call(
-            *args: Any,
-            **kwargs: Any,
-        ) -> asyncio.Future[R]:
+        async def remote_method_call(*args: Any, **kwargs: Any) -> R:
             return await self.action(name, *args, **kwargs)
 
         return remote_method_call
@@ -535,13 +509,7 @@ class RemoteHandle(Generic[AgentT]):
         """Check if the handle has been closed."""
         return self._closed
 
-    async def action(
-        self,
-        action: str,
-        /,
-        *args: Any,
-        **kwargs: Any,
-    ) -> asyncio.Future[R]:
+    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
         """Invoke an action on the agent.
 
         Args:
@@ -550,12 +518,13 @@ class RemoteHandle(Generic[AgentT]):
             kwargs: Keywords arguments for the action.
 
         Returns:
-            Future to the result of the action.
+            Result of the action.
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            Exception: Any exception raised by the action.
             HandleClosedError: If the handle was closed.
         """
         if self._closed:
@@ -577,7 +546,8 @@ class RemoteHandle(Generic[AgentT]):
             self.agent_id,
             action,
         )
-        return future
+        await future
+        return future.result()
 
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.

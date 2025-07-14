@@ -23,10 +23,8 @@ class Coordinator(Agent):
 
     @action
     async def process(self, text: str) -> str:
-        future = await self.lowerer.lower(text)
-        text = await future
-        future = await self.reverser.reverse(text)
-        text = await future
+        text = await self.lowerer.lower(text)
+        text = await self.reverser.reverse(text)
         return text
 
 
@@ -58,6 +56,5 @@ async def test_agent_agent_handles() -> None:
         text = 'DEADBEEF'
         expected = 'feebdaed'
 
-        future = await coordinator.process(text)
-        result = await future
+        result = await coordinator.process(text)
         assert result == expected

@@ -35,16 +35,13 @@ async def main() -> int:
     ) as manager:
         agent_handle = await manager.launch(Counter)
 
-        count_future = await agent_handle.get_count()
-        await count_future
-        assert count_future.result() == 0
+        count = await agent_handle.get_count()
+        assert count == 0
 
-        inc_future = await agent_handle.increment()
-        await inc_future
+        await agent_handle.increment()
 
-        count_future = await agent_handle.get_count()
-        await count_future
-        assert count_future.result() == 1
+        count = await agent_handle.get_count()
+        assert count == 1
 
     return 0
 

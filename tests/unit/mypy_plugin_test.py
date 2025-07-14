@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import sys
 from collections.abc import Coroutine
 
@@ -58,11 +57,9 @@ async def test_handle_attribute_access_resolved() -> None:
     # Methods defined on the Agent should have their return type
     # wrapped in a future
     coro = handle.method()
-    assert_type(coro, Coroutine[None, None, asyncio.Future[int]])  # type: ignore[unused-coroutine]
-    future = await coro
-    assert_type(future, asyncio.Future[int])
-    await future
-    assert_type(future.result(), int)
+    assert_type(coro, Coroutine[None, None, int])  # type: ignore[unused-coroutine]
+    result = await coro
+    assert_type(result, int)
 
 
 @pytest.mark.asyncio
@@ -119,10 +116,9 @@ async def test_handle_generic_protocol() -> None:
         ping = await handle.ping()
         assert_type(ping, float)
 
-        future = await handle.method()
-        assert_type(future, asyncio.Future[int])
-        await future
-        return future.result()
+        result = await handle.method()
+        assert_type(result, int)
+        return result
 
     handle = ProxyHandle(Example())
     result = await _call(handle)

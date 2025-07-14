@@ -40,29 +40,25 @@ async def test_proxy_handle_actions() -> None:
     handle = ProxyHandle(CounterAgent())
 
     # Via Handle.action()
-    add_future: asyncio.Future[None] = await handle.action('add', 1)
-    await add_future
-    count_future: asyncio.Future[int] = await handle.action('count')
-    assert await count_future == 1
+    await handle.action('add', 1)
+    count: int = await handle.action('count')
+    assert count == 1
 
     # Via attribute lookup
-    add_future = await handle.add(1)
-    await add_future
-    count_future = await handle.count()
-    assert await count_future == 2  # noqa: PLR2004
+    await handle.add(1)
+    count = await handle.count()
+    assert count == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
 async def test_proxy_handle_action_errors() -> None:
     handle = ProxyHandle(ErrorAgent())
 
-    fails_future: asyncio.Future[None] = await handle.action('fails')
     with pytest.raises(RuntimeError, match='This action always fails.'):
-        await fails_future
+        await handle.action('fails')
 
-    null_future: asyncio.Future[None] = await handle.action('null')
     with pytest.raises(AttributeError, match='null'):
-        await null_future
+        await handle.action('null')
 
     with pytest.raises(AttributeError, match='null'):
         await handle.null()  # type: ignore[attr-defined]
@@ -237,15 +233,13 @@ async def test_client_remote_handle_actions(
     handle = await manager.launch(CounterAgent())
     assert await handle.ping() > 0
 
-    future: asyncio.Future[None] = await handle.action('add', 1)
-    await future
-    count_future: asyncio.Future[int] = await handle.action('count')
-    assert await count_future == 1
+    await handle.action('add', 1)
+    count: int = await handle.action('count')
+    assert count == 1
 
-    future = await handle.add(1)
-    await future
-    count_future = await handle.count()
-    assert await count_future == 2  # noqa: PLR2004
+    await handle.add(1)
+    count = await handle.count()
+    assert count == 2  # noqa: PLR2004
 
     await handle.shutdown()
 
@@ -271,16 +265,14 @@ async def test_client_remote_handle_errors(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(ErrorAgent())
-    action_future = await handle.fails()
     with pytest.raises(
         RuntimeError,
         match='This action always fails.',
     ):
-        await action_future
+        await handle.fails()
 
-    null_future: asyncio.Future[None] = await handle.action('null')
     with pytest.raises(AttributeError, match='null'):
-        await null_future
+        await handle.action('null')
 
     await handle.shutdown()
 
@@ -290,9 +282,14 @@ async def test_client_remote_handle_wait_futures(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(SleepAgent())
-    sleep_future = await handle.sleep(TEST_SLEEP_INTERVAL)
+    sleep_task = asyncio.create_task(handle.sleep(TEST_SLEEP_INTERVAL))
+
+    # Need to ensure that sleep_task starts running before closing the handle
+    for _ in range(10):
+        await asyncio.sleep(0)
+
     await handle.close(wait_futures=True)
-    await sleep_future
+    await sleep_task
 
     # Create a new, non-closed handle to shutdown the agent
     shutdown_handle = manager.get_handle(handle.agent_id)
@@ -305,11 +302,15 @@ async def test_client_remote_handle_cancel_futures(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(SleepAgent())
-    sleep_future = await handle.sleep(TEST_SLEEP_INTERVAL)
-    await handle.close(wait_futures=False)
+    sleep_task = asyncio.create_task(handle.sleep(TEST_SLEEP_INTERVAL))
 
+    # Need to ensure that sleep_task starts running before closing the handle
+    for _ in range(10):
+        await asyncio.sleep(0)
+
+    await handle.close(wait_futures=False)
     with pytest.raises(asyncio.CancelledError):
-        await sleep_future
+        await sleep_task
 
     # Create a new, non-closed handle to shutdown the agent
     async with manager.get_handle(handle.agent_id) as shutdown_handle:

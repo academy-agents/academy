@@ -68,11 +68,10 @@ async with await Manager.from_exchange_factory(
 ) as manager:
     agent_handle = await manager.launch(SensorMonitorAgent)
 
-    future = await agent_handle.set_process_threshold(2.0)
-    await future
+    await agent_handle.set_process_threshold(2.0)
     await asyncio.sleep(5)
-    future = await agent_handle.get_last_reading()
-    value = await future
+    value = await agent_handle.get_last_reading()
+    print(value)
 
     await manager.shutdown(agent_handle, blocking=True)
 ```

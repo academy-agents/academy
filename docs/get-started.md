@@ -48,8 +48,8 @@ async def main() -> None:
     ) as manager:
         agent_handle = await manager.launch(ExampleAgent())  # (6)!
 
-        future = await agent_handle.square(2)  # (7)!
-        assert await future == 4
+        result = await agent_handle.square(2)  # (7)!
+        assert result == 4
 
         await agent_handle.shutdown()  # (8)!
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 4. The [local exchange][academy.exchange.local.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
 5. The manager uses an [`Executor`][concurrent.futures.Executor] to run agents concurrently across parallel/distributed resources. Here, a [`ThreadPoolExecutor`][concurrent.futures.Executor] runs agents in different threads of the main process.
 6. An instantiated agent (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
-7. Interact with running agents via a [`RemoteHandle`][academy.handle.RemoteHandle]. Invoking an action returns a future to the result.
+7. Interact with running agents via a [`RemoteHandle`][academy.handle.RemoteHandle]. Invoking an action returns the result.
 8. Agents can be shutdown via a handle or the manager.
 
 Running this script with logging enabled produces the following output:
@@ -119,10 +119,8 @@ class Coordinator(Agent):
 
     @action
     async def process(self, text: str) -> str:
-        future = await self.lowerer.lower(text)
-        text = await future
-        future = await self.reverser.reverse(text)
-        text = await future
+        text = await self.lowerer.lower(text)
+        text = await self.reverser.reverse(text)
         return text
 
 
@@ -165,9 +163,8 @@ async def main() -> None:
         text = 'DEADBEEF'
         expected = 'feebdaed'
 
-        future = await coordinator.process(text)
         logger.info('Invoking process("%s") on %s', text, coordinator.agent_id)
-        result = await future
+        result = await coordinator.process(text)
         assert result == expected
         logger.info('Received result: "%s"', result)
 

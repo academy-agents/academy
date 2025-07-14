@@ -109,7 +109,7 @@ nav:
       - Changelog (GitHub): https://github.com/proxystore/academy/releases
   - Guides:
       - guides/index.md
-      - Migrating to v0.2: guides/migrating-to-v0.2.md
+      - Migrating Versions: guides/migrating.md
   - Case Studies:
       - case-studies/index.md
   - API Reference:

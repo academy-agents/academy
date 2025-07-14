@@ -91,6 +91,18 @@ async def test_agent_empty() -> None:
 
 
 @pytest.mark.asyncio
+async def test_agent_ignore_property_attributes() -> None:
+    class Example(Agent):
+        @property
+        def bad(self) -> str:  # pragma: no cover
+            raise RuntimeError('Property was accessed!')
+
+    agent = Example()
+    attributes = set(agent._agent_attributes())
+    assert len(attributes) == 0
+
+
+@pytest.mark.asyncio
 async def test_agent_actions() -> None:
     agent = IdentityAgent()
     await agent.agent_on_startup()

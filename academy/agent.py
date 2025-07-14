@@ -141,11 +141,24 @@ class Agent:
         return self.agent_context.exchange_client
 
     def _agent_attributes(self) -> Generator[tuple[str, Any]]:
-        for name in dir(self):
-            if name in Agent.__dict__:
-                # Skip checking attributes of the base Agent. Checking
-                # the type of properties that access agent_context may
-                # raise an AgentNotInitializedError.
+        """Returns a generator that yields attributes of the agent.
+
+        The following attributes are ignored:
+
+        * Attributes defined on the parent/base Agent class
+        * @property methods of the derived type
+        """
+        all_attrs = set(dir(self))
+        base_attrs = set(dir(Agent))
+        derived_attrs = all_attrs - base_attrs
+
+        for name in derived_attrs:
+            if name.startswith('_Agent__'):
+                # Skip '__'-prefixed attributes of Agent whose names
+                # were mangled in the derived type
+                continue
+            if isinstance(getattr(type(self), name, None), property):
+                # Skip checking properties defined on the derived type.
                 continue
             attr = getattr(self, name)
             yield name, attr

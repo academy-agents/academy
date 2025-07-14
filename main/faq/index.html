@@ -1895,6 +1895,17 @@ For example, use the <code>initializer</code> argument when using a <a class="au
   
       async
   " href="../api/agent/#academy.agent.Agent.agent_on_startup"><code>Agent.agent_on_startup()</code></a> callback can be used instead to perform communication once the agent is in a running state.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Be careful when invoking actions on remote agents from the on startup callback.
+An agent will not process incoming action requests until after <a class="autorefs autorefs-internal" title="            agent_on_startup
+
+
+  
+      async
+  " href="../api/agent/#academy.agent.Agent.agent_on_startup"><code>Agent.agent_on_startup()</code></a> has completed.
+This can cause deadlocks when Agent A's startup callback makes a request to Agent B and then Agent B makes a request back to Agent A.</p>
+</div>
 
 
 

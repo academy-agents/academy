@@ -2,166 +2,166 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://academy.proxystore.dev/latest/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/concepts/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/faq/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/get-started/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/SUMMARY/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/agent/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/context/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/event/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exception/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/handle/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/identifier/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/logging/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/manager/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/message/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/mypy_plugin/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/runtime/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/serialize/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/socket/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/state/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/hybrid/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/local/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/proxystore/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/redis/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/transport/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/cloud/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/cloud/authenticate/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/cloud/client/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/cloud/config/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/cloud/exceptions/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/cloud/login/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/api/exchange/cloud/server/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/case-studies/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/contributing/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/contributing/issues-pull-requests/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/contributing/releases/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/contributing/style-guide/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/guides/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/guides/migrating-to-v0.2/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/publications/</loc>
-         <lastmod>2025-07-11</lastmod>
+         <lastmod>2025-07-14</lastmod>
     </url>
 </urlset>

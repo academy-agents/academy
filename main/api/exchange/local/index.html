@@ -2373,7 +2373,7 @@ in separate threads of a single process.</p>
   
       module-attribute
    (academy.agent.AgentT)" href="../../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">request_handler</span><span class="p">:</span> <span class="n"><span title="academy.exchange.RequestHandler">RequestHandler</span></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">request_handler</span><span class="p">:</span> <span class="n"><span title="academy.exchange.RequestHandler">RequestHandler</span></span><span class="p">[</span><span class="n"><span title="academy.message.RequestT_co">RequestT_co</span></span><span class="p">],</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentExchangeClient (academy.exchange.AgentExchangeClient)" href="../#academy.exchange.AgentExchangeClient">AgentExchangeClient</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
@@ -2416,7 +2416,7 @@ client can be created. For example:
         </li>
         <li class="doc-section-item field-body">
             <b><code>request_handler</code></b>
-              (<code><span title="academy.exchange.RequestHandler">RequestHandler</span></code>)
+              (<code><span title="academy.exchange.RequestHandler">RequestHandler</span>[<span title="academy.message.RequestT_co">RequestT_co</span>]</code>)
           –
           <div class="doc-md-description">
             <p>Agent request message handler.</p>
@@ -2506,7 +2506,7 @@ already registered with the exchange.</p>
 <span class="normal"><a href="#__codelineno-0-124">124</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_agent_client</span><span class="p">(</span>
 </span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="bp">self</span><span class="p">,</span>
 </span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="n">registration</span><span class="p">:</span> <span class="n">AgentRegistration</span><span class="p">[</span><span class="n">AgentT</span><span class="p">],</span>
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="n">request_handler</span><span class="p">:</span> <span class="n">RequestHandler</span><span class="p">,</span>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="n">request_handler</span><span class="p">:</span> <span class="n">RequestHandler</span><span class="p">[</span><span class="n">RequestT_co</span><span class="p">],</span>
 </span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentExchangeClient</span><span class="p">[</span><span class="n">AgentT</span><span class="p">,</span> <span class="n">ExchangeTransportT</span><span class="p">]:</span>
 </span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new agent exchange client.</span>
 </span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>

@@ -283,10 +283,34 @@ class Agent:
     ) -> R:
         """Run a blocking function in an executor.
 
+        Example:
+            ```python
+            import time
+            from academy.agent import Agent, action
+
+            class Example(Agent):
+                def blocking_call(self, value: int) -> int:
+                    time.sleep(10)
+                    return value
+
+                @action
+                async def non_blocking_call(self, value: int) -> int:
+                    result = await self.agent_run_sync(self.blocking_call, value)
+                    ...
+                    return result
+            ```
+
+        Warning:
+            The max concurrency of the default executor is configured
+            in the [`RuntimeConfig`][academy.runtime.RuntimeConfig]. If all
+            executor workers are busy, the function will be queued.
+
         Args:
             function: The blocking function to run.
             *args: Positional arguments for the function.
-            executor: Optional custom executor to use.
+            executor: Optional custom executor to use. The default executor is
+                a [`ThreadPoolExecutor`][concurrent.futures.ThreadPoolExecutor]
+                created by the [`Runtime`][academy.runtime.Runtime].
             timeout: Optional timeout (in seconds).
             **kwargs: Keyword arguments for the function.
 
@@ -297,8 +321,9 @@ class Agent:
             AgentNotInitializedError: If the agent runtime has not been
                 started.
             Exception: Any exception raised by the function.
-            TypeError: If any special keyword arguments are of the wrong type.
-        """
+            TimeoutError: If the function does not complete within `timeout`
+                seconds.
+        """  # noqa: E501
         wrapped = functools.partial(function, *args, **kwargs)
         executor = (
             self.agent_context.executor if executor is None else executor

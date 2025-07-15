@@ -33,6 +33,19 @@ async with await Manager(..., executors=executor) as manager:
 
 This section highlights common best practices for developing applications in Academy.
 
+### Avoid blocking calls in async agent methods
+
+When writing methods on an [`Agent`][academy.agent.Agent] that use `async def`, such as [`@action`][academy.agent.action] and [`@loop`][academy.agent.loop] methods, avoid calling long-running or blocking synchronous functions directly.
+Doing so will block the entire asyncio event loop, degrading the responsiveness and concurrency of your agent.
+
+To safely run synchronous (blocking) code inside async methods, use [`Agent.agent_run_sync()`][academy.agent.Agent.agent_run_sync] which runs the function in a separate thread, keeping the event loop free to do other work.
+```python
+@action
+async def do_work(self) -> None:
+    result = await self.agent_run_sync(expensive_sync_func)
+    ...
+```
+
 ### Avoid communication operations during agent initialization
 
 The `__init__` method of an [`Agent`][academy.agent.Agent] is called in one of two places:

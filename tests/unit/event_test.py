@@ -1,36 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import threading
 
 import pytest
 
-from academy.event import or_event
 from academy.event import wait_event_async
 from testing.constant import TEST_SLEEP_INTERVAL
-
-
-def test_or_event() -> None:
-    a = threading.Event()
-    b = threading.Event()
-
-    c = or_event(a, b)
-
-    assert not c.is_set()
-    a.set()
-    assert c.is_set()
-    a.clear()
-    assert not c.is_set()
-
-    a.set()
-    b.set()
-    assert c.is_set()
-
-    # Both events must be cleared
-    a.clear()
-    assert c.is_set()
-    b.clear()
-    assert not c.is_set()
 
 
 @pytest.mark.asyncio

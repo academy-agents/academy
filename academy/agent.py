@@ -572,7 +572,7 @@ def event(
             if not isinstance(event, asyncio.Event):
                 raise TypeError(
                     f'Attribute {name} of {type(self).__class__} has type '
-                    f'{type(event).__class__}. Expected threading.Event.',
+                    f'{type(event).__class__}. Expected asyncio.Event.',
                 )
 
             logger.debug(

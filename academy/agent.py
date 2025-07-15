@@ -8,7 +8,6 @@ import sys
 import warnings
 from collections.abc import Coroutine
 from collections.abc import Generator
-from concurrent.futures import Executor
 from datetime import timedelta
 from typing import Any
 from typing import Callable
@@ -94,6 +93,7 @@ class Agent:
 
     def __init__(self) -> None:
         self.__agent_context: AgentContext[Self] | None = None
+        self.__agent_run_sync_semaphore: asyncio.Semaphore | None = None
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}()'
@@ -276,12 +276,10 @@ class Agent:
         self,
         function: Callable[P, R],
         /,
-        *args: Any,
-        executor: Executor | None = None,
-        timeout: float | None = None,
-        **kwargs: Any,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ) -> R:
-        """Run a blocking function in an executor.
+        """Run a blocking function in separate thread.
 
         Example:
             ```python
@@ -300,18 +298,22 @@ class Agent:
                     return result
             ```
 
+        Note:
+            The max concurrency of the executor is configured in the
+            [`RuntimeConfig`][academy.runtime.RuntimeConfig]. If all
+            executor workers are busy the function will be queued and a
+            warning will be logged.
+
         Warning:
-            The max concurrency of the default executor is configured
-            in the [`RuntimeConfig`][academy.runtime.RuntimeConfig]. If all
-            executor workers are busy, the function will be queued.
+           This function does not support cancellation. For example, if you
+           wrap this call in [`asyncio.wait_for()`][asyncio.wait_for] and a
+           timeout occurs, the task wrapping the coroutine will be cancelled
+           but the blocking function will continue running in its thread until
+           completion.
 
         Args:
             function: The blocking function to run.
             *args: Positional arguments for the function.
-            executor: Optional custom executor to use. The default executor is
-                a [`ThreadPoolExecutor`][concurrent.futures.ThreadPoolExecutor]
-                created by the [`Runtime`][academy.runtime.Runtime].
-            timeout: Optional timeout (in seconds).
             **kwargs: Keyword arguments for the function.
 
         Returns:
@@ -321,24 +323,26 @@ class Agent:
             AgentNotInitializedError: If the agent runtime has not been
                 started.
             Exception: Any exception raised by the function.
-            TimeoutError: If the function does not complete within `timeout`
-                seconds.
         """  # noqa: E501
-        wrapped = functools.partial(function, *args, **kwargs)
-        executor = (
-            self.agent_context.executor if executor is None else executor
-        )
-        loop = asyncio.get_running_loop()
-        coro = loop.run_in_executor(executor, wrapped)
+        executor = self.agent_context.executor
 
-        try:
-            return await asyncio.wait_for(coro, timeout=timeout)
-        except asyncio.TimeoutError:
-            # In Python <=3.10, asyncio.TimeoutError and TimeoutError are
-            # different types so we cast the error.
-            raise TimeoutError(
-                f'Function did not complete within {timeout} seconds.',
-            ) from None
+        wrapped = functools.partial(function, *args, **kwargs)
+        loop = asyncio.get_running_loop()
+
+        if self.__agent_run_sync_semaphore is None:
+            max_workers = executor._max_workers
+            self.__agent_run_sync_semaphore = asyncio.Semaphore(max_workers)
+
+        acquired = self.__agent_run_sync_semaphore.locked()
+        if acquired:
+            logger.warning(
+                f'Thread-pool executor for {self.agent_id} is overloaded, '
+                f'sync function "{function.__name__}" is waiting for a '
+                'worker',
+            )
+
+        async with self.__agent_run_sync_semaphore:
+            return await loop.run_in_executor(executor, wrapped)
 
     def agent_shutdown(self) -> None:
         """Request the agent to shutdown.

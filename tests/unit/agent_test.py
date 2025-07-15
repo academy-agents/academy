@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -101,9 +102,9 @@ async def test_agent_run_sync() -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_run_sync_timeout() -> None:
+async def test_agent_run_sync_overloaded_warning(caplog) -> None:
     agent = EmptyAgent()
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=1) as executor:
         context: AgentContext[EmptyAgent] = AgentContext(
             agent_id=AgentId.new(),
             exchange_client=None,  # type: ignore[arg-type]
@@ -112,12 +113,16 @@ async def test_agent_run_sync_timeout() -> None:
         )
         agent._agent_set_context(context)
 
-        with pytest.raises(TimeoutError):
-            await agent.agent_run_sync(
-                time.sleep,
-                TEST_SLEEP_INTERVAL,
-                timeout=0,
+        with caplog.at_level(logging.WARNING):
+            tasks = tuple(
+                asyncio.create_task(
+                    agent.agent_run_sync(time.sleep, TEST_SLEEP_INTERVAL),
+                )
+                for _ in range(8)
             )
+            await asyncio.wait(tasks)
+
+        assert 'sync function "sleep" is waiting for a worker' in caplog.text
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,7 @@ import sys
 import warnings
 from collections.abc import Coroutine
 from collections.abc import Generator
+from concurrent.futures import Executor
 from datetime import timedelta
 from typing import Any
 from typing import Callable
@@ -270,6 +271,49 @@ class Agent:
         for more details on the shutdown sequence.
         """
         pass
+
+    async def agent_run_sync(
+        self,
+        function: Callable[P, R],
+        /,
+        *args: Any,
+        executor: Executor | None = None,
+        timeout: float | None = None,
+        **kwargs: Any,
+    ) -> R:
+        """Run a blocking function in an executor.
+
+        Args:
+            function: The blocking function to run.
+            *args: Positional arguments for the function.
+            executor: Optional custom executor to use.
+            timeout: Optional timeout (in seconds).
+            **kwargs: Keyword arguments for the function.
+
+        Returns:
+            The result of the function call.
+
+        Raises:
+            AgentNotInitializedError: If the agent runtime has not been
+                started.
+            Exception: Any exception raised by the function.
+            TypeError: If any special keyword arguments are of the wrong type.
+        """
+        wrapped = functools.partial(function, *args, **kwargs)
+        executor = (
+            self.agent_context.executor if executor is None else executor
+        )
+        loop = asyncio.get_running_loop()
+        coro = loop.run_in_executor(executor, wrapped)
+
+        try:
+            return await asyncio.wait_for(coro, timeout=timeout)
+        except asyncio.TimeoutError:
+            # In Python <=3.10, asyncio.TimeoutError and TimeoutError are
+            # different types so we cast the error.
+            raise TimeoutError(
+                f'Function did not complete within {timeout} seconds.',
+            ) from None
 
     def agent_shutdown(self) -> None:
         """Request the agent to shutdown.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
@@ -73,5 +74,7 @@ class AgentContext(Generic[AgentT]):
     """ID of the exchange as registered with the exchange."""
     exchange_client: AgentExchangeClient[AgentT, Any]
     """Client used by agent to communicate with the exchange."""
+    executor: ThreadPoolExecutor
+    """Thread-pool executor used for running synchronous tasks."""
     shutdown_event: asyncio.Event
     """Shutdown event used to signal the agent to shutdown."""

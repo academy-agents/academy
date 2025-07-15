@@ -7,6 +7,7 @@ import logging
 import sys
 import uuid
 from collections.abc import Awaitable
+from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Callable
@@ -68,6 +69,10 @@ class RuntimeConfig:
     Attributes:
         cancel_actions_on_shutdown: Cancel running actions when the agent
             is shutdown, otherwise wait for the actions to finish.
+        max_sync_concurrency: Maximum number of concurrent sync tasks allowed
+            via [`Agent.agent_run_sync()`][academy.agent.Agent.agent_run_sync].
+            This is used to set the number of threads in a default
+            [`ThreadPoolExecutor`][concurrent.futures.ThreadPoolExecutor].
         raise_loop_errors_on_shutdown: Raise any captured loop errors when
             the agent is shutdown.
         shutdown_on_loop_error: Shutdown the agent if any loop raises an error.
@@ -78,6 +83,7 @@ class RuntimeConfig:
     """
 
     cancel_actions_on_shutdown: bool = True
+    max_sync_concurrency: int | None = None
     raise_loop_errors_on_shutdown: bool = True
     shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
@@ -144,6 +150,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._action_tasks: dict[uuid.UUID, asyncio.Task[None]] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
         self._loop_exceptions: list[tuple[str, Exception]] = []
+
+        self._sync_executor = ThreadPoolExecutor(
+            self.config.max_sync_concurrency,
+            thread_name_prefix='agent-sync-executor-thread',
+        )
 
         self._exchange_client: (
             AgentExchangeClient[AgentT, ExchangeTransportT] | None
@@ -356,6 +367,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         context = AgentContext(
             agent_id=self.agent_id,
             exchange_client=self._exchange_client,
+            executor=self._sync_executor,
             shutdown_event=self._shutdown_event,
         )
         self.agent._agent_set_context(context)
@@ -429,6 +441,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
+
+        self._sync_executor.shutdown()
 
         if self._exchange_client is not None:
             if self._should_terminate_mailbox():

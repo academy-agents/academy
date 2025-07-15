@@ -8,8 +8,8 @@ Academy v0.3 makes a few breaking changes to improve the ergonomics of common us
 
 ### Handle actions are blocking by default
 
-Previously, invoking an action on a [`Handle`][academy.handle.Handle.action] returns a [`Future`][asyncio.Future] to the result.
-This resulted in verbose syntax when the result was immediately needed.
+Previously, invoking an action on a [`Handle`][academy.handle.Handle.action] returned a [`Future`][asyncio.Future] to the result.
+This resulted in verbose syntax when the result was immediately needed:
 ```python
 future = await handle.get_count()
 result = await future
@@ -17,7 +17,7 @@ result = await future
 result = await (await handle.get_count())
 ```
 
-Now, action requests block and return the final result of the action.
+Now, action requests block and return the final result of the action:
 ```python
 result = await handle.get_count()
 ```
@@ -28,6 +28,9 @@ task = asyncio.create_task(handle.get_count())
 await task
 print(task.result())
 ```
+Using tasks is especially useful when launching multiple long-running actions concurrently and waiting for them in a flexible manner.
+For example, instead of waiting for each action sequentially, you can start them all at once and then wait for them to complete using [`asyncio.wait()`][asyncio.wait] or [`asyncio.as_completed()`][asyncio.as_completed].
+
 
 ## Migrating to v0.2
 

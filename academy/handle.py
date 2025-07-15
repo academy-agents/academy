@@ -8,6 +8,7 @@ import time
 import uuid
 from collections.abc import Iterable
 from collections.abc import Mapping
+from contextvars import ContextVar
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -321,72 +322,10 @@ class ProxyHandle(Generic[AgentT]):
         self._agent_closed = True if terminate is None else terminate
 
 
-class UnboundRemoteHandle(Generic[AgentT]):
-    """Handle to a remote agent that not bound to a mailbox.
-
-    Warning:
-        An unbound handle must be bound before use. Otherwise all methods
-        will raise an `HandleNotBoundError` when attempting to send a message
-        to the remote agent.
-
-    Args:
-        agent_id: EntityId of the agent.
-    """
-
-    def __init__(self, agent_id: AgentId[AgentT]) -> None:
-        self.agent_id = agent_id
-
-    def __repr__(self) -> str:
-        name = type(self).__name__
-        return f'{name}(agent_id={self.agent_id!r})'
-
-    def __str__(self) -> str:
-        return f'{type(self).__name__}<agent: {self.agent_id}>'
-
-    def __getattr__(self, name: str) -> Any:
-        raise AttributeError(
-            'Actions cannot be invoked via an unbound handle.',
-        )
-
-    @property
-    def client_id(self) -> EntityId:
-        """Raises [`RuntimeError`][RuntimeError] when unbound."""
-        raise RuntimeError('An unbound handle has no client ID.')
-
-    def bind_to_client(
-        self,
-        client: ExchangeClient[Any],
-    ) -> RemoteHandle[AgentT]:
-        """Bind the handle to an existing mailbox.
-
-        Args:
-            client: Exchange client.
-
-        Returns:
-            Remote handle bound to the exchange client.
-        """
-        return client.get_handle(self.agent_id)
-
-    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
-        """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
-        raise HandleNotBoundError(self.agent_id)
-
-    async def close(
-        self,
-        wait_futures: bool = True,
-        *,
-        timeout: float | None = None,
-    ) -> None:
-        """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
-        raise HandleNotBoundError(self.agent_id)
-
-    async def ping(self, *, timeout: float | None = None) -> float:
-        """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
-        raise HandleNotBoundError(self.agent_id)
-
-    async def shutdown(self, *, terminate: bool | None = None) -> None:
-        """Raises [`HandleNotBoundError`][academy.exception.HandleNotBoundError]."""  # noqa: E501
-        raise HandleNotBoundError(self.agent_id)
+exchange_context: ContextVar[ExchangeClient[Any] | None] = ContextVar(
+    'exchange_client',
+    default=None,
+)
 
 
 class RemoteHandle(Generic[AgentT]):
@@ -399,14 +338,13 @@ class RemoteHandle(Generic[AgentT]):
 
     def __init__(
         self,
-        exchange: ExchangeClient[Any],
         agent_id: AgentId[AgentT],
+        exchange: ExchangeClient[Any] | None,
     ) -> None:
-        self.exchange = exchange
         self.agent_id = agent_id
-        self.client_id = exchange.client_id
+        self._exchange = exchange
 
-        if self.agent_id == self.client_id:
+        if self._exchange is not None and self.agent_id == self.client_id:
             raise ValueError(
                 'Cannot create handle to self. The IDs of the exchange '
                 f'client and the target agent are the same: {self.agent_id}.',
@@ -417,6 +355,34 @@ class RemoteHandle(Generic[AgentT]):
 
         self._futures: dict[uuid.UUID, asyncio.Future[Any]] = {}
         self._closed = False
+
+    @property
+    def exchange(self) -> ExchangeClient[Any]:
+        """Exchange client used to send messages.
+
+        Returns:
+            The ExchangeClient
+
+        Raises:
+            HandleNotBoundError: If the exchange client can't be found.
+
+        """
+        exchange = exchange_context.get()
+        if exchange is None and self._exchange is None:
+            raise HandleNotBoundError(self.agent_id)
+        elif exchange is None and self._exchange is not None:
+            return self._exchange
+
+        assert exchange is not None
+        if self._exchange != exchange:
+            self._exchange = exchange
+            self._exchange.register_handle(self)
+        return exchange
+
+    @property
+    def client_id(self) -> EntityId:
+        """ID of the client for this handle."""
+        return self.exchange.client_id
 
     async def __aenter__(self) -> Self:
         return self
@@ -432,20 +398,17 @@ class RemoteHandle(Generic[AgentT]):
     def __reduce__(
         self,
     ) -> tuple[
-        type[UnboundRemoteHandle[Any]],
-        tuple[AgentId[AgentT]],
+        type[RemoteHandle[Any]],
+        tuple[AgentId[AgentT], None],
     ]:
-        return (UnboundRemoteHandle, (self.agent_id,))
+        return (RemoteHandle, (self.agent_id, None))
 
     def __repr__(self) -> str:
-        return (
-            f'{type(self).__name__}(agent_id={self.agent_id!r}, '
-            f'client_id={self.client_id!r}, exchange={self.exchange!r})'
-        )
+        return f'{type(self).__name__}(agent_id={self.agent_id!r})'
 
     def __str__(self) -> str:
         name = type(self).__name__
-        return f'{name}<agent: {self.agent_id}; mailbox: {self.client_id}>'
+        return f'{name}<agent: {self.agent_id}>'
 
     def __getattr__(self, name: str) -> Any:
         async def remote_method_call(*args: Any, **kwargs: Any) -> R:
@@ -453,9 +416,9 @@ class RemoteHandle(Generic[AgentT]):
 
         return remote_method_call
 
-    def clone(self) -> UnboundRemoteHandle[AgentT]:
+    def clone(self) -> RemoteHandle[AgentT]:
         """Create an unbound copy of this handle."""
-        return UnboundRemoteHandle(self.agent_id)
+        return RemoteHandle(self.agent_id, None)
 
     async def _process_response(self, response: Message[Response]) -> None:
         future = self._futures.pop(response.tag, None)
@@ -539,6 +502,7 @@ class RemoteHandle(Generic[AgentT]):
         loop = asyncio.get_running_loop()
         future: asyncio.Future[R] = loop.create_future()
         self._futures[request.tag] = future
+
         await self.exchange.send(request)
         logger.debug(
             'Sent action request from %s to %s (action=%r)',

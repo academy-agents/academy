@@ -20,7 +20,6 @@ from academy.handle import HandleDict
 from academy.handle import HandleList
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
-from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
@@ -30,7 +29,6 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
-from academy.runtime import _bind_agent_handles
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from testing.agents import CounterAgent
@@ -505,7 +503,7 @@ async def test_runtime_delay_actions_and_loops_to_after_startup(
 
 
 @pytest.mark.asyncio
-async def test_bind_agent_handles_helper(
+async def test_agent_exchnage_context(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     class _TestAgent(Agent):
@@ -523,8 +521,9 @@ async def test_bind_agent_handles_helper(
     factory = exchange_client.factory()
     registration = await exchange_client.register_agent(_TestAgent)
     proxy_handle = ProxyHandle(EmptyAgent())
-    unbound_handle = UnboundRemoteHandle(
+    unbound_handle = RemoteHandle(
         (await exchange_client.register_agent(EmptyAgent)).agent_id,
+        None,
     )
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
@@ -535,8 +534,6 @@ async def test_bind_agent_handles_helper(
         _request_handler,
     ) as agent_client:
         agent = _TestAgent(unbound_handle, proxy_handle)
-        _bind_agent_handles(agent, agent_client)
-
         assert agent.proxy is proxy_handle
         assert agent.direct.client_id == agent_client.client_id
         for handle in agent.sequence:
@@ -548,7 +545,7 @@ async def test_bind_agent_handles_helper(
 class HandleBindingAgent(Agent):
     def __init__(
         self,
-        unbound: UnboundRemoteHandle[EmptyAgent],
+        unbound: RemoteHandle[EmptyAgent],
         agent_bound: RemoteHandle[EmptyAgent],
         self_bound: RemoteHandle[EmptyAgent],
     ) -> None:
@@ -557,10 +554,6 @@ class HandleBindingAgent(Agent):
         self.self_bound = self_bound
 
     async def agent_on_startup(self) -> None:
-        assert isinstance(self.unbound, RemoteHandle)
-        assert isinstance(self.agent_bound, RemoteHandle)
-        assert isinstance(self.self_bound, RemoteHandle)
-
         assert isinstance(self.unbound.client_id, AgentId)
         assert self.unbound.client_id == self.agent_bound.client_id
         assert self.unbound.client_id == self.self_bound.client_id
@@ -589,9 +582,9 @@ async def test_runtime_bind_handles(
     )
 
     agent = HandleBindingAgent(
-        unbound=UnboundRemoteHandle(remote_agent1_id),
-        agent_bound=RemoteHandle(remote_agent2_client, remote_agent1_id),
-        self_bound=RemoteHandle(main_agent_client, remote_agent1_id),
+        unbound=RemoteHandle(remote_agent1_id, None),
+        agent_bound=RemoteHandle(remote_agent1_id, remote_agent2_client),
+        self_bound=RemoteHandle(remote_agent1_id, main_agent_client),
     )
 
     # The agent is going to create it's own exchange client so we'd end up
@@ -606,7 +599,7 @@ async def test_runtime_bind_handles(
     ) as runtime:
         # The self-bound remote handles should be ignored.
         assert runtime._exchange_client is not None
-        assert len(runtime._exchange_client._handles) == 2  # noqa: PLR2004
+        assert len(runtime._exchange_client._handles) == 3  # noqa: PLR2004
 
     await remote_agent2_client.close()
 

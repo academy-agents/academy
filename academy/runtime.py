@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import contextvars
 import dataclasses
 import logging
 import sys
@@ -27,15 +28,11 @@ from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import raise_exceptions
 from academy.exchange import AgentExchangeClient
+from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
-from academy.handle import Handle
-from academy.handle import HandleDict
-from academy.handle import HandleList
-from academy.handle import ProxyHandle
-from academy.handle import RemoteHandle
-from academy.handle import UnboundRemoteHandle
+from academy.handle import exchange_context
 from academy.identifier import EntityId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
@@ -160,6 +157,9 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             AgentExchangeClient[AgentT, ExchangeTransportT] | None
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
+        self.exchange_context_token: (
+            contextvars.Token[ExchangeClient[Any] | None] | None
+        ) = None
 
     async def __aenter__(self) -> Self:
         try:
@@ -363,6 +363,9 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             self.registration,
             request_handler=self._request_handler,
         )
+        self.exchange_context_token = exchange_context.set(
+            self._exchange_client,
+        )
 
         context = AgentContext(
             agent_id=self.agent_id,
@@ -371,7 +374,6 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             shutdown_event=self._shutdown_event,
         )
         self.agent._agent_set_context(context)
-        _bind_agent_handles(self.agent, self._exchange_client)
 
         self._exchange_listener_task = asyncio.create_task(
             self._exchange_client._listen_for_messages(),
@@ -443,6 +445,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 await task
 
         self._sync_executor.shutdown()
+        # Reset exchange client (for the case of nested execution)
+        if self.exchange_context_token is not None:
+            exchange_context.reset(self.exchange_context_token)
+            self.exchange_context_token = None
 
         if self._exchange_client is not None:
             if self._should_terminate_mailbox():
@@ -503,50 +509,3 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             raise TimeoutError(
                 f'Agent shutdown was not signalled within {timeout} seconds.',
             ) from None
-
-
-def _bind_agent_handles(
-    agent: AgentT,
-    client: AgentExchangeClient[AgentT, Any],
-) -> None:
-    """Bind all handle instance attributes on a agent.
-
-    Warning:
-        This mutates the agent, replacing the attributes with new handles
-        bound to the agent's exchange client.
-
-    Args:
-        agent: The agent to bind handles on.
-        client: The agent's exchange client used to bind the handles.
-    """
-
-    def _bind(handle: Handle[AgentT]) -> Handle[AgentT]:
-        if isinstance(handle, ProxyHandle):
-            return handle
-        if (
-            isinstance(handle, RemoteHandle)
-            and handle.client_id == client.client_id
-        ):
-            return handle
-
-        assert isinstance(handle, (UnboundRemoteHandle, RemoteHandle))
-        bound = client.get_handle(handle.agent_id)
-        logger.debug(
-            'Bound %s of %s to %s',
-            handle,
-            agent,
-            client.client_id,
-        )
-        return bound
-
-    for attr, handles in agent._agent_handles().items():
-        if isinstance(handles, HandleDict):
-            bound_dict = HandleDict(
-                {k: _bind(h) for k, h in handles.items()},
-            )
-            setattr(agent, attr, bound_dict)
-        elif isinstance(handles, HandleList):
-            bound_list = HandleList([_bind(h) for h in handles])
-            setattr(agent, attr, bound_list)
-        else:
-            setattr(agent, attr, _bind(handles))

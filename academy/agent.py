@@ -37,7 +37,6 @@ from academy.handle import HandleDict
 from academy.handle import HandleList
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
-from academy.handle import UnboundRemoteHandle
 
 if TYPE_CHECKING:
     from academy.context import AgentContext
@@ -202,7 +201,6 @@ class Agent:
         """
         handle_types = (
             ProxyHandle,
-            UnboundRemoteHandle,
             RemoteHandle,
             HandleDict,
             HandleList,

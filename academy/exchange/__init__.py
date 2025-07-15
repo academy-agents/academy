@@ -33,8 +33,8 @@ from academy.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
+from academy.handle import exchange_context
 from academy.handle import RemoteHandle
-from academy.handle import UnboundRemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -171,6 +171,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         self._closed = False
 
     async def __aenter__(self) -> Self:
+        self.exchange_context_token = exchange_context.set(self)
         return self
 
     async def __aexit__(
@@ -179,6 +180,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
+        exchange_context.reset(self.exchange_context_token)
         await self.close()
 
     def __repr__(self) -> str:
@@ -251,10 +253,18 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 f'Handle must be created from an {AgentId.__name__} '
                 f'but got identifier with type {type(aid).__name__}.',
             )
-        handle = RemoteHandle(self, aid)
+        handle = RemoteHandle(aid, self)
         self._handles[handle.handle_id] = handle
         logger.info('Created handle to %s', aid)
         return handle
+
+    def register_handle(self, handle: RemoteHandle[AgentT]) -> None:
+        """Register an existing handle to receive messages.
+
+        Args:
+            handle: Handle to register.
+        """
+        self._handles[handle.handle_id] = handle
 
     async def register_agent(
         self,

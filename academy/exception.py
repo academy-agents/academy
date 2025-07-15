@@ -121,13 +121,9 @@ class HandleClosedError(Exception):
 class HandleNotBoundError(Exception):
     """Handle to agent is in an unbound state.
 
-    An [`UnboundRemoteHandle`][academy.handle.UnboundRemoteHandle] is
+    A [`RemoteHandle`][academy.handle.RemoteHandle] is
     initialized with a target agent ID, but is not attached to an exchange
     client that the handle can use for communication.
-
-    An unbound handle can be turned into a usable handle by binding it to
-    an exchange client with
-    [`UnboundRemoteHandle.bind_to_client()`][academy.handle.UnboundRemoteHandle.bind_to_client].
     """
 
     def __init__(self, aid: AgentId[Any]) -> None:

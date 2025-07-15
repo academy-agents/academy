@@ -662,12 +662,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/migrating-to-v0.2/" class="md-nav__link">
+      <a href="../../guides/migrating/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Migrating to v0.2
+    Migrating Versions
     
   </span>
   
@@ -1806,10 +1806,7 @@
         <p>Academy mypy plugin.</p>
 <p>This plugin enables mypy to perform static type inference on
 <a class="autorefs autorefs-internal" title="            Handle" href="../handle/#academy.handle.Handle"><code>Handle</code></a> types.</p>
-<p>For example, the return type of an action invocation on a remote agent via
-a handle is a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-future.html#asyncio.Future"><code>Future</code></a> wrapping the return
-type of the action.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">action</span>
+<p><div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">action</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.handle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Handle</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Example</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
@@ -1819,7 +1816,7 @@ type of the action.
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">handle</span><span class="p">:</span> <span class="n">Handle</span><span class="p">[</span><span class="n">Example</span><span class="p">]</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">reveal_type</span><span class="p">(</span><span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># note: Revealed type is &quot;asyncio.Future[int]&quot;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># note: Revealed type is &quot;int&quot;</span>
 </span></code></pre></div>
 Without the plugin, mypy will default to <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/typing.html#typing.Any"><code>Any</code></a>.</p>
 

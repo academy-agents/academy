@@ -750,12 +750,12 @@
   
   
     <li class="md-nav__item">
-      <a href="guides/migrating-to-v0.2/" class="md-nav__link">
+      <a href="guides/migrating/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Migrating to v0.2
+    Migrating Versions
     
   </span>
   
@@ -1905,13 +1905,12 @@ The <em>manager</em> abstracts the remote execution and management of agents usi
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span> <span class="k">as</span> <span class="n">manager</span><span class="p">:</span>
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">agent_handle</span> <span class="o">=</span> <span class="k">await</span> <span class="n">manager</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">SensorMonitorAgent</span><span class="p">)</span>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">future</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent_handle</span><span class="o">.</span><span class="n">set_process_threshold</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">await</span> <span class="n">future</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="n">future</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent_handle</span><span class="o">.</span><span class="n">get_last_reading</span><span class="p">()</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="n">value</span> <span class="o">=</span> <span class="k">await</span> <span class="n">future</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="k">await</span> <span class="n">manager</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">agent_handle</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="k">await</span> <span class="n">agent_handle</span><span class="o">.</span><span class="n">set_process_threshold</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="n">value</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent_handle</span><span class="o">.</span><span class="n">get_last_reading</span><span class="p">()</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="k">await</span> <span class="n">manager</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">agent_handle</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Learn more about Academy in <a href="https://academy.proxystore.dev/latest/get-started">Getting Started</a>.</p>
 <h2 id="what-can-be-an-agent">What can be an agent?<a class="headerlink" href="#what-can-be-an-agent" title="Permanent link">&para;</a></h2>

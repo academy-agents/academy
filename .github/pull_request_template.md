@@ -2,7 +2,7 @@
 <!--- Provide a summary of the changes --->
 
 
-## Related Issue
+## Related Issues
 <!--- List any issue numbers above that this PR addresses --->
 
 - Closes #XX

@@ -103,7 +103,8 @@ nav:
   - Home:
       - Overview: index.md
       - Get Started: get-started.md
-      - FAQ: faq.md
+      - Best Practices: best-practices.md
+      - Frequently Asked Questions: faq.md
       - Migration Guide: migration.md
       - Version Policy: version-policy.md
       - Contributing: contributing.md

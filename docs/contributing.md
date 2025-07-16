@@ -1,12 +1,11 @@
 We welcome contributions to Academy!
-This guide covers all of the basics required to get started.
+This guide covers all of the basics required to get started contributing to the project.
 
 ## Issues
 
-[Issue Tracker](https://github.com/proxystore/academy/issues){target=_blank}
 
 We use GitHub issues to report problems, request and track changes, and discuss future ideas.
-If you open an issue for a specific problem, please follow the template guides.
+Please use the [Issue Tracker](https://github.com/proxystore/academy/issues){target=_blank} and follow the template.
 
 ## Pull Requests
 

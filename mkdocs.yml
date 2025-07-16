@@ -106,6 +106,7 @@ nav:
       - FAQ: faq.md
       - Migration Guide: migration.md
       - Version Policy: version-policy.md
+      - Contributing: contributing.md
       - Issues (GitHub): https://github.com/proxystore/academy/issues
       - Changelog (GitHub): https://github.com/proxystore/academy/releases
   - Concepts:
@@ -116,11 +117,6 @@ nav:
       - case-studies/index.md
   - API Reference:
       - Academy: api/
-  - Contributing:
-      - contributing/index.md
-      - Style Guide: contributing/style-guide.md
-      - Issues and Pull Requests: contributing/issues-pull-requests.md
-      - Releases: contributing/releases.md
   - Publications:
       - publications/index.md
 

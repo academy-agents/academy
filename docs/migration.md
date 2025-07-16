@@ -1,10 +1,16 @@
-This page documents key breaking changes and tips for migrating between beta versions of Academy.
+This guide helps users adapt to breaking changes introduced during the v0.X development cycle, such as:
 
-Please refer to our [Versioning Policy](../contributing/releases.md#versioning) for more details on when we make breaking changes.
+* Changes to APIs, behavior, or configuration that require user action
+* Deprecated or removed features
+* Recommended steps for upgrading between versions
 
-## Migrating to v0.3
+We provide migration notes for each v0.X release to make upgrades easier during this early phase of development.
+After v1.0, this guide will be retired.
+All future changes—including breaking changes and deprecations—will be documented in the project changelog.
 
-Academy v0.3 makes a few breaking changes to improve the ergonomics of common usage patterns.
+Please refer to our [Version Policy](version-policy.md) for more details on when we make breaking changes.
+
+## Academy v0.3
 
 ### Handle actions are blocking by default
 
@@ -32,18 +38,16 @@ Using tasks is especially useful when launching multiple long-running actions co
 For example, instead of waiting for each action sequentially, you can start them all at once and then wait for them to complete using [`asyncio.wait()`][asyncio.wait] or [`asyncio.as_completed()`][asyncio.as_completed].
 
 
-## Migrating to v0.2
+## Academy v0.2
 
-Academy v0.2 makes numerous breaking changes to nearly every public API.
-
-### Academy is now async
+### Academy is now async-first
 
 Academy is now an async-first library.
 The [asyncio][asyncio] model is better aligned with the highly asynchronous programming model of Academy.
 Agent actions and control loops are now executed in the event loop of the main thread, rather than in separate threads.
 All exchanges and the manager are async now.
 
-### Renamed Components
+### Renamed components
 
 Entities are now referred to as agents and users (previously, clients).
 Agents are now derived from [`Agent`][academy.agent.Agent] (previously, `Behavior`) and run using a [`Runtime`][academy.runtime.Runtime] (previously, `Agent`).
@@ -54,7 +58,7 @@ Summary:
 * `academy.behavior.Behavior` is renamed [`academy.agent.Agent`][academy.agent.Agent].
 * `academy.identifier.ClientId` is renamed [`academy.identifier.UserId`][academy.identifier.UserId].
 
-### Changes to Agents
+### Changes to agents
 
 All special methods provided by [`Agent`][academy.agent.Agent] are named `agent_.*`.
 For example, the startup and shutdown callbacks have been renamed:
@@ -64,7 +68,7 @@ For example, the startup and shutdown callbacks have been renamed:
 
 Runtime context is now available via additional methods.
 
-### Changes to Exchanges
+### Changes to exchanges
 
 The `Exchange` and `Mailbox` protocols have been merged into a single [`ExchangeClient`][academy.exchange.ExchangeClient] which comes in two forms:
 
@@ -92,7 +96,7 @@ All exchange related errors derive from [`ExchangeError`][academy.exception.Exch
 `MailboxClosedError` is renamed [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError] with derived types for [`AgentTerminatedError`][academy.exception.AgentTerminatedError] and [`UserTerminatedError`][academy.exception.UserTerminatedError].
 
 
-### Changes to the Manager and Launchers
+### Changes to the manager and launchers
 
 The `Launcher` protocol and implementations have been removed, with their functionality incorporated directly into the [`Manager`][academy.manager.Manager].
 

@@ -104,13 +104,14 @@ nav:
       - Overview: index.md
       - Get Started: get-started.md
       - FAQ: faq.md
+      - Migration Guide: migration.md
+      - Version Policy: version-policy.md
       - Issues (GitHub): https://github.com/proxystore/academy/issues
       - Changelog (GitHub): https://github.com/proxystore/academy/releases
   - Concepts:
       - concepts/index.md
   - Guides:
       - guides/index.md
-      - Migrating Versions: guides/migrating.md
   - Case Studies:
       - case-studies/index.md
   - API Reference:

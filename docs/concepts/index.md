@@ -2,7 +2,7 @@
 
 ## Architecture
 
-![Architecture](static/architecture.jpg)
+![Architecture](../static/architecture.jpg)
 > Agents and users in Academy interact via handles to invoke actions asynchronously.
 > An agent's behavior is defined by its actions, control loops, and state.
 > Academy decouples the control and data planes through the exchange, used for user and agent communication, and launcher mechanisms that can remotely execute agents.

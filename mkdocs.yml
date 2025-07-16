@@ -103,10 +103,11 @@ nav:
   - Home:
       - Overview: index.md
       - Get Started: get-started.md
-      - Concepts: concepts.md
       - FAQ: faq.md
       - Issues (GitHub): https://github.com/proxystore/academy/issues
       - Changelog (GitHub): https://github.com/proxystore/academy/releases
+  - Concepts:
+      - concepts/index.md
   - Guides:
       - guides/index.md
       - Migrating Versions: guides/migrating.md

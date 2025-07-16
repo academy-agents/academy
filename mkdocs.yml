@@ -56,7 +56,8 @@ watch:
 
 extra:
   version:
-    default: latest
+    alias: true
+    default: stable
     provider: mike
 
 extra_css:
@@ -124,7 +125,7 @@ nav:
 plugins:
   - mike:
       alias_type: symlink
-      canonical_version: latest
+      canonical_version: stable
   - gen-files:
       scripts:
         - docs/generate_api.py

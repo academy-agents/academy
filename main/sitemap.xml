@@ -5,7 +5,11 @@
          <lastmod>2025-07-16</lastmod>
     </url>
     <url>
-         <loc>https://academy.proxystore.dev/latest/concepts/</loc>
+         <loc>https://academy.proxystore.dev/latest/best-practices/</loc>
+         <lastmod>2025-07-16</lastmod>
+    </url>
+    <url>
+         <loc>https://academy.proxystore.dev/latest/contributing/</loc>
          <lastmod>2025-07-16</lastmod>
     </url>
     <url>
@@ -14,6 +18,14 @@
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/get-started/</loc>
+         <lastmod>2025-07-16</lastmod>
+    </url>
+    <url>
+         <loc>https://academy.proxystore.dev/latest/migration/</loc>
+         <lastmod>2025-07-16</lastmod>
+    </url>
+    <url>
+         <loc>https://academy.proxystore.dev/latest/version-policy/</loc>
          <lastmod>2025-07-16</lastmod>
     </url>
     <url>
@@ -137,27 +149,11 @@
          <lastmod>2025-07-16</lastmod>
     </url>
     <url>
-         <loc>https://academy.proxystore.dev/latest/contributing/</loc>
-         <lastmod>2025-07-16</lastmod>
-    </url>
-    <url>
-         <loc>https://academy.proxystore.dev/latest/contributing/issues-pull-requests/</loc>
-         <lastmod>2025-07-16</lastmod>
-    </url>
-    <url>
-         <loc>https://academy.proxystore.dev/latest/contributing/releases/</loc>
-         <lastmod>2025-07-16</lastmod>
-    </url>
-    <url>
-         <loc>https://academy.proxystore.dev/latest/contributing/style-guide/</loc>
+         <loc>https://academy.proxystore.dev/latest/concepts/</loc>
          <lastmod>2025-07-16</lastmod>
     </url>
     <url>
          <loc>https://academy.proxystore.dev/latest/guides/</loc>
-         <lastmod>2025-07-16</lastmod>
-    </url>
-    <url>
-         <loc>https://academy.proxystore.dev/latest/guides/migrating/</loc>
          <lastmod>2025-07-16</lastmod>
     </url>
     <url>

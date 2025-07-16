@@ -6,7 +6,6 @@ from typing import TypeVar
 from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
-from academy.handle import Handle
 
 T = TypeVar('T')
 
@@ -19,12 +18,6 @@ class ErrorAgent(Agent):
     @action
     async def fails(self) -> None:
         raise RuntimeError('This action always fails.')
-
-
-class HandleAgent(Agent):
-    def __init__(self, handle: Handle[EmptyAgent]) -> None:
-        super().__init__()
-        self.handle = handle
 
 
 class IdentityAgent(Agent):

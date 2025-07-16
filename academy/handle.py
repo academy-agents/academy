@@ -406,13 +406,11 @@ class RemoteHandle(Generic[AgentT]):
     def __repr__(self) -> str:
         try:
             exchange = self.exchange
-            client_id = self.client_id
         except HandleNotBoundError:
             exchange = None
-            client_id = None
         return (
             f'{type(self).__name__}(agent_id={self.agent_id!r}, '
-            f'client_id={client_id!r}, exchange={exchange!r})'
+            f'exchange={exchange!r})'
         )
 
     def __str__(self) -> str:

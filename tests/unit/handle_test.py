@@ -142,8 +142,16 @@ async def test_agent_remote_handle_context() -> None:
         with pytest.raises(HandleNotBoundError):
             assert handle.exchange == exchange_client
 
+        with pytest.raises(HandleNotBoundError):
+            assert handle.client_id is not None
+
+        unbound_repr = repr(handle)
+        unbound_str = str(handle)
+
         exchange_context.set(exchange_client)
         assert handle.exchange == exchange_client
+        assert unbound_repr != repr(handle)
+        assert unbound_str != str(handle)
 
 
 @pytest.mark.asyncio

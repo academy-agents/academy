@@ -54,3 +54,14 @@
     /* Reset alignment for table cells */
     text-align: initial;
 }
+
+/* Add parentheses around version aliases in docs */
+/* https://github.com/squidfunk/mkdocs-material/issues/6436 */
+.md-version__alias::before {
+  display: inherit;
+  content: "(";
+}
+.md-version__alias::after {
+  display: inherit;
+  content: ")";
+}

@@ -404,21 +404,30 @@ class RemoteHandle(Generic[AgentT]):
         return (RemoteHandle, (self.agent_id, None))
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}(agent_id={self.agent_id!r})'
+        try:
+            exchange = self.exchange
+            client_id = self.client_id
+        except HandleNotBoundError:
+            exchange = None
+            client_id = None
+        return (
+            f'{type(self).__name__}(agent_id={self.agent_id!r}, '
+            f'client_id={client_id!r}, exchange={exchange!r})'
+        )
 
     def __str__(self) -> str:
         name = type(self).__name__
-        return f'{name}<agent: {self.agent_id}>'
+        try:
+            client_id = self.client_id
+        except HandleNotBoundError:
+            client_id = None
+        return f'{name}<agent: {self.agent_id}; mailbox: {client_id}>'
 
     def __getattr__(self, name: str) -> Any:
         async def remote_method_call(*args: Any, **kwargs: Any) -> R:
             return await self.action(name, *args, **kwargs)
 
         return remote_method_call
-
-    def clone(self) -> RemoteHandle[AgentT]:
-        """Create an unbound copy of this handle."""
-        return RemoteHandle(self.agent_id, None)
 
     async def _process_response(self, response: Message[Response]) -> None:
         future = self._futures.pop(response.tag, None)

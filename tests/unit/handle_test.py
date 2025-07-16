@@ -128,6 +128,8 @@ async def test_agent_remote_handle_serialize(
         assert reconstructed._exchange is None
         # exchange is returned from context variable
         assert reconstructed.exchange == exchange_client
+        assert str(reconstructed) == str(handle)
+        assert repr(reconstructed) == repr(handle)
 
 
 @pytest.mark.asyncio

@@ -18,10 +18,8 @@ from academy.context import AgentContext
 from academy.exception import AgentNotInitializedError
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeTransport
-from academy.handle import ProxyHandle
 from academy.identifier import AgentId
 from testing.agents import EmptyAgent
-from testing.agents import HandleAgent
 from testing.agents import IdentityAgent
 from testing.agents import WaitAgent
 from testing.constant import TEST_SLEEP_INTERVAL
@@ -136,7 +134,6 @@ async def test_agent_empty() -> None:
 
     assert len(agent._agent_actions()) == 0
     assert len(agent._agent_loops()) == 0
-    assert len(agent._agent_handles()) == 0
 
     await agent.agent_on_shutdown()
 
@@ -310,18 +307,6 @@ def test_agent_action_decorator_name_clash_error() -> None:
         match='The name of the decorated method is "shutdown" which clashes',
     ):
         action(_TestAgent.shutdown)
-
-
-@pytest.mark.asyncio
-async def test_agent_handles() -> None:
-    handle = ProxyHandle(EmptyAgent())
-    agent = HandleAgent(handle)
-    await agent.agent_on_startup()
-
-    handles = agent._agent_handles()
-    assert set(handles) == {'handle'}
-
-    await agent.agent_on_shutdown()
 
 
 class A(Agent): ...

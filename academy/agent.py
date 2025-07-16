@@ -33,10 +33,6 @@ else:  # pragma: <3.11 cover
 from academy.event import wait_event_async
 from academy.exception import AgentNotInitializedError
 from academy.handle import Handle
-from academy.handle import HandleDict
-from academy.handle import HandleList
-from academy.handle import ProxyHandle
-from academy.handle import RemoteHandle
 
 if TYPE_CHECKING:
     from academy.context import AgentContext
@@ -186,33 +182,6 @@ class Agent:
             if _is_agent_method_type(attr, 'loop'):
                 loops[name] = attr
         return loops
-
-    def _agent_handles(
-        self,
-    ) -> dict[
-        str,
-        Handle[Any] | HandleDict[Any, Any] | HandleList[Any],
-    ]:
-        """Get instance attributes that are agent handles.
-
-        Returns:
-            Dictionary mapping attribute names to agent handles or \
-            data structures of handles.
-        """
-        handle_types = (
-            ProxyHandle,
-            RemoteHandle,
-            HandleDict,
-            HandleList,
-        )
-        handles: dict[
-            str,
-            Handle[Any] | HandleDict[Any, Any] | HandleList[Any],
-        ] = {}
-        for name, attr in self._agent_attributes():
-            if isinstance(attr, handle_types):
-                handles[name] = attr
-        return handles
 
     @classmethod
     def _agent_mro(cls) -> tuple[str, ...]:

@@ -1,8 +1,4 @@
-## Release Timeline
-
-Releases are created on an as-needed basis.
-
-## Creating Releases
+# Release Guide
 
 1. Choose the next version number, referred to as `{VERSION}` for the
    rest of the instructions. Versioning follows semver

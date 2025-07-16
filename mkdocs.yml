@@ -112,10 +112,10 @@ nav:
       - Changelog (GitHub): https://github.com/proxystore/academy/releases
   - Concepts:
       - concepts/index.md
-  - Guides:
-      - guides/index.md
   - Case Studies:
       - case-studies/index.md
+  - Guides:
+      - guides/index.md
   - API Reference:
       - Academy: api/
   - Publications:

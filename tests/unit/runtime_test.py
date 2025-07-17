@@ -12,6 +12,7 @@ from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
 from academy.exception import ActionCancelledError
+from academy.exception import HandleReuseError
 from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
@@ -523,7 +524,6 @@ async def test_agent_exchnage_context(
     proxy_handle = ProxyHandle(EmptyAgent())
     unbound_handle = RemoteHandle(
         (await exchange_client.register_agent(EmptyAgent)).agent_id,
-        None,
     )
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
@@ -545,18 +545,13 @@ async def test_agent_exchnage_context(
 class HandleBindingAgent(Agent):
     def __init__(
         self,
-        unbound: RemoteHandle[EmptyAgent],
-        agent_bound: RemoteHandle[EmptyAgent],
-        self_bound: RemoteHandle[EmptyAgent],
+        handle: RemoteHandle[EmptyAgent],
     ) -> None:
-        self.unbound = unbound
-        self.agent_bound = agent_bound
-        self.self_bound = self_bound
+        self.handle = handle
 
     async def agent_on_startup(self) -> None:
-        assert isinstance(self.unbound.client_id, AgentId)
-        assert self.unbound.client_id == self.agent_bound.client_id
-        assert self.unbound.client_id == self.self_bound.client_id
+        assert isinstance(self.handle.client_id, AgentId)
+        assert self.handle.client_id == self.agent_id
 
 
 @pytest.mark.asyncio
@@ -567,41 +562,53 @@ async def test_runtime_bind_handles(
     main_agent_reg = await exchange_client.register_agent(HandleBindingAgent)
     remote_agent1_reg = await exchange_client.register_agent(EmptyAgent)
     remote_agent1_id = remote_agent1_reg.agent_id
-    remote_agent2_reg = await exchange_client.register_agent(EmptyAgent)
-
-    async def _request_handler(_: Any) -> None:  # pragma: no cover
-        pass
-
-    main_agent_client = await factory.create_agent_client(
-        main_agent_reg,
-        _request_handler,
-    )
-    remote_agent2_client = await factory.create_agent_client(
-        remote_agent2_reg,
-        _request_handler,
-    )
 
     agent = HandleBindingAgent(
-        unbound=RemoteHandle(remote_agent1_id, None),
-        agent_bound=RemoteHandle(remote_agent1_id, remote_agent2_client),
-        self_bound=RemoteHandle(remote_agent1_id, main_agent_client),
+        handle=RemoteHandle(remote_agent1_id),
     )
-
-    # The agent is going to create it's own exchange client so we'd end up
-    # with two clients for the same agent. Close this one as we just used
-    # it to mock a handle already bound to the agent.
-    await main_agent_client.close()
 
     async with Runtime(
         agent,
         exchange_factory=factory,
         registration=main_agent_reg,
     ) as runtime:
-        # The self-bound remote handles should be ignored.
         assert runtime._exchange_client is not None
-        assert len(runtime._exchange_client._handles) == 3  # noqa: PLR2004
+        assert len(runtime._exchange_client._handles) == 1
 
-    await remote_agent2_client.close()
+
+@pytest.mark.asyncio
+async def test_runtime_handle_reuse(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    factory = exchange_client.factory()
+    main_agent_reg = await exchange_client.register_agent(HandleBindingAgent)
+    remote_agent1_reg = await exchange_client.register_agent(EmptyAgent)
+    remote_agent1_id = remote_agent1_reg.agent_id
+
+    async def _request_handler(_: Any) -> None:  # pragma: no cover
+        pass
+
+    agent_client = await factory.create_agent_client(
+        main_agent_reg,
+        _request_handler,
+    )
+
+    remote = RemoteHandle(remote_agent1_id, agent_client)
+    agent = HandleBindingAgent(
+        handle=remote,
+    )
+
+    await agent_client.close()
+
+    # A handle listening on two exchanges is never supported
+    # Even though agent client and agent have the same mailbox id
+    # They have different message listening loops
+    with pytest.raises(HandleReuseError):
+        await Runtime(
+            agent,
+            exchange_factory=factory,
+            registration=main_agent_reg,
+        ).run_until_complete()
 
 
 class ShutdownAgent(Agent):

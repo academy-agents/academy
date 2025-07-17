@@ -231,33 +231,6 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Get an exchange factory."""
         return self._transport.factory()
 
-    def get_handle(self, aid: AgentId[AgentT]) -> RemoteHandle[AgentT]:
-        """Create a new handle to an agent.
-
-        A handle acts like a reference to a remote agent, enabling a user
-        to manage the agent or asynchronously invoke actions.
-
-        Args:
-            aid: Agent to create an handle to. The agent must be registered
-                with the same exchange.
-
-        Returns:
-            Handle to the agent.
-
-        Raises:
-            TypeError: if `aid` is not an instance of
-                [`AgentId`][academy.identifier.AgentId].
-        """
-        if not isinstance(aid, AgentId):
-            raise TypeError(
-                f'Handle must be created from an {AgentId.__name__} '
-                f'but got identifier with type {type(aid).__name__}.',
-            )
-        handle = RemoteHandle(aid, self)
-        self._handles[handle.handle_id] = handle
-        logger.info('Created handle to %s', aid)
-        return handle
-
     def register_handle(self, handle: RemoteHandle[AgentT]) -> None:
         """Register an existing handle to receive messages.
 

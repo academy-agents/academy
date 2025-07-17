@@ -118,17 +118,36 @@ class HandleClosedError(Exception):
         super().__init__(message)
 
 
-class HandleNotBoundError(Exception):
-    """Handle to agent is in an unbound state.
+class ExchangeClientNotFoundError(Exception):
+    """Handle to agent can not find an exchange client to use.
 
     A [`RemoteHandle`][academy.handle.RemoteHandle] is
-    initialized with a target agent ID, but is not attached to an exchange
-    client that the handle can use for communication.
+    initialized with a target agent ID, but was not initialized with an
+    exchange client, and is not used in a context where an exchange
+    client could be inferred. Typically this can be resolved by using a
+    [`ExchangeClient`][academy.exchange.ExchangeClient] or
+    [`Manager`][academy.manager.Manager] as a context manager.
     """
 
     def __init__(self, aid: AgentId[Any]) -> None:
         super().__init__(
-            f'Handle to {aid} is not bound to an exchange client. See the '
+            f'Handle to {aid} can not find an exchange client to use. See the '
+            'exception docstring for troubleshooting.',
+        )
+
+
+class HandleReuseError(Exception):
+    """Handle to agent used by multiple clients/agents.
+
+    A [`RemoteHandle`][academy.handle.RemoteHandle] is used by multiple
+    clients or agents. This means the handle would try to send and
+    receive at multiple mailbox addresses. This can be resolved by
+    calling handle.clone() (usually at agent initialization).
+    """
+
+    def __init__(self, aid: AgentId[Any]) -> None:
+        super().__init__(
+            f'Handle to {aid} used by multiple clients/agents. See the '
             'exception docstring for troubleshooting.',
         )
 

@@ -100,21 +100,6 @@ async def test_client_get_factory(client: UserExchangeClient[Any]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_client_get_handle(client: UserExchangeClient[Any]) -> None:
-    registration = await client.register_agent(EmptyAgent)
-    async with client.get_handle(registration.agent_id):
-        pass
-
-
-@pytest.mark.asyncio
-async def test_client_get_handle_type_error(
-    client: UserExchangeClient[Any],
-) -> None:
-    with pytest.raises(TypeError):
-        client.get_handle(UserId.new())  # type: ignore[arg-type]
-
-
-@pytest.mark.asyncio
 async def test_client_get_status(client: UserExchangeClient[Any]) -> None:
     uid = UserId.new()
     assert await client.status(uid) == MailboxStatus.MISSING
@@ -170,10 +155,8 @@ async def test_agent_handle_process_response(
             registration,
             _handler,
         ) as agent_client:
-            handle: RemoteHandle[EmptyAgent] = agent_client.get_handle(
-                AgentId.new(),
-            )
-
+            handle: RemoteHandle[EmptyAgent] = RemoteHandle(AgentId.new())
+            assert handle.exchange == agent_client
             message = Message.create(
                 src=user_client.client_id,
                 dest=agent_client.client_id,

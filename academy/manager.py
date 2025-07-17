@@ -444,7 +444,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """
         agent_id = agent if isinstance(agent, AgentId) else agent.agent_id
         handle = self._handles.get(agent_id, None)
-        if handle is not None and not handle.closed():
+        if handle is not None:
             return handle
         handle = RemoteHandle(agent_id)
         self._handles[agent_id] = handle

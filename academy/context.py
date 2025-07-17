@@ -55,7 +55,6 @@ class ActionContext:
         if self._source_handle is None:
             self._source_handle = RemoteHandle(
                 self.source_id,
-                self._exchange_client,
             )
         return self._source_handle
 

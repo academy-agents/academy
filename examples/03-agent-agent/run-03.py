@@ -54,7 +54,7 @@ async def main() -> int:
         reverser = await manager.launch(Reverser)
         coordinator = await manager.launch(
             Coordinator,
-            args=(lowerer.clone(), reverser.clone()),
+            args=(lowerer, reverser),
         )
 
         text = 'DEADBEEF'

@@ -200,12 +200,6 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Close the transport."""
         ...
 
-    async def _close_handles(self) -> None:
-        """Close all handles created by this client."""
-        for key in tuple(self._handles):
-            handle = self._handles.pop(key)
-            await handle.close(wait_futures=False)
-
     async def discover(
         self,
         agent: type[Agent],
@@ -358,7 +352,6 @@ class AgentExchangeClient(
             if self._closed:
                 return
 
-            await self._close_handles()
             await self._transport.close()
             self._closed = True
             logger.info('Closed exchange client for %s', self.client_id)
@@ -425,7 +418,6 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
             if self._closed:
                 return
 
-            await self._close_handles()
             await self._transport.terminate(self.client_id)
             logger.info(f'Terminated mailbox for {self.client_id}')
             await self._stop_listener_task()

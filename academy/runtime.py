@@ -158,7 +158,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
         self.exchange_context_token: (
-            contextvars.Token[ExchangeClient[Any] | None] | None
+            contextvars.Token[ExchangeClient[Any]] | None
         ) = None
 
     async def __aenter__(self) -> Self:

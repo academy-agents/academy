@@ -408,9 +408,9 @@ class RemoteHandle(Generic[AgentT]):
         self,
     ) -> tuple[
         type[RemoteHandle[Any]],
-        tuple[AgentId[AgentT], None],
+        tuple[AgentId[AgentT],],
     ]:
-        return (RemoteHandle, (self.agent_id, None))
+        return (RemoteHandle, (self.agent_id,))
 
     def __repr__(self) -> str:
         try:

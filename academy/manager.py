@@ -166,8 +166,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        exchange_context.reset(self.exchange_context_token)
         await self.close()
+        exchange_context.reset(self.exchange_context_token)
 
     def __repr__(self) -> str:
         executors_repr = ', '.join(

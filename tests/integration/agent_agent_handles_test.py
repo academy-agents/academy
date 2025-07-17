@@ -50,7 +50,7 @@ async def test_agent_agent_handles() -> None:
         reverser = await manager.launch(Reverser)
         coordinator = await manager.launch(
             Coordinator,
-            args=(lowerer, reverser),
+            args=(lowerer.clone(), reverser.clone()),
         )
 
         text = 'DEADBEEF'

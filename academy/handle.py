@@ -293,7 +293,7 @@ class RemoteHandle(Generic[AgentT]):
 
     async def _process_response(self, response: Message[Response]) -> None:
         future = self._futures.pop(response.tag, None)
-        if future is None or future.cancelled():
+        if future is None or future.cancelled():  # pragma: no cover
             # Response is not associated with any active pending future
             # so safe to ignore it
             return

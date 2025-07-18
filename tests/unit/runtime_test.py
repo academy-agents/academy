@@ -283,6 +283,36 @@ async def test_runtime_shutdown_message(
         await runtime.wait_shutdown(timeout=TEST_WAIT_TIMEOUT)
 
 
+class InfiniteAgent(Agent):
+    @loop
+    async def wait(self, shutdown: asyncio.Event) -> None:
+        while True:
+            await asyncio.sleep(5)
+
+
+@pytest.mark.asyncio
+async def test_runtime_cancel_loop(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(InfiniteAgent)
+
+    runtime = Runtime(
+        InfiniteAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    )
+
+    task = asyncio.create_task(
+        runtime.run_until_complete(),
+        name='test-runtime-cancel-loop',
+    )
+    await runtime._started_event.wait()
+
+    # Should cancel loop without raising error
+    runtime.signal_shutdown()
+    await task
+
+
 @pytest.mark.asyncio
 async def test_runtime_ping_message(
     exchange_client: UserExchangeClient[LocalExchangeTransport],

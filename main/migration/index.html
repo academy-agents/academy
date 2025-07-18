@@ -635,6 +635,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#minor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Minor
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1131,6 +1140,29 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../api/exchange/client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    client
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
     
@@ -1145,7 +1177,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_6_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_6_2" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1162,14 +1194,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_1_6_1" id="__nav_5_1_6_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_1_6_2" id="__nav_5_1_6_2_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_1_6_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_1_6_1">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_1_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1_6_2">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -1316,6 +1348,29 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/exchange/factory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    factory
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1763,6 +1818,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#minor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Minor
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1895,6 +1959,9 @@ Code that wants to submit the request and later block on it can create a <a clas
 </span></code></pre></div>
 Using tasks is especially useful when launching multiple long-running actions concurrently and waiting for them in a flexible manner.
 For example, instead of waiting for each action sequentially, you can start them all at once and then wait for them to complete using <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-task.html#asyncio.wait"><code>asyncio.wait()</code></a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-task.html#asyncio.as_completed"><code>asyncio.as_completed()</code></a>.</p>
+<h3 id="minor">Minor<a class="headerlink" href="#minor" title="Permanent link">&para;</a></h3>
+<p>All the <a class="autorefs autorefs-internal" title="            ExchangeFactory" href="../api/exchange/#academy.exchange.ExchangeFactory"><code>ExchangeFactory</code></a> and <a class="autorefs autorefs-internal" title="            ExchangeTransport" href="../api/exchange/transport/#academy.exchange.transport.ExchangeTransport"><code>ExchangeTransport</code></a> implementations have been re-exported from <a class="autorefs autorefs-internal" href="../api/exchange/#academy.exchange"><code>academy.exchange</code></a>.
+<a class="autorefs autorefs-internal" title="            spawn_http_exchange" href="../api/exchange/cloud/client/#academy.exchange.cloud.client.spawn_http_exchange"><code>spawn_http_exchange</code></a> has been re-exported from <a class="autorefs autorefs-internal" href="../api/exchange/cloud/#academy.exchange.cloud">`academy.exchange.cloud</a>.</p>
 <h2 id="academy-v02">Academy v0.2<a class="headerlink" href="#academy-v02" title="Permanent link">&para;</a></h2>
 <h3 id="academy-is-now-async-first">Academy is now async-first<a class="headerlink" href="#academy-is-now-async-first" title="Permanent link">&para;</a></h3>
 <p>Academy is now an async-first library.

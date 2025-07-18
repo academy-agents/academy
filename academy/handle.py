@@ -7,6 +7,7 @@ import sys
 import time
 import uuid
 from contextvars import ContextVar
+from pickle import PicklingError
 from typing import Any
 from typing import Generic
 from typing import Protocol
@@ -250,6 +251,7 @@ class RemoteHandle(Generic[AgentT]):
     def __init__(
         self,
         agent_id: AgentId[AgentT],
+        *,
         exchange: ExchangeClient[Any] | None = None,
         ignore_context: bool = False,
     ) -> None:
@@ -301,14 +303,11 @@ class RemoteHandle(Generic[AgentT]):
         type[RemoteHandle[Any]],
         tuple[Any, ...],
     ]:
-        return (
-            RemoteHandle,
-            (
-                self.agent_id,
-                self._exchange,
-                self.ignore_context,
-            ),
-        )
+        if self.ignore_context:
+            raise PicklingError(
+                'Handle with ignore_context=True is not pickle-able',
+            )
+        return (RemoteHandle, (self.agent_id,))
 
     def __repr__(self) -> str:
         return (

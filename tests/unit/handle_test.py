@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pickle
+
 import pytest
 
 from academy.exception import AgentTerminatedError
@@ -82,10 +84,7 @@ async def test_agent_remote_handle_serialize(
 ) -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
     handle = RemoteHandle(registration.agent_id)
-    # Note: don't call pickle.dumps here because ThreadExchange
-    # is not pickleable so we test __reduce__ directly.
-    class_, args = handle.__reduce__()
-    reconstructed = class_(*args)
+    reconstructed = pickle.loads(pickle.dumps(handle))
     assert isinstance(reconstructed, RemoteHandle)
     assert reconstructed.agent_id == handle.agent_id
     assert str(reconstructed) == str(handle)
@@ -101,10 +100,10 @@ async def test_agent_remote_handle_context() -> None:
     handle = RemoteHandle(registration.agent_id)
 
     with pytest.raises(ExchangeClientNotFoundError):
-        assert handle.exchange == exchange_client
+        assert handle.exchange is exchange_client
 
     exchange_context.set(exchange_client)
-    assert handle.exchange == exchange_client
+    assert handle.exchange is exchange_client
 
 
 @pytest.mark.asyncio
@@ -116,7 +115,7 @@ async def test_handle_exchange_registration(
     registration = await exchange_client.register_agent(EmptyAgent)
     handle = RemoteHandle(registration.agent_id)
 
-    assert handle.exchange == exchange_client
+    assert handle.exchange is exchange_client
     assert len(exchange_client._handles) == 0
 
     handle._register_with_exchange(exchange_client)
@@ -138,7 +137,7 @@ async def test_agent_remote_handle_reuse(
     destination = await manager.launch(CounterAgent)
 
     handle = RemoteHandle(destination.agent_id)
-    assert handle.exchange == exchange_client, 'Client not inferred.'
+    assert handle.exchange is exchange_client, 'Client not inferred.'
     assert handle.handle_id not in exchange_client._handles
 
     assert await handle.ping() > 0
@@ -147,13 +146,13 @@ async def test_agent_remote_handle_reuse(
 
     async with await factory.create_user_client() as new_client:
         # Exchange is updated in the agent
-        assert handle.exchange == new_client
+        assert handle.exchange is new_client
         assert await handle.ping() > 0
         assert handle.handle_id in new_client._handles
         assert new_client in handle._registered_exchanges
 
     # Exchange is reset after
-    assert handle.exchange == exchange_client
+    assert handle.exchange is exchange_client
 
 
 @pytest.mark.asyncio
@@ -243,15 +242,15 @@ async def test_remote_handle_default_exchange() -> None:
     factory = LocalExchangeFactory()
     exchange_client = await factory.create_user_client()
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = RemoteHandle(registration.agent_id, exchange_client)
+    handle = RemoteHandle(registration.agent_id, exchange=exchange_client)
 
-    assert handle.exchange == exchange_client
+    assert handle.exchange is exchange_client
     assert repr(exchange_client) in repr(handle)
 
     async with await factory.create_user_client() as new_client:
-        assert handle.exchange == new_client
+        assert handle.exchange is new_client
 
-    assert handle.exchange == exchange_client
+    assert handle.exchange is exchange_client
 
 
 @pytest.mark.asyncio
@@ -261,15 +260,18 @@ async def test_remote_handle_ignore_context() -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
     handle = RemoteHandle(
         registration.agent_id,
-        exchange_client,
+        exchange=exchange_client,
         ignore_context=True,
     )
 
-    assert handle.exchange == exchange_client
+    assert handle.exchange is exchange_client
     assert repr(exchange_client) in repr(handle)
 
     async with await factory.create_user_client():
-        assert handle.exchange == exchange_client
+        assert handle.exchange is exchange_client
+
+    with pytest.raises(pickle.PicklingError):
+        pickle.dumps(handle)
 
 
 @pytest.mark.asyncio

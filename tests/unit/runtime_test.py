@@ -563,13 +563,13 @@ async def test_agent_exchange_context(
         agent = _TestAgent(unbound_handle, proxy_handle)
         assert agent.proxy is proxy_handle
         assert isinstance(agent.direct, RemoteHandle)
-        assert agent.direct.exchange == agent_client
+        assert agent.direct.exchange is agent_client
         for handle in agent.sequence:
             assert isinstance(handle, RemoteHandle)
-            assert handle.exchange == agent_client
+            assert handle.exchange is agent_client
         for handle in agent.mapping.values():
             assert isinstance(handle, RemoteHandle)
-            assert handle.exchange == agent_client
+            assert handle.exchange is agent_client
 
 
 class ShutdownAgent(Agent):

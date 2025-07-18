@@ -12,6 +12,18 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 
 ## Academy v0.3
 
+### Handles are now free from exchange clients
+
+Previously RemoteHandle was bound to a specific [`ExchangeClient`][academy.exchange.ExchangeClient].
+This client was used for sending messages and receiving responses.
+When starting an agent, the handle had to be bound to a client by searching for all handles in the agent.
+Now the RemoteHandle determines the ExchangeClient from a ContextVariable [`exchange_context`][academy.handle.exchange_context].
+This ContextVariable is set when running an agent, or when using the [`Manager`][academy.manager.Manager] or the `ExchangeClient` as context managers.
+Using a `Manager` or `ExchangeClient` not as a context manager is highly discouraged.
+In these cases, `exchange=<exchange_client>` can be passed when creating the handle to set the default exchange when there is no context manager.
+In very specific cases, `ignore_context=True` can be used to create a handle that will send and listen on an exchange different from the current context.
+This only applies if you were creating handles manually, or using the `ExchangeClient.get_handle` method. The interface to handles using the `Manager` is the same.
+
 ### Handle actions are blocking by default
 
 Previously, invoking an action on a [`Handle`][academy.handle.Handle.action] returned a [`Future`][asyncio.Future] to the result.

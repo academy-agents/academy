@@ -1861,7 +1861,8 @@ All future changes—including breaking changes and deprecations—will be docum
 <p>Please refer to our <a href="../version-policy/">Version Policy</a> for more details on when we make breaking changes.</p>
 <h2 id="academy-v03">Academy v0.3<a class="headerlink" href="#academy-v03" title="Permanent link">&para;</a></h2>
 <h3 id="handles-are-now-free-from-exchange-clients">Handles are now free from exchange clients<a class="headerlink" href="#handles-are-now-free-from-exchange-clients" title="Permanent link">&para;</a></h3>
-<p>Previously RemoteHandle was bound to a specific <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a>.
+<p>The Handle protocol has been removed and RemoteHandle has been renamed Handle. ProxyHandle is now a subclass of RemoteHandle. Handle
+Previously RemoteHandle was bound to a specific <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a>.
 This client was used for sending messages and receiving responses.
 When starting an agent, the handle had to be bound to a client by searching for all handles in the agent.
 Now the RemoteHandle determines the ExchangeClient from a ContextVariable <code>exchange_context</code>.

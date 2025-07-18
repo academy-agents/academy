@@ -2176,7 +2176,7 @@ in <code>executors</code>.</p>
 </span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_default_executor</span> <span class="o">=</span> <span class="n">default_executor</span>
 </span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_max_retries</span> <span class="o">=</span> <span class="n">max_retries</span>
 </span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a>
-</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_handles</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_handles</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Handle</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 </span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_acbs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">_ACB</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 </span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a>
 </span><span id="__span-0-155"><a id="__codelineno-0-155" name="__codelineno-0-155"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialized manager (</span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>
@@ -2726,7 +2726,7 @@ specify the executor.</p>
   
       module-attribute
    (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -2841,7 +2841,7 @@ the exchange.</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-internal" title="            AgentT
+              <code><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -2962,7 +2962,7 @@ specified.</p>
 </span><span id="__span-0-359"><a id="__codelineno-0-359" name="__codelineno-0-359"></a>    <span class="n">executor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-360"><a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-361"><a id="__codelineno-0-361" name="__codelineno-0-361"></a>    <span class="n">registration</span><span class="p">:</span> <span class="n">AgentRegistration</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-362"><a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]:</span>
+</span><span id="__span-0-362"><a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]:</span>
 </span><span id="__span-0-363"><a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Launch a new agent with a specified agent.</span>
 </span><span id="__span-0-364"><a id="__codelineno-0-364" name="__codelineno-0-364"></a>
 </span><span id="__span-0-365"><a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">    Args:</span>
@@ -3058,7 +3058,7 @@ specified.</p>
   
       module-attribute
    (academy.agent.AgentT)" href="../agent/#academy.agent.AgentT">AgentT</a></span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -3106,7 +3106,7 @@ exchange that this manager is a client of.</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-internal" title="            AgentT
+              <code><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -3148,7 +3148,7 @@ exchange that this manager is a client of.</p>
 <span class="normal"><a href="#__codelineno-0-451">451</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_handle</span><span class="p">(</span>
 </span><span id="__span-0-429"><a id="__codelineno-0-429" name="__codelineno-0-429"></a>    <span class="bp">self</span><span class="p">,</span>
 </span><span id="__span-0-430"><a id="__codelineno-0-430" name="__codelineno-0-430"></a>    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]</span> <span class="o">|</span> <span class="n">AgentRegistration</span><span class="p">[</span><span class="n">AgentT</span><span class="p">],</span>
-</span><span id="__span-0-431"><a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]:</span>
+</span><span id="__span-0-431"><a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">]:</span>
 </span><span id="__span-0-432"><a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new handle to an agent.</span>
 </span><span id="__span-0-433"><a id="__codelineno-0-433" name="__codelineno-0-433"></a>
 </span><span id="__span-0-434"><a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    A handle acts like a reference to a remote agent, enabling a user</span>
@@ -3166,7 +3166,7 @@ exchange that this manager is a client of.</p>
 </span><span id="__span-0-446"><a id="__codelineno-0-446" name="__codelineno-0-446"></a>    <span class="n">handle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </span><span id="__span-0-447"><a id="__codelineno-0-447" name="__codelineno-0-447"></a>    <span class="k">if</span> <span class="n">handle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-448"><a id="__codelineno-0-448" name="__codelineno-0-448"></a>        <span class="k">return</span> <span class="n">handle</span>
-</span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a>    <span class="n">handle</span> <span class="o">=</span> <span class="n">RemoteHandle</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span>
+</span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a>    <span class="n">handle</span> <span class="o">=</span> <span class="n">Handle</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span>
 </span><span id="__span-0-450"><a id="__codelineno-0-450" name="__codelineno-0-450"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_handles</span><span class="p">[</span><span class="n">agent_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">handle</span>
 </span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a>    <span class="k">return</span> <span class="n">handle</span>
 </span></code></pre></div></td></tr></table></div>
@@ -3397,7 +3397,7 @@ exchange that this manager is a client of.</p>
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">blocking</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">raise_error</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -3420,7 +3420,7 @@ exchange that this manager is a client of.</p>
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>] | <a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>] | <a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
           –
           <div class="doc-md-description">
             <p>ID or handle to the launched agent.</p>
@@ -3541,7 +3541,7 @@ launched by this manager.</p>
 <span class="normal"><a href="#__codelineno-0-524">524</a></span>
 <span class="normal"><a href="#__codelineno-0-525">525</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-484"><a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span>
 </span><span id="__span-0-485"><a id="__codelineno-0-485" name="__codelineno-0-485"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a>    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a>    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Handle</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
 </span><span id="__span-0-487"><a id="__codelineno-0-487" name="__codelineno-0-487"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-488"><a id="__codelineno-0-488" name="__codelineno-0-488"></a>    <span class="n">blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-489"><a id="__codelineno-0-489" name="__codelineno-0-489"></a>    <span class="n">raise_error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -3564,7 +3564,7 @@ launched by this manager.</p>
 </span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="sd">            launched by this manager.</span>
 </span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">        TimeoutError: If `timeout` was exceeded while blocking for agent.</span>
 </span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a>    <span class="n">agent_id</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">agent_id</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="n">RemoteHandle</span><span class="p">)</span> <span class="k">else</span> <span class="n">agent</span>
+</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a>    <span class="n">agent_id</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">agent_id</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">agent</span><span class="p">,</span> <span class="n">Handle</span><span class="p">)</span> <span class="k">else</span> <span class="n">agent</span>
 </span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a>
 </span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a>    <span class="k">if</span> <span class="n">agent_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acbs</span><span class="p">:</span>
 </span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a>        <span class="k">raise</span> <span class="n">BadEntityIdError</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
@@ -3605,7 +3605,7 @@ launched by this manager.</p>
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]],</span>
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]],</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">raise_error</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">return_when</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-external" title="asyncio.ALL_COMPLETED" href="https://docs.python.org/3/library/asyncio-task.html#asyncio.ALL_COMPLETED">ALL_COMPLETED</a></span><span class="p">,</span>
@@ -3632,7 +3632,7 @@ launched by this manager.</p>
 
   
       pydantic-model
-   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>] | <a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]]</code>)
+   (academy.identifier.AgentId)" href="../identifier/#academy.identifier.AgentId">AgentId</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>] | <a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]]</code>)
           –
           <div class="doc-md-description">
             <p>An iterable of agent IDs or handles to wait on.</p>
@@ -3767,7 +3767,7 @@ to a failure and <code>raise_error=True</code> is set.</p>
 <span class="normal"><a href="#__codelineno-0-590">590</a></span>
 <span class="normal"><a href="#__codelineno-0-591">591</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait</span><span class="p">(</span>
 </span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="n">agents</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="n">agents</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AgentId</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Handle</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
 </span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a>    <span class="n">raise_error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>    <span class="n">return_when</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">ALL_COMPLETED</span><span class="p">,</span>

@@ -2466,7 +2466,7 @@ or
 </span><span id="__span-0-167"><a id="__codelineno-0-167" name="__codelineno-0-167"></a>    <span class="n">transport</span><span class="p">:</span> <span class="n">ExchangeTransportT</span><span class="p">,</span>
 </span><span id="__span-0-168"><a id="__codelineno-0-168" name="__codelineno-0-168"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span> <span class="o">=</span> <span class="n">transport</span>
-</span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_handles</span><span class="p">:</span> <span class="n">WeakValueDictionary</span><span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">,</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_handles</span><span class="p">:</span> <span class="n">WeakValueDictionary</span><span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">,</span> <span class="n">Handle</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a>        <span class="n">WeakValueDictionary</span><span class="p">()</span>
 </span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a>    <span class="p">)</span>
 </span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_close_lock</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
@@ -2709,7 +2709,7 @@ agent.</p>
 
 
 <a href="#academy.exchange.ExchangeClient.register_handle" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -2726,7 +2726,7 @@ agent.</p>
     <ul>
         <li class="doc-section-item field-body">
             <b><code>handle</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-internal" title="            AgentT
+              (<code><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -2748,7 +2748,7 @@ agent.</p>
 <span class="normal"><a href="#__codelineno-0-234">234</a></span>
 <span class="normal"><a href="#__codelineno-0-235">235</a></span>
 <span class="normal"><a href="#__codelineno-0-236">236</a></span>
-<span class="normal"><a href="#__codelineno-0-237">237</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-237">237</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-232"><a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Register an existing handle to receive messages.</span>
 </span><span id="__span-0-233"><a id="__codelineno-0-233" name="__codelineno-0-233"></a>
 </span><span id="__span-0-234"><a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">    Args:</span>
@@ -3534,7 +3534,7 @@ agent.</p>
 
 
 <a href="#academy.exchange.AgentExchangeClient.register_handle" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -3551,7 +3551,7 @@ agent.</p>
     <ul>
         <li class="doc-section-item field-body">
             <b><code>handle</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-internal" title="            AgentT
+              (<code><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -3573,7 +3573,7 @@ agent.</p>
 <span class="normal"><a href="#__codelineno-0-234">234</a></span>
 <span class="normal"><a href="#__codelineno-0-235">235</a></span>
 <span class="normal"><a href="#__codelineno-0-236">236</a></span>
-<span class="normal"><a href="#__codelineno-0-237">237</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-237">237</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-232"><a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Register an existing handle to receive messages.</span>
 </span><span id="__span-0-233"><a id="__codelineno-0-233" name="__codelineno-0-233"></a>
 </span><span id="__span-0-234"><a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">    Args:</span>
@@ -4350,7 +4350,7 @@ agent.</p>
 
 
 <a href="#academy.exchange.UserExchangeClient.register_handle" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -4367,7 +4367,7 @@ agent.</p>
     <ul>
         <li class="doc-section-item field-body">
             <b><code>handle</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            RemoteHandle (academy.handle.RemoteHandle)" href="../handle/#academy.handle.RemoteHandle">RemoteHandle</a>[<a class="autorefs autorefs-internal" title="            AgentT
+              (<code><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="../handle/#academy.handle.Handle">Handle</a>[<a class="autorefs autorefs-internal" title="            AgentT
 
 
   
@@ -4389,7 +4389,7 @@ agent.</p>
 <span class="normal"><a href="#__codelineno-0-234">234</a></span>
 <span class="normal"><a href="#__codelineno-0-235">235</a></span>
 <span class="normal"><a href="#__codelineno-0-236">236</a></span>
-<span class="normal"><a href="#__codelineno-0-237">237</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="n">RemoteHandle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-237">237</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="n">Handle</span><span class="p">[</span><span class="n">AgentT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-232"><a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Register an existing handle to receive messages.</span>
 </span><span id="__span-0-233"><a id="__codelineno-0-233" name="__codelineno-0-233"></a>
 </span><span id="__span-0-234"><a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">    Args:</span>

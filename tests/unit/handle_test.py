@@ -8,7 +8,6 @@ from academy.exchange import UserExchangeClient
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
-from academy.handle import BoundRemoteHandle
 from academy.handle import exchange_context
 from academy.handle import ProxyHandle
 from academy.handle import RemoteHandle
@@ -240,35 +239,43 @@ async def test_client_remote_handle_errors(
 
 
 @pytest.mark.asyncio
-async def test_bound_remote_handle_serialize() -> None:
+async def test_remote_handle_default_exchange() -> None:
     factory = LocalExchangeFactory()
     exchange_client = await factory.create_user_client()
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = BoundRemoteHandle(registration.agent_id, exchange_client)
+    handle = RemoteHandle(registration.agent_id, exchange_client)
 
+    assert handle.exchange == exchange_client
     assert repr(exchange_client) in repr(handle)
-    assert str(exchange_client.client_id) in str(handle)
 
-    class_, args = handle.__reduce__()
-    reconstructed = class_(*args)
-    assert isinstance(reconstructed, BoundRemoteHandle)
-    assert reconstructed.agent_id == handle.agent_id
-    assert str(reconstructed) == str(handle)
-    assert repr(reconstructed) == repr(handle)
+    async with await factory.create_user_client() as new_client:
+        assert handle.exchange == new_client
+
+    assert handle.exchange == exchange_client
 
 
 @pytest.mark.asyncio
-async def test_bound_remote_handle_message(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    unbound = await manager.launch(EmptyAgent)
-    handle = BoundRemoteHandle(unbound.agent_id, manager.exchange_client)
-    factory = manager.exchange_client.factory()
-    async with await factory.create_user_client() as new_user:
-        # Bound client still uses outer exchange client
-        assert await handle.ping() > 0
-        assert handle.exchange == manager.exchange_client
+async def test_remote_handle_ignore_context() -> None:
+    factory = LocalExchangeFactory()
+    exchange_client = await factory.create_user_client()
+    registration = await exchange_client.register_agent(EmptyAgent)
+    handle = RemoteHandle(
+        registration.agent_id,
+        exchange_client,
+        ignore_context=True,
+    )
 
-        # Bound exchange uses inner client
-        assert await unbound.ping() > 0
-        assert unbound.exchange == new_user
+    assert handle.exchange == exchange_client
+    assert repr(exchange_client) in repr(handle)
+
+    async with await factory.create_user_client():
+        assert handle.exchange == exchange_client
+
+
+@pytest.mark.asyncio
+async def test_remote_handle_ignore_context_error(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(EmptyAgent)
+    with pytest.raises(ValueError, match='no explicit exchange'):
+        RemoteHandle(registration.agent_id, ignore_context=True)

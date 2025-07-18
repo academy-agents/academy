@@ -53,9 +53,7 @@ class ActionContext:
                 'Cannot create handle to source because it is a user entity.',
             )
         if self._source_handle is None:
-            self._source_handle = RemoteHandle(
-                self.source_id,
-            )
+            self._source_handle = RemoteHandle(self.source_id)
         return self._source_handle
 
     def is_agent_source(self) -> bool:

@@ -13,16 +13,12 @@ from typing import Protocol
 from typing import runtime_checkable
 from typing import TYPE_CHECKING
 from typing import TypeVar
+from weakref import WeakSet
 
 if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
     from typing import ParamSpec
 else:  # pragma: <3.10 cover
     from typing_extensions import ParamSpec
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    pass
-else:  # pragma: <3.11 cover
-    pass
 
 from academy.exception import AgentTerminatedError
 from academy.exception import ExchangeClientNotFoundError
@@ -236,21 +232,45 @@ exchange_context: ContextVar[ExchangeClient[Any]] = ContextVar(
 class RemoteHandle(Generic[AgentT]):
     """Handle to a remote agent.
 
+    By default a remote handle uses the 'exchange_context' ContextVar
+    as the exchange client to send messages. This allows the outgoing
+    mailbox to change depending on the context in which the handle is
+    used. The `exchange` argument is used as the default client when
+    the ContextVar is not set. `ignore_context` will cause the handle
+    to only use the `exchange` argument provided in the initializer no
+    matter the context where the handle is used. This should only be for
+    advanced usage.
+
     Args:
         agent_id: EntityId of the target agent of this handle.
+        exchange: Exchange client to use to send messages.
+        ignore_context: Ignore exchange client set in context.
     """
 
     def __init__(
         self,
         agent_id: AgentId[AgentT],
+        exchange: ExchangeClient[Any] | None = None,
+        ignore_context: bool = False,
     ) -> None:
         self.agent_id = agent_id
-        self._registered_exchanges: set[ExchangeClient[Any]] = set()
+        self._exchange = exchange
+        self._registered_exchanges: WeakSet[ExchangeClient[Any]] = WeakSet()
+        self.ignore_context = ignore_context
+
+        if ignore_context and not exchange:
+            raise ValueError(
+                'Cannot initialize handle with ignore_context=True '
+                'and no explicit exchange.',
+            )
 
         # Unique identifier for each handle object; used to disambiguate
         # messages when multiple handles are bound to the same mailbox.
         self.handle_id = uuid.uuid4()
         self._futures: dict[uuid.UUID, asyncio.Future[Any]] = {}
+
+        if self._exchange is not None:
+            self._register_with_exchange(self._exchange)
 
     @property
     def exchange(self) -> ExchangeClient[Any]:
@@ -263,12 +283,17 @@ class RemoteHandle(Generic[AgentT]):
             HandleNotBoundError: If the exchange client can't be found.
 
         """
-        try:
-            exchange = exchange_context.get()
-        except LookupError as e:
-            raise ExchangeClientNotFoundError(self.agent_id) from e
+        if self.ignore_context:
+            assert self._exchange is not None
+            return self._exchange
 
-        return exchange
+        try:
+            return exchange_context.get()
+        except LookupError as e:
+            if self._exchange is not None:
+                return self._exchange
+
+            raise ExchangeClientNotFoundError(self.agent_id) from e
 
     def __reduce__(
         self,
@@ -276,10 +301,21 @@ class RemoteHandle(Generic[AgentT]):
         type[RemoteHandle[Any]],
         tuple[Any, ...],
     ]:
-        return (RemoteHandle, (self.agent_id,))
+        return (
+            RemoteHandle,
+            (
+                self.agent_id,
+                self._exchange,
+                self.ignore_context,
+            ),
+        )
 
     def __repr__(self) -> str:
-        return f'{type(self).__name__}(agent_id={self.agent_id!r})'
+        return (
+            f'{type(self).__name__}(agent_id={self.agent_id!r}, '
+            f'exchange={self._exchange!r}, '
+            f'ignore_context={self.ignore_context!r})'
+        )
 
     def __str__(self) -> str:
         name = type(self).__name__
@@ -292,11 +328,8 @@ class RemoteHandle(Generic[AgentT]):
         return remote_method_call
 
     async def _process_response(self, response: Message[Response]) -> None:
-        future = self._futures.pop(response.tag, None)
-        if future is None or future.cancelled():  # pragma: no cover
-            # Response is not associated with any active pending future
-            # so safe to ignore it
-            return
+        future = self._futures[response.tag]
+        assert not future.cancelled()
 
         body = response.get_body()
         if isinstance(body, ActionResponse):
@@ -438,76 +471,3 @@ class RemoteHandle(Generic[AgentT]):
             exchange.client_id,
             self.agent_id,
         )
-
-
-class BoundRemoteHandle(RemoteHandle[AgentT]):
-    """Handle to a remote agent bound to a specific client.
-
-    This handle is fixed to send from a certain mailbox, regardless
-    of where it is used. This is for advanced, non-canonical use.
-    This can be used to send a message from a mailbox where there is
-    no exchange client as part of the context, or the context is
-    ambiguous.
-
-    Args:
-        agent_id: EntityId of the target agent of this handle.
-        exchange: Exchange client used for agent communication.
-    """
-
-    def __init__(
-        self,
-        agent_id: AgentId[AgentT],
-        exchange: ExchangeClient[Any],
-    ) -> None:
-        self.agent_id = agent_id
-        self._exchange = exchange
-
-        # Unique identifier for each handle object; used to disambiguate
-        # messages when multiple handles are bound to the same mailbox.
-        self.handle_id = uuid.uuid4()
-        self._futures: dict[uuid.UUID, asyncio.Future[Any]] = {}
-        self._exchange.register_handle(self)
-
-    @property
-    def exchange(self) -> ExchangeClient[Any]:
-        """Exchange client used to send messages.
-
-        Returns:
-            The ExchangeClient
-
-        Raises:
-            HandleNotBoundError: If the exchange client can't be found.
-
-        """
-        return self._exchange
-
-    def __reduce__(
-        self,
-    ) -> tuple[
-        type[BoundRemoteHandle[Any]],
-        tuple[AgentId[AgentT], ExchangeClient[Any]],
-    ]:
-        return (BoundRemoteHandle, (self.agent_id, self._exchange))
-
-    def __repr__(self) -> str:
-        return (
-            f'{type(self).__name__}(agent_id={self.agent_id!r}, '
-            f'exchange={self.exchange!r})'
-        )
-
-    def __str__(self) -> str:
-        name = type(self).__name__
-        return (
-            f'{name}<agent: {self.agent_id}, '
-            f'client_id: {self.exchange.client_id}>'
-        )
-
-    def _register_with_exchange(self, exchange: ExchangeClient[Any]) -> None:
-        """Register to receive messages from exchange.
-
-        Typically this will be called internally when sending a message.
-
-        Args:
-            exchange: Exchange client to listen to.
-        """
-        return

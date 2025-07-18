@@ -15,6 +15,7 @@ from typing import Generic
 from typing import Protocol
 from typing import runtime_checkable
 from typing import TypeVar
+from weakref import WeakValueDictionary
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import TypeAlias
@@ -166,7 +167,9 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         transport: ExchangeTransportT,
     ) -> None:
         self._transport = transport
-        self._handles: dict[uuid.UUID, RemoteHandle[Any]] = {}
+        self._handles: WeakValueDictionary[uuid.UUID, RemoteHandle[Any]] = (
+            WeakValueDictionary()
+        )
         self._close_lock = asyncio.Lock()
         self._closed = False
 
@@ -412,7 +415,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         """Close the user client.
 
         This terminates the user's mailbox, closes the underlying exchange
-        transport, and closes all handles produced by this client.
+        transport.
         """
         async with self._close_lock:
             if self._closed:

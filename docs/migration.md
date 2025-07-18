@@ -17,7 +17,7 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 Previously RemoteHandle was bound to a specific [`ExchangeClient`][academy.exchange.ExchangeClient].
 This client was used for sending messages and receiving responses.
 When starting an agent, the handle had to be bound to a client by searching for all handles in the agent.
-Now the RemoteHandle determines the ExchangeClient from a ContextVariable [`exchange_context`][academy.handle.exchange_context].
+Now the RemoteHandle determines the ExchangeClient from a ContextVariable `exchange_context`.
 This ContextVariable is set when running an agent, or when using the [`Manager`][academy.manager.Manager] or the `ExchangeClient` as context managers.
 Using a `Manager` or `ExchangeClient` not as a context manager is highly discouraged.
 In these cases, `exchange=<exchange_client>` can be passed when creating the handle to set the default exchange when there is no context manager.

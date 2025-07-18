@@ -27,7 +27,7 @@ from academy.exchange import UserExchangeClient
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
-from academy.handle import RemoteHandle
+from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.runtime import Runtime
@@ -149,7 +149,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._default_executor = default_executor
         self._max_retries = max_retries
 
-        self._handles: dict[AgentId[Any], RemoteHandle[Any]] = {}
+        self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
 
         logger.info('Initialized manager (%s)', self.user_id)
@@ -359,7 +359,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         executor: str | None = None,
         name: str | None = None,
         registration: AgentRegistration[AgentT] | None = None,
-    ) -> RemoteHandle[AgentT]:
+    ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 
         Args:
@@ -428,7 +428,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     def get_handle(
         self,
         agent: AgentId[AgentT] | AgentRegistration[AgentT],
-    ) -> RemoteHandle[AgentT]:
+    ) -> Handle[AgentT]:
         """Create a new handle to an agent.
 
         A handle acts like a reference to a remote agent, enabling a user
@@ -446,7 +446,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         handle = self._handles.get(agent_id, None)
         if handle is not None:
             return handle
-        handle = RemoteHandle(agent_id)
+        handle = Handle(agent_id)
         self._handles[agent_id] = handle
         return handle
 
@@ -483,7 +483,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     async def shutdown(
         self,
-        agent: AgentId[Any] | RemoteHandle[Any],
+        agent: AgentId[Any] | Handle[Any],
         *,
         blocking: bool = True,
         raise_error: bool = True,
@@ -506,7 +506,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 launched by this manager.
             TimeoutError: If `timeout` was exceeded while blocking for agent.
         """
-        agent_id = agent.agent_id if isinstance(agent, RemoteHandle) else agent
+        agent_id = agent.agent_id if isinstance(agent, Handle) else agent
 
         if agent_id not in self._acbs:
             raise BadEntityIdError(agent_id) from None
@@ -526,7 +526,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     async def wait(
         self,
-        agents: Iterable[AgentId[Any] | RemoteHandle[Any]],
+        agents: Iterable[AgentId[Any] | Handle[Any]],
         *,
         raise_error: bool = False,
         return_when: str = asyncio.ALL_COMPLETED,

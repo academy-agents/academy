@@ -11,8 +11,8 @@ from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.handle import exchange_context
+from academy.handle import Handle
 from academy.handle import ProxyHandle
-from academy.handle import RemoteHandle
 from academy.manager import Manager
 from academy.message import Message
 from academy.message import PingRequest
@@ -79,31 +79,45 @@ async def test_proxy_handle_agent_shutdown_errors() -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_remote_handle_serialize(
+async def test_agent_proxy_handle_serialize() -> None:
+    agent = EmptyAgent()
+    handle = ProxyHandle(agent)
+    reconstructed = pickle.loads(pickle.dumps(handle))
+    assert isinstance(reconstructed, ProxyHandle)
+    assert type(reconstructed.agent) is EmptyAgent
+    assert str(reconstructed) == str(handle)
+    assert repr(reconstructed) == repr(handle)
+    assert reconstructed.agent_id != handle.agent_id
+
+
+@pytest.mark.asyncio
+async def test_agent_handle_serialize(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = RemoteHandle(registration.agent_id)
+    handle = Handle(registration.agent_id)
     reconstructed = pickle.loads(pickle.dumps(handle))
-    assert isinstance(reconstructed, RemoteHandle)
+    assert isinstance(reconstructed, Handle)
     assert reconstructed.agent_id == handle.agent_id
     assert str(reconstructed) == str(handle)
     assert repr(reconstructed) == repr(handle)
 
 
 @pytest.mark.asyncio
-async def test_agent_remote_handle_context() -> None:
+async def test_agent_handle_context() -> None:
     # We cannot use the fixture here because the fixture will create context
     factory = LocalExchangeFactory()
     exchange_client = await factory.create_user_client()
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = RemoteHandle(registration.agent_id)
+    handle = Handle(registration.agent_id)
 
     with pytest.raises(ExchangeClientNotFoundError):
         assert handle.exchange is exchange_client
 
     exchange_context.set(exchange_client)
     assert handle.exchange is exchange_client
+
+    await exchange_client.close()
 
 
 @pytest.mark.asyncio
@@ -113,7 +127,7 @@ async def test_handle_exchange_registration(
     assert len(exchange_client._handles) == 0
 
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = RemoteHandle(registration.agent_id)
+    handle = Handle(registration.agent_id)
 
     assert handle.exchange is exchange_client
     assert len(exchange_client._handles) == 0
@@ -129,14 +143,14 @@ async def test_handle_exchange_registration(
 
 
 @pytest.mark.asyncio
-async def test_agent_remote_handle_reuse(
+async def test_agent_handle_reuse(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     exchange_client = manager.exchange_client
     factory = exchange_client.factory()
     destination = await manager.launch(CounterAgent)
 
-    handle = RemoteHandle(destination.agent_id)
+    handle = Handle(destination.agent_id)
     assert handle.exchange is exchange_client, 'Client not inferred.'
     assert handle.handle_id not in exchange_client._handles
 
@@ -154,19 +168,21 @@ async def test_agent_remote_handle_reuse(
     # Exchange is reset after
     assert handle.exchange is exchange_client
 
+    await exchange_client.close()
+
 
 @pytest.mark.asyncio
-async def test_client_remote_handle_ping_timeout(
+async def test_client_handle_ping_timeout(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = RemoteHandle(registration.agent_id)
+    handle = Handle(registration.agent_id)
     with pytest.raises(TimeoutError):
         await handle.ping(timeout=TEST_SLEEP_INTERVAL)
 
 
 @pytest.mark.asyncio
-async def test_client_remote_handle_log_bad_response(
+async def test_client_handle_log_bad_response(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(EmptyAgent())
@@ -187,7 +203,7 @@ async def test_client_remote_handle_log_bad_response(
 
 
 @pytest.mark.asyncio
-async def test_client_remote_handle_actions(
+async def test_client_handle_actions(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(CounterAgent())
@@ -206,7 +222,7 @@ async def test_client_remote_handle_actions(
 
 @pytest.mark.parametrize('terminate', (True, False))
 @pytest.mark.asyncio
-async def test_client_remote_shutdown_termination(
+async def test_client_shutdown_termination(
     terminate: bool,
     manager: Manager[LocalExchangeTransport],
 ) -> None:
@@ -221,7 +237,7 @@ async def test_client_remote_shutdown_termination(
 
 
 @pytest.mark.asyncio
-async def test_client_remote_handle_errors(
+async def test_client_handle_errors(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(ErrorAgent())
@@ -238,11 +254,11 @@ async def test_client_remote_handle_errors(
 
 
 @pytest.mark.asyncio
-async def test_remote_handle_default_exchange() -> None:
+async def test_handle_default_exchange() -> None:
     factory = LocalExchangeFactory()
     exchange_client = await factory.create_user_client()
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = RemoteHandle(registration.agent_id, exchange=exchange_client)
+    handle = Handle(registration.agent_id, exchange=exchange_client)
 
     assert handle.exchange is exchange_client
     assert repr(exchange_client) in repr(handle)
@@ -252,13 +268,15 @@ async def test_remote_handle_default_exchange() -> None:
 
     assert handle.exchange is exchange_client
 
+    await exchange_client.close()
+
 
 @pytest.mark.asyncio
-async def test_remote_handle_ignore_context() -> None:
+async def test_handle_ignore_context() -> None:
     factory = LocalExchangeFactory()
     exchange_client = await factory.create_user_client()
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = RemoteHandle(
+    handle = Handle(
         registration.agent_id,
         exchange=exchange_client,
         ignore_context=True,
@@ -273,11 +291,13 @@ async def test_remote_handle_ignore_context() -> None:
     with pytest.raises(pickle.PicklingError):
         pickle.dumps(handle)
 
+    await exchange_client.close()
+
 
 @pytest.mark.asyncio
-async def test_remote_handle_ignore_context_error(
+async def test_handle_ignore_context_error(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
     with pytest.raises(ValueError, match='no explicit exchange'):
-        RemoteHandle(registration.agent_id, ignore_context=True)
+        Handle(registration.agent_id, ignore_context=True)

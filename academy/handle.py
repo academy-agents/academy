@@ -10,8 +10,6 @@ from contextvars import ContextVar
 from pickle import PicklingError
 from typing import Any
 from typing import Generic
-from typing import Protocol
-from typing import runtime_checkable
 from typing import TYPE_CHECKING
 from typing import TypeVar
 from weakref import WeakSet
@@ -46,194 +44,15 @@ K = TypeVar('K')
 P = ParamSpec('P')
 R = TypeVar('R')
 
-
-@runtime_checkable
-class Handle(Protocol[AgentT]):
-    """Agent handle protocol.
-
-    A handle enables an agent or user to invoke actions on another agent.
-    """
-
-    def __getattr__(self, name: str) -> Any:
-        # This dummy method definition is required to signal to mypy that
-        # any attribute access is "valid" on a Handle type. This forces
-        # mypy into calling our mypy plugin (academy.mypy_plugin) which then
-        # validates the exact semantics of the attribute access depending
-        # on the concrete type for the AgentT that Handle is generic on.
-        ...
-
-    @property
-    def agent_id(self) -> AgentId[AgentT]:
-        """ID of the agent this is a handle to."""
-        ...
-
-    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
-        """Invoke an action on the agent.
-
-        Args:
-            action: Action to invoke.
-            args: Positional arguments for the action.
-            kwargs: Keywords arguments for the action.
-
-        Returns:
-            Result of the action.
-
-        Raises:
-            AgentTerminatedError: If the agent's mailbox was closed. This
-                typically indicates the agent shutdown for another reason
-                (it self terminated or via another handle).
-            Exception: Any exception raised by the action.
-        """
-        ...
-
-    async def ping(self, *, timeout: float | None = None) -> float:
-        """Ping the agent.
-
-        Ping the agent and wait to get a response. Agents process messages
-        in order so the round-trip time will include processing time of
-        earlier messages in the queue.
-
-        Args:
-            timeout: Optional timeout in seconds to wait for the response.
-
-        Returns:
-            Round-trip time in seconds.
-
-        Raises:
-            AgentTerminatedError: If the agent's mailbox was closed. This
-                typically indicates the agent shutdown for another reason
-                (it self terminated or via another handle).
-            TimeoutError: If the timeout is exceeded.
-        """
-        ...
-
-    async def shutdown(self, *, terminate: bool | None = None) -> None:
-        """Instruct the agent to shutdown.
-
-        This is non-blocking and will only send the message.
-
-        Args:
-            terminate: Override the termination behavior of the agent defined
-                in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
-
-        Raises:
-            AgentTerminatedError: If the agent's mailbox was closed. This
-                typically indicates the agent shutdown for another reason
-                (it self terminated or via another handle).
-        """
-        ...
-
-
-class ProxyHandle(Generic[AgentT]):
-    """Proxy handle.
-
-    A proxy handle is thin wrapper around a
-    [`Agent`][academy.agent.Agent] instance that is useful for testing
-    agents that are initialized with a handle to another agent without
-    needing to spawn agents. This wrapper invokes actions synchronously.
-    """
-
-    def __init__(self, agent: AgentT) -> None:
-        self.agent = agent
-        self.agent_id: AgentId[AgentT] = AgentId.new()
-        self._agent_closed = False
-
-    def __repr__(self) -> str:
-        return f'{type(self).__name__}(agent={self.agent!r})'
-
-    def __str__(self) -> str:
-        return f'{type(self).__name__}<{self.agent}>'
-
-    def __getattr__(self, name: str) -> Any:
-        method = getattr(self.agent, name)
-        if not callable(method):
-            raise AttributeError(
-                f'Attribute {name} of {type(self.agent)} is not a method.',
-            )
-
-        @functools.wraps(method)
-        async def func(*args: Any, **kwargs: Any) -> R:
-            return await self.action(name, *args, **kwargs)
-
-        return func
-
-    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
-        """Invoke an action on the agent.
-
-        Args:
-            action: Action to invoke.
-            args: Positional arguments for the action.
-            kwargs: Keywords arguments for the action.
-
-        Returns:
-            Result of the action.
-
-        Raises:
-            AgentTerminatedError: If the agent's mailbox was closed. This
-                typically indicates the agent shutdown for another reason
-                (it self terminated or via another handle).
-            Exception: Any exception raised by the action.
-        """
-        if self._agent_closed:
-            raise AgentTerminatedError(self.agent_id)
-
-        method = getattr(self.agent, action)
-        return await method(*args, **kwargs)
-
-    async def ping(self, *, timeout: float | None = None) -> float:
-        """Ping the agent.
-
-        Ping the agent and wait to get a response. Agents process messages
-        in order so the round-trip time will include processing time of
-        earlier messages in the queue.
-
-        Note:
-            This is a no-op for proxy handles and returns 0 latency.
-
-        Args:
-            timeout: Optional timeout in seconds to wait for the response.
-
-        Returns:
-            Round-trip time in seconds.
-
-        Raises:
-            AgentTerminatedError: If the agent's mailbox was closed. This
-                typically indicates the agent shutdown for another reason
-                (it self terminated or via another handle).
-            TimeoutError: If the timeout is exceeded.
-        """
-        if self._agent_closed:
-            raise AgentTerminatedError(self.agent_id)
-        return 0
-
-    async def shutdown(self, *, terminate: bool | None = None) -> None:
-        """Instruct the agent to shutdown.
-
-        This is non-blocking and will only send the message.
-
-        Args:
-            terminate: Override the termination behavior of the agent defined
-                in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
-
-        Raises:
-            AgentTerminatedError: If the agent's mailbox was closed. This
-                typically indicates the agent shutdown for another reason
-                (it self terminated or via another handle).
-        """
-        if self._agent_closed:
-            raise AgentTerminatedError(self.agent_id)
-        self._agent_closed = True if terminate is None else terminate
-
-
 exchange_context: ContextVar[ExchangeClient[Any]] = ContextVar(
     'exchange_context',
 )
 
 
-class RemoteHandle(Generic[AgentT]):
+class Handle(Generic[AgentT]):
     """Handle to a remote agent.
 
-    By default a remote handle uses the 'exchange_context' ContextVar
+    By default a handle uses the 'exchange_context' ContextVar
     as the exchange client to send messages. This allows the outgoing
     mailbox to change depending on the context in which the handle is
     used. The `exchange` argument is used as the default client when
@@ -300,14 +119,14 @@ class RemoteHandle(Generic[AgentT]):
     def __reduce__(
         self,
     ) -> tuple[
-        type[RemoteHandle[Any]],
+        type[Handle[Any]],
         tuple[Any, ...],
     ]:
         if self.ignore_context:
             raise PicklingError(
                 'Handle with ignore_context=True is not pickle-able',
             )
-        return (RemoteHandle, (self.agent_id,))
+        return (Handle, (self.agent_id,))
 
     def __repr__(self) -> str:
         return (
@@ -470,3 +289,112 @@ class RemoteHandle(Generic[AgentT]):
             exchange.client_id,
             self.agent_id,
         )
+
+
+class ProxyHandle(Handle[AgentT]):
+    """Proxy handle.
+
+    A proxy handle is thin wrapper around a
+    [`Agent`][academy.agent.Agent] instance that is useful for testing
+    agents that are initialized with a handle to another agent without
+    needing to spawn agents. This wrapper invokes actions synchronously.
+    """
+
+    def __init__(self, agent: AgentT) -> None:
+        self.agent = agent
+        self.agent_id: AgentId[AgentT] = AgentId.new()
+        self._agent_closed = False
+
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}(agent={self.agent!r})'
+
+    def __str__(self) -> str:
+        return f'{type(self).__name__}<{self.agent}>'
+
+    def __getattr__(self, name: str) -> Any:
+        method = getattr(self.agent, name)
+        if not callable(method):
+            raise AttributeError(
+                f'Attribute {name} of {type(self.agent)} is not a method.',
+            )
+
+        @functools.wraps(method)
+        async def func(*args: Any, **kwargs: Any) -> R:
+            return await self.action(name, *args, **kwargs)
+
+        return func
+
+    def __reduce__(
+        self,
+    ) -> tuple[
+        type[Handle[Any]],
+        tuple[Any, ...],
+    ]:
+        return (ProxyHandle, (self.agent,))
+
+    async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
+        """Invoke an action on the agent.
+
+        Args:
+            action: Action to invoke.
+            args: Positional arguments for the action.
+            kwargs: Keywords arguments for the action.
+
+        Returns:
+            Result of the action.
+
+        Raises:
+            AgentTerminatedError: If the agent's mailbox was closed. This
+                typically indicates the agent shutdown for another reason
+                (it self terminated or via another handle).
+            Exception: Any exception raised by the action.
+        """
+        if self._agent_closed:
+            raise AgentTerminatedError(self.agent_id)
+
+        method = getattr(self.agent, action)
+        return await method(*args, **kwargs)
+
+    async def ping(self, *, timeout: float | None = None) -> float:
+        """Ping the agent.
+
+        Ping the agent and wait to get a response. Agents process messages
+        in order so the round-trip time will include processing time of
+        earlier messages in the queue.
+
+        Note:
+            This is a no-op for proxy handles and returns 0 latency.
+
+        Args:
+            timeout: Optional timeout in seconds to wait for the response.
+
+        Returns:
+            Round-trip time in seconds.
+
+        Raises:
+            AgentTerminatedError: If the agent's mailbox was closed. This
+                typically indicates the agent shutdown for another reason
+                (it self terminated or via another handle).
+            TimeoutError: If the timeout is exceeded.
+        """
+        if self._agent_closed:
+            raise AgentTerminatedError(self.agent_id)
+        return 0
+
+    async def shutdown(self, *, terminate: bool | None = None) -> None:
+        """Instruct the agent to shutdown.
+
+        This is non-blocking and will only send the message.
+
+        Args:
+            terminate: Override the termination behavior of the agent defined
+                in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
+
+        Raises:
+            AgentTerminatedError: If the agent's mailbox was closed. This
+                typically indicates the agent shutdown for another reason
+                (it self terminated or via another handle).
+        """
+        if self._agent_closed:
+            raise AgentTerminatedError(self.agent_id)
+        self._agent_closed = True if terminate is None else terminate

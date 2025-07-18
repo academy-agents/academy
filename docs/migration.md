@@ -13,7 +13,7 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 ## Academy v0.3
 
 ### Handles are now free from exchange clients
-
+The Handle protocol has been removed and RemoteHandle has been renamed Handle. ProxyHandle is now a subclass of RemoteHandle. Handle
 Previously RemoteHandle was bound to a specific [`ExchangeClient`][academy.exchange.ExchangeClient].
 This client was used for sending messages and receiving responses.
 When starting an agent, the handle had to be bound to a client by searching for all handles in the agent.

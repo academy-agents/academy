@@ -105,7 +105,7 @@ class UnauthorizedError(ExchangeError):
 class ExchangeClientNotFoundError(Exception):
     """Handle to agent can not find an exchange client to use.
 
-    A [`RemoteHandle`][academy.handle.RemoteHandle] is
+    A [`Handle`][academy.handle.Handle] is
     initialized with a target agent ID is not used in a context where an
     exchange client could be inferred. Typically this can be resolved by
     using a [`ExchangeClient`][academy.exchange.ExchangeClient] or

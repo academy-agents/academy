@@ -12,7 +12,7 @@ from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
-from academy.handle import RemoteHandle
+from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import ErrorResponse
@@ -155,7 +155,7 @@ async def test_agent_handle_process_response(
             registration,
             _handler,
         ) as agent_client:
-            handle: RemoteHandle[EmptyAgent] = RemoteHandle(AgentId.new())
+            handle: Handle[EmptyAgent] = Handle(AgentId.new())
             handle._register_with_exchange(agent_client)
             message = Message.create(
                 src=user_client.client_id,

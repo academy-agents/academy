@@ -17,7 +17,6 @@ from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.handle import Handle
 from academy.handle import ProxyHandle
-from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
@@ -549,7 +548,7 @@ async def test_agent_exchange_context(
     factory = exchange_client.factory()
     registration = await exchange_client.register_agent(_TestAgent)
     proxy_handle = ProxyHandle(EmptyAgent())
-    unbound_handle = RemoteHandle(
+    unbound_handle = Handle(
         (await exchange_client.register_agent(EmptyAgent)).agent_id,
     )
 
@@ -562,13 +561,13 @@ async def test_agent_exchange_context(
     ) as agent_client:
         agent = _TestAgent(unbound_handle, proxy_handle)
         assert agent.proxy is proxy_handle
-        assert isinstance(agent.direct, RemoteHandle)
+        assert isinstance(agent.direct, Handle)
         assert agent.direct.exchange is agent_client
         for handle in agent.sequence:
-            assert isinstance(handle, RemoteHandle)
+            assert isinstance(handle, Handle)
             assert handle.exchange is agent_client
         for handle in agent.mapping.values():
-            assert isinstance(handle, RemoteHandle)
+            assert isinstance(handle, Handle)
             assert handle.exchange is agent_client
 
 

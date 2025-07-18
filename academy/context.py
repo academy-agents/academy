@@ -10,7 +10,6 @@ from typing import TypeVar
 
 from academy.exchange import AgentExchangeClient
 from academy.handle import Handle
-from academy.handle import RemoteHandle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -53,7 +52,7 @@ class ActionContext:
                 'Cannot create handle to source because it is a user entity.',
             )
         if self._source_handle is None:
-            self._source_handle = RemoteHandle(self.source_id)
+            self._source_handle = Handle(self.source_id)
         return self._source_handle
 
     def is_agent_source(self) -> bool:

@@ -35,7 +35,7 @@ from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
 from academy.handle import exchange_context
-from academy.handle import RemoteHandle
+from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -167,7 +167,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         transport: ExchangeTransportT,
     ) -> None:
         self._transport = transport
-        self._handles: WeakValueDictionary[uuid.UUID, RemoteHandle[Any]] = (
+        self._handles: WeakValueDictionary[uuid.UUID, Handle[Any]] = (
             WeakValueDictionary()
         )
         self._close_lock = asyncio.Lock()
@@ -228,7 +228,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Get an exchange factory."""
         return self._transport.factory()
 
-    def register_handle(self, handle: RemoteHandle[AgentT]) -> None:
+    def register_handle(self, handle: Handle[AgentT]) -> None:
         """Register an existing handle to receive messages.
 
         Args:

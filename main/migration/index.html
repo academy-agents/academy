@@ -618,6 +618,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#handles-are-now-free-from-exchange-clients" class="md-nav__link">
+    <span class="md-ellipsis">
+      Handles are now free from exchange clients
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#handle-actions-are-blocking-by-default" class="md-nav__link">
     <span class="md-ellipsis">
       Handle actions are blocking by default
@@ -1737,6 +1746,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#handles-are-now-free-from-exchange-clients" class="md-nav__link">
+    <span class="md-ellipsis">
+      Handles are now free from exchange clients
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#handle-actions-are-blocking-by-default" class="md-nav__link">
     <span class="md-ellipsis">
       Handle actions are blocking by default
@@ -1842,6 +1860,16 @@ After v1.0, this guide will be retired.
 All future changes—including breaking changes and deprecations—will be documented in the project changelog.</p>
 <p>Please refer to our <a href="../version-policy/">Version Policy</a> for more details on when we make breaking changes.</p>
 <h2 id="academy-v03">Academy v0.3<a class="headerlink" href="#academy-v03" title="Permanent link">&para;</a></h2>
+<h3 id="handles-are-now-free-from-exchange-clients">Handles are now free from exchange clients<a class="headerlink" href="#handles-are-now-free-from-exchange-clients" title="Permanent link">&para;</a></h3>
+<p>Previously RemoteHandle was bound to a specific <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a>.
+This client was used for sending messages and receiving responses.
+When starting an agent, the handle had to be bound to a client by searching for all handles in the agent.
+Now the RemoteHandle determines the ExchangeClient from a ContextVariable <code>exchange_context</code>.
+This ContextVariable is set when running an agent, or when using the <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> or the <code>ExchangeClient</code> as context managers.
+Using a <code>Manager</code> or <code>ExchangeClient</code> not as a context manager is highly discouraged.
+In these cases, <code>exchange=&lt;exchange_client&gt;</code> can be passed when creating the handle to set the default exchange when there is no context manager.
+In very specific cases, <code>ignore_context=True</code> can be used to create a handle that will send and listen on an exchange different from the current context.
+This only applies if you were creating handles manually, or using the <code>ExchangeClient.get_handle</code> method. The interface to handles using the <code>Manager</code> is the same.</p>
 <h3 id="handle-actions-are-blocking-by-default">Handle actions are blocking by default<a class="headerlink" href="#handle-actions-are-blocking-by-default" title="Permanent link">&para;</a></h3>
 <p>Previously, invoking an action on a <a class="autorefs autorefs-internal" title="            action
 

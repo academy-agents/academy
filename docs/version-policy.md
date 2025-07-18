@@ -9,10 +9,11 @@ Documentation is versioned to match the software and help users find information
 
 ## Documentation Versions
 
-We maintain the following types of documentation:
+Documentation is published under version-specific URLs such as:
 
-* **Latest:** Tracks the most recent released version (e.g., 0.8)
-* **Main:** Tracks the main branch with unreleased changes
+* `/latest` and `/main` – Tracks the main branch with unreleased changes
+* `/stable` – Tracks the most recent release version (default redirect)
+* `/0.2.0` – Previous release version
 
 ## Deprecation Policy
 

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from academy.exchange.client import AgentExchangeClient
+from academy.exchange.client import ExchangeClient
+from academy.exchange.client import UserExchangeClient
 from academy.exchange.cloud import HttpExchangeFactory
 from academy.exchange.cloud import HttpExchangeTransport
-from academy.exchange.factory import AgentExchangeClient
-from academy.exchange.factory import ExchangeClient
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.factory import MailboxStatus
-from academy.exchange.factory import UserExchangeClient
 from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.hybrid import HybridExchangeTransport
 from academy.exchange.local import LocalExchangeFactory

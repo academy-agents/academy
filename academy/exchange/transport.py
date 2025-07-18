@@ -25,7 +25,7 @@ from academy.message import ErrorResponse
 from academy.message import Message
 
 if TYPE_CHECKING:
-    from academy.exchange import ExchangeFactory
+    from academy.exchange.factory import ExchangeFactory
 
 
 class MailboxStatus(enum.Enum):

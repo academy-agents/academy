@@ -35,7 +35,7 @@ from academy.agent import Agent
 from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
-from academy.exchange import ExchangeFactory
+from academy.exchange.factory import ExchangeFactory
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
 from academy.exchange.transport import _respond_pending_requests_on_terminate

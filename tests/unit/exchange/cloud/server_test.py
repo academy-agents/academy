@@ -18,8 +18,8 @@ from aiohttp.web import Request
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange import HttpExchangeFactory
 from academy.exchange import MailboxStatus
-from academy.exchange.cloud import HttpExchangeFactory
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.exceptions import ForbiddenError

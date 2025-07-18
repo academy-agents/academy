@@ -58,7 +58,7 @@ Users and agents communicate asynchronously through *handles*, sending messages 
 The *manager* abstracts the remote execution and management of agents using [executors](https://docs.python.org/3/library/concurrent.futures.html).
 
 ```python
-from academy.exchange.local import LocalExchangeFactory
+from academy.exchange import LocalExchangeFactory
 from academy.manager import Manager
 from concurrent.futures import ThreadPoolExecutor
 

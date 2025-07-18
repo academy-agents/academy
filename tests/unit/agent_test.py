@@ -16,8 +16,8 @@ from academy.agent import timer
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import AgentNotInitializedError
+from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.exchange.local import LocalExchangeTransport
 from academy.identifier import AgentId
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent

@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
-from academy.exchange.local import LocalExchangeFactory
+from academy.exchange import LocalExchangeFactory
 from academy.logging import init_logging
 from academy.manager import Manager
 

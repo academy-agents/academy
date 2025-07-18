@@ -16,7 +16,7 @@ from proxystore.store.utils import resolve_async
 
 from academy.agent import Agent
 from academy.agent import AgentT
-from academy.exchange import ExchangeFactory
+from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportMixin

@@ -12,8 +12,8 @@ from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
 from academy.exception import ActionCancelledError
+from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.handle import Handle
 from academy.handle import ProxyHandle

@@ -6,7 +6,7 @@ import pytest
 
 from academy.agent import action
 from academy.agent import Agent
-from academy.exchange.local import LocalExchangeFactory
+from academy.exchange import LocalExchangeFactory
 from academy.handle import Handle
 from academy.manager import Manager
 

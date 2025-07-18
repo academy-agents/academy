@@ -11,13 +11,13 @@ from aiohttp.web import AppRunner
 from aiohttp.web import TCPSite
 
 from academy.exchange import ExchangeFactory
+from academy.exchange import HttpExchangeFactory
+from academy.exchange import HybridExchangeFactory
+from academy.exchange import LocalExchangeFactory
+from academy.exchange import LocalExchangeTransport
+from academy.exchange import RedisExchangeFactory
 from academy.exchange import UserExchangeClient
-from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.server import create_app
-from academy.exchange.hybrid import HybridExchangeFactory
-from academy.exchange.local import LocalExchangeFactory
-from academy.exchange.local import LocalExchangeTransport
-from academy.exchange.redis import RedisExchangeFactory
 from academy.manager import Manager
 from academy.socket import open_port
 

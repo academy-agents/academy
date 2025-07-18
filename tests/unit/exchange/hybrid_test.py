@@ -7,9 +7,9 @@ from unittest import mock
 
 import pytest
 
+from academy.exchange import HybridExchangeFactory
+from academy.exchange import HybridExchangeTransport
 from academy.exchange.hybrid import base32_to_uuid
-from academy.exchange.hybrid import HybridExchangeFactory
-from academy.exchange.hybrid import HybridExchangeTransport
 from academy.exchange.hybrid import uuid_to_base32
 from academy.identifier import UserId
 from academy.message import Message

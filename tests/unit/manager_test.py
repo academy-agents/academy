@@ -7,9 +7,9 @@ import pytest
 
 from academy.agent import Agent
 from academy.exception import BadEntityIdError
+from academy.exchange import LocalExchangeFactory
+from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.exchange.local import LocalExchangeFactory
-from academy.exchange.local import LocalExchangeTransport
 from academy.manager import Manager
 from testing.agents import EmptyAgent
 from testing.agents import SleepAgent

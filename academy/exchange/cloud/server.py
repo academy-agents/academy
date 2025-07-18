@@ -7,7 +7,7 @@ python -m academy.exchange.cloud --config exchange.yaml
 
 Connect to the exchange through the client.
 ```python
-from academy.exchange.cloud.client import HttpExchangeFactory
+from academy.exchange import HttpExchangeFactory
 
 with HttpExchangeFactory(
     'http://localhost:1234'
@@ -58,13 +58,13 @@ from pydantic import ValidationError
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
-from academy.exchange import MailboxStatus
 from academy.exchange.cloud.authenticate import Authenticator
 from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.exceptions import ForbiddenError
 from academy.exchange.cloud.exceptions import UnauthorizedError
+from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.logging import init_logging

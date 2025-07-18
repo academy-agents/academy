@@ -49,6 +49,9 @@ print(task.result())
 Using tasks is especially useful when launching multiple long-running actions concurrently and waiting for them in a flexible manner.
 For example, instead of waiting for each action sequentially, you can start them all at once and then wait for them to complete using [`asyncio.wait()`][asyncio.wait] or [`asyncio.as_completed()`][asyncio.as_completed].
 
+### Minor
+All the [`ExchangeFactory`][academy.exchange.ExchangeFactory] and [`ExchangeTransport`][academy.exchange.transport.ExchangeTransport] implementations have been re-exported from [`academy.exchange`][academy.exchange].
+[`spawn_http_exchange`][academy.exchange.cloud.client.spawn_http_exchange] has been re-exported from [`academy.exchange.cloud][academy.exchange.cloud].
 
 ## Academy v0.2
 

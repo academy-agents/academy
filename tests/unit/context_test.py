@@ -5,8 +5,8 @@ from typing import Any
 import pytest
 
 from academy.context import ActionContext
+from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.exchange.local import LocalExchangeTransport
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from testing.agents import EmptyAgent

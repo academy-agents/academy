@@ -30,7 +30,7 @@ Click on the plus (`+`) signs to learn more.
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from academy.agent import Agent, action
-from academy.exchange.local import LocalExchangeFactory
+from academy.exchange import LocalExchangeFactory
 from academy.logging import init_logging
 from academy.manager import Manager
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 1. Agents are with derived classes of [`Agent`][academy.agent.Agent].
 2. Async agent methods decorated with [`@action`][academy.agent.action] can be invoked remotely by user programs and other agents. An agent can call action methods on itself as normal methods.
 3. The [`Manager`][academy.manager.Manager] is a high-level interface that reduces boilerplate code when launching and managing agents. It will also manage clean up of resources and shutting down agents when the context manager exits.
-4. The [local exchange][academy.exchange.local.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
+4. The [local exchange][academy.exchange.LocalExchangeFactory] manages message passing between users and agents running in a single process. Factories are used to create clients to the exchange.
 5. The manager uses an [`Executor`][concurrent.futures.Executor] to run agents concurrently across parallel/distributed resources. Here, a [`ThreadPoolExecutor`][concurrent.futures.Executor] runs agents in different threads of the main process.
 6. An instantiated agent (here, `ExampleAgent`) can be launched with [`Manager.launch()`][academy.manager.Manager.launch], returning a handle to the remote agent.
 7. Interact with running agents via a [`Handle`][academy.handle.Handle]. Invoking an action returns the result.
@@ -142,7 +142,7 @@ After launching the `Lowerer` and `Reverser`, the respective handles can be used
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from academy.agent import Agent, action
-from academy.exchange.local import LocalExchangeFactory
+from academy.exchange import LocalExchangeFactory
 from academy.logging import init_logging
 from academy.manager import Manager
 
@@ -176,11 +176,11 @@ if __name__ == '__main__':
 
 The prior examples have launched agent in threads of the main process, but in practice agents are launched in different processes, possibly on the same node or remote nodes.
 The prior example can be executed in a distributed fashion by changing the executor and exchange to implementations which support distributed execution.
-Below, a [Redis server](https://redis.io/){target=_blank} server (via the [redis exchange][academy.exchange.redis.RedisExchangeFactory]) is used to support messaging between distributed agents executed with a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor].
+Below, a [Redis server](https://redis.io/){target=_blank} server (via the [redis exchange][academy.exchange.RedisExchangeFactory]) is used to support messaging between distributed agents executed with a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor].
 
 ```python
 from concurrent.futures import ProcessPoolExecutor
-from academy.exchange.redis import RedisExchangeFactory
+from academy.exchange import RedisExchangeFactory
 
 async def main() -> None:
     async with Manager.from_exchange_factory(

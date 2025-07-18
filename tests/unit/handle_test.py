@@ -6,9 +6,9 @@ import pytest
 
 from academy.exception import AgentTerminatedError
 from academy.exception import ExchangeClientNotFoundError
+from academy.exchange import LocalExchangeFactory
+from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.exchange.local import LocalExchangeFactory
-from academy.exchange.local import LocalExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.handle import exchange_context
 from academy.handle import Handle

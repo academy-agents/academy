@@ -52,19 +52,36 @@ exchange_context: ContextVar[ExchangeClient[Any]] = ContextVar(
 class Handle(Generic[AgentT]):
     """Handle to a remote agent.
 
-    By default a handle uses the 'exchange_context' ContextVar
-    as the exchange client to send messages. This allows the outgoing
-    mailbox to change depending on the context in which the handle is
-    used. The `exchange` argument is used as the default client when
-    the ContextVar is not set. `ignore_context` will cause the handle
-    to only use the `exchange` argument provided in the initializer no
-    matter the context where the handle is used. This should only be for
-    advanced usage.
+    Internally, handles use an
+    [`ExchangeClient`][academy.exchange.ExchangeClient] to send requests to
+    and receive responses from the remote agent. By default the correct
+    exchange client is inferred from the context using a
+    [context variable][contextvars] (specifically, the
+    `academy.handle.exchange_context` variable). This allows the same handle
+    to be used in different contexts, automatically using the correct client
+    to send messages.
+
+    When a handle is used in contexts that have not configured the exchange
+    client (such as outside of an agent runtime or
+    [`Manager`][academy.manager.Manager]), a default exchange can be provided
+    via the `exchange` argument. For advanced usage, the `ignore_context` flag
+    will cause the handle to only use the `exchange` argument no matter what
+    the current context is.
+
+    Note:
+        The `exchange` argument will not be included when a handle is pickled.
+        Thus, unpickled handles must be used in a context that configures
+        an exchange client.
 
     Args:
-        agent_id: EntityId of the target agent of this handle.
-        exchange: Exchange client to use to send messages.
-        ignore_context: Ignore exchange client set in context.
+        agent_id: ID of the remote agent.
+        exchange: A default exchange client to be used if an exchange client
+            is not configured in the current context.
+        ignore_context: Ignore the current context and force use of `exchange`
+            for communication.
+
+    Raises:
+        ValueError: If `ignore_context=True` but `exchange` is not provided.
     """
 
     def __init__(
@@ -102,11 +119,11 @@ class Handle(Generic[AgentT]):
         """Exchange client used to send messages.
 
         Returns:
-            The ExchangeClient
+            Exchange client.
 
         Raises:
-            HandleNotBoundError: If the exchange client can't be found.
-
+            ExchangeClientNotFoundError: If no exchange client is set in the
+                current context nor was one provided to the handle.
         """
         if self.ignore_context:
             assert self._exchange is not None
@@ -240,9 +257,7 @@ class Handle(Generic[AgentT]):
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
 
-        Ping the agent and wait to get a response. Agents process messages
-        in order so the round-trip time will include processing time of
-        earlier messages in the queue.
+        Ping the agent and wait to get a response.
 
         Args:
             timeout: Optional timeout in seconds to wait for the response.
@@ -322,7 +337,7 @@ class Handle(Generic[AgentT]):
 class ProxyHandle(Handle[AgentT]):
     """Proxy handle.
 
-    A proxy handle is thin wrapper around a
+    A proxy handle is thin wrapper around an
     [`Agent`][academy.agent.Agent] instance that is useful for testing
     agents that are initialized with a handle to another agent without
     needing to spawn agents. This wrapper invokes actions synchronously.
@@ -386,12 +401,7 @@ class ProxyHandle(Handle[AgentT]):
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
 
-        Ping the agent and wait to get a response. Agents process messages
-        in order so the round-trip time will include processing time of
-        earlier messages in the queue.
-
-        Note:
-            This is a no-op for proxy handles and returns 0 latency.
+        This is a no-op for proxy handles and returns 0 latency.
 
         Args:
             timeout: Optional timeout in seconds to wait for the response.

@@ -95,7 +95,7 @@ class ExampleAgent(Agent):
 ```
 
 All control loops are started in separate tasks in the event loop when an agent is executed, and run until the control loop exits or the agent is shut down, as indicated by the `shutdown` event.
-If an agent is shutdown before the control loops exit, the corresponding task will be cancelled.
+If an agent shuts down before the control loops exit, the corresponding task will be cancelled.
 
 ## Agent to Agent Interaction
 

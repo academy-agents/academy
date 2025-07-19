@@ -314,7 +314,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
 
         Agent startup involves:
 
-        1. Creates a new exchange client for the agent.
+        1. Creates a new exchange client for the agent, and sets the exchange
+           context to this agent's client for all handles.
         1. Sets the runtime context on the agent.
         1. Binds all handles of the agent to this agent's exchange client.
         1. Schedules a [`Task`][asyncio.Task] to listen for messages in the
@@ -339,7 +340,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
            received.
         1. Waits for any currently executing actions to complete.
         1. Terminates the agent's mailbox in the exchange if configured.
-        1. Closes the exchange client.
+        1. Restores the exchange context and closes the exchange client.
 
         Raises:
             RuntimeError: If the agent has already been shutdown.

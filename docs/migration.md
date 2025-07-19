@@ -12,17 +12,36 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 
 ## Academy v0.3
 
+### Handle types have been simplified
+
+The `Handle` protocol and `UnboundRemoteHandle` types have been removed.
+`RemoteHandle` has been renamed [`Handle`][academy.handle.Handle] and is the only handle type used in typical Academy applications.
+[`ProxyHandle`][academy.handle.ProxyHandle], useful when writing agent unit tests, is now a subclass of [`Handle`][academy.handle.Handle].
+
 ### Handles are now free from exchange clients
-The Handle protocol has been removed and RemoteHandle has been renamed Handle. ProxyHandle is now a subclass of RemoteHandle. Handle
-Previously RemoteHandle was bound to a specific [`ExchangeClient`][academy.exchange.ExchangeClient].
-This client was used for sending messages and receiving responses.
-When starting an agent, the handle had to be bound to a client by searching for all handles in the agent.
-Now the RemoteHandle determines the ExchangeClient from a ContextVariable `exchange_context`.
-This ContextVariable is set when running an agent, or when using the [`Manager`][academy.manager.Manager] or the `ExchangeClient` as context managers.
-Using a `Manager` or `ExchangeClient` not as a context manager is highly discouraged.
-In these cases, `exchange=<exchange_client>` can be passed when creating the handle to set the default exchange when there is no context manager.
-In very specific cases, `ignore_context=True` can be used to create a handle that will send and listen on an exchange different from the current context.
-This only applies if you were creating handles manually, or using the `ExchangeClient.get_handle` method. The interface to handles using the `Manager` is the same.
+
+Previously, handles were bound to a specific [`ExchangeClient`][academy.exchange.ExchangeClient], which was used for sending and receiving messages.
+This required handles to be re-bound to the appropriate exchange client based on the context.
+Thus, when an agent started it would search the instance attributes of the agent for all handles and replace them at runtime with new handles bound to the agent's exchange client.
+This approach resulted in many edge cases where handles would not be discovered and replaced appropriately.
+
+Now, a [`Handle`][academy.handle.Handle] determines the correct [`ExchangeClient`][academy.exchange.ExchangeClient] from [context variables][contextvars].
+This exchange context variable is set when running an agent, or on the user-side when using the [`Manager`][academy.manager.Manager] or [`ExchangeClient`][academy.exchange.ExchangeClient] context managers.
+As a result, it is now safe to instantiate new handles directly inside an agent using only the ID of the peer agent.
+```python
+from academy.agent import Agent, action
+from academy.handle import Handle
+
+class MyAgent(Agent):
+    @action
+    async def dispatch(self) -> None:
+        handle = Handle(peer_agent_id)
+        await handle.do_work()
+```
+
+It is highly recommended to use the [`Manager`][academy.manager.Manager] and [`ExchangeClient`][academy.exchange.ExchangeClient] as context managers, otherwise [`Handle`][academy.handle.Handle] operations will raise [`ExchangeClientNotFoundError`][academy.exception.ExchangeClientNotFoundError].
+Alternatively, a default exchange client can be explicitly set: `Handle(agent_id, exchange=<exchange_client>)`.
+In very specific cases, `ignore_context=True` can be used to force the handle to use the provided exchange client, entirely ignoring the client configured for the current context.
 
 ### Handle actions are blocking by default
 
@@ -49,9 +68,10 @@ print(task.result())
 Using tasks is especially useful when launching multiple long-running actions concurrently and waiting for them in a flexible manner.
 For example, instead of waiting for each action sequentially, you can start them all at once and then wait for them to complete using [`asyncio.wait()`][asyncio.wait] or [`asyncio.as_completed()`][asyncio.as_completed].
 
-### Minor
-All the [`ExchangeFactory`][academy.exchange.ExchangeFactory] and [`ExchangeTransport`][academy.exchange.transport.ExchangeTransport] implementations have been re-exported from [`academy.exchange`][academy.exchange].
-[`spawn_http_exchange`][academy.exchange.cloud.client.spawn_http_exchange] has been re-exported from [`academy.exchange.cloud][academy.exchange.cloud].
+### Exchange implementation re-exports
+
+All of the [`ExchangeFactory`][academy.exchange.factory.ExchangeFactory] and [`ExchangeTransport`][academy.exchange.transport.ExchangeTransport] implementations have been re-exported from [`academy.exchange`][academy.exchange].
+[`spawn_http_exchange`][academy.exchange.cloud.client.spawn_http_exchange] has been re-exported from [`academy.exchange.cloud`][academy.exchange.cloud].
 
 ## Academy v0.2
 

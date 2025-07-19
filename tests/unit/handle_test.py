@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import pickle
 
 import pytest
@@ -13,9 +14,13 @@ from academy.exchange.transport import MailboxStatus
 from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.handle import ProxyHandle
+from academy.identifier import AgentId
+from academy.identifier import UserId
 from academy.manager import Manager
+from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
+from academy.message import ShutdownRequest
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
@@ -184,6 +189,7 @@ async def test_client_handle_ping_timeout(
 @pytest.mark.asyncio
 async def test_client_handle_log_bad_response(
     manager: Manager[LocalExchangeTransport],
+    caplog,
 ) -> None:
     handle = await manager.launch(EmptyAgent())
     # Should log two messages but not crash:
@@ -191,15 +197,53 @@ async def test_client_handle_log_bad_response(
     #   - Agent client got an unexpected ping response (containing an
     #     error produced by user) with no corresponding handle to
     #     send the response to.
-    await handle.exchange.send(
-        Message.create(
-            src=handle.agent_id,
-            dest=handle.exchange.client_id,
-            body=PingRequest(),
-        ),
+    with caplog.at_level(logging.WARNING):
+        await handle.exchange.send(
+            Message.create(
+                src=handle.agent_id,
+                dest=handle.exchange.client_id,
+                body=PingRequest(),
+            ),
+        )
+        assert await handle.ping() > 0
+        await handle.shutdown()
+
+    assert 'no corresponding handle exists' in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_client_handle_shutdown_ignore_already_termiated_error() -> None:
+    handle: Handle[EmptyAgent] = Handle(AgentId.new())
+
+    request = Message.create(
+        src=UserId.new(),
+        dest=handle.agent_id,
+        body=ShutdownRequest(),
     )
-    assert await handle.ping() > 0
-    await handle.shutdown()
+    handle._shutdown_requests.add(request.tag)
+    response = request.create_response(
+        ErrorResponse(exception=AgentTerminatedError(handle.agent_id)),
+    )
+    await handle._process_response(response)
+
+
+@pytest.mark.asyncio
+async def test_client_handle_shutdown_log_error_response(caplog) -> None:
+    handle: Handle[EmptyAgent] = Handle(AgentId.new())
+
+    request = Message.create(
+        src=AgentId.new(),
+        dest=handle.agent_id,
+        body=ShutdownRequest(),
+    )
+    handle._shutdown_requests.add(request.tag)
+    response = request.create_response(
+        ErrorResponse(exception=AgentTerminatedError(AgentId.new())),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await handle._process_response(response)
+    assert f'Failure requesting shutdown for {handle.agent_id}' in caplog.text
 
 
 @pytest.mark.asyncio

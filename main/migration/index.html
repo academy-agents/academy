@@ -618,6 +618,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#handle-types-have-been-simplified" class="md-nav__link">
+    <span class="md-ellipsis">
+      Handle types have been simplified
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#handles-are-now-free-from-exchange-clients" class="md-nav__link">
     <span class="md-ellipsis">
       Handles are now free from exchange clients
@@ -636,9 +645,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minor" class="md-nav__link">
+  <a href="#exchange-implementation-re-exports" class="md-nav__link">
     <span class="md-ellipsis">
-      Minor
+      Exchange implementation re-exports
     </span>
   </a>
   
@@ -1801,6 +1810,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#handle-types-have-been-simplified" class="md-nav__link">
+    <span class="md-ellipsis">
+      Handle types have been simplified
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#handles-are-now-free-from-exchange-clients" class="md-nav__link">
     <span class="md-ellipsis">
       Handles are now free from exchange clients
@@ -1819,9 +1837,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minor" class="md-nav__link">
+  <a href="#exchange-implementation-re-exports" class="md-nav__link">
     <span class="md-ellipsis">
-      Minor
+      Exchange implementation re-exports
     </span>
   </a>
   
@@ -1924,17 +1942,30 @@ After v1.0, this guide will be retired.
 All future changes—including breaking changes and deprecations—will be documented in the project changelog.</p>
 <p>Please refer to our <a href="../version-policy/">Version Policy</a> for more details on when we make breaking changes.</p>
 <h2 id="academy-v03">Academy v0.3<a class="headerlink" href="#academy-v03" title="Permanent link">&para;</a></h2>
+<h3 id="handle-types-have-been-simplified">Handle types have been simplified<a class="headerlink" href="#handle-types-have-been-simplified" title="Permanent link">&para;</a></h3>
+<p>The <code>Handle</code> protocol and <code>UnboundRemoteHandle</code> types have been removed.
+<code>RemoteHandle</code> has been renamed <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handle</code></a> and is the only handle type used in typical Academy applications.
+<a class="autorefs autorefs-internal" title="            ProxyHandle" href="../api/handle/#academy.handle.ProxyHandle"><code>ProxyHandle</code></a>, useful when writing agent unit tests, is now a subclass of <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handle</code></a>.</p>
 <h3 id="handles-are-now-free-from-exchange-clients">Handles are now free from exchange clients<a class="headerlink" href="#handles-are-now-free-from-exchange-clients" title="Permanent link">&para;</a></h3>
-<p>The Handle protocol has been removed and RemoteHandle has been renamed Handle. ProxyHandle is now a subclass of RemoteHandle. Handle
-Previously RemoteHandle was bound to a specific <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a>.
-This client was used for sending messages and receiving responses.
-When starting an agent, the handle had to be bound to a client by searching for all handles in the agent.
-Now the RemoteHandle determines the ExchangeClient from a ContextVariable <code>exchange_context</code>.
-This ContextVariable is set when running an agent, or when using the <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> or the <code>ExchangeClient</code> as context managers.
-Using a <code>Manager</code> or <code>ExchangeClient</code> not as a context manager is highly discouraged.
-In these cases, <code>exchange=&lt;exchange_client&gt;</code> can be passed when creating the handle to set the default exchange when there is no context manager.
-In very specific cases, <code>ignore_context=True</code> can be used to create a handle that will send and listen on an exchange different from the current context.
-This only applies if you were creating handles manually, or using the <code>ExchangeClient.get_handle</code> method. The interface to handles using the <code>Manager</code> is the same.</p>
+<p>Previously, handles were bound to a specific <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a>, which was used for sending and receiving messages.
+This required handles to be re-bound to the appropriate exchange client based on the context.
+Thus, when an agent started it would search the instance attributes of the agent for all handles and replace them at runtime with new handles bound to the agent's exchange client.
+This approach resulted in many edge cases where handles would not be discovered and replaced appropriately.</p>
+<p>Now, a <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handle</code></a> determines the correct <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a> from <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/contextvars.html#module-contextvars">context variables</a>.
+This exchange context variable is set when running an agent, or on the user-side when using the <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> or <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a> context managers.
+As a result, it is now safe to instantiate new handles directly inside an agent using only the ID of the peer agent.
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">action</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy.handle</span><span class="w"> </span><span class="kn">import</span> <span class="n">Handle</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyAgent</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="nd">@action</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">dispatch</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">handle</span> <span class="o">=</span> <span class="n">Handle</span><span class="p">(</span><span class="n">peer_agent_id</span><span class="p">)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">do_work</span><span class="p">()</span>
+</span></code></pre></div></p>
+<p>It is highly recommended to use the <a class="autorefs autorefs-internal" title="            Manager" href="../api/manager/#academy.manager.Manager"><code>Manager</code></a> and <a class="autorefs autorefs-internal" title="            ExchangeClient" href="../api/exchange/#academy.exchange.ExchangeClient"><code>ExchangeClient</code></a> as context managers, otherwise <a class="autorefs autorefs-internal" title="            Handle" href="../api/handle/#academy.handle.Handle"><code>Handle</code></a> operations will raise <a class="autorefs autorefs-internal" title="            ExchangeClientNotFoundError" href="../api/exception/#academy.exception.ExchangeClientNotFoundError"><code>ExchangeClientNotFoundError</code></a>.
+Alternatively, a default exchange client can be explicitly set: <code>Handle(agent_id, exchange=&lt;exchange_client&gt;)</code>.
+In very specific cases, <code>ignore_context=True</code> can be used to force the handle to use the provided exchange client, entirely ignoring the client configured for the current context.</p>
 <h3 id="handle-actions-are-blocking-by-default">Handle actions are blocking by default<a class="headerlink" href="#handle-actions-are-blocking-by-default" title="Permanent link">&para;</a></h3>
 <p>Previously, invoking an action on a <a class="autorefs autorefs-internal" title="            action
 
@@ -1943,25 +1974,25 @@ This only applies if you were creating handles manually, or using the <code>Exch
       async
   " href="../api/handle/#academy.handle.Handle.action"><code>Handle</code></a> returned a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-future.html#asyncio.Future"><code>Future</code></a> to the result.
 This resulted in verbose syntax when the result was immediately needed:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">future</span> <span class="o">=</span> <span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">()</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">future</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># or</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="p">(</span><span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">())</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">future</span> <span class="o">=</span> <span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">()</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">future</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># or</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="p">(</span><span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">())</span>
 </span></code></pre></div></p>
 <p>Now, action requests block and return the final result of the action:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">()</span>
 </span></code></pre></div>
 Code that wants to submit the request and later block on it can create a <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task"><code>Task</code></a>.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">())</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># ... do other work ...</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">await</span> <span class="n">task</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">handle</span><span class="o">.</span><span class="n">get_count</span><span class="p">())</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># ... do other work ...</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">await</span> <span class="n">task</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
 </span></code></pre></div>
 Using tasks is especially useful when launching multiple long-running actions concurrently and waiting for them in a flexible manner.
 For example, instead of waiting for each action sequentially, you can start them all at once and then wait for them to complete using <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-task.html#asyncio.wait"><code>asyncio.wait()</code></a> or <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/asyncio-task.html#asyncio.as_completed"><code>asyncio.as_completed()</code></a>.</p>
-<h3 id="minor">Minor<a class="headerlink" href="#minor" title="Permanent link">&para;</a></h3>
-<p>All the <a class="autorefs autorefs-internal" title="            ExchangeFactory" href="../api/exchange/#academy.exchange.ExchangeFactory"><code>ExchangeFactory</code></a> and <a class="autorefs autorefs-internal" title="            ExchangeTransport" href="../api/exchange/transport/#academy.exchange.transport.ExchangeTransport"><code>ExchangeTransport</code></a> implementations have been re-exported from <a class="autorefs autorefs-internal" href="../api/exchange/#academy.exchange"><code>academy.exchange</code></a>.
-<a class="autorefs autorefs-internal" title="            spawn_http_exchange" href="../api/exchange/cloud/client/#academy.exchange.cloud.client.spawn_http_exchange"><code>spawn_http_exchange</code></a> has been re-exported from <a class="autorefs autorefs-internal" href="../api/exchange/cloud/#academy.exchange.cloud">`academy.exchange.cloud</a>.</p>
+<h3 id="exchange-implementation-re-exports">Exchange implementation re-exports<a class="headerlink" href="#exchange-implementation-re-exports" title="Permanent link">&para;</a></h3>
+<p>All of the <a class="autorefs autorefs-internal" title="            ExchangeFactory" href="../api/exchange/factory/#academy.exchange.factory.ExchangeFactory"><code>ExchangeFactory</code></a> and <a class="autorefs autorefs-internal" title="            ExchangeTransport" href="../api/exchange/transport/#academy.exchange.transport.ExchangeTransport"><code>ExchangeTransport</code></a> implementations have been re-exported from <a class="autorefs autorefs-internal" href="../api/exchange/#academy.exchange"><code>academy.exchange</code></a>.
+<a class="autorefs autorefs-internal" title="            spawn_http_exchange" href="../api/exchange/cloud/client/#academy.exchange.cloud.client.spawn_http_exchange"><code>spawn_http_exchange</code></a> has been re-exported from <a class="autorefs autorefs-internal" href="../api/exchange/cloud/#academy.exchange.cloud"><code>academy.exchange.cloud</code></a>.</p>
 <h2 id="academy-v02">Academy v0.2<a class="headerlink" href="#academy-v02" title="Permanent link">&para;</a></h2>
 <h3 id="academy-is-now-async-first">Academy is now async-first<a class="headerlink" href="#academy-is-now-async-first" title="Permanent link">&para;</a></h3>
 <p>Academy is now an async-first library.

@@ -1915,7 +1915,7 @@ Click on the plus (<code>+</code>) signs to learn more.</p>
 </span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </span></code></pre></div>
 <p>All control loops are started in separate tasks in the event loop when an agent is executed, and run until the control loop exits or the agent is shut down, as indicated by the <code>shutdown</code> event.
-If an agent is shutdown before the control loops exit, the corresponding task will be cancelled.</p>
+If an agent shuts down before the control loops exit, the corresponding task will be cancelled.</p>
 <h2 id="agent-to-agent-interaction">Agent to Agent Interaction<a class="headerlink" href="#agent-to-agent-interaction" title="Permanent link">&para;</a></h2>
 <p>Agent handles can be passed to other agents to facilitate agent-to-agent interaction.
 Here, a <code>Coordinator</code> is initialized with handles to two other agents implementing the <code>Lowerer</code> and <code>Reverser</code> agents, respectively.</p>

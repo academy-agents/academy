@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
+import threading
 import uuid
 from collections.abc import Mapping
-from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
 from typing import Protocol
 from typing import runtime_checkable
 
 import globus_sdk
+from cachetools import cached
+from cachetools import TTLCache
 
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.exceptions import ForbiddenError
@@ -20,7 +24,7 @@ from academy.exchange.cloud.login import AcademyExchangeScopes
 class Authenticator(Protocol):
     """Authenticate users from request headers."""
 
-    def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
+    async def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
         """Authenticate user from request headers.
 
         Warning:
@@ -43,7 +47,7 @@ class Authenticator(Protocol):
 class NullAuthenticator:
     """Authenticator that implements no authentication."""
 
-    def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
+    async def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
         """Authenticate user from request headers.
 
         Args:
@@ -69,9 +73,10 @@ class GlobusAuthenticator:
         audience: Intended audience of the token. This should typically be
             the resource server of the the token was issued for. E.g.,
             the UUID of the ProxyStore Relay Server application.
-        auth_client: Optional confidential application authentication client
-            which is used for introspecting client tokens.
     """
+
+    TOKEN_CACHE_LIMIT: int = 1024
+    TOKEN_TTL: int = 60
 
     def __init__(
         self,
@@ -79,20 +84,40 @@ class GlobusAuthenticator:
         client_secret: str | None = None,
         *,
         audience: str = AcademyExchangeScopes.resource_server,
-        auth_client: globus_sdk.ConfidentialAppAuthClient | None = None,
     ) -> None:
-        self.auth_client = (
-            globus_sdk.ConfidentialAppAuthClient(
-                client_id=str(client_id),
-                client_secret=str(client_secret),
-            )
-            if auth_client is None
-            else auth_client
-        )
-        self.auth_client_lock = Lock()
+        self._local_data = threading.local()
+        self.executor = ThreadPoolExecutor()
+        self.client_id = client_id
+        self.client_secret = client_secret
         self.audience = audience
 
-    def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
+    @property
+    def auth_client(self) -> globus_sdk.ConfidentialAppAuthClient:
+        """A thread local copy of the Globus AuthClient."""
+        try:
+            return self._local_data.auth_client
+        except AttributeError:
+            self._local_data.auth_client = (
+                globus_sdk.ConfidentialAppAuthClient(
+                    client_id=str(self.client_id),
+                    client_secret=str(self.client_secret),
+                )
+            )
+            return self._local_data.auth_client
+
+    @cached(
+        cache=TTLCache(
+            maxsize=TOKEN_CACHE_LIMIT,
+            ttl=TOKEN_TTL,
+        ),
+    )
+    def _token_introspect(
+        self,
+        token: str,
+    ) -> globus_sdk.response.GlobusHTTPResponse:
+        return self.auth_client.oauth2_token_introspect(token)
+
+    async def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
         """Authenticate a Globus Auth user from request header.
 
         This follows from the [Globus Sample Data Portal](https://github.com/globus/globus-sample-data-portal/blob/30e30cd418ee9b103e04916e19deb9902d3aafd8/service/decorators.py)
@@ -116,8 +141,12 @@ class GlobusAuthenticator:
                 audience.
         """
         token = get_token_from_headers(headers)
-        with self.auth_client_lock:
-            token_meta = self.auth_client.oauth2_token_introspect(token)
+        loop = asyncio.get_running_loop()
+        token_meta = await loop.run_in_executor(
+            self.executor,
+            self._token_introspect,
+            token,
+        )
 
         if not token_meta.get('active'):
             raise ForbiddenError('Token is expired or has been revoked.')

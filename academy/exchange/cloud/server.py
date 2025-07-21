@@ -453,12 +453,8 @@ def authenticate_factory(
         request: Request,
         handler: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        loop = asyncio.get_running_loop()
         try:
-            # Needs to be run in executor because globus client is blocking
-            client_uuid: uuid.UUID = await loop.run_in_executor(
-                None,
-                authenticator.authenticate_user,
+            client_uuid: uuid.UUID = await authenticator.authenticate_user(
                 request.headers,
             )
         except ForbiddenError:

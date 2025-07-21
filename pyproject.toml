@@ -66,6 +66,9 @@ docs = [
     "mkdocstrings-python==1.16.10",
     "mike==2.1.3",
 ]
+server = [
+    "cachetools"
+]
 
 [tool.codespell]
 skip = """

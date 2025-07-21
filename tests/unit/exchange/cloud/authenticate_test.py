@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from unittest import mock
 
@@ -15,13 +16,17 @@ from academy.exchange.cloud.exceptions import ForbiddenError
 from academy.exchange.cloud.exceptions import UnauthorizedError
 
 
-def test_null_authenticator() -> None:
-    user1 = NullAuthenticator().authenticate_user({})
-    user2 = NullAuthenticator().authenticate_user({'Authorization': 'token'})
+@pytest.mark.asyncio
+async def test_null_authenticator() -> None:
+    user1 = await NullAuthenticator().authenticate_user({})
+    user2 = await NullAuthenticator().authenticate_user(
+        {'Authorization': 'token'},
+    )
     assert user1 == user2
 
 
-def test_authenticate_user_with_token() -> None:
+@pytest.mark.asyncio
+async def test_authenticate_user_with_token() -> None:
     authenticator = GlobusAuthenticator(str(uuid.uuid4()), '')
 
     token_meta: dict[str, Any] = {
@@ -35,23 +40,24 @@ def test_authenticate_user_with_token() -> None:
     }
 
     with mock.patch.object(
-        authenticator.auth_client,
-        'oauth2_token_introspect',
+        authenticator,
+        '_token_introspect',
         return_value=token_meta,
     ):
-        user = authenticator.authenticate_user(
+        user = await authenticator.authenticate_user(
             {'Authorization': 'Bearer <TOKEN>'},
         )
 
     assert user == uuid.UUID(token_meta['client_id'])
 
 
-def test_authenticate_user_with_token_expired_token() -> None:
+@pytest.mark.asyncio
+async def test_authenticate_user_with_token_expired_token() -> None:
     authenticator = GlobusAuthenticator(str(uuid.uuid4()), '')
     with (
         mock.patch.object(
-            authenticator.auth_client,
-            'oauth2_token_introspect',
+            authenticator,
+            '_token_introspect',
             return_value={'active': False},
         ),
         pytest.raises(
@@ -59,10 +65,13 @@ def test_authenticate_user_with_token_expired_token() -> None:
             match='Token is expired or has been revoked.',
         ),
     ):
-        authenticator.authenticate_user({'Authorization': 'Bearer <TOKEN>'})
+        await authenticator.authenticate_user(
+            {'Authorization': 'Bearer <TOKEN>'},
+        )
 
 
-def test_authenticate_user_with_token_wrong_audience() -> None:
+@pytest.mark.asyncio
+async def test_authenticate_user_with_token_wrong_audience() -> None:
     authenticator = GlobusAuthenticator(
         str(uuid.uuid4()),
         '',
@@ -70,8 +79,8 @@ def test_authenticate_user_with_token_wrong_audience() -> None:
     )
     with (
         mock.patch.object(
-            authenticator.auth_client,
-            'oauth2_token_introspect',
+            authenticator,
+            '_token_introspect',
             return_value={'active': True},
         ),
         pytest.raises(
@@ -79,7 +88,30 @@ def test_authenticate_user_with_token_wrong_audience() -> None:
             match='Token audience does not include "audience"',
         ),
     ):
-        authenticator.authenticate_user({'Authorization': 'Bearer <TOKEN>'})
+        await authenticator.authenticate_user(
+            {'Authorization': 'Bearer <TOKEN>'},
+        )
+
+
+@pytest.fixture
+def globus_auth_client():
+    with mock.patch('globus_sdk.ConfidentialAppAuthClient') as auth_client:
+        yield auth_client
+
+
+def test_globus_authenticator_token_introspect(globus_auth_client: mock.Mock):
+    authenticator = GlobusAuthenticator(str(uuid.uuid4()), '')
+
+    authenticator._token_introspect('test')
+    globus_auth_client.assert_called_once()
+
+    # Should use thread local client
+    authenticator._token_introspect('test2')
+    globus_auth_client.assert_called_once()
+
+    with ThreadPoolExecutor() as executor:
+        executor.submit(authenticator._token_introspect, 'test3')
+        assert globus_auth_client.call_count == 2  # noqa: PLR2004
 
 
 def test_get_authenticator() -> None:

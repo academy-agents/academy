@@ -11,7 +11,7 @@ from typing import Protocol
 from typing import runtime_checkable
 
 import globus_sdk
-from cachetools import cached
+from cachetools import cachedmethod
 from cachetools import TTLCache
 
 from academy.exchange.cloud.config import ExchangeAuthConfig
@@ -73,10 +73,10 @@ class GlobusAuthenticator:
         audience: Intended audience of the token. This should typically be
             the resource server of the the token was issued for. E.g.,
             the UUID of the ProxyStore Relay Server application.
+        token_cache_limit: Maximum number of (token, identity) mappings
+            to store in memory.
+        token_ttl_s: Time in seconds before invalidating cached tokens.
     """
-
-    TOKEN_CACHE_LIMIT: int = 1024
-    TOKEN_TTL: int = 60
 
     def __init__(
         self,
@@ -84,12 +84,20 @@ class GlobusAuthenticator:
         client_secret: str | None = None,
         *,
         audience: str = AcademyExchangeScopes.resource_server,
+        token_cache_limit: int = 1024,
+        token_ttl_s: int = 60,
     ) -> None:
         self._local_data = threading.local()
-        self.executor = ThreadPoolExecutor()
+        self.executor = ThreadPoolExecutor(
+            thread_name_prefix='exchange-auth-thread',
+        )
         self.client_id = client_id
         self.client_secret = client_secret
         self.audience = audience
+        self.token_cache = TTLCache(
+            maxsize=token_cache_limit,
+            ttl=token_ttl_s,
+        )
 
     @property
     def auth_client(self) -> globus_sdk.ConfidentialAppAuthClient:
@@ -105,12 +113,7 @@ class GlobusAuthenticator:
             )
             return self._local_data.auth_client
 
-    @cached(
-        cache=TTLCache(
-            maxsize=TOKEN_CACHE_LIMIT,
-            ttl=TOKEN_TTL,
-        ),
-    )
+    @cachedmethod(lambda self: self.token_cache)
     def _token_introspect(
         self,
         token: str,

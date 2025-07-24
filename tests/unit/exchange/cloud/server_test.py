@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import multiprocessing
 import pathlib
-import time
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -34,6 +33,8 @@ from academy.identifier import UserId
 from academy.message import Message
 from academy.message import PingRequest
 from academy.socket import open_port
+from academy.socket import wait_connection
+from testing.constant import TEST_CONNECTION_TIMEOUT
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.ssl import SSLContextFixture
 
@@ -60,33 +61,31 @@ client_id = "ABC"
         assert _main(['--config', str(filepath)]) == 0
 
 
-def test_server_run() -> None:
+@pytest.mark.asyncio
+async def test_server_run() -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
         log_level=logging.ERROR,
     )
+
     context = multiprocessing.get_context('spawn')
     process = context.Process(target=_run, args=(config,))
     process.start()
 
-    while True:
-        try:
-            client = HttpExchangeFactory(
-                f'http://{config.host}:{config.port}/',
-            ).create_user_client()
-        except OSError:  # pragma: no cover
-            time.sleep(TEST_SLEEP_INTERVAL)
-        else:
-            client.close()
-            break
+    wait_connection(config.host, config.port, timeout=TEST_CONNECTION_TIMEOUT)
+    factory = HttpExchangeFactory(f'http://{config.host}:{config.port}')
+    client = await factory.create_user_client()
+    await client.close()
 
     process.terminate()
     process.join()
+    assert process.exitcode == 0
 
 
 @pytest.mark.filterwarnings('ignore:Unverified HTTPS request is being made')
-def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
+@pytest.mark.asyncio
+async def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
@@ -99,20 +98,17 @@ def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
     process = context.Process(target=_run, args=(config,))
     process.start()
 
-    while True:
-        try:
-            client = HttpExchangeFactory(
-                f'https://{config.host}:{config.port}/',
-                ssl_verify=False,
-            ).create_user_client()
-        except OSError:  # pragma: no cover
-            time.sleep(TEST_SLEEP_INTERVAL)
-        else:
-            client.close()
-            break
+    wait_connection(config.host, config.port, timeout=TEST_CONNECTION_TIMEOUT)
+    factory = HttpExchangeFactory(
+        f'https://{config.host}:{config.port}',
+        ssl_verify=False,
+    )
+    client = await factory.create_user_client()
+    await client.close()
 
     process.terminate()
     process.join()
+    assert process.exitcode == 0
 
 
 @pytest.mark.asyncio

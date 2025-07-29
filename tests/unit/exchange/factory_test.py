@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest import mock
@@ -168,6 +170,42 @@ async def test_agent_handle_process_response(
                 await agent_client._handle_message(message)
 
             mocked.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_agent_handle_missing_warning_log(
+    client: UserExchangeClient[Any],
+    caplog,
+) -> None:
+    async def _handler(_: Message[Request]) -> None:  # pragma: no cover
+        pass
+
+    factory = client.factory()
+    registration = await client.register_agent(EmptyAgent)
+    agent_client = await factory.create_agent_client(registration, _handler)
+
+    with caplog.at_level(logging.WARNING):
+        message = Message.create(
+            src=client.client_id,
+            dest=agent_client.client_id,
+            label=uuid.uuid4(),
+            body=SuccessResponse(),
+        )
+        await agent_client._handle_message(message)
+        assert 'no corresponding handle exists' in caplog.text
+
+        caplog.clear()
+
+        message = Message.create(
+            src=agent_client.client_id,
+            dest=client.client_id,
+            label=uuid.uuid4(),
+            body=SuccessResponse(),
+        )
+        await client._handle_message(message)
+        assert 'no corresponding handle exists' in caplog.text
+
+    await agent_client.close()
 
 
 @pytest.mark.asyncio

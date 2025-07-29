@@ -19,7 +19,6 @@ from academy.identifier import UserId
 from academy.manager import Manager
 from academy.message import ErrorResponse
 from academy.message import Message
-from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
@@ -184,31 +183,6 @@ async def test_client_handle_ping_timeout(
     handle = Handle(registration.agent_id)
     with pytest.raises(TimeoutError):
         await handle.ping(timeout=TEST_SLEEP_INTERVAL)
-
-
-@pytest.mark.asyncio
-async def test_client_handle_log_bad_response(
-    manager: Manager[LocalExchangeTransport],
-    caplog,
-) -> None:
-    handle = await manager.launch(EmptyAgent())
-    # Should log two messages but not crash:
-    #   - User client got an unexpected ping request from agent client
-    #   - Agent client got an unexpected ping response (containing an
-    #     error produced by user) with no corresponding handle to
-    #     send the response to.
-    with caplog.at_level(logging.WARNING):
-        await handle.exchange.send(
-            Message.create(
-                src=handle.agent_id,
-                dest=handle.exchange.client_id,
-                body=PingRequest(),
-            ),
-        )
-        assert await handle.ping() > 0
-        await handle.shutdown()
-
-    assert 'no corresponding handle exists' in caplog.text
 
 
 @pytest.mark.asyncio

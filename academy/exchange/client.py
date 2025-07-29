@@ -341,9 +341,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 message.src,
             )
         elif message.is_response():
-            if (
-                message.label is None or message.label not in self._handles
-            ):  # pragma: no cover
+            if message.label is None or message.label not in self._handles:
                 logger.warning(
                     'Exchange client for %s received an unexpected response '
                     'message from %s but no corresponding handle exists.',

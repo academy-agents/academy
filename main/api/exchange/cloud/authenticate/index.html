@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://academy.proxystore.dev/stable/api/exchange/cloud/authenticate/">
       
       
-        <link rel="prev" href="../">
+        <link rel="prev" href="../app/">
       
       
-        <link rel="next" href="../client/">
+        <link rel="next" href="../backend/">
       
       
       <link rel="icon" href="../../../../static/favicon.png">
@@ -1082,6 +1082,29 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../app/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    app
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1258,6 +1281,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    backend
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../client/" class="md-nav__link">
         
   
@@ -1304,58 +1350,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../exceptions/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    exceptions
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../login/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     login
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    server
     
   </span>
   
@@ -2067,7 +2067,7 @@
 <p><span class="doc-section-title">Raises:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            ForbiddenError (academy.exchange.cloud.exceptions.ForbiddenError)" href="../exceptions/#academy.exchange.cloud.exceptions.ForbiddenError">ForbiddenError</a></code>
+              <code><a class="autorefs autorefs-internal" title="            ForbiddenError (academy.exception.ForbiddenError)" href="../../../exception/#academy.exception.ForbiddenError">ForbiddenError</a></code>
             –
           <div class="doc-md-description">
             <p>user is authenticated but is missing permissions
@@ -2075,7 +2075,7 @@ or accessing forbidden resources.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exchange.cloud.exceptions.UnauthorizedError)" href="../exceptions/#academy.exchange.cloud.exceptions.UnauthorizedError">UnauthorizedError</a></code>
+              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exception.UnauthorizedError)" href="../../../exception/#academy.exception.UnauthorizedError">UnauthorizedError</a></code>
             –
           <div class="doc-md-description">
             <p>user authentication fails.</p>
@@ -2475,7 +2475,7 @@ thread safe using a lock.</p>
 <p><span class="doc-section-title">Raises:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exchange.cloud.exceptions.UnauthorizedError)" href="../exceptions/#academy.exchange.cloud.exceptions.UnauthorizedError">UnauthorizedError</a></code>
+              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exception.UnauthorizedError)" href="../../../exception/#academy.exception.UnauthorizedError">UnauthorizedError</a></code>
             –
           <div class="doc-md-description">
             <p>if the authorization header is missing or
@@ -2483,14 +2483,14 @@ the header is malformed.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            ForbiddenError (academy.exchange.cloud.exceptions.ForbiddenError)" href="../exceptions/#academy.exchange.cloud.exceptions.ForbiddenError">ForbiddenError</a></code>
+              <code><a class="autorefs autorefs-internal" title="            ForbiddenError (academy.exception.ForbiddenError)" href="../../../exception/#academy.exception.ForbiddenError">ForbiddenError</a></code>
             –
           <div class="doc-md-description">
             <p>if the tokens have expired or been revoked.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            ForbiddenError (academy.exchange.cloud.exceptions.ForbiddenError)" href="../exceptions/#academy.exchange.cloud.exceptions.ForbiddenError">ForbiddenError</a></code>
+              <code><a class="autorefs autorefs-internal" title="            ForbiddenError (academy.exception.ForbiddenError)" href="../../../exception/#academy.exception.ForbiddenError">ForbiddenError</a></code>
             –
           <div class="doc-md-description">
             <p>if <code>audience</code> is not included in the token's
@@ -2759,14 +2759,14 @@ audience.</p>
 <p><span class="doc-section-title">Raises:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exchange.cloud.exceptions.UnauthorizedError)" href="../exceptions/#academy.exchange.cloud.exceptions.UnauthorizedError">UnauthorizedError</a></code>
+              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exception.UnauthorizedError)" href="../../../exception/#academy.exception.UnauthorizedError">UnauthorizedError</a></code>
             –
           <div class="doc-md-description">
             <p>if the authorization header is missing.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exchange.cloud.exceptions.UnauthorizedError)" href="../exceptions/#academy.exchange.cloud.exceptions.UnauthorizedError">UnauthorizedError</a></code>
+              <code><a class="autorefs autorefs-internal" title="            UnauthorizedError (academy.exception.UnauthorizedError)" href="../../../exception/#academy.exception.UnauthorizedError">UnauthorizedError</a></code>
             –
           <div class="doc-md-description">
             <p>if the authorization header is malformed.</p>

@@ -371,7 +371,10 @@ class PythonBackend:
             )
 
         if sys.getsizeof(message.body) > self.message_size_limit:
-            raise MessageTooLargeError()
+            raise MessageTooLargeError(
+                sys.getsizeof(message.body),
+                self.message_size_limit,
+            )
 
         try:
             queue = self._mailboxes[message.dest]
@@ -680,7 +683,10 @@ class RedisBackend:
         else:
             serialized = message.model_serialize()
             if len(serialized) > self.message_size_limit:
-                raise MessageTooLargeError()
+                raise MessageTooLargeError(
+                    len(serialized),
+                    self.message_size_limit,
+                )
 
             await self._client.rpush(
                 self._queue_key(message.dest),

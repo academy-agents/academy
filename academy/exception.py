@@ -61,7 +61,13 @@ class MessageTooLargeError(ExchangeError):
     class an way to by-pass the exchange for large data.
     """
 
-    pass
+    def __init__(self, size: int, limit: int) -> None:
+        self.size = size
+        self.limit = limit
+
+        super().__init__(
+            f'Message of size {size} bytes is larger than limit {limit}.',
+        )
 
 
 class MailboxTerminatedError(ExchangeError):

@@ -221,10 +221,10 @@ async def _send_message_route(request: Request) -> Response:
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
-    except MessageTooLargeError:
+    except MessageTooLargeError as e:
         return Response(
             status=StatusCode.TOO_LARGE.value,
-            text='Message too large.',
+            text=f'Message of size {e.size} larger than limit {e.limit}.',
         )
     else:
         return Response(status=StatusCode.OKAY.value)

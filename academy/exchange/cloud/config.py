@@ -91,7 +91,7 @@ class RedisBackendConfig(BaseModel):
 
     hostname: str = 'localhost'
     port: int = 6379
-    message_size_limit_kb: int = 1024
+    message_size_limit_kb: int = Field(default=1024, gt=0, le=1024 * 512)
     kwargs: Dict[str, Any] = Field(  # noqa: UP006
         default_factory=dict,
         repr=False,

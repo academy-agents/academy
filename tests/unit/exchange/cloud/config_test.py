@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import pathlib
 
+import pytest
+from pydantic import ValidationError
+
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
 from academy.exchange.cloud.config import ExchangeAuthConfig
@@ -23,6 +26,13 @@ def test_python_backend_config() -> None:
 def test_redis_backend_config_default() -> None:
     config = RedisBackendConfig()
     assert isinstance(config.get_backend(), RedisBackend)
+
+
+def test_redis_backend_config_message_size() -> None:
+    with pytest.raises(ValidationError):
+        RedisBackendConfig(
+            message_size_limit_kb=513 * 1024,
+        )
 
 
 def test_read_from_config_file_empty(tmp_path: pathlib.Path) -> None:

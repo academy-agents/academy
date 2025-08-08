@@ -404,6 +404,7 @@ async def _drain_queue(queue: AsyncQueue[Message[Any]]) -> list[Message[Any]]:
 
 
 _CLOSE_SENTINEL = b'<CLOSED>'
+_OWNER_SUFFIX = '_'
 
 
 class RedisBackend:
@@ -416,13 +417,15 @@ class RedisBackend:
         kwargs: Addition arguments to pass to redis session.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         hostname: str = 'localhost',
         port: int = 6379,
         *,
         message_size_limit_kb: int = 1024,
         kwargs: dict[str, Any] | None = None,
+        mailbox_expiration_s: int | None = None,
+        gravestone_expiration_s: int | None = None,
     ) -> None:
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
 
@@ -435,6 +438,8 @@ class RedisBackend:
             decode_responses=False,
             **kwargs,
         )
+        self.mailbox_expiration_s = mailbox_expiration_s
+        self.gravestone_expiration_s = gravestone_expiration_s
 
     def _owner_key(self, uid: EntityId) -> str:
         return f'owner:{uid.uid}'
@@ -456,7 +461,28 @@ class RedisBackend:
         owner = await self._client.get(
             self._owner_key(entity),
         )
-        return owner is None or owner == client
+        return owner is None or owner == f'{client}{_OWNER_SUFFIX}'
+
+    async def _update_expirations(
+        self,
+        entity: EntityId,
+    ) -> None:
+        if self.gravestone_expiration_s is None:
+            return
+
+        await self._client.expire(
+            self._active_key(entity),
+            self.gravestone_expiration_s,
+        )
+        await self._client.expire(
+            self._owner_key(entity),
+            self.gravestone_expiration_s,
+        )
+        if isinstance(entity, AgentId):
+            await self._client.expire(
+                self._agent_key(entity),
+                self.gravestone_expiration_s,
+            )
 
     async def check_mailbox(
         self,
@@ -524,8 +550,9 @@ class RedisBackend:
 
         await self._client.set(
             self._owner_key(uid),
-            client,
+            f'{client}{_OWNER_SUFFIX}',
         )
+        await self._update_expirations(uid)
 
     async def terminate(self, client: str, uid: EntityId) -> None:
         """Close a mailbox.
@@ -546,7 +573,9 @@ class RedisBackend:
                 'Client does not have correct permissions.',
             )
 
-        if await self.check_mailbox(client, uid) == MailboxStatus.MISSING:
+        status = await self.check_mailbox(client, uid)
+
+        if status in {MailboxStatus.MISSING, MailboxStatus.TERMINATED}:
             return
 
         await self._client.set(
@@ -555,6 +584,12 @@ class RedisBackend:
         )
 
         pending = await self._client.lrange(self._queue_key(uid), 0, -1)  # type: ignore[misc]
+        if self.gravestone_expiration_s is not None:
+            await self._client.expire(
+                self._active_key(uid),
+                self.gravestone_expiration_s,
+            )
+
         await self._client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
@@ -643,6 +678,13 @@ class RedisBackend:
         elif status == MailboxStatus.TERMINATED.value:
             raise MailboxTerminatedError(uid)
 
+        await self._update_expirations(uid)
+        if self.mailbox_expiration_s:
+            await self._client.expire(
+                self._queue_key(uid),
+                self.mailbox_expiration_s,
+            )
+
         raw = await self._client.blpop(  # type: ignore[misc]
             [self._queue_key(uid)],
             timeout=_timeout,
@@ -654,7 +696,6 @@ class RedisBackend:
             )
 
         # Only passed one key to blpop to result is [key, item]
-        assert isinstance(raw, (tuple, list))
         assert len(raw) == 2  # noqa: PLR2004
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
             raise MailboxTerminatedError(uid)
@@ -684,15 +725,22 @@ class RedisBackend:
             raise BadEntityIdError(message.dest)
         elif status == MailboxStatus.TERMINATED.value:
             raise MailboxTerminatedError(message.dest)
-        else:
-            serialized = message.model_serialize()
-            if len(serialized) > self.message_size_limit:
-                raise MessageTooLargeError(
-                    len(serialized),
-                    self.message_size_limit,
-                )
 
-            await self._client.rpush(  # type: ignore[misc]
+        serialized = message.model_serialize()
+        if len(serialized) > self.message_size_limit:
+            raise MessageTooLargeError(
+                len(serialized),
+                self.message_size_limit,
+            )
+
+        await self._client.rpush(  # type: ignore[misc]
+            self._queue_key(message.dest),
+            serialized,
+        )
+
+        if self.mailbox_expiration_s:
+            await self._client.expire(
                 self._queue_key(message.dest),
-                serialized,
+                self.mailbox_expiration_s,
+                nx=True,
             )

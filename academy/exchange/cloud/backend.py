@@ -599,9 +599,6 @@ class RedisBackend:
             await self._client.delete(self._agent_key(uid))
 
         for raw in pending:
-            if raw == _CLOSE_SENTINEL:
-                break
-
             message: Message[Any] = Message.model_deserialize(raw)
             if message.is_request():
                 error = MailboxTerminatedError(uid)

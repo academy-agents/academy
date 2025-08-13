@@ -104,7 +104,7 @@ class RedisBackendConfig(BaseModel):
             self.hostname,
             self.port,
             message_size_limit_kb=self.message_size_limit_kb,
-            **self.kwargs,
+            kwargs=self.kwargs,
         )
 
 

@@ -102,7 +102,7 @@ async def _create_mailbox_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', None)
+    client_id = request.headers.get('client_id', '')
     try:
         await manager.create_mailbox(client_id, mailbox_id, agent)
     except ForbiddenError:
@@ -128,7 +128,7 @@ async def _terminate_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', None)
+    client_id = request.headers.get('client_id', '')
     try:
         await manager.terminate(client_id, mailbox_id)
     except ForbiddenError:
@@ -152,7 +152,7 @@ async def _discover_route(request: Request) -> Response:
             text='Missing or invalid arguments',
         )
 
-    client_id = request.headers.get('client_id', None)
+    client_id = request.headers.get('client_id', '')
     agent_ids = await manager.discover(
         client_id,
         agent,
@@ -179,7 +179,7 @@ async def _check_mailbox_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', None)
+    client_id = request.headers.get('client_id', '')
     try:
         status = await manager.check_mailbox(client_id, mailbox_id)
     except ForbiddenError:
@@ -203,7 +203,7 @@ async def _send_message_route(request: Request) -> Response:
             text='Missing or invalid message',
         )
 
-    client_id = request.headers.get('client_id', None)
+    client_id = request.headers.get('client_id', '')
     try:
         await manager.put(client_id, message)
     except BadEntityIdError:
@@ -257,7 +257,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
     timeout = data.get('timeout', None)
 
     try:
-        client_id = request.headers.get('client_id', None)
+        client_id = request.headers.get('client_id', '')
         message = await manager.get(client_id, mailbox_id, timeout=timeout)
     except BadEntityIdError:
         return Response(

@@ -45,7 +45,7 @@ class MailboxBackend(Protocol):
 
     async def check_mailbox(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
     ) -> MailboxStatus:
         """Check if a mailbox exists, or is terminated.
@@ -64,7 +64,7 @@ class MailboxBackend(Protocol):
 
     async def create_mailbox(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
     ) -> None:
@@ -81,7 +81,7 @@ class MailboxBackend(Protocol):
             ForbiddenError: If the client does not have the right permissions.
         """
 
-    async def terminate(self, client: str | None, uid: EntityId) -> None:
+    async def terminate(self, client: str, uid: EntityId) -> None:
         """Close a mailbox.
 
         For security, the manager should keep a gravestone so the same id
@@ -99,7 +99,7 @@ class MailboxBackend(Protocol):
 
     async def discover(
         self,
-        client: str | None,
+        client: str,
         agent: str,
         allow_subclasses: bool,
     ) -> list[AgentId[Any]]:
@@ -117,7 +117,7 @@ class MailboxBackend(Protocol):
 
     async def get(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
         *,
         timeout: float | None = None,
@@ -138,7 +138,7 @@ class MailboxBackend(Protocol):
         """
         ...
 
-    async def put(self, client: str | None, message: Message[Any]) -> None:
+    async def put(self, client: str, message: Message[Any]) -> None:
         """Put a message in a mailbox.
 
         Args:
@@ -175,14 +175,14 @@ class PythonBackend:
 
     def _has_permissions(
         self,
-        client: str | None,
+        client: str,
         entity: EntityId,
     ) -> bool:
         return entity not in self._owners or self._owners[entity] == client
 
     async def check_mailbox(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
     ) -> MailboxStatus:
         """Check if a mailbox exists, or is terminated.
@@ -212,7 +212,7 @@ class PythonBackend:
 
     async def create_mailbox(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
     ) -> None:
@@ -247,7 +247,7 @@ class PythonBackend:
                 self._agents[uid] = agent
             logger.info('Created mailbox for %s', uid)
 
-    async def terminate(self, client: str | None, uid: EntityId) -> None:
+    async def terminate(self, client: str, uid: EntityId) -> None:
         """Close a mailbox.
 
         For security, the manager should keep a gravestone so the same id
@@ -286,7 +286,7 @@ class PythonBackend:
 
     async def discover(
         self,
-        client: str | None,
+        client: str,
         agent: str,
         allow_subclasses: bool,
     ) -> list[AgentId[Any]]:
@@ -312,7 +312,7 @@ class PythonBackend:
 
     async def get(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
         *,
         timeout: float | None = None,
@@ -351,7 +351,7 @@ class PythonBackend:
                 f'No message retrieved within {timeout} seconds.',
             ) from None
 
-    async def put(self, client: str | None, message: Message[Any]) -> None:
+    async def put(self, client: str, message: Message[Any]) -> None:
         """Put a message in a mailbox.
 
         Args:
@@ -422,14 +422,18 @@ class RedisBackend:
         port: int = 6379,
         *,
         message_size_limit_kb: int = 1024,
-        **kwargs: dict[str, Any],
+        kwargs: dict[str, Any] | None = None,
     ) -> None:
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
+
+        if kwargs is None:  # pragma: no branch
+            kwargs = {}
+
         self._client = redis.asyncio.Redis(
             host=hostname,
             port=port,
             decode_responses=False,
-            **kwargs,  # pragma: no cover
+            **kwargs,
         )
 
     def _owner_key(self, uid: EntityId) -> str:
@@ -446,7 +450,7 @@ class RedisBackend:
 
     async def _has_permissions(
         self,
-        client: str | None,
+        client: str,
         entity: EntityId,
     ) -> bool:
         owner = await self._client.get(
@@ -456,7 +460,7 @@ class RedisBackend:
 
     async def check_mailbox(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
     ) -> MailboxStatus:
         """Check if a mailbox exists, or is terminated.
@@ -486,7 +490,7 @@ class RedisBackend:
 
     async def create_mailbox(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
     ) -> None:
@@ -523,7 +527,7 @@ class RedisBackend:
             client,
         )
 
-    async def terminate(self, client: str | None, uid: EntityId) -> None:
+    async def terminate(self, client: str, uid: EntityId) -> None:
         """Close a mailbox.
 
         For security, the manager should keep a gravestone so the same id
@@ -550,12 +554,12 @@ class RedisBackend:
             MailboxStatus.TERMINATED.value,
         )
 
-        pending = await self._client.lrange(self._queue_key(uid), 0, -1)
+        pending = await self._client.lrange(self._queue_key(uid), 0, -1)  # type: ignore[misc]
         await self._client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
+        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
@@ -573,7 +577,7 @@ class RedisBackend:
 
     async def discover(
         self,
-        client: str | None,
+        client: str,
         agent: str,
         allow_subclasses: bool,
     ) -> list[AgentId[Any]]:
@@ -606,7 +610,7 @@ class RedisBackend:
 
     async def get(
         self,
-        client: str | None,
+        client: str,
         uid: EntityId,
         *,
         timeout: float | None = None,
@@ -639,7 +643,7 @@ class RedisBackend:
         elif status == MailboxStatus.TERMINATED.value:
             raise MailboxTerminatedError(uid)
 
-        raw = await self._client.blpop(
+        raw = await self._client.blpop(  # type: ignore[misc]
             [self._queue_key(uid)],
             timeout=_timeout,
         )
@@ -656,7 +660,7 @@ class RedisBackend:
             raise MailboxTerminatedError(uid)
         return Message.model_deserialize(raw[1])
 
-    async def put(self, client: str | None, message: Message[Any]) -> None:
+    async def put(self, client: str, message: Message[Any]) -> None:
         """Put a message in a mailbox.
 
         Args:
@@ -688,7 +692,7 @@ class RedisBackend:
                     self.message_size_limit,
                 )
 
-            await self._client.rpush(
+            await self._client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),
                 serialized,
             )

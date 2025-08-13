@@ -77,23 +77,23 @@ async def test_mailbox_backend_bad_identifier(backend: MailboxBackend) -> None:
     uid = UserId.new()
     message = Message.create(src=uid, dest=uid, body=PingRequest())
     with pytest.raises(BadEntityIdError):
-        await backend.get(None, uid)
+        await backend.get('', uid)
 
     with pytest.raises(BadEntityIdError):
-        await backend.put(None, message)
+        await backend.put('', message)
 
 
 @pytest.mark.asyncio
 async def test_mailbox_backend_mailbox_closed(backend: MailboxBackend) -> None:
     uid = UserId.new()
-    await backend.create_mailbox(None, uid)
-    await backend.terminate(None, uid)
+    await backend.create_mailbox(str(uid), uid)
+    await backend.terminate(str(uid), uid)
     message = Message.create(src=uid, dest=uid, body=PingRequest())
     with pytest.raises(MailboxTerminatedError):
-        await backend.get(None, uid)
+        await backend.get(str(uid), uid)
 
     with pytest.raises(MailboxTerminatedError):
-        await backend.put(None, message)
+        await backend.put(str(uid), message)
 
 
 @pytest.mark.asyncio
@@ -112,21 +112,21 @@ async def test_mailbox_backend_mailbox_delete_agent(
 ) -> None:
     uid = UserId.new()
     aid: AgentId[Any] = AgentId.new()
-    await backend.create_mailbox(None, uid)
-    await backend.create_mailbox(None, aid, ('EmptyAgent',))
+    await backend.create_mailbox(str(uid), uid)
+    await backend.create_mailbox(str(uid), aid, ('EmptyAgent',))
 
     request = Message.create(src=uid, dest=aid, body=PingRequest())
-    await backend.put(None, request)
+    await backend.put(str(uid), request)
     response = Message.create(src=uid, dest=aid, body=SuccessResponse())
-    await backend.put(None, response)
-    await backend.terminate(None, aid)
+    await backend.put(str(uid), response)
+    await backend.terminate(str(uid), aid)
 
-    message = await backend.get(None, uid, timeout=0.01)
+    message = await backend.get(str(uid), uid, timeout=0.01)
     assert isinstance(message.get_body(), ErrorResponse)
     assert isinstance(message.body.exception, MailboxTerminatedError)
 
     with pytest.raises(TimeoutError):
-        await backend.get(None, uid, timeout=0.01)
+        await backend.get(str(uid), uid, timeout=0.01)
 
 
 @pytest.mark.asyncio
@@ -151,27 +151,27 @@ async def test_mailbox_backend_discover(backend: MailboxBackend) -> None:
 @pytest.mark.asyncio
 async def test_mailbox_backend_timeout(backend: MailboxBackend) -> None:
     uid = UserId.new()
-    await backend.create_mailbox(None, uid)
+    await backend.create_mailbox(str(uid), uid)
 
     with pytest.raises(TimeoutError):
-        await backend.get(None, uid, timeout=0.01)
+        await backend.get(str(uid), uid, timeout=0.01)
 
 
 @pytest.mark.asyncio
 async def test_python_backend_message_size() -> None:
     backend = PythonBackend(message_size_limit_kb=0)
     uid = UserId.new()
-    await backend.create_mailbox(None, uid)
+    await backend.create_mailbox(str(uid), uid)
     message = Message.create(src=uid, dest=uid, body=PingRequest())
     with pytest.raises(MessageTooLargeError):
-        await backend.put(None, message)
+        await backend.put(str(uid), message)
 
 
 @pytest.mark.asyncio
 async def test_redis_backend_message_size(mock_redis) -> None:
     backend = RedisBackend(message_size_limit_kb=0)
     uid = UserId.new()
-    await backend.create_mailbox(None, uid)
+    await backend.create_mailbox(str(uid), uid)
     message = Message.create(src=uid, dest=uid, body=PingRequest())
     with pytest.raises(MessageTooLargeError):
-        await backend.put(None, message)
+        await backend.put(str(uid), message)

@@ -34,7 +34,7 @@ async def test_authenticate_user_with_token() -> None:
         'aud': [authenticator.audience],
         'sub': authenticator.auth_client.client_id,
         'username': 'username',
-        'client_id': str(uuid.uuid4()),
+        'client_id': '1624cf3f-45ee-4f54-9de4-2d5d79191346',
         'email': 'username@example.com',
         'name': 'User Name',
     }
@@ -48,7 +48,7 @@ async def test_authenticate_user_with_token() -> None:
             {'Authorization': 'Bearer <TOKEN>'},
         )
 
-    assert user == uuid.UUID(token_meta['client_id'])
+    assert user == token_meta['username']
 
 
 @pytest.mark.asyncio

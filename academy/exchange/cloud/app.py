@@ -24,7 +24,6 @@ import enum
 import logging
 import ssl
 import sys
-import uuid
 from collections.abc import Awaitable
 from collections.abc import Sequence
 from typing import Any
@@ -302,7 +301,7 @@ def authenticate_factory(
         handler: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         try:
-            client_uuid: uuid.UUID = await authenticator.authenticate_user(
+            client_id: str = await authenticator.authenticate_user(
                 request.headers,
             )
         except ForbiddenError:
@@ -317,7 +316,7 @@ def authenticate_factory(
             )
 
         headers = request.headers.copy()
-        headers['client_id'] = str(client_uuid)
+        headers['client_id'] = client_id
 
         # Handle early client-side disconnect in Issue #142
         # This is somewhat hard to reproduce in tests:

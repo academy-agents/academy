@@ -240,8 +240,8 @@ async def auth_client() -> AsyncGenerator[TestClient[Request, Application]]:
     )
     user_1: dict[str, Any] = {
         'active': True,
-        'username': 'username',
-        'client_id': str(uuid.uuid4()),
+        'username': 'user1',
+        'client_id': '1624cf3f-45ee-4f54-9de4-2d5d79191346',
         'email': 'username@example.com',
         'name': 'User Name',
         'aud': [AcademyExchangeScopes.resource_server],
@@ -249,8 +249,8 @@ async def auth_client() -> AsyncGenerator[TestClient[Request, Application]]:
 
     user_2: dict[str, Any] = {
         'active': True,
-        'username': 'username',
-        'client_id': str(uuid.uuid4()),
+        'username': 'user2',
+        'client_id': '1624cf3f-45ee-4f54-9de4-2d5d79191346',
         'email': 'username@example.com',
         'name': 'User Name',
         'aud': [AcademyExchangeScopes.resource_server],

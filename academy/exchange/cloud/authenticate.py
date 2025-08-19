@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import threading
-import uuid
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from typing import Protocol
@@ -24,7 +23,7 @@ from academy.exchange.cloud.login import AcademyExchangeScopes
 class Authenticator(Protocol):
     """Authenticate users from request headers."""
 
-    async def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
+    async def authenticate_user(self, headers: Mapping[str, str]) -> str:
         """Authenticate user from request headers.
 
         Warning:
@@ -47,7 +46,7 @@ class Authenticator(Protocol):
 class NullAuthenticator:
     """Authenticator that implements no authentication."""
 
-    async def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
+    async def authenticate_user(self, headers: Mapping[str, str]) -> str:
         """Authenticate user from request headers.
 
         Args:
@@ -56,7 +55,7 @@ class NullAuthenticator:
         Returns:
             Null user regardless of provided headers.
         """
-        return uuid.UUID(int=0)
+        return ''
 
 
 class GlobusAuthenticator:
@@ -72,7 +71,7 @@ class GlobusAuthenticator:
             details. Ignored if `auth_client` is provided.
         audience: Intended audience of the token. This should typically be
             the resource server of the the token was issued for. E.g.,
-            the UUID of the ProxyStore Relay Server application.
+            the UUID of the Academy Exchange application.
         token_cache_limit: Maximum number of (token, identity) mappings
             to store in memory.
         token_ttl_s: Time in seconds before invalidating cached tokens.
@@ -120,7 +119,7 @@ class GlobusAuthenticator:
     ) -> globus_sdk.response.GlobusHTTPResponse:
         return self.auth_client.oauth2_token_introspect(token)
 
-    async def authenticate_user(self, headers: Mapping[str, str]) -> uuid.UUID:
+    async def authenticate_user(self, headers: Mapping[str, str]) -> str:
         """Authenticate a Globus Auth user from request header.
 
         This follows from the [Globus Sample Data Portal](https://github.com/globus/globus-sample-data-portal/blob/30e30cd418ee9b103e04916e19deb9902d3aafd8/service/decorators.py)
@@ -164,7 +163,7 @@ class GlobusAuthenticator:
                 'scopes are requested when the token is created.',
             )
 
-        return uuid.UUID(token_meta.get('client_id'))
+        return token_meta.get('username')
 
 
 def get_authenticator(config: ExchangeAuthConfig) -> Authenticator:

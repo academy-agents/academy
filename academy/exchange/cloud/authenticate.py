@@ -74,9 +74,6 @@ class GlobusAuthenticator:
             Ignored if `auth_client` is provided.
         client_secret: Globus application client secret. See `client_id` for
             details. Ignored if `auth_client` is provided.
-        audience: Intended audience of the token. This should typically be
-            the resource server of the the token was issued for. E.g.,
-            the UUID of the Academy Exchange application.
         token_cache_limit: Maximum number of (token, identity) mappings
             to store in memory.
         token_ttl_s: Time in seconds before invalidating cached tokens.

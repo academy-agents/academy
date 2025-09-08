@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import multiprocessing
+import os
 import uuid
 from concurrent.futures import ProcessPoolExecutor
 
@@ -41,7 +42,7 @@ async def test_full_globus_exchange_client() -> None:
     init_logging(logging.DEBUG)
 
     factory = GlobusExchangeFactory(
-        project_id=uuid.UUID('183dd9a1-b344-44ff-b968-d2a3499f9c65'),
+        project_id=uuid.UUID(os.environ['ACADEMY_TEST_PROJECT_ID']),
         client_params={'base_url': 'http://0.0.0.0:8700'},
     )
     mp_context = multiprocessing.get_context('spawn')

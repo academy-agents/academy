@@ -27,7 +27,7 @@ async def test_null_authenticator() -> None:
 
 @pytest.mark.asyncio
 async def test_authenticate_user_with_token() -> None:
-    authenticator = GlobusAuthenticator(str(uuid.uuid4()), '')
+    authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
 
     token_meta: dict[str, Any] = {
         'active': True,
@@ -53,7 +53,7 @@ async def test_authenticate_user_with_token() -> None:
 
 @pytest.mark.asyncio
 async def test_authenticate_user_with_token_expired_token() -> None:
-    authenticator = GlobusAuthenticator(str(uuid.uuid4()), '')
+    authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
     with (
         mock.patch.object(
             authenticator,
@@ -74,8 +74,7 @@ async def test_authenticate_user_with_token_expired_token() -> None:
 async def test_authenticate_user_with_token_wrong_audience() -> None:
     authenticator = GlobusAuthenticator(
         str(uuid.uuid4()),
-        '',
-        audience='audience',
+        'secret',
     )
     with (
         mock.patch.object(
@@ -85,7 +84,7 @@ async def test_authenticate_user_with_token_wrong_audience() -> None:
         ),
         pytest.raises(
             ForbiddenError,
-            match='Token audience does not include "audience"',
+            match='Token audience does not include',
         ),
     ):
         await authenticator.authenticate_user(
@@ -100,7 +99,7 @@ def globus_auth_client():
 
 
 def test_globus_authenticator_token_introspect(globus_auth_client: mock.Mock):
-    authenticator = GlobusAuthenticator(str(uuid.uuid4()), '')
+    authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
 
     authenticator._token_introspect('test')
     globus_auth_client.assert_called_once()
@@ -122,14 +121,12 @@ def test_get_authenticator() -> None:
     config = ExchangeAuthConfig(
         method='globus',
         kwargs={
-            'audience': 'test',
             'client_id': str(uuid.uuid4()),
             'client_secret': 'test',
         },
     )
     authenticator = get_authenticator(config)
     assert isinstance(authenticator, GlobusAuthenticator)
-    assert authenticator.audience == 'test'
 
 
 def test_get_authenticator_unknown() -> None:

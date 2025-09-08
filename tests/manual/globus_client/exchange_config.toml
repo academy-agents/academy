@@ -4,7 +4,3 @@ log_file = "cloud_server.log"
 
 [auth]
 method = "globus"
-
-[auth.kwargs]
-client_id = "<ID>"
-client_secret = "<SECRET>"

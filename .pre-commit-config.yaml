@@ -13,6 +13,7 @@ repos:
       - id: check-yaml
       - id: check-merge-conflict
       - id: name-tests-test
+        exclude: ^tests/manual
   - repo: 'https://github.com/codespell-project/codespell'
     rev: v2.4.1
     hooks:

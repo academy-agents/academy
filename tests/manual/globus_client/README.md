@@ -3,13 +3,30 @@
 This script validates that the cloud hosted exchange can properly use the Globus API to authenticate users, and that the GlobusExchangeClient can launch agents and delegate tokens to them.
 
 **Running**
-
-Create a Globus Client ID and Secret for the exchange, and fill in the missing fields in  `exchange_config.toml`. Launch the exchange:
+First register a Globus client id for the academy exchange server. Run the script:
 ```bash
-python -m academy.exchange.cloud --config exchange_config.toml &
+python register_exchange_server.py
 ```
 
-Replace the Project ID in the script with a Globus project that you own, then run the test script:
+This will print the environment variables that need to be set:
 ```bash
+ACADEMY_TEST_PROJECT_ID=<project_id>
+ACADEMY_EXCHANGE_CLIENT_ID=<client_id>
+ACADEMY_EXCHANGE_SECRET=<secret>
+ACADEMY_GLOBUS_SCOPE_ID=<scope_id>
+```
+
+Launch the exchange:
+```bash
+export ACADEMY_EXCHANGE_CLIENT_ID=<client_id>
+export ACADEMY_EXCHANGE_SECRET=<secret>
+python -m academy.exchange.cloud --config exchange_config.toml
+```
+
+In a different shell
+```bash
+export ACADEMY_TEST_PROJECT_ID=<project_id>
+export ACADEMY_EXCHANGE_CLIENT_ID=<client_id>
+export ACADEMY_GLOBUS_SCOPE_ID=<scope_id>
 python run_globus_client_test.py
 ```

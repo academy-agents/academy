@@ -39,8 +39,8 @@ from academy.exception import UnauthorizedError
 from academy.exchange import ExchangeFactory
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.login import get_globus_app
-from academy.exchange.cloud.scopes import ACADEMY_EXCHANGE_SCOPE_ID
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
+from academy.exchange.cloud.scopes import get_academy_exchange_scope_id
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
@@ -445,7 +445,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             'launch',
             dependent_scopes=[
                 DependentScopeSpec(
-                    ACADEMY_EXCHANGE_SCOPE_ID,
+                    get_academy_exchange_scope_id(),
                     optional=False,
                     requires_refresh_token=True,
                 ),

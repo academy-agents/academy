@@ -22,6 +22,7 @@ from globus_sdk.tokenstorage import TokenValidationError
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 
 # Registered `Academy-Client Application` by alokvk2@uchicago.edu
+# For the sdk
 ACADEMY_GLOBUS_CLIENT_ID = '1624cf3f-45ee-4f54-9de4-2d5d79191346'
 
 ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME = 'ACADEMY_GLOBUS_CLIENT_ID'

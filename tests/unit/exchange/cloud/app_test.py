@@ -236,7 +236,7 @@ async def test_null_auth_client() -> None:
 async def auth_client() -> AsyncGenerator[TestClient[Request, Application]]:
     auth = ExchangeAuthConfig(
         method='globus',
-        kwargs={'client_id': str(uuid.uuid4()), 'client_secret': ''},
+        kwargs={'client_id': str(uuid.uuid4()), 'client_secret': 'test'},
     )
     user_1: dict[str, Any] = {
         'active': True,

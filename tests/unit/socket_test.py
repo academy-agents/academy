@@ -81,7 +81,7 @@ async def test_simple_socket_send_recv(echo_server: tuple[str, int]) -> None:
 
         error = OSError(_BAD_FILE_DESCRIPTOR_ERRNO, 'Bad file descriptor.')
         with mock.patch.object(socket.writer, 'write', side_effect=error):
-            with pytest.raises(OSError, match='Bad file descriptor.'):
+            with pytest.raises(OSError, match=r'Bad file descriptor\.'):
                 await socket.send_string('hello, again!')
 
 

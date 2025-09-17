@@ -78,7 +78,10 @@ async def test_runtime_run_until_complete(
     )
     await runtime.run_until_complete()
 
-    with pytest.raises(RuntimeError, match='Agent has already been shutdown.'):
+    with pytest.raises(
+        RuntimeError,
+        match=r'Agent has already been shutdown\.',
+    ):
         await runtime.run_until_complete()
 
     assert runtime.agent.startup_event.is_set()
@@ -246,7 +249,7 @@ async def test_runtime_loop_error_without_shutdown(
     await runtime._started_event.wait()
 
     # Should timeout because agent did not shutdown after loop errors
-    done, pending = await asyncio.wait({task}, timeout=TEST_SLEEP_INTERVAL)
+    done, _ = await asyncio.wait({task}, timeout=TEST_SLEEP_INTERVAL)
     assert len(done) == 0
     runtime.signal_shutdown()
 

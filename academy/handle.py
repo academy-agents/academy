@@ -287,7 +287,7 @@ class Handle(Generic[AgentT]):
         await self.exchange.send(request)
         logger.debug('Sent ping from %s to %s', self.client_id, self.agent_id)
 
-        done, pending = await asyncio.wait({future}, timeout=timeout)
+        _, pending = await asyncio.wait({future}, timeout=timeout)
         if future in pending:
             raise TimeoutError(
                 f'Did not receive ping response within {timeout} seconds.',

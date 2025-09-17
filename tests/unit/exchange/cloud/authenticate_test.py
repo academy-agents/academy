@@ -62,7 +62,7 @@ async def test_authenticate_user_with_token_expired_token() -> None:
         ),
         pytest.raises(
             ForbiddenError,
-            match='Token is expired or has been revoked.',
+            match=r'Token is expired or has been revoked\.',
         ),
     ):
         await authenticator.authenticate_user(
@@ -146,7 +146,7 @@ def test_get_token_from_headers() -> None:
 def test_get_token_from_headers_missing() -> None:
     with pytest.raises(
         UnauthorizedError,
-        match='Request headers are missing authorization header.',
+        match=r'Request headers are missing authorization header\.',
     ):
         get_token_from_headers({})
 
@@ -154,6 +154,6 @@ def test_get_token_from_headers_missing() -> None:
 def test_get_token_from_headers_malformed() -> None:
     with pytest.raises(
         UnauthorizedError,
-        match='Bearer token in authorization header is malformed.',
+        match=r'Bearer token in authorization header is malformed\.',
     ):
         get_token_from_headers({'Authorization': '<TOKEN>'})

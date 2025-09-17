@@ -172,12 +172,12 @@ async def test_add_and_set_executor_errors(
     ) as manager:
         with pytest.raises(
             ValueError,
-            match='Executor named "first" already exists.',
+            match=r'Executor named "first" already exists\.',
         ):
             manager.add_executor('first', executor)
         with pytest.raises(
             ValueError,
-            match='An executor named "second" does not exist.',
+            match=r'An executor named "second" does not exist\.',
         ):
             manager.set_default_executor('second')
 
@@ -206,7 +206,7 @@ async def test_multiple_executor_no_default(
         exchange_client=exchange_client,
         executors={'first': ThreadPoolExecutor()},
     ) as manager:
-        with pytest.raises(ValueError, match='no default is set.'):
+        with pytest.raises(ValueError, match=r'no default is set\.'):
             await manager.launch(EmptyAgent())
 
 

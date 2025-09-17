@@ -55,7 +55,7 @@ async def test_proxy_handle_actions() -> None:
 async def test_proxy_handle_action_errors() -> None:
     handle = ProxyHandle(ErrorAgent())
 
-    with pytest.raises(RuntimeError, match='This action always fails.'):
+    with pytest.raises(RuntimeError, match=r'This action always fails\.'):
         await handle.action('fails')
 
     with pytest.raises(AttributeError, match='null'):
@@ -261,7 +261,7 @@ async def test_client_handle_errors(
     handle = await manager.launch(ErrorAgent())
     with pytest.raises(
         RuntimeError,
-        match='This action always fails.',
+        match=r'This action always fails\.',
     ):
         await handle.fails()
 

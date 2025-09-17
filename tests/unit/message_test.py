@@ -67,7 +67,7 @@ def test_deserialize_bad_type() -> None:
     pickled = pickle.dumps('string')
     with pytest.raises(
         TypeError,
-        match='Deserialized message is not of type Message.',
+        match=r'Deserialized message is not of type Message\.',
     ):
         Message.model_deserialize(pickled)
 

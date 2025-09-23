@@ -3,11 +3,16 @@ from __future__ import annotations
 import asyncio
 import os
 import pathlib
+import sys
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Callable
-from typing import ParamSpec
+
+if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
+    from typing import ParamSpec
+else:  # pragma: <3.10 cover
+    from typing_extensions import ParamSpec
 
 import pytest
 

@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-*[Open a new issue](https://github.com/proxystore/academy/issues){target=_bank} if you have a question not answered in the docs.*
+*[Open a new issue](https://github.com/academy-agents/academy/issues){target=_bank} if you have a question not answered in the docs.*
 
 ## Logging
 

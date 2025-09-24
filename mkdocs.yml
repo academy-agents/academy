@@ -1,10 +1,10 @@
 site_name: Academy
-site_url: https://academy.proxystore.dev/
+site_url: https://docs.academy-project.org/
 site_author: Globus Labs
 site_description: Build and Deploy Stateful Agents across Federated Resources
 
-repo_name: proxystore/academy
-repo_url: https://github.com/proxystore/academy
+repo_name: academy-agents/academy
+repo_url: https://github.com/academy-agents/academy
 
 copyright: Copyright &copy; 2024—Present by <a target="_blank" href="https://gregpauloski.com">Greg Pauloski</a> and <a target="_blank" href="https://labs.globus.org">Globus Labs</a>
 
@@ -109,8 +109,8 @@ nav:
       - Migration Guide: migration.md
       - Version Policy: version-policy.md
       - Contributing: contributing.md
-      - Issues (GitHub): https://github.com/proxystore/academy/issues
-      - Changelog (GitHub): https://github.com/proxystore/academy/releases
+      - Issues (GitHub): https://github.com/academy-agents/academy/issues
+      - Changelog (GitHub): https://github.com/academy-agents/academy/releases
   - Concepts:
       - concepts/index.md
   - Case Studies:

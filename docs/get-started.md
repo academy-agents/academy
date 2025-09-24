@@ -16,7 +16,7 @@ pip install academy-py
 
 *Option 2: Install from source:*
 ```bash
-git clone git@github.com:proxystore/academy
+git clone git@github.com:academy-agents/academy
 cd academy
 pip install -e .  # -e for editable mode
 ```

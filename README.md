@@ -1,8 +1,8 @@
 # Academy: Federated Actors and Agents
 
 ![PyPI - Version](https://img.shields.io/pypi/v/academy-py)
-[![tests](https://github.com/proxystore/academy/actions/workflows/tests.yml/badge.svg)](https://github.com/proxystore/academy/actions)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/proxystore/academy/main.svg)](https://results.pre-commit.ci/latest/github/proxystore/academy/main)
+[![tests](https://github.com/academy-agents/academy/actions/workflows/tests.yml/badge.svg)](https://github.com/academy-agents/academy/actions)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/academy-agents/academy/main.svg)](https://results.pre-commit.ci/latest/github/academy-agents/academy/main)
 
 Academy is a modular and extensible middleware for building and deploying stateful actors and autonomous agents across distributed systems and federated research infrastructure.
 In Academy, you can:
@@ -76,7 +76,7 @@ async with await Manager.from_exchange_factory(
     await manager.shutdown(agent_handle, blocking=True)
 ```
 
-Learn more about Academy in [Getting Started](https://academy.proxystore.dev/latest/get-started).
+Learn more about Academy in [Getting Started](https://docs.academy-project.org/latest/get-started).
 
 ## What can be an agent?
 

@@ -5,7 +5,7 @@ This guide covers all of the basics required to get started contributing to the 
 
 
 We use GitHub issues to report problems, request and track changes, and discuss future ideas.
-Please use the [Issue Tracker](https://github.com/proxystore/academy/issues){target=_blank} and follow the template.
+Please use the [Issue Tracker](https://github.com/academy-agents/academy/issues){target=_blank} and follow the template.
 
 ## Pull Requests
 

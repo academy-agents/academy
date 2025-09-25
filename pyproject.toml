@@ -36,8 +36,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://academy-project.org"
-Documentation = "https://docs.academy-project.org"
+Homepage = "https://academy-agents.org"
+Documentation = "https://docs.academy-agents.org"
 Source = "https://github.com/academy-agents/academy"
 
 [project.optional-dependencies]

@@ -67,7 +67,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     asyncio.
     """
 
-    base_url = 'https://exchange.academy-project.org'
+    base_url = 'https://exchange.academy-agents.org'
     scopes = AcademyExchangeScopes
     default_scope_requirements: ClassVar[list[Scope]] = [
         Scope(AcademyExchangeScopes.academy_exchange),

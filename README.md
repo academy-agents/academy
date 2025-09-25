@@ -76,7 +76,7 @@ async with await Manager.from_exchange_factory(
     await manager.shutdown(agent_handle, blocking=True)
 ```
 
-Learn more about Academy in [Getting Started](https://docs.academy-project.org/latest/get-started).
+Learn more about Academy in [Getting Started](https://docs.academy-agents.org/latest/get-started).
 
 ## What can be an agent?
 

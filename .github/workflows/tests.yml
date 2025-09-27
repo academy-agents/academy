@@ -30,6 +30,21 @@ jobs:
         - os: ubuntu-latest
           python: '3.14'
           toxenv: py314
+        - os: macos-latest
+          python: '3.10'
+          toxenv: py310
+        - os: macos-latest
+          python: '3.11'
+          toxenv: py311
+        - os: macos-latest
+          python: '3.12'
+          toxenv: py312
+        - os: macos-latest
+          python: '3.13'
+          toxenv: py313
+        - os: macos-latest
+          python: '3.14'
+          toxenv: py314
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -57,6 +72,12 @@ jobs:
       - name: Install Packages
         run: python -mpip install --upgrade pip tox
 
+      # Patch misconfigured /etc/hosts config on some MacOS runners
+      # See https://github.com/academy-agents/academy/pull/220
+      - name: Patch /etc/hosts on MacOS
+        if: runner.os == 'macos-latest'
+        run: echo 127.0.0.1 $(python3 -c 'import platform; print(platform.node())') | sudo tee -a /etc/hosts
+
       - name: Run Tox
         run: tox -e ${{ matrix.toxenv }} -- -vv
 
@@ -69,19 +90,34 @@ jobs:
         include:
         - os: ubuntu-latest
           python: '3.10'
-          toxenv: py310
+          toxenv: py310-integration
         - os: ubuntu-latest
           python: '3.11'
-          toxenv: py311
+          toxenv: py311-integration
         - os: ubuntu-latest
           python: '3.12'
-          toxenv: py312
+          toxenv: py312-integration
         - os: ubuntu-latest
           python: '3.13'
-          toxenv: py313
+          toxenv: py313-integration
         - os: ubuntu-latest
           python: '3.14'
-          toxenv: py314
+          toxenv: py314-integration
+        - os: macos-latest
+          python: '3.10'
+          toxenv: py310-integration
+        - os: macos-latest
+          python: '3.11'
+          toxenv: py311-integration
+        - os: macos-latest
+          python: '3.12'
+          toxenv: py312-integration
+        - os: macos-latest
+          python: '3.13'
+          toxenv: py313-integration
+        - os: macos-latest
+          python: '3.14'
+          toxenv: py314-integration
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -109,5 +145,11 @@ jobs:
       - name: Install Packages
         run: python -mpip install --upgrade pip tox
 
+      # Patch misconfigured /etc/hosts config on some MacOS runners
+      # See https://github.com/academy-agents/academy/pull/220
+      - name: Patch /etc/hosts on MacOS
+        if: runner.os == 'macos-latest'
+        run: echo 127.0.0.1 $(python3 -c 'import platform; print(platform.node())') | sudo tee -a /etc/hosts
+
       - name: Run Tox
-        run: tox -e ${{ matrix.toxenv }}-integration -- -vv
+        run: tox -e ${{ matrix.toxenv }} -- -vv

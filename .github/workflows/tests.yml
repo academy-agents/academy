@@ -30,6 +30,21 @@ jobs:
         - os: ubuntu-latest
           python: '3.13'
           toxenv: py313
+        - os: macos-latest
+          python: '3.9'
+          toxenv: py39
+        - os: macos-latest
+          python: '3.10'
+          toxenv: py310
+        - os: macos-latest
+          python: '3.11'
+          toxenv: py311
+        - os: macos-latest
+          python: '3.12'
+          toxenv: py312
+        - os: macos-latest
+          python: '3.13'
+          toxenv: py313
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -69,19 +84,34 @@ jobs:
         include:
         - os: ubuntu-latest
           python: '3.9'
-          toxenv: py39
+          toxenv: py39-integration
         - os: ubuntu-latest
           python: '3.10'
-          toxenv: py310
+          toxenv: py310-integration
         - os: ubuntu-latest
           python: '3.11'
-          toxenv: py311
+          toxenv: py311-integration
         - os: ubuntu-latest
           python: '3.12'
-          toxenv: py312
+          toxenv: py312-integration
         - os: ubuntu-latest
           python: '3.13'
-          toxenv: py313
+          toxenv: py313-integration
+        - os: macos-latest
+          python: '3.9'
+          toxenv: py39-integration
+        - os: macos-latest
+          python: '3.10'
+          toxenv: py310-integration
+        - os: macos-latest
+          python: '3.11'
+          toxenv: py311-integration
+        - os: macos-latest
+          python: '3.12'
+          toxenv: py312-integration
+        - os: macos-latest
+          python: '3.13'
+          toxenv: py313-integration
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -110,4 +140,4 @@ jobs:
         run: python -mpip install --upgrade pip tox
 
       - name: Run Tox
-        run: tox -e ${{ matrix.toxenv }}-integration -- -vv
+        run: tox -e ${{ matrix.toxenv }} -- -vv

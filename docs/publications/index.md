@@ -18,6 +18,8 @@ If you use Academy in your work, please cite our preprint: [**Empowering Scienti
 
 ## Featured Publications
 
-!!! note
+*If you use Academy in your work and would like to be featured on this page, [open an issue](https://github.com/academy-agents/academy/issues){target=_blank} or [propose a pull request](https://github.com/academy-agents/academy/pulls){target=_blank} on GitHub.*
 
-    Check back later.
+<!-- Use IEEE format here (bibtex to IEEE: https://bibtex.online/) -->
+
+* J.G. Pauloski, K. Chard, I. Foster. "[Agentic Discovery: Closing the Loop With Cooperative Agents](https://doi.ieeecomputersociety.org/10.1109/MC.2025.3575029){target=_blank}," in Computer, vol. 58, no. 10, pp. 20-27, 2025.

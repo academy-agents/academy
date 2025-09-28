@@ -68,9 +68,9 @@ class MailboxBackend(Protocol):
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
     ) -> None:
-        """Create a mailbox is not exists.
+        """Create a mailbox XXXisXXX if doesn't exists.
 
-        This method should be idempotent.
+        This method should be idempotent.  // "should be" => is, haha
 
         Args:
             client: Client making the request.
@@ -156,7 +156,7 @@ class MailboxBackend(Protocol):
 
 
 class PythonBackend:
-    """Mailbox backend using in-memory python data structures.
+    """Mailbox backend using in-memory Python data structures.
 
     Args:
         message_size_limit_kb: Maximum message size to allow.
@@ -178,6 +178,13 @@ class PythonBackend:
         client: str,
         entity: EntityId,
     ) -> bool:
+        # what does this mean? _has_permissions is true when any of these
+        # are true:
+        #  * entity is not in self._owners
+        #  * entity is in self._owners and the entity owner is client.
+        # that first case seems a bit suspicious on initial reading but I guess
+        # i should understand what the permissions model is actually meant
+        # to be some more...
         return entity not in self._owners or self._owners[entity] == client
 
     async def check_mailbox(
@@ -216,7 +223,7 @@ class PythonBackend:
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
     ) -> None:
-        """Create a mailbox is not exists.
+        """Create a mailbox if not exists.
 
         This method should be idempotent.
 

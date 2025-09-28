@@ -186,7 +186,7 @@ async def test_client_handle_ping_timeout(
 
 
 @pytest.mark.asyncio
-async def test_client_handle_shutdown_ignore_already_termiated_error() -> None:
+async def test_client_handle_shutdown_ignore_already_terminated_error() -> None:
     handle: Handle[EmptyAgent] = Handle(AgentId.new())
 
     request = Message.create(

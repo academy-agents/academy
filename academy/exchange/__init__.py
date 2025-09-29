@@ -3,6 +3,8 @@ from __future__ import annotations
 from academy.exchange.client import AgentExchangeClient
 from academy.exchange.client import ExchangeClient
 from academy.exchange.client import UserExchangeClient
+from academy.exchange.cloud import GlobusExchangeFactory
+from academy.exchange.cloud import GlobusExchangeTransport
 from academy.exchange.cloud import HttpExchangeFactory
 from academy.exchange.cloud import HttpExchangeTransport
 from academy.exchange.factory import ExchangeFactory
@@ -22,7 +24,8 @@ __all__ = [
     'ExchangeClient',
     'ExchangeFactory',
     'ExchangeTransport',
-    'HttpExchangeFactory',
+    'GlobusExchangeFactory',
+    'GlobusExchangeTransportHttpExchangeFactory',
     'HttpExchangeTransport',
     'HybridExchangeFactory',
     'HybridExchangeTransport',

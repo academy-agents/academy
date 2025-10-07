@@ -30,6 +30,7 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.logging import init_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
@@ -45,11 +46,22 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     registration: AgentRegistration[AgentT]
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
+    init_logging: bool = False
+    loglevel: int | str = logging.INFO
+    logfile: str | None = None
 
 
 async def _run_agent_on_worker_async(
     spec: _RunSpec[AgentT, ExchangeTransportT],
 ) -> None:
+    if spec.init_logging:
+        if spec.logfile is not None:
+            logfile = spec.logfile.format(agent_id=spec.registration.agent_id)
+        else:
+            logfile = None
+
+        init_logging(level=spec.loglevel, logfile=logfile)
+
     try:
         if isinstance(spec.agent, type):
             agent = spec.agent(*spec.agent_args, **spec.agent_kwargs)
@@ -359,6 +371,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         executor: str | None = None,
         name: str | None = None,
         registration: AgentRegistration[AgentT] | None = None,
+        init_logging: bool = False,
+        loglevel: int | str = logging.INFO,
+        logfile: str | None = None,
     ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 
@@ -376,6 +391,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             name: Readable name of the agent used when registering a new agent.
             registration: If `None`, a new agent will be registered with
                 the exchange.
+            init_logging: Initialize logging before running agent.
+            loglevel: Level of logging.
+            logfile: Location to write logs.
 
         Returns:
             Handle (client bound) used to interact with the agent.
@@ -411,6 +429,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             registration=registration,
             agent_args=() if args is None else args,
             agent_kwargs={} if kwargs is None else kwargs,
+            init_logging=init_logging,
+            loglevel=loglevel,
+            logfile=logfile,
         )
 
         task = asyncio.create_task(

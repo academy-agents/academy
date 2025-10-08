@@ -135,6 +135,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         if isinstance(executors, Executor):
             executors = {'default': executors}
             default_executor = 'default'
+            # handling of user mistake: this overrides the user supplied
+            # default_executor so the below stanza does not detect that
+            # the user's default executor is being ignored.
+            # but probably there should be a value error in that case?
+            # and a test case for that error?
+            # and in a constructive "don't make invalid structures"
+            # view, some other way to do this.
 
         if default_executor is not None and default_executor not in executors:
             raise ValueError(

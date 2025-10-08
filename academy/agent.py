@@ -214,6 +214,16 @@ class Agent:
         mro = cls.mro()
         base_index = mro.index(Agent)
         mro = mro[:base_index]
+        # my gut says this is a bit weird to be extracting
+        # up to the Agent class if there are other classes
+        # in the graph that appear *after* Agent but will
+        # be used for resolution? because this is an
+        # inheritance DAG that has been flattened.
+        # This is used in a few places for generating what looks like a
+        # user-agent-ish string. If so, that doesn't matter too much
+        # about resolution, but maybe its more interesting to filter
+        # Agent and object from the list and use everything that is
+        # left?
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
     async def agent_on_startup(self) -> None:

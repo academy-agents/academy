@@ -302,6 +302,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             raise ValueError(f'An executor named "{name}" does not exist.')
         self._default_executor = name
         return self
+        # BUG: the `None` behaviour looks like it might not
+        # work here: None will not be in self._executors, I think?
 
     async def _run_agent_in_executor(
         self,

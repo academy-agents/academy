@@ -356,6 +356,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                     logger.exception('Received exception from %s', agent_id)
                     raise
                 else:
+                    assert retries > 0, (
+                        "this isn't validated at configuration time"
+                    )
                     logger.exception(
                         'Restarting %s due to exception',
                         agent_id,

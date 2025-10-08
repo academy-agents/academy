@@ -233,7 +233,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         1. Wait for all running agents to shut down.
         1. Close the exchange client.
         1. Shutdown the executors.
-        1. Raise an exceptions returned by agents.
+        1. Raise any exceptions returned by agents.
 
         Raises:
             Exception: Any exceptions raised by agents.

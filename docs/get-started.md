@@ -89,13 +89,18 @@ class ExampleAgent(Agent):
     async def counter(self, shutdown: asyncio.Event) -> None:
         count = 0
         while not shutdown.is_set():
+         # why is this shutdown passed separately?
+         # it could be while not self.is_shutdown() or something like that?
+         # and remove the boilerplate off every loop?
+         # How does it interact with asyncio task shutdown such as would cause
+         # that asyncio.sleep to raise a cancelled exception?
             print(f'Count: {count}')
             count += 1
             await asyncio.sleep(1)
 ```
 
 All control loops are started in separate tasks in the event loop when an agent is executed, and run until the control loop exits or the agent is shut down, as indicated by the `shutdown` event.
-If an agent shuts down before the control loops exit, the corresponding task will be cancelled.
+If an agent shuts down before the control loops exit, the corresponding task will be cancelled. [so how does a control loop experience that? as a cancellation? or only as that self.is_shutdown?]
 
 ## Agent to Agent Interaction
 
@@ -185,6 +190,15 @@ from academy.exchange import RedisExchangeFactory
 async def main() -> None:
     async with Manager.from_exchange_factory(
         exchange=RedisExchangeFactory('<REDIS HOST>', port=6379),
+        # a user never touches an ExchangeNonFactory perhaps?
+        # so the ...Factory could be removed from all these classes for shortness.
+        # Seems like they're "config-like" objects, in the parsl sense?
+
+        # One parameter positional and the other kw in RedisExchangeFactory... how
+        # much might you be expecting redis to run on a different port? On a shared
+        # system, *always*.
+        # however... they're both required. so make them both kws in this example?
+
         executors=ProcessPoolExecutor(max_processes=4),
     ) as manager:
         ...

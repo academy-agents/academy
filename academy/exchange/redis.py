@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 
 _CLOSE_SENTINEL = b'<CLOSED>'
 
+# This leaves keys behind in the redis DB at shutdown with my test
+# script -- investigate if it is meant to, or if I am shutting down
+# wrong or whatever.
 
 class _RedisConnectionInfo(NamedTuple):
     hostname: str
@@ -92,7 +95,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             mailbox_id: Bind the transport to the specific mailbox. If `None`,
                 a new user entity will be registered and the transport will be
                 bound to that mailbox.
-            name: Display name of the redistered entity if `mailbox_id` is
+            name: Display name of the registered entity if `mailbox_id` is
                 `None`.
             redis_info: Redis connection information.
 

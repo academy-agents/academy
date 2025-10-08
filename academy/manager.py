@@ -157,6 +157,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._executors = executors
         self._default_executor = default_executor
         self._max_retries = max_retries
+        # validate this positive (see other comment in this commit)
 
         self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
@@ -346,9 +347,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 )
             except asyncio.CancelledError:  # pragma: no cover
                 logger.warning('Cancelled %s task', agent_id)
+                # phrasing: this code did not cancel the task?
                 raise
             except Exception:
                 if retries == 0:
+                    # what about when retries is negative?
+                    # (see other comment in this commit)
                     logger.exception('Received exception from %s', agent_id)
                     raise
                 else:

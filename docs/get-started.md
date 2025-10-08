@@ -179,7 +179,7 @@ if __name__ == '__main__':
 
 ## Distributed Execution
 
-The prior examples have launched agent in threads of the main process, but in practice agents are launched in different processes, possibly on the same node or remote nodes.
+The prior examples have launched agents in threads of the main process, but in practice agents are launched in different processes, possibly on the same node or remote nodes.
 The prior example can be executed in a distributed fashion by changing the executor and exchange to implementations which support distributed execution.
 Below, a [Redis server](https://redis.io/){target=_blank} server (via the [redis exchange][academy.exchange.RedisExchangeFactory]) is used to support messaging between distributed agents executed with a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor].
 

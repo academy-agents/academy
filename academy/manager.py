@@ -133,8 +133,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         max_retries: int = 0,
     ) -> None:
         if isinstance(executors, Executor):
-            executors = {'default': executors}
-            default_executor = 'default'
             # handling of user mistake: this overrides the user supplied
             # default_executor so the below stanza does not detect that
             # the user's default executor is being ignored.
@@ -142,6 +140,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             # and a test case for that error?
             # and in a constructive "don't make invalid structures"
             # view, some other way to do this.
+            # eg the fancy version of this assert:
+            assert default_executor is None, 'user error - inconsistent args'
+            executors = {'default': executors}
+            default_executor = 'default'
 
         if default_executor is not None and default_executor not in executors:
             raise ValueError(

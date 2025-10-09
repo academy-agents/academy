@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import sys
+from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
+from typing import Callable
+
+if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
+    from typing import ParamSpec
+else:  # pragma: <3.10 cover
+    from typing_extensions import ParamSpec
 
 import pytest
 
@@ -16,6 +25,8 @@ from testing.agents import SleepAgent
 from testing.constant import TEST_CONNECTION_TIMEOUT
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
+
+P = ParamSpec('P')
 
 
 @pytest.mark.asyncio
@@ -276,3 +287,29 @@ async def test_warn_executor_overload(
         with pytest.warns(RuntimeWarning, match='Executor overload:'):
             await manager.launch(agent)
         assert len(manager.running()) == 2  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_executor_pass_kwargs(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    class MockExecutor(ThreadPoolExecutor):
+        def submit(
+            self,
+            fn: Callable[P, Any],
+            /,
+            *args: P.args,
+            **kwargs: P.kwargs,
+        ) -> Future[Any]:
+            assert 'parsl_resource_spec' in kwargs
+            return super().submit(fn, *args, **kwargs)
+
+    agent = SleepAgent(TEST_SLEEP_INTERVAL)
+    async with Manager(
+        exchange_client,
+        executors=MockExecutor(),
+    ) as manager:
+        await manager.launch(
+            agent,
+            submit_kwargs={'parsl_resource_spec': {'cores': 1}},
+        )

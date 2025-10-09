@@ -45,6 +45,7 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     registration: AgentRegistration[AgentT]
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
+    submit_kwargs: dict[str, Any]
 
 
 async def _run_agent_on_worker_async(
@@ -73,6 +74,7 @@ async def _run_agent_on_worker_async(
 
 def _run_agent_on_worker(
     spec: _RunSpec[AgentT, ExchangeTransportT],
+    **kwargs: Any,
 ) -> None:
     asyncio.run(_run_agent_on_worker_async(spec))
 
@@ -328,10 +330,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             )
 
             try:
-                await loop.run_in_executor(
-                    executor,
-                    _run_agent_on_worker,
-                    spec,
+                await asyncio.wrap_future(
+                    executor.submit(
+                        _run_agent_on_worker,  # type: ignore[arg-type]
+                        spec,
+                        **spec.submit_kwargs,
+                    ),
+                    loop=loop,
                 )
             except asyncio.CancelledError:  # pragma: no cover
                 logger.warning('Cancelled %s task', agent_id)
@@ -357,6 +362,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         kwargs: dict[str, Any] | None = None,
         config: RuntimeConfig | None = None,
         executor: str | None = None,
+        submit_kwargs: dict[str, Any] | None = None,
         name: str | None = None,
         registration: AgentRegistration[AgentT] | None = None,
     ) -> Handle[AgentT]:
@@ -373,6 +379,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             config: Agent run configuration.
             executor: Name of the executor instance to use. If `None`, uses
                 the default executor, if specified, otherwise raises an error.
+            submit_kwargs: Additional arguments to pass to the submit function
+                of the executor (i.e. a resource specification).
             name: Readable name of the agent used when registering a new agent.
             registration: If `None`, a new agent will be registered with
                 the exchange.
@@ -411,6 +419,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             registration=registration,
             agent_args=() if args is None else args,
             agent_kwargs={} if kwargs is None else kwargs,
+            submit_kwargs={} if submit_kwargs is None else submit_kwargs,
         )
 
         task = asyncio.create_task(

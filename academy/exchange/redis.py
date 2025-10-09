@@ -39,6 +39,7 @@ _CLOSE_SENTINEL = b'<CLOSED>'
 # script -- investigate if it is meant to, or if I am shutting down
 # wrong or whatever.
 
+
 class _RedisConnectionInfo(NamedTuple):
     hostname: str
     port: int

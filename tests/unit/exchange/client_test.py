@@ -212,19 +212,19 @@ async def test_agent_handle_missing_warning_log(
 async def test_client_reply_error_on_request(
     factory: ExchangeFactory[Any],
 ) -> None:
-    async with await factory.create_user_client(
-        start_listener=False,
-    ) as client1:
-        async with await factory.create_user_client(
-            start_listener=True,
-        ) as client2:
+    async with await factory.create_user_client() as client:
+        registration = await client.register_agent(EmptyAgent)
+        async with await factory.create_agent_client(
+            registration,
+            _request_handler,
+        ) as agent_client:
             message = Message.create(
-                src=client1.client_id,
-                dest=client2.client_id,
+                src=agent_client.client_id,
+                dest=client.client_id,
                 body=PingRequest(),
             )
-            await client1.send(message)
-            response = await client1._transport.recv()
+            await agent_client.send(message)
+            response = await agent_client._transport.recv()
             body = response.get_body()
             assert isinstance(body, ErrorResponse)
             assert isinstance(body.get_exception(), TypeError)

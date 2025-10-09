@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import os
 import pathlib
+import threading
+from collections.abc import Mapping
 from typing import Any
 from typing import Literal
 
@@ -17,6 +19,7 @@ from globus_sdk.globus_app import GlobusAppConfig
 from globus_sdk.globus_app import UserApp
 from globus_sdk.login_flows import CommandLineLoginFlowManager
 from globus_sdk.tokenstorage import JSONTokenStorage
+from globus_sdk.tokenstorage import TokenStorageData
 from globus_sdk.tokenstorage import TokenValidationError
 
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
@@ -51,11 +54,67 @@ class _CustomLoginFlowManager(CommandLineLoginFlowManager):
         return auth_code.strip()
 
 
+class LockingTokenStorage(JSONTokenStorage):
+    """A thread safe Globus token store.
+
+    Args:
+        filepath: The path to a file where token data should be stored.
+        namespace: A unique string for partitioning token data
+            (Default: "DEFAULT").
+    """
+
+    def __init__(
+        self,
+        filepath: pathlib.Path | str,
+        *,
+        namespace: str = 'DEFAULT',
+    ) -> None:
+        self._lock = threading.Lock()
+        super().__init__(filepath, namespace=namespace)
+
+    def store_token_data_by_resource_server(
+        self,
+        token_data_by_resource_server: Mapping[str, TokenStorageData],
+    ) -> None:
+        """Store token data for resource server(s) in the current namespace.
+
+        Args:
+            token_data_by_resource_server: mapping of resource server to
+                token data.
+        """
+        with self._lock:
+            return super().store_token_data_by_resource_server(
+                token_data_by_resource_server,
+            )
+
+    def get_token_data_by_resource_server(self) -> dict[str, TokenStorageData]:
+        """Retrieve all token data stored in the current namespace.
+
+        Returns:
+            a dict of ``TokenStorageData`` objects indexed by their
+                resource server.
+        """
+        with self._lock:
+            return super().get_token_data_by_resource_server()
+
+    def remove_token_data(self, resource_server: str) -> bool:
+        """Remove token data for a resource server in the current namespace.
+
+        Args:
+            resource_server: The resource server to remove token data for.
+
+        Returns:
+            True if token data was deleted, False if none was found to delete.
+        """
+        with self._lock:
+            return super().remove_token_data(resource_server)
+
+
 def get_token_storage(
     filepath: str | pathlib.Path | None = None,
     *,
     namespace: str = 'DEFAULT',
-) -> JSONTokenStorage:
+) -> LockingTokenStorage:
     """Create token storage adapter.
 
     Args:
@@ -77,7 +136,7 @@ def get_token_storage(
 
     filepath = pathlib.Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
-    return JSONTokenStorage(filepath, namespace=namespace)
+    return LockingTokenStorage(filepath, namespace=namespace)
 
 
 def get_client_credentials_from_env() -> tuple[str, str]:

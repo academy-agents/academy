@@ -225,12 +225,13 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         try:
             return self._local_data.exchange_client
         except AttributeError:
-            self._local_data.exchange_client = AcademyGlobusClient(
-                app=self._app,
-                authorizer=self._authorizer,
-                transport_params={'http_timeout': -1},
-                **self.client_params,
-            )
+            with self._app_lock:
+                self._local_data.exchange_client = AcademyGlobusClient(
+                    app=self._app,
+                    authorizer=self._authorizer,
+                    transport_params={'http_timeout': -1},
+                    **self.client_params,
+                )
             return self._local_data.exchange_client
 
     @property
@@ -274,9 +275,9 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
             self.login_time = datetime.now()
 
-        self._local_data.auth_client = AuthClient(
-            app=self._app,
-        )
+            self._local_data.auth_client = AuthClient(
+                app=self._app,
+            )
         return self._local_data.auth_client
 
     def _register_client(self) -> None:
@@ -457,10 +458,11 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # Create delegated token
         logger.info('Creating delegated token.')
         assert self._app is not None  # Already true, but not caught by mypy
-        self._app.add_scope_requirements(
-            {client_id: [scope]},
-        )
-        authorizer = self._app.get_authorizer(client_id)
+        with self._app_lock:
+            self._app.add_scope_requirements(
+                {client_id: [scope]},
+            )
+            authorizer = self._app.get_authorizer(client_id)
         bearer = authorizer.get_authorization_header()
         if bearer is None:  # pragma: no cover
             raise UnauthorizedError('Unable to get authorization headers.')

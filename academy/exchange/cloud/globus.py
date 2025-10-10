@@ -221,7 +221,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     @property
     def exchange_client(self) -> AcademyGlobusClient:
-        """A thread local copy of the Globus AuthClient."""
+        """A thread local copy of the exchange client."""
         try:
             return self._local_data.exchange_client
         except AttributeError:

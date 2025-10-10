@@ -84,8 +84,11 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
+        logger.warning("BENC: aexit 1")
         exchange_context.reset(self.exchange_context_token)
+        logger.warning("BENC: aexit 2")
         await self.close()
+        logger.warning("BENC: aexit 3")
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}({self.client_id!r})'

@@ -10,6 +10,10 @@ import pathlib
 from typing import Any
 from typing import Literal
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 import click
 from globus_sdk.globus_app import ClientApp
 from globus_sdk.globus_app import GlobusApp
@@ -29,7 +33,7 @@ ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME = 'ACADEMY_GLOBUS_CLIENT_ID'
 ACADEMY_GLOBUS_CLIENT_SECRET_ENV_NAME = 'ACADEMY_GLOBUS_CLIENT_SECRET'
 
 _APP_NAME = 'academy'
-_TOKENS_FILE = 'storage.json'
+_TOKENS_FILE = 'storagelol.json'
 
 
 class _CustomLoginFlowManager(CommandLineLoginFlowManager):
@@ -74,9 +78,11 @@ def get_token_storage(
         )
         basepath = os.environ.get('ACADEMY_HOME', default=default)
         filepath = os.path.join(basepath, _TOKENS_FILE)
+        logger.warning(f"BENC: conjured filepath {filepath} for get_token_storage")
 
     filepath = pathlib.Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
+    logger.warning(f"BENC: will use this filepath for JSONTokenStorage: {filepath}")
     return JSONTokenStorage(filepath, namespace=namespace)
 
 

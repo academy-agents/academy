@@ -26,6 +26,7 @@ from testing.agents import EmptyAgent
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
+logger = logging.getLogger(__name__)
 
 @pytest_asyncio.fixture(params=EXCHANGE_FACTORY_TYPES)
 async def factory(
@@ -215,9 +216,12 @@ async def test_client_reply_error_on_request(
     async with await factory.create_user_client(
         start_listener=False,
     ) as client1:
-        async with await factory.create_user_client(
+        xx = await factory.create_user_client(
             start_listener=True,
-        ) as client2:
+            )
+        async with xx as client2:
+          logger.debug("BENC: IN LEVEL 2 WITH BLOCK")
+          try:
             message = Message.create(
                 src=client1.client_id,
                 dest=client2.client_id,
@@ -228,3 +232,7 @@ async def test_client_reply_error_on_request(
             body = response.get_body()
             assert isinstance(body, ErrorResponse)
             assert isinstance(body.get_exception(), TypeError)
+          except Exception as e:
+            logger.exception(f"BENC: LEVEL 2 WITH BLOCK EXCEPTION {e!r}")
+            raise
+          logger.warning("BENC: LEVEL 2 BLOCK ENDED WITHOUT EXCEPTION")

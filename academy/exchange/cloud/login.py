@@ -16,10 +16,10 @@ from globus_sdk.globus_app import GlobusApp
 from globus_sdk.globus_app import GlobusAppConfig
 from globus_sdk.globus_app import UserApp
 from globus_sdk.login_flows import CommandLineLoginFlowManager
-from globus_sdk.tokenstorage import JSONTokenStorage
 from globus_sdk.tokenstorage import TokenValidationError
 
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
+from academy.exchange.cloud.token_store import LockingTokenStorage
 
 # Registered `Academy-Client Application` by alokvk2@uchicago.edu
 # For the sdk
@@ -55,7 +55,7 @@ def get_token_storage(
     filepath: str | pathlib.Path | None = None,
     *,
     namespace: str = 'DEFAULT',
-) -> JSONTokenStorage:
+) -> LockingTokenStorage:
     """Create token storage adapter.
 
     Args:
@@ -77,7 +77,7 @@ def get_token_storage(
 
     filepath = pathlib.Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
-    return JSONTokenStorage(filepath, namespace=namespace)
+    return LockingTokenStorage(filepath, namespace=namespace)
 
 
 def get_client_credentials_from_env() -> tuple[str, str]:

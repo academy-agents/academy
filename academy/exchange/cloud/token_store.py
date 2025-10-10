@@ -14,7 +14,8 @@ class LockingTokenStorage(JSONTokenStorage):
 
     Warning:
         Two LockingTokenStorage instances (from the same or different
-        processes) cannot safely point to the same file.
+        processes) cannot safely point to the same file. We memoize the
+        creation of the token store to avoid creating multiple instances.
 
     Args:
         filepath: The path to a file where token data should be stored.
@@ -30,7 +31,7 @@ class LockingTokenStorage(JSONTokenStorage):
         *,
         namespace: str = 'DEFAULT',
     ) -> LockingTokenStorage:
-        if filepath not in cls._instances:
+        if filepath not in cls._instances:  # pragma: no branch
             obj = super().__new__(cls)
             cls._instances[str(filepath)] = obj
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pathlib
 import threading
 from collections.abc import Mapping
+from typing import ClassVar
 
 from globus_sdk.tokenstorage import JSONTokenStorage
 from globus_sdk.tokenstorage import TokenStorageData
@@ -11,11 +12,29 @@ from globus_sdk.tokenstorage import TokenStorageData
 class LockingTokenStorage(JSONTokenStorage):
     """A thread safe Globus token store.
 
+    Warning:
+        Two LockingTokenStorage instances (from the same or different
+        processes) cannot safely point to the same file.
+
     Args:
         filepath: The path to a file where token data should be stored.
         namespace: A unique string for partitioning token data
             (Default: "DEFAULT").
     """
+
+    _instances: ClassVar[dict[str, LockingTokenStorage]] = {}
+
+    def __new__(  # noqa: D102
+        cls,
+        filepath: pathlib.Path | str,
+        *,
+        namespace: str = 'DEFAULT',
+    ) -> LockingTokenStorage:
+        if filepath not in cls._instances:
+            obj = super().__new__(cls)
+            cls._instances[str(filepath)] = obj
+
+        return cls._instances[str(filepath)]
 
     def __init__(
         self,

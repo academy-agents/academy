@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from academy.exchange.cloud.token_store import LockingTokenStorage
+from academy.exchange.cloud.token_store import SafeSQLiteTokenStorage
 
 
 @pytest.fixture
@@ -36,9 +36,8 @@ def mock_response():
 
 
 def test_remove_token_data(tmp_path, mock_response):
-    file = tmp_path / 'mydata.json'
-    adapter = LockingTokenStorage(file)
-    assert not adapter.file_exists()
+    file = tmp_path / 'mydata.db'
+    adapter = SafeSQLiteTokenStorage(file)
     adapter.store_token_response(mock_response)
 
     # remove rs1, confirm only rs2 is still available

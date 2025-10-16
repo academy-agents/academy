@@ -30,19 +30,19 @@ jobs:
         - os: ubuntu-latest
           python: '3.13'
           toxenv: py313
-        - os: macos-latest
+        - os: macos-14
           python: '3.9'
           toxenv: py39
-        - os: macos-latest
+        - os: macos-14
           python: '3.10'
           toxenv: py310
-        - os: macos-latest
+        - os: macos-14
           python: '3.11'
           toxenv: py311
-        - os: macos-latest
+        - os: macos-14
           python: '3.12'
           toxenv: py312
-        - os: macos-latest
+        - os: macos-14
           python: '3.13'
           toxenv: py313
     runs-on: ${{ matrix.os }}
@@ -97,19 +97,19 @@ jobs:
         - os: ubuntu-latest
           python: '3.13'
           toxenv: py313-integration
-        - os: macos-latest
+        - os: macos-14
           python: '3.9'
           toxenv: py39-integration
-        - os: macos-latest
+        - os: macos-14
           python: '3.10'
           toxenv: py310-integration
-        - os: macos-latest
+        - os: macos-14
           python: '3.11'
           toxenv: py311-integration
-        - os: macos-latest
+        - os: macos-14
           python: '3.12'
           toxenv: py312-integration
-        - os: macos-latest
+        - os: macos-14
           python: '3.13'
           toxenv: py313-integration
     runs-on: ${{ matrix.os }}

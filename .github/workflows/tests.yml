@@ -78,7 +78,7 @@ jobs:
           cat /etc/hosts
           echo try a ping for name resolution test
           ping -c 3 $(python3 -c 'import platform; print(platform.node())') 
-          echo 127.0.0.1 $(python3 -c 'import platform; print(platform.node())') | sudo tee --append /etc/hosts
+          echo 127.0.0.1 $(python3 -c 'import platform; print(platform.node())') | sudo tee -a /etc/hosts
           ping -c 3 $(python3 -c 'import platform; print(platform.node())') 
 
       - name: Run Tox

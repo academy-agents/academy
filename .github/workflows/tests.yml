@@ -70,7 +70,16 @@ jobs:
             tests-unit-${{ matrix.os }}-pip-${{ matrix.python }}-
 
       - name: Install Packages
-        run: python -mpip install --upgrade pip tox
+        run: |
+          python -mpip install --upgrade pip tox
+          echo platform node name:
+          python3 -c 'import platform; print(platform.node())'
+          echo etc hosts
+          cat /etc/hosts
+          echo try a ping for name resolution test
+          ping -c 3 $(python3 -c 'import platform; print(platform.node())')
+          
+       
 
       - name: Run Tox
         run: tox -e ${{ matrix.toxenv }} -- -vv

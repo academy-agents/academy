@@ -136,7 +136,8 @@ class Agent:
         """
         return self.agent_context.exchange_client
 
-    def _agent_attributes(self) -> Generator[tuple[str, Any]]:
+    @classmethod
+    def _agent_attributes(cls) -> Generator[tuple[str, Any]]:
         """Returns a generator that yields attributes of the agent.
 
         The following attributes are ignored:
@@ -144,7 +145,7 @@ class Agent:
         * Attributes defined on the parent/base Agent class
         * @property methods of the derived type
         """
-        all_attrs = set(dir(self))
+        all_attrs = set(dir(cls))
         base_attrs = set(dir(Agent))
         derived_attrs = all_attrs - base_attrs
 
@@ -153,32 +154,34 @@ class Agent:
                 # Skip '__'-prefixed attributes of Agent whose names
                 # were mangled in the derived type
                 continue
-            if isinstance(getattr(type(self), name, None), property):
+            if isinstance(getattr(cls, name, None), property):
                 # Skip checking properties defined on the derived type.
                 continue
-            attr = getattr(self, name)
+            attr = getattr(cls, name)
             yield name, attr
 
-    def _agent_actions(self) -> dict[str, Action[Any, Any]]:
+    @classmethod
+    def _agent_actions(cls) -> dict[str, Action[Any, Any]]:
         """Get methods of this agent type that are decorated as actions.
 
         Returns:
             Dictionary mapping method names to action methods.
         """
         actions: dict[str, Action[Any, Any]] = {}
-        for name, attr in self._agent_attributes():
+        for name, attr in cls._agent_attributes():
             if _is_agent_method_type(attr, 'action'):
                 actions[name] = attr
         return actions
 
-    def _agent_loops(self) -> dict[str, ControlLoop]:
+    @classmethod
+    def _agent_loops(cls) -> dict[str, ControlLoop]:
         """Get methods of this agent type that are decorated as loops.
 
         Returns:
             Dictionary mapping method names to loop methods.
         """
         loops: dict[str, ControlLoop] = {}
-        for name, attr in self._agent_attributes():
+        for name, attr in cls._agent_attributes():
             if _is_agent_method_type(attr, 'loop'):
                 loops[name] = attr
         return loops

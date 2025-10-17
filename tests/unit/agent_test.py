@@ -339,3 +339,25 @@ def test_invalid_loop_signature() -> None:
 
     with pytest.raises(TypeError, match='Signature of loop method "loop"'):
         loop(BadAgent.loop)  # type: ignore[arg-type]
+
+
+def test_agent_description() -> None:
+    class TestAgent(Agent):
+        """This is an agent used for testing."""
+
+        @action
+        async def test(self) -> None:
+            """This is a test method."""
+            return None
+
+        async def private(self) -> None:
+            """This method should be private."""
+            return None
+
+    description = TestAgent.agent_description()
+
+    assert description.description == 'This is an agent used for testing.'
+    assert len(description.actions) == 1
+
+    action_description = description.actions[0]
+    assert action_description.doc == 'This is a test method.'

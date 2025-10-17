@@ -12,11 +12,14 @@ from datetime import timedelta
 from typing import Any
 from typing import Callable
 from typing import Generic
+from typing import get_type_hints
 from typing import Literal
 from typing import overload
 from typing import Protocol
 from typing import TYPE_CHECKING
 from typing import TypeVar
+
+from pydantic import BaseModel
 
 if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
     from typing import ParamSpec
@@ -52,6 +55,21 @@ LoopMethod: TypeAlias = Callable[
 ]
 
 logger = logging.getLogger(__name__)
+
+
+class ActionDescription(BaseModel):
+    """Typed description of an action."""
+
+    name: str
+    type_signature: dict[str, str]
+    doc: str
+
+
+class AgentDescription(BaseModel):
+    """Typed description of an Agent."""
+
+    description: str
+    actions: list[ActionDescription]
 
 
 class Agent:
@@ -322,6 +340,30 @@ class Agent:
                 this agent has not been started.
         """
         self.agent_context.shutdown_event.set()
+
+    @classmethod
+    def agent_description(cls) -> AgentDescription:
+        """Returns a description of the agent.
+
+        Returns:
+            A AgentDescription created from the class documentation.
+        """
+        actions = [
+            ActionDescription(
+                name=name,
+                type_signature={
+                    field: str(var_type)
+                    for field, var_type in get_type_hints(method).items()
+                },
+                doc=method.__doc__,
+            )
+            for name, method in cls._agent_actions().items()
+        ]
+
+        return AgentDescription(
+            description=cls.__doc__,
+            actions=actions,
+        )
 
 
 class Action(Generic[P, R_co], Protocol):

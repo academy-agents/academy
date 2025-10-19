@@ -113,6 +113,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=ssl_verify),
             headers=connection_info.additional_headers,
+            trust_env=True,
         )
 
         if mailbox_id is None:

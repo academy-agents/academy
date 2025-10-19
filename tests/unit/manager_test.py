@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import pathlib
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
@@ -276,3 +278,30 @@ async def test_warn_executor_overload(
         with pytest.warns(RuntimeWarning, match='Executor overload:'):
             await manager.launch(agent)
         assert len(manager.running()) == 2  # noqa: PLR2004
+
+
+# Note: these tests are just for coverage to make sure the code is functional.
+# It does not test the agent of init_logging because pytest captures
+# logging already.
+
+
+@pytest.mark.asyncio
+async def test_worker_init_logging_no_logfile(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    agent = SleepAgent(TEST_SLEEP_INTERVAL)
+    handle = await manager.launch(agent, init_logging=True)
+    await handle.shutdown()
+    await manager.wait({handle})
+
+
+@pytest.mark.asyncio
+async def test_worker_init_logging_logfile(
+    manager: Manager[LocalExchangeTransport],
+    tmp_path: pathlib.Path,
+) -> None:
+    filepath = os.path.join(tmp_path, '{agent_id}-log.txt')
+    agent = SleepAgent(TEST_SLEEP_INTERVAL)
+    handle = await manager.launch(agent, init_logging=True, logfile=filepath)
+    await handle.shutdown()
+    await manager.wait({handle})

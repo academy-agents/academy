@@ -5,12 +5,11 @@ Taken from: https://github.com/proxystore/proxystore/blob/e296f937d913cae02f87ab
 
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
 from typing import Any
 from typing import Literal
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +77,9 @@ def get_token_storage(
         )
         basepath = os.environ.get('ACADEMY_HOME', default=default)
         filepath = os.path.join(basepath, _TOKENS_FILE)
-        logger.warning(f"BENC: conjured filepath {filepath} for get_token_storage")
+        logger.warning(
+            f'BENC: conjured filepath {filepath} for get_token_storage'
+        )
 
     filepath = pathlib.Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)

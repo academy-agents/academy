@@ -100,11 +100,20 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 a new user entity will be registered and the transport will be
                 bound to that mailbox.
             name: Display name of the registered entity if `mailbox_id` is
-                `None`.
+                `None` -- this should not be specified if a mailbox_id is
+                specified...
 
         Returns:
             An instantiated transport bound to a specific mailbox.
         """
+        # assert (name is supplied) => (mailbox_id is None)
+        assert name is None or mailbox_id is None, (
+            'user supplied incorrect parameter combination?'
+        )
+
+        # what about the other direction? does it make sense to use a None
+        # display name when doing UserId.new?
+
         ssl_verify = connection_info.ssl_verify
         if ssl_verify is None:  # pragma: no branch
             scheme = urlparse(connection_info.url).scheme

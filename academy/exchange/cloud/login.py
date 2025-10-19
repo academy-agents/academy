@@ -11,8 +11,6 @@ import pathlib
 from typing import Any
 from typing import Literal
 
-logger = logging.getLogger(__name__)
-
 import click
 from globus_sdk.globus_app import ClientApp
 from globus_sdk.globus_app import GlobusApp
@@ -23,6 +21,8 @@ from globus_sdk.tokenstorage import TokenValidationError
 
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.token_store import SafeSQLiteTokenStorage
+
+logger = logging.getLogger(__name__)
 
 # Registered `Academy-Client Application` by alokvk2@uchicago.edu
 # For the sdk

@@ -20,10 +20,10 @@ from globus_sdk.globus_app import GlobusApp
 from globus_sdk.globus_app import GlobusAppConfig
 from globus_sdk.globus_app import UserApp
 from globus_sdk.login_flows import CommandLineLoginFlowManager
-from globus_sdk.tokenstorage import JSONTokenStorage
 from globus_sdk.tokenstorage import TokenValidationError
 
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
+from academy.exchange.cloud.token_store import SafeSQLiteTokenStorage
 
 # Registered `Academy-Client Application` by alokvk2@uchicago.edu
 # For the sdk
@@ -33,7 +33,7 @@ ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME = 'ACADEMY_GLOBUS_CLIENT_ID'
 ACADEMY_GLOBUS_CLIENT_SECRET_ENV_NAME = 'ACADEMY_GLOBUS_CLIENT_SECRET'
 
 _APP_NAME = 'academy'
-_TOKENS_FILE = 'storagelol.json'
+_TOKENS_FILE = 'storage.db'
 
 
 class _CustomLoginFlowManager(CommandLineLoginFlowManager):
@@ -59,7 +59,7 @@ def get_token_storage(
     filepath: str | pathlib.Path | None = None,
     *,
     namespace: str = 'DEFAULT',
-) -> JSONTokenStorage:
+) -> SafeSQLiteTokenStorage:
     """Create token storage adapter.
 
     Args:
@@ -82,8 +82,7 @@ def get_token_storage(
 
     filepath = pathlib.Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
-    logger.warning(f"BENC: will use this filepath for JSONTokenStorage: {filepath}")
-    return JSONTokenStorage(filepath, namespace=namespace)
+    return SafeSQLiteTokenStorage(filepath, namespace=namespace)
 
 
 def get_client_credentials_from_env() -> tuple[str, str]:

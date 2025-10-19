@@ -78,7 +78,7 @@ def get_token_storage(
         basepath = os.environ.get('ACADEMY_HOME', default=default)
         filepath = os.path.join(basepath, _TOKENS_FILE)
         logger.warning(
-            f'BENC: conjured filepath {filepath} for get_token_storage'
+            f'BENC: conjured filepath {filepath} for get_token_storage',
         )
 
     filepath = pathlib.Path(filepath)

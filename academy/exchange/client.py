@@ -146,6 +146,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         *,
         name: str | None = None,
     ) -> AgentRegistration[AgentT]:
+        # ^ dependent type: return type is AgentRegistration[agent], I think?
         """Register a new agent and associated mailbox with the exchange.
 
         Args:

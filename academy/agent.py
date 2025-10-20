@@ -79,6 +79,8 @@ class Agent:
     """
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:  # noqa: D102
+        # this is what @abc does... is there a reason that
+        # can't be used here?
         if cls is Agent:
             raise TypeError(
                 f'The {cls.__name__} type cannot be instantiated directly '

@@ -365,5 +365,6 @@ def spawn_http_exchange(
             )
             exchange_process.kill()
         else:
-            logger.info('Terminated exchange server!')
+            logger.info('Terminated exchange server')
+            # express intensity with log levels, not punctuation
         exchange_process.close()

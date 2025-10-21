@@ -66,7 +66,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
     user) in a multi-agent system. This transport protocol defines mechanisms
     for entity management (e.g., registration, discovery, status, termination)
     and for sending/receiving messages from a mailbox. As such, each transport
-    instance is "bound" to a specific mailbox in the exchange.
+    instance is bound to a specific mailbox in the exchange.
 
     Warning:
         A specific exchange transport should not be replicated because multiple

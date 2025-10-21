@@ -140,26 +140,33 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
         fqp = f'{agent.__module__}.{agent.__name__}'
+        fqp = fqp.encode()
         async for key in self._client.scan_iter(
             'agent:*',
         ):  # pragma: no branch
             mro_str = await self._client.get(key)
-            assert isinstance(mro_str, str), f"mro_str is {type(mro_str)} with repr {repr(mro_str)}"
-            mro = mro_str.split(',')
-            # BUG? this 'in' clause for allow_subclasses might
-            # match incorrectly - eg if I have registered an
-            # agent called __main__.PingAgent and I search
-            # for agents called __main__.Ping. It's probably
-            # worked for everyone so far because they have 
-            # an Agent sentinel substring on the end of
-            # everything?
+            # mro_str = mro_str.decode()  # not safe, because decode can fail on arbitary bytestring, i think?
+            assert isinstance(mro_str, bytes), f"mro_str is {type(mro_str)} with repr {repr(mro_str)}"
+            mro = mro_str.split(b',')
             if fqp == mro[0] or (allow_subclasses and fqp in mro):
-                aid: AgentId[Any] = AgentId(uid=uuid.UUID(key.split(':')[-1]))
+                k = key.split(b':')[-1]
+                sk = k.decode()
+                print(f"BENC: k = {k!r}, sk={sk!r}")
+                aid: AgentId[Any] = AgentId(uid=uuid.UUID(sk))
                 found.append(aid)
+                print(f"appending {found}")
         active: list[AgentId[Any]] = []
         for aid in found:
             status = await self._client.get(self._active_key(aid))
-            if status == _MailboxState.ACTIVE.value:  # pragma: no branch
+            print(f"BENC: status = {status}")
+            # there's a byte vs string error in status too:
+            # status is coming back from _client.get as a
+            # byte string - add a decode-bodge. Theres no
+            # validation here that the status is one of the
+            # potential statuses, which might be a bit more
+            # resilient...
+            if status.decode() == _MailboxState.ACTIVE.value:  # pragma: no branch
+                print("BENC: appending")
                 active.append(aid)
         return tuple(active)
 

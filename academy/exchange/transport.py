@@ -61,6 +61,13 @@ AgentRegistrationT_co = TypeVar('AgentRegistrationT_co', covariant=True)
 @runtime_checkable
 class ExchangeTransport(Protocol[AgentRegistrationT_co]):
     """Low-level exchange communicator.
+    - is this an "exchange client" or is it something else?
+      it's something else, because there is ExchangeClient...
+      but whats the conceptual difference?
+    - how much is the "transport" an internal detail of the
+      implementation of the exchange client that the user
+      does not ever need to see? vs how much of that needs
+      to be exposed to the user?
 
     A message exchange hosts mailboxes for each entity (i.e., agent or
     user) in a multi-agent system. This transport protocol defines mechanisms

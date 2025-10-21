@@ -71,7 +71,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
     Warning:
         A specific exchange transport should not be replicated because multiple
         client instances receiving from the same mailbox produces undefined
-        agent.
+        agent [behaviour?].
     """
 
     @property

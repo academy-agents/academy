@@ -144,8 +144,15 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             'agent:*',
         ):  # pragma: no branch
             mro_str = await self._client.get(key)
-            assert isinstance(mro_str, str)
+            assert isinstance(mro_str, str), f"mro_str is {type(mro_str)} with repr {repr(mro_str)}"
             mro = mro_str.split(',')
+            # BUG? this 'in' clause for allow_subclasses might
+            # match incorrectly - eg if I have registered an
+            # agent called __main__.PingAgent and I search
+            # for agents called __main__.Ping. It's probably
+            # worked for everyone so far because they have 
+            # an Agent sentinel substring on the end of
+            # everything?
             if fqp == mro[0] or (allow_subclasses and fqp in mro):
                 aid: AgentId[Any] = AgentId(uid=uuid.UUID(key.split(':')[-1]))
                 found.append(aid)

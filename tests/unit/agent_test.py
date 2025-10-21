@@ -132,7 +132,7 @@ async def test_agent_empty() -> None:
     assert isinstance(str(agent), str)
     assert isinstance(repr(agent), str)
 
-    assert len(agent._agent_actions()) == 0
+    assert len(agent._agent_actions()) == 1
     assert len(agent._agent_loops()) == 0
 
     await agent.agent_on_shutdown()
@@ -146,8 +146,8 @@ async def test_agent_ignore_property_attributes() -> None:
             raise RuntimeError('Property was accessed!')
 
     agent = Example()
-    attributes = set(agent._agent_attributes())
-    assert len(attributes) == 0
+    attributes = {name for name, _ in agent._agent_attributes()}
+    assert 'bad' not in attributes
 
 
 @pytest.mark.asyncio
@@ -156,7 +156,7 @@ async def test_agent_actions() -> None:
     await agent.agent_on_startup()
 
     actions = agent._agent_actions()
-    assert set(actions) == {'identity'}
+    assert set(actions) == {'identity', 'describe'}
 
     assert await agent.identity(1) == 1
 
@@ -256,7 +256,7 @@ def test_agent_action_decorator_usage_ok() -> None:
         async def action3(self, *, context: ActionContext) -> None: ...
 
     agent = _TestAgent()
-    assert len(agent._agent_actions()) == 3  # noqa: PLR2004
+    assert len(agent._agent_actions()) == 4  # noqa: PLR2004
 
 
 def test_agent_action_decorator_usage_error() -> None:
@@ -341,7 +341,8 @@ def test_invalid_loop_signature() -> None:
         loop(BadAgent.loop)  # type: ignore[arg-type]
 
 
-def test_agent_description() -> None:
+@pytest.mark.asyncio
+async def test_agent_description() -> None:
     class TestAgent(Agent):
         """This is an agent used for testing."""
 
@@ -354,10 +355,12 @@ def test_agent_description() -> None:
             """This method should be private."""
             return None
 
-    description = TestAgent.agent_description()
+    description = await TestAgent().describe()
 
     assert description.description == 'This is an agent used for testing.'
-    assert len(description.actions) == 1
+    assert len(description.actions) == 2  # noqa: PLR2004
 
-    action_description = description.actions[0]
+    assert 'describe' in description.actions
+    assert 'test' in description.actions
+    action_description = description.actions['test']
     assert action_description.doc == 'This is a test method.'

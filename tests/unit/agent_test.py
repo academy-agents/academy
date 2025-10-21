@@ -349,11 +349,11 @@ async def test_agent_description() -> None:
         @action
         async def test(self) -> None:
             """This is a test method."""
-            return None
+            ...
 
         async def private(self) -> None:
             """This method should be private."""
-            return None
+            ...
 
     description = await TestAgent().describe()
 

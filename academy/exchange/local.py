@@ -39,9 +39,10 @@ logger = logging.getLogger(__name__)
 class _LocalExchangeState(NoPickleMixin):
     """Local process message exchange.
 
-    LocalExchange is a special case of an exchange where the mailboxes
+    LocalExchange is an exchange where the mailboxes
     of the exchange live in process memory. This class stores the state
     of the exchange.
+    ^ (i removed "special case" -- its not particularly special)
     """
 
     def __init__(self) -> None:

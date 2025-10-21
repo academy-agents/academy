@@ -41,6 +41,12 @@ RequestHandler: TypeAlias = Callable[
 
 class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
     """Exchange client factory.
+    - n.b. its not a factory of exchanges, but a factory
+    of exchange clients. the factory must exist else-how.
+    - a different name is that it is an exchange config
+    (in the parsl object-config conflang sense) - see the
+    pickle requirement below that goes with that.
+    - "exchange client config" is perhaps a better name?
 
     An exchange factory is used to mint new exchange clients for users and
     agents, encapsulating the complexities of instantiating the underlying

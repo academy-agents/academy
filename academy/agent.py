@@ -226,6 +226,15 @@ class Agent:
         # about resolution, but maybe its more interesting to filter
         # Agent and object from the list and use everything that is
         # left?
+        # The exchange also lets you discover by type (hierarchy) and
+        # if this is used there then thats a problem too?
+        # if we only care about discovering by concrete Agent subclasses
+        # i think this is fine: they'll all appear before Agent. but if
+        # people want to use marker types that aren't agent subclasses,
+        # this might not work because they can appear after Agent.
+        # The discover type signature forces the class to be an Agent
+        # type, so the marker type approach is forbidden there. Might
+        # be worth a note though for maintainers?
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
     async def agent_on_startup(self) -> None:

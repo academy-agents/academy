@@ -117,6 +117,8 @@ nav:
       - case-studies/index.md
   - Guides:
       - guides/index.md
+      - guides/hpc.md
+      - guides/tutorial.md
   - API Reference:
       - Academy: api/
   - Publications:

@@ -4,11 +4,11 @@ Academy supports deploying agents and running tasks on HPC resource. This guide 
 ## Launching Agents with Globus Compute
 
 Academy can be combined with Globus Compute to deploy agents onto remote resources.
-Globus Compute is a function-as-a-service provider with a bring-your-own compute model. 
+Globus Compute is a function-as-a-service provider with a bring-your-own compute model.
 
 A Globus Compute endpoint can be deployed on an HPC resource using the `globus_compute_endpoint` package:
 ```bash
-pip install globus-compute-endpoint 
+pip install globus-compute-endpoint
 globus-compute-endpoint configure
 globus-compute-endpoint start <ENDPOINT_NAME>
 ```

@@ -678,7 +678,7 @@ class Agent:
         self.agent_context.shutdown_event.set()
 
     @action
-    async def describe(self) -> AgentDescription:
+    async def agent_describe(self) -> AgentDescription:
         """Returns a description of the agent.
 
         Returns:

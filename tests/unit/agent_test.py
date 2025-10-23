@@ -156,7 +156,7 @@ async def test_agent_actions() -> None:
     await agent.agent_on_startup()
 
     actions = agent._agent_actions()
-    assert set(actions) == {'identity', 'describe'}
+    assert set(actions) == {'identity', 'agent_describe'}
 
     assert await agent.identity(1) == 1
 
@@ -355,12 +355,12 @@ async def test_agent_description() -> None:
             """This method should be private."""
             ...
 
-    description = await TestAgent().describe()
+    description = await TestAgent().agent_describe()
 
     assert description.description == 'This is an agent used for testing.'
     assert len(description.actions) == 2  # noqa: PLR2004
 
-    assert 'describe' in description.actions
+    assert 'agent_describe' in description.actions
     assert 'test' in description.actions
     action_description = description.actions['test']
     assert action_description.doc == 'This is a test method.'

@@ -322,14 +322,19 @@ class D(A, B): ...
 
 
 def test_agent_mro() -> None:
-    assert Agent._agent_mro() == ()
-    assert A._agent_mro() == (f'{__name__}.A',)
-    assert B._agent_mro() == (f'{__name__}.B',)
-    assert C._agent_mro() == (f'{__name__}.C', f'{__name__}.A')
+    assert Agent._agent_mro() == ('academy.agent.Agent',)
+    assert A._agent_mro() == (f'{__name__}.A', 'academy.agent.Agent')
+    assert B._agent_mro() == (f'{__name__}.B', 'academy.agent.Agent')
+    assert C._agent_mro() == (
+        f'{__name__}.C',
+        f'{__name__}.A',
+        'academy.agent.Agent',
+    )
     assert D._agent_mro() == (
         f'{__name__}.D',
         f'{__name__}.A',
         f'{__name__}.B',
+        'academy.agent.Agent',
     )
 
 

@@ -570,7 +570,7 @@ class Agent:
         """
         mro = cls.mro()
         base_index = mro.index(Agent)
-        mro = mro[:base_index]
+        mro = mro[: base_index + 1]
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
     async def agent_on_startup(self) -> None:

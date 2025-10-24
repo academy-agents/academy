@@ -56,15 +56,14 @@ from academy.agent import Agent, action
 
 @parsl.python_app
 def expensive_task():
-    # do computation
+    # Do expensive task
+    return 42
 
 class ParslAgent(Agent):
-    async def __init__(self):
+    def __init__(self):
         self.config = Config(
             executors=[
-                HighThroughputExecutor(
-                    provider=SlurmProvider(),
-                )
+                HighThroughputExecutor()
             ],
         )
 
@@ -74,6 +73,7 @@ class ParslAgent(Agent):
     async def agent_on_shutdown(self) -> None:
         self.dfk.cleanup()
         self.dfk = None
+        parsl.clear()
 
     @action
     async def run_expensive_task(self) -> None:

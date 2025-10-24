@@ -59,7 +59,7 @@ def expensive_task():
     # Do expensive task
     return 42
 
-class ParslAgent(Agent):
+class SimulationAgent(Agent):
     def __init__(self):
         self.config = Config(
             executors=[

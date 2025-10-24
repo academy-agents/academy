@@ -24,7 +24,7 @@ def expensive_task() -> int:
     return 42
 
 
-class ParslAgent(Agent):
+class SimulationAgent(Agent):
     def __init__(self) -> None:
         self.config = Config(
             executors=[
@@ -55,14 +55,14 @@ async def main() -> int:
             factory=factory,
             executors=executor,
         ) as manager:
-            parsl_agent = await manager.launch(ParslAgent)
+            agent = await manager.launch(SimulationAgent)
             expected = 42
 
             logger.info(
                 'Invoking parsl task on %s',
-                parsl_agent.agent_id,
+                agent.agent_id,
             )
-            result = await parsl_agent.run_expensive_task()
+            result = await agent.run_expensive_task()
             assert result == expected
             logger.info('The answer to life is: "%s"', result)
 

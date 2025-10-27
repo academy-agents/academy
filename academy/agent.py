@@ -433,6 +433,8 @@ class Agent:
     """
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:  # noqa: D102
+        # abstractbaseclass does something like this -- whats going on that
+        # it isn't used here?
         if cls is Agent:
             raise TypeError(
                 f'The {cls.__name__} type cannot be instantiated directly '
@@ -571,6 +573,11 @@ class Agent:
         mro = cls.mro()
         base_index = mro.index(Agent)
         mro = mro[: base_index + 1]
+        # this way of selecting probably only works for agent subclasses,
+        # not (for example) marker types that might appear later in MRO.
+        # that is not a use case, i think, as far as the documentation goes
+        # but it might be useful feature? maybe not as far as type-checking
+        # goes.
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
     async def agent_on_startup(self) -> None:

@@ -22,14 +22,14 @@ from academy.agent import AgentT
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
+from academy.exchange import ExchangeClient
 from academy.exchange import ExchangeFactory
-from academy.exchange import UserExchangeClient
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
-from academy.identifier import UserId
+from academy.identifier import EntityId
 from academy.logging import init_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
@@ -140,7 +140,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     def __init__(
         self,
-        exchange_client: UserExchangeClient[ExchangeTransportT],
+        exchange_client: ExchangeClient[ExchangeTransportT],
         executors: Executor | MutableMapping[str, Executor],
         *,
         default_executor: str | None = None,
@@ -217,7 +217,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         )
 
     @property
-    def exchange_client(self) -> UserExchangeClient[ExchangeTransportT]:
+    def exchange_client(self) -> ExchangeClient[ExchangeTransportT]:
         """User client for the exchange."""
         return self._exchange_client
 
@@ -227,18 +227,21 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         return self._exchange_factory
 
     @property
-    def user_id(self) -> UserId:
+    def user_id(self) -> EntityId:
         """Exchange client user ID of this manager."""
         return self._user_id
 
-    async def close(self) -> None:
+    async def close(self, close_exchange: bool = True) -> None:
         """Shutdown the manager and cleanup resources.
 
         1. Request all running agents to shut down.
         1. Wait for all running agents to shut down.
-        1. Close the exchange client.
+        1. Close the exchange client. (if close_exchange)
         1. Shutdown the executors.
         1. Raise an exceptions returned by agents.
+
+        Args:
+            close_exchange: If the exchange_client should be closed.
 
         Raises:
             Exception: Any exceptions raised by agents.
@@ -254,7 +257,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             await acb.task
         logger.debug('All agents have completed')
 
-        await self.exchange_client.close()
+        if close_exchange:
+            await self.exchange_client.close()
+
         for executor in self._executors.values():
             executor.shutdown(wait=True, cancel_futures=True)
 

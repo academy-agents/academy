@@ -468,7 +468,7 @@ class RedisBackend:
         owner = await self._client.get(
             self._owner_key(entity),
         )
-        return owner is None or owner == f'{client}{_OWNER_SUFFIX}'
+        return owner is None or owner.decode() == f'{client}{_OWNER_SUFFIX}'
 
     async def _update_expirations(
         self,
@@ -516,7 +516,7 @@ class RedisBackend:
         status = await self._client.get(self._active_key(uid))
         if status is None:
             return MailboxStatus.MISSING
-        elif status == MailboxStatus.TERMINATED.value:
+        elif status.decode() == MailboxStatus.TERMINATED.value:
             return MailboxStatus.TERMINATED
         else:
             return MailboxStatus.ACTIVE
@@ -631,18 +631,22 @@ class RedisBackend:
         async for key in self._client.scan_iter(
             'agent:*',
         ):  # pragma: no branch
-            mro_str = await self._client.get(key)
+            mro_str = (await self._client.get(key)).decode()
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')
             if agent == mro[0] or (allow_subclasses and agent in mro):
-                aid: AgentId[Any] = AgentId(uid=uuid.UUID(key.split(':')[-1]))
+                aid: AgentId[Any] = AgentId(
+                    uid=uuid.UUID(key.decode().split(':')[-1]),
+                )
                 found.append(aid)
 
         active: list[AgentId[Any]] = []
         for aid in found:
             if await self._has_permissions(client, aid):
                 status = await self._client.get(self._active_key(aid))
-                if status == MailboxStatus.ACTIVE.value:  # pragma: no branch
+                if (
+                    status.decode() == MailboxStatus.ACTIVE.value
+                ):  # pragma: no branch
                     active.append(aid)
 
         return active
@@ -679,7 +683,7 @@ class RedisBackend:
         )
         if status is None:
             raise BadEntityIdError(uid)
-        elif status == MailboxStatus.TERMINATED.value:
+        elif status.decode() == MailboxStatus.TERMINATED.value:
             raise MailboxTerminatedError(uid)
 
         await self._update_expirations(uid)
@@ -727,7 +731,7 @@ class RedisBackend:
         status = await self._client.get(self._active_key(message.dest))
         if status is None:
             raise BadEntityIdError(message.dest)
-        elif status == MailboxStatus.TERMINATED.value:
+        elif status.decode() == MailboxStatus.TERMINATED.value:
             raise MailboxTerminatedError(message.dest)
 
         serialized = message.model_serialize()

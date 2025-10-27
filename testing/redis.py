@@ -16,21 +16,31 @@ logger = logging.getLogger(__name__)
 
 class MockRedis:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.values: dict[str, str] = {}
-        self.lists: dict[str, list[str]] = defaultdict(list)
-        self.events: dict[str, asyncio.Event] = defaultdict(asyncio.Event)
-        self.timeouts: dict[str, asyncio.Future[Any]] = {}
+        self.values: dict[bytes, bytes] = {}
+        self.lists: dict[bytes, list[bytes]] = defaultdict(list)
+        self.events: dict[bytes, asyncio.Event] = defaultdict(asyncio.Event)
+        self.timeouts: dict[bytes, asyncio.Future[Any]] = {}
+
+        assert (
+            'decode_responses' not in kwargs or not kwargs['decode_responses']
+        ), 'decode_responses is in compatible with the way we use Redis'
+
+    def _encode(self, value: bytes | str) -> bytes:
+        if isinstance(value, bytes):
+            return value
+        return value.encode()
 
     async def aclose(self) -> None:
         pass
 
     async def blpop(
         self,
-        keys: list[str],
+        keys: list[bytes | str],
         timeout: float = 0,
-    ) -> list[str] | None:
-        result: list[str] = []
+    ) -> list[bytes] | None:
+        result: list[bytes] = []
         for key in keys:
+            key = self._encode(key)  # noqa: PLW2901
             if len(self.lists[key]) > 0:
                 item = self.lists[key].pop()
                 self.events[key].clear()
@@ -48,31 +58,35 @@ class MockRedis:
             result.extend([key, item])
         return result
 
-    async def delete(self, key: str) -> None:  # pragma: no cover
+    async def delete(self, key: bytes | str) -> None:  # pragma: no cover
+        key = self._encode(key)
         if key in self.values:
             del self.values[key]
         elif key in self.lists:
             self.lists[key].clear()
 
-    async def exists(self, key: str) -> bool:  # pragma: no cover
+    async def exists(self, key: bytes | str) -> bool:  # pragma: no cover
+        key = self._encode(key)
         return key in self.values or key in self.lists
 
-    async def _expire_key(self, key, timeout: int):
+    async def _expire_key(self, key: bytes | str, timeout: int):
+        key = self._encode(key)
         await asyncio.sleep(timeout)
-        logger.info(f'Key {key} expired.')
+        logger.info(f'Key {key.decode()} expired.')
         await self.delete(key)
         self.events[key].clear()
         self.timeouts.pop(key, None)
 
     async def expire(  # noqa: PLR0913
         self,
-        key: str,
+        key: bytes | str,
         time: int,
         nx: bool = False,
         xx: bool = False,
         gt: bool = False,
         lt: bool = False,
     ) -> None:
+        key = self._encode(key)
         if nx and key in self.timeouts:
             return
 
@@ -89,15 +103,22 @@ class MockRedis:
 
     async def get(
         self,
-        key: str,
-    ) -> str | list[str] | None:
+        key: bytes | str,
+    ) -> bytes | list[bytes] | None:
+        key = self._encode(key)
         if key in self.values:
             return self.values[key]
         elif key in self.lists:
             raise NotImplementedError()
         return None
 
-    async def lrange(self, key: str, start: int, end: int) -> list[str]:
+    async def lrange(
+        self,
+        key: bytes | str,
+        start: int,
+        end: int,
+    ) -> list[bytes]:
+        key = self._encode(key)
         items = self.lists.get(key, None)
         if items is None:
             return []
@@ -107,17 +128,22 @@ class MockRedis:
     async def ping(self, **kwargs) -> None:
         pass
 
-    async def rpush(self, key: str, *values: str) -> None:
+    async def rpush(self, key: bytes | str, *values: bytes | str) -> None:
+        key = self._encode(key)
         for value in values:
+            value = self._encode(value)  # noqa: PLW2901
             self.lists[key].append(value)
             self.events[key].set()
 
-    async def scan_iter(self, pattern: str) -> AsyncGenerator[str]:
+    async def scan_iter(self, pattern: bytes | str) -> AsyncGenerator[bytes]:
+        pattern = self._encode(pattern)
         for key in self.values:
             if fnmatch.fnmatch(key, pattern):
                 yield key
 
-    async def set(self, key: str, value: str) -> None:
+    async def set(self, key: bytes | str, value: bytes | str) -> None:
+        key = self._encode(key)
+        value = self._encode(value)
         self.values[key] = value
 
 

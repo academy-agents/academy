@@ -57,8 +57,9 @@ class _Formatter(logging.Formatter):
             if k.startswith('academy.'):
                 extras += f' {k}={v!r}'
 
+        grey = '\033[2;37m'
         if extras != '':
-            extras = '\n' + extras
+            extras = '\n' + grey + extras
 
         return self.formatters[record.levelno].format(record) + extras
 

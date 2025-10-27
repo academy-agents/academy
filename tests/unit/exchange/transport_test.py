@@ -222,3 +222,7 @@ async def test_transport_discover(
     assert found == (bid,)
     found = await transport.discover(B, allow_subclasses=True)
     assert found == (bid, cid)
+
+    aid = (await transport.register_agent(A)).agent_id
+    found = await transport.discover(Agent)
+    assert set(found) == {bid, cid, aid}

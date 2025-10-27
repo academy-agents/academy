@@ -79,8 +79,6 @@ class Agent:
     """
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:  # noqa: D102
-        # this is what @abc does... is there a reason that
-        # can't be used here?
         if cls is Agent:
             raise TypeError(
                 f'The {cls.__name__} type cannot be instantiated directly '
@@ -216,25 +214,6 @@ class Agent:
         mro = cls.mro()
         base_index = mro.index(Agent)
         mro = mro[:base_index]
-        # my gut says this is a bit weird to be extracting
-        # up to the Agent class if there are other classes
-        # in the graph that appear *after* Agent but will
-        # be used for resolution? because this is an
-        # inheritance DAG that has been flattened.
-        # This is used in a few places for generating what looks like a
-        # user-agent-ish string. If so, that doesn't matter too much
-        # about resolution, but maybe its more interesting to filter
-        # Agent and object from the list and use everything that is
-        # left?
-        # The exchange also lets you discover by type (hierarchy) and
-        # if this is used there then thats a problem too?
-        # if we only care about discovering by concrete Agent subclasses
-        # i think this is fine: they'll all appear before Agent. but if
-        # people want to use marker types that aren't agent subclasses,
-        # this might not work because they can appear after Agent.
-        # The discover type signature forces the class to be an Agent
-        # type, so the marker type approach is forbidden there. Might
-        # be worth a note though for maintainers?
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
 
     async def agent_on_startup(self) -> None:

@@ -141,7 +141,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     def __init__(
         self,
         exchange_client: ExchangeClient[ExchangeTransportT],
-        executors: Executor | MutableMapping[str, Executor],
+        executors: Executor | None | MutableMapping[str, Executor | None],
         *,
         default_executor: str | None = None,
         max_retries: int = 0,
@@ -150,11 +150,17 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             executors = {'default': executors}
             default_executor = 'default'
 
+        if executors is None:
+            executors = {'native': None}
+            default_executor = 'native'
+
         if default_executor is not None and default_executor not in executors:
             raise ValueError(
                 f'No executor named "{default_executor}" was provided to '
                 'use as the default.',
             )
+
+        assert executors is not None
 
         self._exchange_client = exchange_client
         self._exchange_factory = exchange_client.factory()
@@ -202,7 +208,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     async def from_exchange_factory(
         cls,
         factory: ExchangeFactory[ExchangeTransportT],
-        executors: Executor | MutableMapping[str, Executor],
+        executors: Executor | None | MutableMapping[str, Executor | None],
         *,
         default_executor: str | None = None,
         max_retries: int = 0,
@@ -261,7 +267,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             await self.exchange_client.close()
 
         for executor in self._executors.values():
-            executor.shutdown(wait=True, cancel_futures=True)
+            if executor is not None:
+                executor.shutdown(wait=True, cancel_futures=True)
 
         exceptions = (acb.task.exception() for acb in self._acbs.values())
         exceptions_only = tuple(e for e in exceptions if e is not None)
@@ -313,9 +320,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._default_executor = name
         return self
 
-    async def _run_agent_in_executor(
+    async def _run_agent(
         self,
-        executor: Executor,
+        executor: Executor | None,
         spec: _RunSpec[AgentT, ExchangeTransportT],
     ) -> None:
         agent_id = spec.registration.agent_id
@@ -347,14 +354,17 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             )
 
             try:
-                await asyncio.wrap_future(
-                    executor.submit(
-                        _run_agent_on_worker,  # type: ignore[arg-type]
-                        spec,
-                        **spec.submit_kwargs,
-                    ),
-                    loop=loop,
-                )
+                if executor is not None:
+                    await asyncio.wrap_future(
+                        executor.submit(
+                            _run_agent_on_worker,  # type: ignore[arg-type]
+                            spec,
+                            **spec.submit_kwargs,
+                        ),
+                        loop=loop,
+                    )
+                else:
+                    await _run_agent_on_worker_async(spec)
             except asyncio.CancelledError:  # pragma: no cover
                 logger.warning('Cancelled %s task', agent_id)
                 raise
@@ -449,7 +459,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         )
 
         task = asyncio.create_task(
-            self._run_agent_in_executor(executor_instance, spec),
+            self._run_agent(executor_instance, spec),
             name=f'manager-run-{agent_id}',
         )
 
@@ -627,7 +637,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     def _warn_executor_overloaded(
         self,
-        executor: Executor,
+        executor: Executor | None,
         name: str,
     ) -> None:
         max_workers = _infer_max_workers(executor)
@@ -649,12 +659,17 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             )
 
 
-def _infer_max_workers(executor: Executor) -> int | None:  # pragma: no cover
+def _infer_max_workers(
+    executor: Executor | None,
+) -> int | None:  # pragma: no cover
     """Infer the maximum workers of the executor.
 
     The [`Executor`][concurrent.futures.Executor] specification does not
     provide a standard mechanism to get the maximum number of workers.
     """
+    if executor is None:
+        return None
+
     if hasattr(executor, '_max_workers'):
         # ProcessPoolExecutor and ThreadPoolExecutor
         return executor._max_workers

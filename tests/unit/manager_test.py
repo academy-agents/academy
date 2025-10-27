@@ -27,6 +27,7 @@ from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.manager import Manager
 from testing.agents import EmptyAgent
+from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
 from testing.constant import TEST_CONNECTION_TIMEOUT
 from testing.constant import TEST_SLEEP_INTERVAL
@@ -384,3 +385,20 @@ async def test_agent_manager_iteraction(
 
     with pytest.raises(MailboxTerminatedError):
         await child.echo('hello')
+
+
+@pytest.mark.asyncio
+async def test_native_agent_launch(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+):
+    agent = IdentityAgent()
+    async with await Manager.from_exchange_factory(
+        factory=exchange_client.factory(),
+        executors=None,
+    ) as manager:
+        hdl = await manager.launch(agent, executor='native')
+        result = await hdl.identity('hello')
+        assert result == 'hello'
+
+        await hdl.shutdown()
+        await manager.wait([hdl])

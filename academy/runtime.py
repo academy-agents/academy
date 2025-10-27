@@ -392,7 +392,12 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._agent_startup_called = True
 
         self._started_event.set()
-        logger.info('Running agent (%s; %s)', self.agent_id, self.agent)
+        logger.info(
+            'Running agent (%s; %s)',
+            self.agent_id,
+            self.agent,
+            extra={'academy.agent_id': self.agent_id},
+        )
 
     def _should_terminate_mailbox(self) -> bool:
         # Inspects the shutdown options and the run config to determine
@@ -422,6 +427,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
 
         # Cancel running control loop tasks
         for task in self._loop_tasks.values():
+            logger.warning('BENC: cancelling a task')
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task
@@ -431,6 +437,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             # Stop exchange listener thread before cancelling waiting on
             # running actions so we know that we won't receive an new
             # action requests
+            logger.warning('BENC: cancelling exchange listener')
             self._exchange_listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._exchange_listener_task
@@ -441,6 +448,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             # test_agent_action_message_cancelled but a slow test runner could
             # not begin shutdown until all the tasks have completed anyways
             if self.config.cancel_actions_on_shutdown:  # pragma: no branch
+                logger.warning('cancelling task on shutdown')
                 task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task

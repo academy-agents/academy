@@ -213,6 +213,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 message.src,
                 self.client_id,
             )
+            logger.debug(f'BENC: message content is {message!r}')
             await self._handle_message(message)
 
     @abc.abstractmethod

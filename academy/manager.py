@@ -80,6 +80,7 @@ async def _run_agent_on_worker_async(
         logger.exception(
             'Failure running agent on worker (%s)',
             spec.registration.agent_id,
+            extra={'academy.agent_id', spec.registration.agent_id},
         )
         raise
 
@@ -176,7 +177,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
 
-        logger.info('Initialized manager (%s)', self.user_id)
+        logger.info(
+            'Initialized manager (%s)',
+            self.user_id,
+            extra={'academy.user_id': self.user_id},
+        )
 
     async def __aenter__(self) -> Self:
         self.exchange_context_token = exchange_context.set(
@@ -190,7 +195,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
+        # I'm seeing hangs right here that are disguising the underlying
+        # exception, so it would be nice to have more exception info here
+        # rather than a hang that prevents later display/catch of execution.
+        logger.debug(f'Closing manager: exc_type={exc_type}')
         await self.close()
+        # ^ this is hanging in my fibonacci case. (which is why when theres
+        # an exception we never get to printing the exception at exit)
         exchange_context.reset(self.exchange_context_token)
 
     def __repr__(self) -> str:
@@ -275,7 +286,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             message='Caught failures in agent while shutting down.',
         )
 
-        logger.info('Closed manager (%s)', self.user_id)
+        logger.info(
+            'Closed manager (%s)',
+            self.user_id,
+            extra={'academy.user_id': self.user_id},
+        )
 
     def add_executor(self, name: str, executor: Executor) -> Self:
         """Add an executor to the manager.
@@ -351,6 +366,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 retries,
                 agent_id,
                 spec.agent,
+                extra={
+                    'academy.run_count': run_count,
+                    'academy.retries': retries,
+                    'academy.agent_id': agent_id,
+                    'academy.agent_spec': spec.agent,
+                },
             )
 
             try:
@@ -363,14 +384,23 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                     loop=loop,
                 )
             except asyncio.CancelledError:  # pragma: no cover
-                logger.warning('Cancelled %s task', agent_id)
+                logger.warning(
+                    'Task %s was cancelled',
+                    agent_id,
+                    exc_info=True,
+                    extra={'academy.agent_id': agent_id},
+                )
                 # phrasing: this code did not cancel the task?
                 raise
             except Exception:
                 if retries == 0:
                     # what about when retries is negative?
                     # (see other comment in this commit)
-                    logger.exception('Received exception from %s', agent_id)
+                    logger.exception(
+                        'Received exception from %s',
+                        agent_id,
+                        extra={'academy.agent_id': agent_id},
+                    )
                     raise
                 else:
                     assert retries > 0, (
@@ -379,9 +409,14 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                     logger.exception(
                         'Restarting %s due to exception',
                         agent_id,
+                        extra={'academy.agent_id': agent_id},
                     )
             else:
-                logger.debug('Completed %s task', agent_id)
+                logger.debug(
+                    'Completed %s task',
+                    agent_id,
+                    extra={'academy.agent_id': agent_id},
+                )
                 break
 
     async def launch(  # noqa: PLR0913
@@ -469,7 +504,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         acb = _ACB(agent_id=agent_id, executor=executor, task=task)
         self._acbs[agent_id] = acb
         handle = self.get_handle(agent_id)
-        logger.info('Launched agent (%s; %s)', agent_id, agent)
+        logger.info(
+            'Launched agent (%s; %s)',
+            agent_id,
+            agent,
+            extra={'academy.agent_id': agent_id},
+        )
         self._warn_executor_overloaded(executor_instance, executor)
         return handle
 

@@ -52,7 +52,15 @@ class _Formatter(logging.Formatter):
         }
 
     def format(self, record: logging.LogRecord) -> str:  # pragma: no cover
-        return self.formatters[record.levelno].format(record)
+        extras = ''
+        for k, v in record.__dict__.items():
+            if k.startswith('academy.'):
+                extras += f' {k}={v!r}'
+
+        if extras != '':
+            extras = '\n' + extras
+
+        return self.formatters[record.levelno].format(record) + extras
 
 
 def _os_thread_filter(

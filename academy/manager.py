@@ -127,7 +127,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         executors: An executor instance or mapping of names to executors to
             use to run agents. If a single executor is provided, it is set
             as the default executor with name `'default'`, overriding any
-            value of `default_executor`.
+            value of `default_executor`. Setting `executor=None` or passing
+            `{'name': None, ...}` can be used to launch agents in the current
+            event loop.
         default_executor: Specify the name of the default executor to use
             when not specified in `launch()`.
         max_retries: Maximum number of times to retry running an agent

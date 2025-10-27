@@ -276,8 +276,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         logger.debug('All agents have completed')
 
         await self.exchange_client.close()
-        for executor in self._executors.values():
+        for label, executor in self._executors.items():
+            logger.debug("Closing executor %s", label, extra={"academy.executor": label})
             executor.shutdown(wait=True, cancel_futures=True)
+            logger.debug("Closed executor %s", label, extra={"academy.executor": label})
+            # note bracketing style - LexicalSpan class in parsl prototype
 
         exceptions = (acb.task.exception() for acb in self._acbs.values())
         exceptions_only = tuple(e for e in exceptions if e is not None)

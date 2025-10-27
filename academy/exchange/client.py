@@ -163,7 +163,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             agent,
             name=name,
         )
-        logger.info('Registered %s in exchange', registration.agent_id)
+        logger.info('Registered %s in exchange', registration.agent_id, extra={"academy.agent_id": registration.agent_id})
         return registration
 
     async def send(self, message: Message[Any]) -> None:
@@ -177,7 +177,9 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             MailboxTerminatedError: If the mailbox was closed.
         """
         await self._transport.send(message)
-        logger.debug('Sent %s to %s', type(message).__name__, message.dest)
+        logger.debug('Sent %s to %s', type(message).__name__, message.dest, extra={"academy.message_tag": message.tag,
+                                                                                   "academy.message_dest": message.dest,
+                                                                                   "academy.message_name": type(message).__name__})
 
     async def status(self, uid: EntityId) -> MailboxStatus:
         """Check the status of a mailbox in the exchange.
@@ -212,8 +214,18 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 type(message).__name__,
                 message.src,
                 self.client_id,
+                extra={"academy.message_name": type(message).__name__,
+                       "academy.message_tag": message.tag,
+                       "academy.message_src": message.src,
+                       "academy.client_id": self.client_id
+                       # client ID field vs agent ID vs user ID - they're in the same space
+                       # and maybe this should always be client_id?
+                       # also note tag is logged in wide machine readable record,
+                       # even though it isn't in human readable section.
+                      }
             )
-            logger.debug(f'BENC: message content is {message!r}')
+            logger.debug(f'BENC: message content is {message!r}', extra={"academy.message_tag": message.tag,
+                                                                         "academy.message_repr": repr(message)})
             await self._handle_message(message)
 
     @abc.abstractmethod
@@ -266,7 +278,7 @@ class AgentExchangeClient(
 
             await self._transport.close()
             self._closed = True
-            logger.info('Closed exchange client for %s', self.client_id)
+            logger.info('Closed exchange client for %s', self.client_id, extra={"academy.client_id": self.client_id})
 
     async def _handle_message(self, message: Message[Any]) -> None:
         if message.is_request():
@@ -278,6 +290,10 @@ class AgentExchangeClient(
                     'message from %s but no corresponding handle exists.',
                     self.client_id,
                     message.src,
+                    extra={"academy.message_tag": message.tag,
+                           "academy.client_id": self.client_id,
+                           "academy.message_source": message.src,
+                          }
                 )
                 return
             handle = self._handles[message.label]
@@ -331,11 +347,11 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 return
 
             await self._transport.terminate(self.client_id)
-            logger.info(f'Terminated mailbox for {self.client_id}')
+            logger.info(f'Terminated mailbox for {self.client_id}', extra={"academy.client_id": self.client_id})
             await self._stop_listener_task()
             await self._transport.close()
             self._closed = True
-            logger.info('Closed exchange client for %s', self.client_id)
+            logger.info('Closed exchange client for %s', self.client_id, extra={"academy.client_id": self.client_id})
 
     async def _handle_message(self, message: Message[Any]) -> None:
         if message.is_request():
@@ -347,6 +363,9 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 'from %s',
                 self.client_id,
                 message.src,
+                extra={"academy.message_tag": message.tag,
+                       "academy.message_src": message.src,
+                      }
             )
         elif message.is_response():
             if message.label is None or message.label not in self._handles:
@@ -355,6 +374,9 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                     'message from %s but no corresponding handle exists.',
                     self.client_id,
                     message.src,
+                    extra={"academy.message_tag": message.tag,
+                           "academy.message_src": message.src,
+                          }
                 )
                 return
             handle = self._handles[message.label]

@@ -127,6 +127,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             agent,
             allow_subclasses=allow_subclasses,
         )
+
     # ^ this returns AgentID, not agents. why would I want
     # an agent id and not an agent? (API ergonomics...)
 

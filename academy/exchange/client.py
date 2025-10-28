@@ -12,6 +12,7 @@ from typing import Any
 from typing import Callable
 from typing import Generic
 from typing import TYPE_CHECKING
+from typing import TypeVar
 from weakref import WeakValueDictionary
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -24,8 +25,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
@@ -40,7 +39,10 @@ from academy.message import Message
 from academy.message import RequestT_co
 
 if TYPE_CHECKING:
+    from academy.agent import Agent
     from academy.exchange.factory import ExchangeFactory
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 logger = logging.getLogger(__name__)
 

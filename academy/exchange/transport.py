@@ -16,8 +16,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -25,6 +23,7 @@ from academy.message import ErrorResponse
 from academy.message import Message
 
 if TYPE_CHECKING:
+    from academy.agent import Agent
     from academy.exchange.factory import ExchangeFactory
 
 
@@ -37,6 +36,9 @@ class MailboxStatus(enum.Enum):
     """Mailbox exists and is accepting messages."""
     TERMINATED = 'TERMINATED'
     """Mailbox was terminated and no longer accepts messages."""
+
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 
 @runtime_checkable

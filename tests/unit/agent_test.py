@@ -16,9 +16,12 @@ from academy.agent import timer
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import AgentNotInitializedError
+from academy.exception import MailboxTerminatedError
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
+from academy.handle import Handle
 from academy.identifier import AgentId
+from academy.manager import Manager
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import WaitAgent
@@ -73,6 +76,8 @@ async def test_agent_context_initialized_error() -> None:
         _ = agent.agent_id
     with pytest.raises(AgentNotInitializedError):
         _ = agent.agent_exchange_client
+    with pytest.raises(AgentNotInitializedError):
+        _ = agent.agent_manager
     with pytest.raises(AgentNotInitializedError):
         agent.agent_shutdown()
 
@@ -369,3 +374,33 @@ async def test_agent_description() -> None:
     assert 'test' in description.actions
     action_description = description.actions['test']
     assert action_description.doc == 'This is a test method.'
+
+
+@pytest.mark.asyncio
+async def test_agent_launch_alongside(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    class ChildAgent(Agent):
+        @action
+        async def echo(self, item: str) -> str:
+            return item
+
+    class ParentAgent(Agent):
+        """This is an agent that makes children."""
+
+        @action
+        async def launch_child(self) -> Handle[ChildAgent]:
+            """Create a child."""
+            return await self.agent_launch_alongside(ChildAgent)
+
+    parent = await manager.launch(ParentAgent)
+    child = await parent.launch_child()
+
+    result = await child.echo('hello')
+    assert result == 'hello'
+
+    await manager.shutdown(parent)
+    await manager.wait([parent])
+
+    with pytest.raises(MailboxTerminatedError):
+        await child.echo('hello')

@@ -4,7 +4,6 @@ import os
 import pathlib
 import uuid
 from collections.abc import AsyncGenerator
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Callable
 
@@ -148,7 +147,7 @@ async def exchange_client() -> AsyncGenerator[
 async def manager(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> AsyncGenerator[Manager[LocalExchangeTransport]]:
-    async with Manager(exchange_client, ThreadPoolExecutor()) as manager:
+    async with Manager(exchange_client) as manager:
         yield manager
 
 

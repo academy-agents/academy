@@ -216,18 +216,6 @@ async def test_multiple_executor(
         await manager.launch(EmptyAgent(), executor='first')
 
 
-@pytest.mark.asyncio
-async def test_multiple_executor_no_default(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-    async with Manager(
-        exchange_client=exchange_client,
-        executors={'first': ThreadPoolExecutor()},
-    ) as manager:
-        with pytest.raises(ValueError, match=r'no default is set\.'):
-            await manager.launch(EmptyAgent())
-
-
 class FailOnStartupAgent(Agent):
     def __init__(self, max_errors: int | None = None) -> None:
         self.errors = 0
@@ -388,17 +376,19 @@ async def test_agent_manager_iteraction(
 
 
 @pytest.mark.asyncio
-async def test_native_agent_launch(
+async def test_event_loop_agent_launch(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ):
     agent = IdentityAgent()
     async with await Manager.from_exchange_factory(
         factory=exchange_client.factory(),
-        executors=None,
     ) as manager:
-        hdl = await manager.launch(agent, executor='native')
+        hdl = await manager.launch(agent)
         result = await hdl.identity('hello')
         assert result == 'hello'
 
+        second = await manager.launch(agent, executor='event_loop')
+
         await hdl.shutdown()
-        await manager.wait([hdl])
+        await second.shutdown()
+        await manager.wait([hdl, second])

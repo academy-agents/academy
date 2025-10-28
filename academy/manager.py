@@ -55,14 +55,6 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
 async def _run_agent_on_worker_async(
     spec: _RunSpec[AgentT, ExchangeTransportT],
 ) -> None:
-    if spec.init_logging:
-        if spec.logfile is not None:
-            logfile = spec.logfile.format(agent_id=spec.registration.agent_id)
-        else:
-            logfile = None
-
-        init_logging(level=spec.loglevel, logfile=logfile)
-
     try:
         if isinstance(spec.agent, type):
             agent = spec.agent(*spec.agent_args, **spec.agent_kwargs)
@@ -88,6 +80,14 @@ def _run_agent_on_worker(
     spec: _RunSpec[AgentT, ExchangeTransportT],
     **kwargs: Any,
 ) -> None:
+    if spec.init_logging:
+        if spec.logfile is not None:
+            logfile = spec.logfile.format(agent_id=spec.registration.agent_id)
+        else:
+            logfile = None
+
+        init_logging(level=spec.loglevel, logfile=logfile)
+
     asyncio.run(_run_agent_on_worker_async(spec))
 
 
@@ -143,31 +143,29 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     def __init__(
         self,
         exchange_client: ExchangeClient[ExchangeTransportT],
-        executors: Executor | None | MutableMapping[str, Executor | None],
+        executors: Executor
+        | MutableMapping[str, Executor | None]
+        | None = None,
         *,
-        default_executor: str | None = None,
+        default_executor: str = 'event_loop',
         max_retries: int = 0,
     ) -> None:
+        self._executors: dict[str, Executor | None] = {'event_loop': None}
         if isinstance(executors, Executor):
-            executors = {'default': executors}
+            self._executors.update({'default': executors})
             default_executor = 'default'
+        elif isinstance(executors, MutableMapping):
+            self._executors.update(executors)
 
-        if executors is None:
-            executors = {'native': None}
-            default_executor = 'native'
-
-        if default_executor is not None and default_executor not in executors:
+        if default_executor not in self._executors:
             raise ValueError(
                 f'No executor named "{default_executor}" was provided to '
                 'use as the default.',
             )
 
-        assert executors is not None
-
         self._exchange_client = exchange_client
         self._exchange_factory = exchange_client.factory()
         self._user_id = self._exchange_client.client_id
-        self._executors = executors
         self._default_executor = default_executor
         self._max_retries = max_retries
 
@@ -210,9 +208,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     async def from_exchange_factory(
         cls,
         factory: ExchangeFactory[ExchangeTransportT],
-        executors: Executor | None | MutableMapping[str, Executor | None],
+        executors: Executor
+        | MutableMapping[str, Executor | None]
+        | None = None,
         *,
-        default_executor: str | None = None,
+        default_executor: str = 'event_loop',
         max_retries: int = 0,
     ) -> Self:
         """Instantiate a new exchange client and manager from a factory."""
@@ -303,13 +303,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._executors[name] = executor
         return self
 
-    def set_default_executor(self, name: str | None) -> Self:
+    def set_default_executor(self, name: str) -> Self:
         """Set the default executor by name.
 
         Args:
-            name: Name of the executor to use as default. If `None`, no
-                default executor is set and all calls to `launch()` must
-                specify the executor.
+            name: Name of the executor to use as default.
 
         Returns:
             Self for chaining.
@@ -429,10 +427,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             ValueError: If no default executor is set and `executor` is not
                 specified.
         """
-        if self._default_executor is None and executor is None:
-            raise ValueError(
-                'Must specify the executor when no default is set.',
-            )
         executor = executor if executor is not None else self._default_executor
         assert executor is not None
         executor_instance = self._executors[executor]
@@ -462,14 +456,15 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         task = asyncio.create_task(
             self._run_agent(executor_instance, spec),
-            name=f'manager-run-{agent_id}',
+            name=f'manager-{executor}-run-{agent_id}',
         )
 
         acb = _ACB(agent_id=agent_id, executor=executor, task=task)
         self._acbs[agent_id] = acb
         handle = self.get_handle(agent_id)
         logger.info('Launched agent (%s; %s)', agent_id, agent)
-        self._warn_executor_overloaded(executor_instance, executor)
+        if executor_instance is not None:
+            self._warn_executor_overloaded(executor_instance, executor)
         return handle
 
     def get_handle(
@@ -639,7 +634,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     def _warn_executor_overloaded(
         self,
-        executor: Executor | None,
+        executor: Executor,
         name: str,
     ) -> None:
         max_workers = _infer_max_workers(executor)
@@ -662,16 +657,13 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
 
 def _infer_max_workers(
-    executor: Executor | None,
+    executor: Executor,
 ) -> int | None:  # pragma: no cover
     """Infer the maximum workers of the executor.
 
     The [`Executor`][concurrent.futures.Executor] specification does not
     provide a standard mechanism to get the maximum number of workers.
     """
-    if executor is None:
-        return None
-
     if hasattr(executor, '_max_workers'):
         # ProcessPoolExecutor and ThreadPoolExecutor
         return executor._max_workers

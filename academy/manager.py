@@ -103,7 +103,7 @@ class _ACB(Generic[AgentT]):
 class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     """Launch and manage running agents.
 
-    A manager is used to launch agents using one or more
+    A manager is used to launch agents in the current event loop or in
     [`Executors`][concurrent.futures.Executor] and interact with/manage those
     agents.
 
@@ -128,9 +128,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         executors: An executor instance or mapping of names to executors to
             use to run agents. If a single executor is provided, it is set
             as the default executor with name `'default'`, overriding any
-            value of `default_executor`. Setting `executor=None` or passing
-            `{'name': None, ...}` can be used to launch agents in the current
-            event loop.
+            value of `default_executor`. Setting `executor=None` (the default)
+            or passing `{'name': None, ...}` can be used to launch agents
+            in the current event loop.
         default_executor: Specify the name of the default executor to use
             when not specified in `launch()`.
         max_retries: Maximum number of times to retry running an agent
@@ -409,7 +409,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 Ignored if `agent` is already an instance.
             config: Agent run configuration.
             executor: Name of the executor instance to use. If `None`, uses
-                the default executor, if specified, otherwise raises an error.
+                the default executor.
             submit_kwargs: Additional arguments to pass to the submit function
                 of the executor (i.e. a resource specification).
             name: Readable name of the agent used when registering a new agent.
@@ -425,8 +425,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         Raises:
             RuntimeError: If `registration` is provided and an agent with
                 that ID has already been executed.
-            ValueError: If no default executor is set and `executor` is not
-                specified.
         """
         executor = executor if executor is not None else self._default_executor
         assert executor is not None

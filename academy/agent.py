@@ -31,6 +31,7 @@ from pydantic import BaseModel
 from academy.event import wait_event_async
 from academy.exception import AgentNotInitializedError
 from academy.handle import Handle
+from academy.manager import Manager
 
 if TYPE_CHECKING:
     from academy.context import AgentContext
@@ -478,6 +479,7 @@ class Agent:
     def __init__(self) -> None:
         self.__agent_context: AgentContext[Self] | None = None
         self.__agent_run_sync_semaphore: asyncio.Semaphore | None = None
+        self.__manager: Manager[Any] | None = None
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}()'
@@ -524,6 +526,22 @@ class Agent:
                 this agent has not been started.
         """
         return self.agent_context.exchange_client
+
+    @property
+    def agent_manager(self) -> Manager[Any]:
+        """Agent exchange client.
+
+        Raises:
+            AgentNotInitializedError: If the agent runtime implementing
+                this agent has not been started.
+        """
+        if (
+            # Check _Agent__manager rather than __manager
+            # because of Python's name mangling
+            not hasattr(self, '_Agent__manager') or self.__manager is None
+        ):
+            raise AgentNotInitializedError
+        return self.__manager
 
     def _agent_attributes(self) -> Generator[tuple[str, Any]]:
         """Returns a generator that yields attributes of the agent.
@@ -607,6 +625,26 @@ class Agent:
         base_index = mro.index(Agent)
         mro = mro[: base_index + 1]
         return tuple(f'{t.__module__}.{t.__qualname__}' for t in mro)
+
+    async def _agent_startup(self) -> None:
+        """Private callback invoked before startup sequence.
+
+        Warning:
+            This should not be overridden by sub-classes. Use
+            [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup]
+        """
+        self.__manager = Manager(self.agent_exchange_client)
+
+    async def _agent_shutdown(self) -> None:
+        """Private callback invoked after shutdown sequence.
+
+        Warning:
+            This should not be overridden by sub-classes. Use
+            [`Agent.agent_on_shutdown()`][academy.agent.Agent.agent_on_shutdown]
+        """
+        if self.__manager is not None:
+            await self.__manager.close(close_exchange=False)
+        self.__manager = None
 
     async def agent_on_startup(self) -> None:
         """Callback invoked at the end of an agent's startup sequence.
@@ -715,6 +753,36 @@ class Agent:
                 this agent has not been started.
         """
         self.agent_context.shutdown_event.set()
+
+    async def agent_launch_alongside(
+        self,
+        agent: AgentT | type[AgentT],
+        *,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
+    ) -> Handle[AgentT]:
+        """Launch an child agent in the current event loop.
+
+        Note:
+           This is a wrapper around `self.manager.launch`. For more options
+           and control over launching child agents, use `self.manager`
+           directly.
+
+        Args:
+            agent: Agent instance the agent will implement or the
+                agent type that will be initialized on the worker using
+                `args` and `kwargs`.
+            args: Positional arguments used to initialize the agent.
+                Ignored if `agent` is already an instance.
+            kwargs: Keyword arguments used to initialize the agent.
+                Ignored if `agent` is already an instance.
+        """
+        return await self.agent_manager.launch(
+            agent,
+            args=args,
+            kwargs=kwargs,
+            executor='event_loop',
+        )
 
     @action
     async def agent_describe(self) -> AgentDescription:

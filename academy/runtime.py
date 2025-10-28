@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
 from typing import TypeVar
 
 from academy.task import spawn_guarded_background_task
@@ -22,7 +23,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import AgentT
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import ActionCancelledError
@@ -48,6 +48,11 @@ from academy.message import ResponseT_co
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.serialize import NoPickleMixin
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 logger = logging.getLogger(__name__)
 
@@ -435,6 +440,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             )
             self._loop_tasks[name] = task
 
+        await self.agent._agent_startup()
         await self.agent.agent_on_startup()
         self._agent_startup_called = True
 
@@ -479,6 +485,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             # Don't call agent_on_shutdown() if we never called
             # agent_on_startup()
             await self.agent.agent_on_shutdown()
+
+        await self.agent._agent_shutdown()
 
         # Cancel running control loop tasks
         for task in self._loop_tasks.values():

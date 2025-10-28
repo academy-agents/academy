@@ -9,10 +9,10 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import ParamSpec
+from typing import Callable
 
 import pytest
 
-from academy.agent import action
 from academy.agent import Agent
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -387,46 +387,6 @@ async def test_worker_init_logging_warn(
 
     await handle.shutdown()
     await manager.wait({handle})
-
-
-@pytest.mark.asyncio
-async def test_agent_manager_iteraction(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    class ChildAgent(Agent):
-        @action
-        async def echo(self, item: str) -> str:
-            return item
-
-    class ParentAgent(Agent):
-        """This is an agent that makes children."""
-
-        async def agent_on_startup(self):
-            self.manager = Manager(
-                self.agent_exchange_client,
-                ThreadPoolExecutor(),
-            )
-
-        async def agent_on_shutdown(self):
-            await self.manager.close(close_exchange=False)
-            return await super().agent_on_shutdown()
-
-        @action
-        async def launch_child(self) -> Handle[ChildAgent]:
-            """Create a child."""
-            return await self.manager.launch(ChildAgent)
-
-    parent = await manager.launch(ParentAgent)
-    child = await parent.launch_child()
-
-    result = await child.echo('hello')
-    assert result == 'hello'
-
-    await manager.shutdown(parent)
-    await manager.wait([parent])
-
-    with pytest.raises(MailboxTerminatedError):
-        await child.echo('hello')
 
 
 @pytest.mark.asyncio

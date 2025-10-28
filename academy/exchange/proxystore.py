@@ -8,6 +8,8 @@ from collections.abc import Iterable
 from collections.abc import Mapping
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 from academy.agent import Agent
 from academy.agent import AgentT

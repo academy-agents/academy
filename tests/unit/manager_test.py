@@ -5,6 +5,7 @@ import os
 import pathlib
 import sys
 from concurrent.futures import Future
+from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Callable
@@ -22,6 +23,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
@@ -315,22 +317,46 @@ async def test_executor_pass_kwargs(
 # logging already.
 @pytest.mark.asyncio
 async def test_worker_init_logging_no_logfile(
-    manager: Manager[LocalExchangeTransport],
+    http_exchange_factory: HttpExchangeFactory,
 ) -> None:
-    agent = SleepAgent(TEST_SLEEP_INTERVAL)
-    handle = await manager.launch(agent, init_logging=True)
-    await handle.shutdown()
-    await manager.wait({handle})
+    async with await Manager.from_exchange_factory(
+        http_exchange_factory,
+        executors=ProcessPoolExecutor(max_workers=1),
+    ) as manager:
+        agent = SleepAgent(TEST_SLEEP_INTERVAL)
+        handle = await manager.launch(agent, init_logging=True)
+        await handle.shutdown()
+        await manager.wait({handle})
 
 
 @pytest.mark.asyncio
 async def test_worker_init_logging_logfile(
-    manager: Manager[LocalExchangeTransport],
+    http_exchange_factory: HttpExchangeFactory,
     tmp_path: pathlib.Path,
 ) -> None:
-    filepath = os.path.join(tmp_path, '{agent_id}-log.txt')
+    async with await Manager.from_exchange_factory(
+        http_exchange_factory,
+        executors=ProcessPoolExecutor(max_workers=1),
+    ) as manager:
+        filepath = os.path.join(tmp_path, '{agent_id}-log.txt')
+        agent = SleepAgent(TEST_SLEEP_INTERVAL)
+        handle = await manager.launch(
+            agent,
+            init_logging=True,
+            logfile=filepath,
+        )
+        await handle.shutdown()
+        await manager.wait({handle})
+
+
+@pytest.mark.asyncio
+async def test_worker_init_logging_warn(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
     agent = SleepAgent(TEST_SLEEP_INTERVAL)
-    handle = await manager.launch(agent, init_logging=True, logfile=filepath)
+    with pytest.warns(UserWarning, match='init_logging'):
+        handle = await manager.launch(agent, init_logging=True)
+
     await handle.shutdown()
     await manager.wait({handle})
 

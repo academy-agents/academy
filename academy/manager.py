@@ -9,6 +9,7 @@ import warnings
 from collections.abc import Iterable
 from collections.abc import MutableMapping
 from concurrent.futures import Executor
+from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -437,6 +438,18 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         elif registration.agent_id in self._acbs:
             raise RuntimeError(
                 f'{registration.agent_id} has already been executed.',
+            )
+
+        if init_logging and (
+            executor_instance is None
+            or isinstance(executor_instance, ThreadPoolExecutor)
+        ):
+            warnings.warn(
+                f'`init_logging` was specified for agent '
+                f'{registration.agent_id} running in the same process as the '
+                f'Manager. `init_logging` should only be called once per '
+                f'process.',
+                stacklevel=2,
             )
 
         agent_id = registration.agent_id

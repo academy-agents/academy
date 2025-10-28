@@ -9,6 +9,8 @@ import uuid
 from typing import Any
 from typing import Generic
 from typing import NamedTuple
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -17,8 +19,6 @@ else:  # pragma: <3.11 cover
 
 import redis.asyncio
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange.factory import ExchangeFactory
@@ -30,6 +30,11 @@ from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 logger = logging.getLogger(__name__)
 

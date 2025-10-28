@@ -7,6 +7,8 @@ from collections.abc import Coroutine
 from typing import Any
 from typing import Callable
 from typing import Generic
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import TypeAlias
@@ -18,7 +20,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     pass
 
-from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exchange.client import AgentExchangeClient
 from academy.exchange.client import UserExchangeClient
@@ -30,6 +31,11 @@ from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
 from academy.message import RequestT_co
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 logger = logging.getLogger(__name__)
 

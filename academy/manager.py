@@ -13,13 +13,14 @@ from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import AgentT
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
@@ -35,6 +36,11 @@ from academy.logging import init_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 logger = logging.getLogger(__name__)
 

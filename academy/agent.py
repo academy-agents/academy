@@ -28,10 +28,10 @@ else:  # pragma: <3.11 cover
 
 from pydantic import BaseModel
 
+import academy.manager as m
 from academy.event import wait_event_async
 from academy.exception import AgentNotInitializedError
 from academy.handle import Handle
-from academy.manager import Manager
 
 if TYPE_CHECKING:
     from academy.context import AgentContext
@@ -479,7 +479,7 @@ class Agent:
     def __init__(self) -> None:
         self.__agent_context: AgentContext[Self] | None = None
         self.__agent_run_sync_semaphore: asyncio.Semaphore | None = None
-        self.__manager: Manager[Any] | None = None
+        self.__manager: m.Manager[Any] | None = None
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}()'
@@ -528,7 +528,7 @@ class Agent:
         return self.agent_context.exchange_client
 
     @property
-    def agent_manager(self) -> Manager[Any]:
+    def agent_manager(self) -> m.Manager[Any]:
         """Agent exchange client.
 
         Raises:
@@ -633,7 +633,7 @@ class Agent:
             This should not be overridden by sub-classes. Use
             [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup]
         """
-        self.__manager = Manager(self.agent_exchange_client)
+        self.__manager = m.Manager(self.agent_exchange_client)
 
     async def _agent_shutdown(self) -> None:
         """Private callback invoked after shutdown sequence.

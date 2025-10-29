@@ -8,7 +8,8 @@ from typing import Generic
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
-from academy.exchange import AgentExchangeClient
+# from academy.exchange import AgentExchangeClient
+import academy.exchange as ae
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -26,7 +27,7 @@ class ActionContext:
     def __init__(
         self,
         source_id: EntityId,
-        exchange_client: AgentExchangeClient[Any, Any],
+        exchange_client: ae.AgentExchangeClient[Any, Any],
     ) -> None:
         self._source_id = source_id
         self._exchange_client = exchange_client
@@ -70,7 +71,7 @@ class AgentContext(Generic[AgentT]):
 
     agent_id: AgentId[AgentT]
     """ID of the exchange as registered with the exchange."""
-    exchange_client: AgentExchangeClient[AgentT, Any]
+    exchange_client: ae.AgentExchangeClient[AgentT, Any]
     """Client used by agent to communicate with the exchange."""
     executor: ThreadPoolExecutor
     """Thread-pool executor used for running synchronous tasks."""

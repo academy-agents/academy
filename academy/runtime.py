@@ -23,6 +23,10 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+# from academy.exchange import AgentExchangeClient
+# from academy.exchange import ExchangeClient
+# from academy.exchange import ExchangeFactory
+import academy.exchange as ae
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import ActionCancelledError
@@ -30,9 +34,6 @@ from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import PingCancelledError
 from academy.exception import raise_exceptions
-from academy.exchange import AgentExchangeClient
-from academy.exchange import ExchangeClient
-from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
@@ -134,7 +135,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self,
         agent: AgentT,
         *,
-        exchange_factory: ExchangeFactory[ExchangeTransportT],
+        exchange_factory: ae.ExchangeFactory[ExchangeTransportT],
         registration: AgentRegistrationT,
         config: RuntimeConfig | None = None,
     ) -> None:
@@ -162,11 +163,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         )
 
         self._exchange_client: (
-            AgentExchangeClient[AgentT, ExchangeTransportT] | None
+            ae.AgentExchangeClient[AgentT, ExchangeTransportT] | None
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
         self.exchange_context_token: (
-            contextvars.Token[ExchangeClient[Any]] | None
+            contextvars.Token[ae.ExchangeClient[Any]] | None
         ) = None
 
     async def __aenter__(self) -> Self:

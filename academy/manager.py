@@ -21,11 +21,13 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+import academy.exchange as ae
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
-from academy.exchange import ExchangeClient
-from academy.exchange import ExchangeFactory
+
+# from academy.exchange import ExchangeClient
+# from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
@@ -49,7 +51,7 @@ logger = logging.getLogger(__name__)
 class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     agent: AgentT | type[AgentT]
     config: RuntimeConfig
-    exchange_factory: ExchangeFactory[ExchangeTransportT]
+    exchange_factory: ae.ExchangeFactory[ExchangeTransportT]
     registration: AgentRegistration[AgentT]
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
@@ -149,7 +151,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     def __init__(
         self,
-        exchange_client: ExchangeClient[ExchangeTransportT],
+        exchange_client: ae.ExchangeClient[ExchangeTransportT],
         executors: Executor
         | MutableMapping[str, Executor | None]
         | None = None,
@@ -214,7 +216,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     @classmethod
     async def from_exchange_factory(
         cls,
-        factory: ExchangeFactory[ExchangeTransportT],
+        factory: ae.ExchangeFactory[ExchangeTransportT],
         executors: Executor
         | MutableMapping[str, Executor | None]
         | None = None,
@@ -232,12 +234,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         )
 
     @property
-    def exchange_client(self) -> ExchangeClient[ExchangeTransportT]:
+    def exchange_client(self) -> ae.ExchangeClient[ExchangeTransportT]:
         """User client for the exchange."""
         return self._exchange_client
 
     @property
-    def exchange_factory(self) -> ExchangeFactory[ExchangeTransportT]:
+    def exchange_factory(self) -> ae.ExchangeFactory[ExchangeTransportT]:
         """Client factory for the exchange."""
         return self._exchange_factory
 

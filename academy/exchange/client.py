@@ -25,6 +25,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+import academy.agent as aa
 from academy.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
@@ -38,11 +39,12 @@ from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import RequestT_co
 
+# from academy.agent import Agent
+
 if TYPE_CHECKING:
-    from academy.agent import Agent
     from academy.exchange.factory import ExchangeFactory
 
-AgentT = TypeVar('AgentT', bound='Agent')
+AgentT = TypeVar('AgentT', bound='aa.Agent')
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +110,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[aa.Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:

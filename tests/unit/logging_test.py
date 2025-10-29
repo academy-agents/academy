@@ -20,7 +20,10 @@ def test_logging_no_file(color: bool, extra: bool) -> None:
     logger.info('Test logging')
 
 
-@pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
+@pytest.mark.parametrize(
+    ('color', 'extra'),
+    ((True, True), (False, False), (False, 2)),
+)
 def test_logging_with_file(
     color: bool,
     extra: bool,

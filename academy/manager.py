@@ -53,7 +53,7 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     logfile: str | None = None
 
 
-async def _run_agent_on_worker_async(
+async def _run_agent_async(
     spec: _RunSpec[AgentT, ExchangeTransportT],
 ) -> None:
     try:
@@ -89,7 +89,7 @@ def _run_agent_on_worker(
 
         init_logging(level=spec.loglevel, logfile=logfile)
 
-    asyncio.run(_run_agent_on_worker_async(spec))
+    asyncio.run(_run_agent_async(spec))
 
 
 @dataclasses.dataclass
@@ -365,7 +365,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                         loop=loop,
                     )
                 else:
-                    await _run_agent_on_worker_async(spec)
+                    await _run_agent_async(spec)
             except asyncio.CancelledError:  # pragma: no cover
                 logger.warning('Cancelled %s task', agent_id)
                 raise
@@ -667,9 +667,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             )
 
 
-def _infer_max_workers(
-    executor: Executor,
-) -> int | None:  # pragma: no cover
+def _infer_max_workers(executor: Executor) -> int | None:  # pragma: no cover
     """Infer the maximum workers of the executor.
 
     The [`Executor`][concurrent.futures.Executor] specification does not

@@ -20,6 +20,9 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+from typing import TYPE_CHECKING
+from typing import TypeVar
+
 import globus_sdk
 from globus_sdk import AuthClient
 from globus_sdk import DependentScopeSpec
@@ -31,8 +34,6 @@ from globus_sdk.exc import GlobusAPIError
 from globus_sdk.gare import GlobusAuthorizationParameters
 from globus_sdk.scopes import AuthScopes
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
@@ -48,6 +49,11 @@ from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 logger = logging.getLogger(__name__)
 

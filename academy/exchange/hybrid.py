@@ -11,6 +11,8 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -31,8 +33,6 @@ else:  # pragma: <3.13 cover
 
 import redis.asyncio
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange.factory import ExchangeFactory
@@ -52,6 +52,11 @@ from academy.socket import open_port
 from academy.socket import SimpleSocketServer
 from academy.socket import SocketClosedError
 from academy.socket import SocketPool
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+
+AgentT = TypeVar('AgentT', bound='Agent')
 
 logger = logging.getLogger(__name__)
 

@@ -298,9 +298,8 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             type(message.body).__name__,
             message.dest,
             address,
-            extra={
-                'academy.message_type': type(message.body).__name__,
-                'academy.message_dest': message.dest,
+            extra=message.log_extra()
+            | {
                 'academy.via': address,
             },
         )
@@ -353,10 +352,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 'Sent %s to %s via redis',
                 type(message.body).__name__,
                 message.dest,
-                extra={
-                    'academy.message_type': type(message.body).__name__,
-                    'academy.message_dest': message.dest,
-                },
+                extra=message.log_extra(),
             )
 
     async def status(self, uid: EntityId) -> MailboxStatus:
@@ -413,10 +409,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             'Received %s to %s via redis',
             type(message.body).__name__,
             self.mailbox_id,
-            extra={
-                'academy.message_type': type(message.body).__name__,
-                'academy.message_dest': self.mailbox_id,
-            },
+            extra=message.log_extra(),
         )
         await self._messages.put(message)
 
@@ -465,10 +458,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             'Received %s to %s via p2p',
             type(message.body).__name__,
             self.mailbox_id,
-            extra={
-                'academy.message_type': type(message.body).__name__,
-                'academy.message_dest': self.mailbox_id,
-            },
+            extra=message.log_extra(),
         )
         await self._messages.put(message)
         return None

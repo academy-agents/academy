@@ -120,8 +120,14 @@ class GlobusAuthenticator:
         token: str,
     ) -> globus_sdk.response.GlobusHTTPResponse:
         response = self.auth_client.oauth2_token_introspect(token)
-        logger.info(f'Authenticated token with globus: {token}.')
-        logger.debug(f'Token introspect response: {response}.')
+        logger.info(
+            f'Authenticated token with globus: {token}.',
+            extra={'academy.token': token},
+        )
+        logger.debug(
+            f'Token introspect response: {response}.',
+            extra={'academy.response': response},
+        )
         return response
 
     async def authenticate_user(self, headers: Mapping[str, str]) -> str:

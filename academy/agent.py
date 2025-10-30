@@ -263,9 +263,19 @@ def loop(method: LoopMethod[AgentT]) -> LoopMethod[AgentT]:
 
     @functools.wraps(method)
     async def _wrapped(self: AgentT, shutdown: asyncio.Event) -> None:
-        logger.debug('Started %r loop for %s', method.__name__, self)
+        logger.debug(
+            'Started %r loop for %s',
+            method.__name__,
+            self,
+            extra={'academy.method': method.__name__, 'academy.self': self},
+        )
         await method(self, shutdown)
-        logger.debug('Exited %r loop for %s', method.__name__, self)
+        logger.debug(
+            'Exited %r loop for %s',
+            method.__name__,
+            self,
+            extra={'academy.method': method.__name__, 'academy.self': self},
+        )
 
     return _wrapped
 
@@ -327,6 +337,11 @@ def event(
                 method.__name__,
                 self,
                 name,
+                extra={
+                    'academy.method': method.__name__,
+                    'academy.self': self,
+                    'academy.event_name': name,
+                },
             )
             while not shutdown.is_set():
                 await wait_event_async(shutdown, event)
@@ -335,7 +350,15 @@ def event(
                         await method(self)
                     finally:
                         event.clear()
-            logger.debug('Exited %r event loop for %s', method.__name__, self)
+            logger.debug(
+                'Exited %r event loop for %s',
+                method.__name__,
+                self,
+                extra={
+                    'academy.method': method.__name__,
+                    'academy.self': self,
+                },
+            )
 
         return _wrapped
 
@@ -387,13 +410,26 @@ def timer(
                 method.__name__,
                 self,
                 interval,
+                extra={
+                    'academy.method': method.__name__,
+                    'academy.self': self,
+                    'academy.interval': interval,
+                },
             )
             while not shutdown.is_set():
                 try:
                     await asyncio.wait_for(shutdown.wait(), timeout=interval)
                 except asyncio.TimeoutError:
                     await method(self)
-            logger.debug('Exited %r timer loop for %s', method.__name__, self)
+            logger.debug(
+                'Exited %r timer loop for %s',
+                method.__name__,
+                self,
+                extra={
+                    'academy.method': method.__name__,
+                    'academy.self': self,
+                },
+            )
 
         return _wrapped
 
@@ -663,6 +699,10 @@ class Agent:
                 f'Thread-pool executor for {self.agent_id} is overloaded, '
                 f'sync function "{function.__name__}" is waiting for a '
                 'worker',
+                extra={
+                    'academy.agent_id': self.agent_id,
+                    'academy.function_name': function.__name__,
+                },
             )
 
         async with self.__agent_run_sync_semaphore:

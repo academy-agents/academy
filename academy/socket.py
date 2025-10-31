@@ -356,7 +356,12 @@ class SimpleSocketServer:
             host=self.host,
             port=self.port,
         )
-        logger.debug('TCP server listening at %s:%s', self.host, self.port)
+        logger.debug(
+            'TCP server listening at %s:%s',
+            self.host,
+            self.port,
+            extra={'academy.host': self.host, 'academy.port': self.port},
+        )
 
         async with server:
             await server.start_serving()
@@ -370,7 +375,12 @@ class SimpleSocketServer:
 
         if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
             server.close_clients()
-        logger.debug('TCP server finished at %s:%s', self.host, self.port)
+        logger.debug(
+            'TCP server finished at %s:%s',
+            self.host,
+            self.port,
+            extra={'academy.host': self.host, 'academy.port': self.port},
+        )
 
 
 def _get_size_from_header(header: bytes) -> int:

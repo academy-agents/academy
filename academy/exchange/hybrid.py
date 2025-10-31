@@ -181,7 +181,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 f'{namespace}:status:{uuid_to_base32(mailbox_id.uid)}',
                 _MailboxState.ACTIVE.value,
             )
-            logger.info('Registered %s in exchange', mailbox_id)
+            logger.info(
+                'Registered %s in exchange',
+                mailbox_id,
+                extra={'academy.mailbox_id': mailbox_id},
+            )
 
         await client.set(
             f'{namespace}:address:{uuid_to_base32(mailbox_id.uid)}',
@@ -295,6 +299,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             type(message).__name__,
             message.dest,
             address,
+            extra={
+                'academy.message_type': type(message).__name__,
+                'academy.message_dest': message.dest,
+                'academy.via': address,
+            },
         )
 
     async def send(self, message: Message[Any]) -> None:
@@ -345,6 +354,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 'Sent %s to %s via redis',
                 type(message).__name__,
                 message.dest,
+                extra={
+                    'academy.message_type': type(message).__name__,
+                    'academy.message_dest': message.dest,
+                },
             )
 
     async def status(self, uid: EntityId) -> MailboxStatus:
@@ -401,11 +414,19 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             'Received %s to %s via redis',
             type(message).__name__,
             self.mailbox_id,
+            extra={
+                'academy.message_type': type(message).__name__,
+                'academy.message_dest': self.mailbox_id,
+            },
         )
         await self._messages.put(message)
 
     async def _run_redis_listener(self) -> None:
-        logger.debug('Started redis listener task for %s', self.mailbox_id)
+        logger.debug(
+            'Started redis listener task for %s',
+            self.mailbox_id,
+            extra={'academy.mailbox_id': self.mailbox_id},
+        )
         try:
             while True:
                 status = await self._redis_client.get(
@@ -428,6 +449,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             logger.exception(
                 'Error in redis listener task for %s',
                 self.mailbox_id,
+                extra={'academy.mailbox_id': self.mailbox_id},
             )
         finally:
             self._shutdown.set()
@@ -435,6 +457,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             logger.debug(
                 'Stopped redis listener task for %s',
                 self.mailbox_id,
+                extra={'academy.mailbox_id': self.mailbox_id},
             )
 
     async def _direct_message_handler(self, payload: bytes) -> bytes | None:
@@ -443,6 +466,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             'Received %s to %s via p2p',
             type(message).__name__,
             self.mailbox_id,
+            extra={
+                'academy.message_type': type(message).__name__,
+                'academy.message_dest': self.mailbox_id,
+            },
         )
         await self._messages.put(message)
         return None
@@ -451,6 +478,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         logger.debug(
             'Started direct message server task for %s',
             self.mailbox_id,
+            extra={'academy.mailbox_id': self.mailbox_id},
         )
         async with self._server.serve():
             self._started.set()

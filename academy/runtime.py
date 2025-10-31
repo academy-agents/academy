@@ -197,12 +197,20 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 'destination mailbox was terminated.',
                 self.agent_id,
                 response.dest,
+                extra={
+                    'academy.message_src': self.agent_id,
+                    'academy.message_dest': response.dest,
+                },
             )
         except ExchangeError:  # pragma: no cover
             logger.exception(
                 'Failed to send response from %s to %s.',
                 self.agent_id,
                 response.dest,
+                extra={
+                    'academy.message_src': self.agent_id,
+                    'academy.message_dest': response.dest,
+                },
             )
 
     async def _execute_action(self, request: Message[ActionRequest]) -> None:
@@ -249,6 +257,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 'Error in loop %r (signaling shutdown: %s)',
                 name,
                 self.config.shutdown_on_loop_error,
+                extra={
+                    'academy.shutdown': self.config.shutdown_on_loop_error,
+                    'academy.name': name,
+                },
             )
             if self.config.shutdown_on_loop_error:
                 self.signal_shutdown(expected=False)
@@ -265,7 +277,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 lambda _: self._action_tasks.pop(request.tag),
             )
         elif isinstance(body, PingRequest):
-            logger.info('Ping request received by %s', self.agent_id)
+            logger.info(
+                'Ping request received by %s',
+                self.agent_id,
+                extra={'academy.agent_id': self.agent_id},
+            )
             response = request.create_response(SuccessResponse())
             await self._send_response(response)
         elif isinstance(body, ShutdownRequest):
@@ -296,7 +312,15 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             AttributeError: If an action with this name is not implemented by
                 the agent's agent.
         """
-        logger.debug('Invoking "%s" action on %s', action, self.agent_id)
+        logger.debug(
+            'Invoking "%s" action on %s',
+            action,
+            self.agent_id,
+            extra={
+                'academy.action': action,
+                'academy.agent_id': self.agent_id,
+            },
+        )
         if action not in self._actions:
             raise AttributeError(
                 f'{self.agent} does not have an action named "{action}".',
@@ -358,6 +382,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             'Starting agent... (%s; %s)',
             self.agent_id,
             self.agent,
+            extra={
+                'academy.agent_id': self.agent_id,
+                'academy.agent': self.agent,
+            },
         )
 
         self._exchange_client = await self.factory.create_agent_client(
@@ -392,7 +420,15 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._agent_startup_called = True
 
         self._started_event.set()
-        logger.info('Running agent (%s; %s)', self.agent_id, self.agent)
+        logger.info(
+            'Running agent (%s; %s)',
+            self.agent_id,
+            self.agent,
+            extra={
+                'academy.agent_id': self.agent_id,
+                'academy.agent': self.agent,
+            },
+        )
 
     def _should_terminate_mailbox(self) -> bool:
         # Inspects the shutdown options and the run config to determine
@@ -411,6 +447,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             self._shutdown_options.expected_shutdown,
             self.agent_id,
             self.agent,
+            extra={
+                'academy.expected': self._shutdown_options.expected_shutdown,
+                'academy.agent_id': self.agent_id,
+                'academy.agent': self.agent,
+            },
         )
 
         self._shutdown_event.set()
@@ -464,7 +505,15 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 message='Caught failures in agent loops while shutting down.',
             )
 
-        logger.info('Shutdown agent (%s; %s)', self.agent_id, self.agent)
+        logger.info(
+            'Shutdown agent (%s; %s)',
+            self.agent_id,
+            self.agent,
+            extra={
+                'academy.agent_id': self.agent_id,
+                'academy.agent': self.agent,
+            },
+        )
 
     def signal_shutdown(
         self,

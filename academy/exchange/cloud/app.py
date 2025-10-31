@@ -370,6 +370,10 @@ def _run(
         'Exchange listening on %s:%s (ctrl-C to exit)',
         config.host,
         config.port,
+        extra={
+            'academy.host': config.host,
+            'academy.port': config.port,
+        },
     )
 
     ssl_context: ssl.SSLContext | None = None

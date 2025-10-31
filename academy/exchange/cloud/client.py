@@ -123,7 +123,11 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 json={'mailbox': mailbox_id.model_dump_json()},
             ) as response:
                 _raise_for_status(response, mailbox_id)
-            logger.info('Registered %s in exchange', mailbox_id)
+            logger.info(
+                'Registered %s in exchange',
+                mailbox_id,
+                extra={'academy.mailbox_id': mailbox_id},
+            )
 
         return cls(mailbox_id, session, connection_info)
 
@@ -352,6 +356,7 @@ def spawn_http_exchange(
             logger.info(
                 'Killing exchange server after waiting %s seconds',
                 wait,
+                extra={'academy.delay': wait},
             )
             exchange_process.kill()
             exchange_process.join()

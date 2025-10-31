@@ -245,7 +245,11 @@ class PythonBackend:
             self._locks[uid] = asyncio.Lock()
             if agent is not None and isinstance(uid, AgentId):
                 self._agents[uid] = agent
-            logger.info('Created mailbox for %s', uid)
+            logger.info(
+                'Created mailbox for %s',
+                uid,
+                extra={'academy.mailbox_id': uid},
+            )
 
     async def terminate(self, client: str, uid: EntityId) -> None:
         """Close a mailbox.
@@ -282,7 +286,11 @@ class PythonBackend:
                         await self.put(client, response)
 
             mailbox.shutdown(immediate=True)
-            logger.info('Closed mailbox for %s', uid)
+            logger.info(
+                'Closed mailbox for %s',
+                uid,
+                extra={'academy.mailbox_id': uid},
+            )
 
     async def discover(
         self,

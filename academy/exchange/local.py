@@ -94,7 +94,11 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             mailbox_id = UserId.new(name=name)
             state.queues[mailbox_id] = Queue().async_q
             state.locks[mailbox_id] = Lock()
-            logger.info('Registered %s in exchange', mailbox_id)
+            logger.info(
+                'Registered %s in exchange',
+                mailbox_id,
+                extra={'academy.mailbox_id': mailbox_id},
+            )
         return cls(mailbox_id, state)
 
     @property

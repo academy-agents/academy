@@ -186,6 +186,11 @@ class Handle(Generic[AgentT]):
                     self.agent_id,
                     exception,
                     type(exception),
+                    extra={
+                        'academy.agent_id': self.agent_id,
+                        'academy.exception': exception,
+                        'academy.exception_type': type(exception),
+                    },
                 )
             return
 
@@ -250,6 +255,11 @@ class Handle(Generic[AgentT]):
             self.client_id,
             self.agent_id,
             action,
+            extra={
+                'academy.action_src': self.client_id,
+                'academy.action_dest': self.agent_id,
+                'academy.action': action,
+            },
         )
         await future
         return future.result()
@@ -285,7 +295,15 @@ class Handle(Generic[AgentT]):
         self._pending_response_futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)
-        logger.debug('Sent ping from %s to %s', self.client_id, self.agent_id)
+        logger.debug(
+            'Sent ping from %s to %s',
+            self.client_id,
+            self.agent_id,
+            extra={
+                'academy.ping_src': self.client_id,
+                'academy.ping_dest': self.agent_id,
+            },
+        )
 
         _, pending = await asyncio.wait({future}, timeout=timeout)
         if future in pending:
@@ -298,6 +316,11 @@ class Handle(Generic[AgentT]):
             exchange.client_id,
             self.agent_id,
             elapsed * 1000,
+            extra={
+                'academy.ping_src': exchange.client_id,
+                'academy.ping_dest': self.agent_id,
+                'academy.ping_time_s': elapsed,
+            },
         )
         return elapsed
 
@@ -331,6 +354,10 @@ class Handle(Generic[AgentT]):
             'Sent shutdown request from %s to %s',
             exchange.client_id,
             self.agent_id,
+            extra={
+                'academy.shutdown_src': exchange.client_id,
+                'academy.shutdown_dest': self.agent_id,
+            },
         )
 
 

@@ -2,190 +2,190 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://docs.academy-agents.org/stable/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/best-practices/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/contributing/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/faq/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/get-started/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/migration/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/version-policy/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/SUMMARY/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/agent/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/context/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/event/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exception/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/handle/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/identifier/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/logging/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/manager/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/message/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/mypy_plugin/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/runtime/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/serialize/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/socket/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/state/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/client/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/factory/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/hybrid/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/local/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/proxystore/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/redis/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/transport/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/app/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/authenticate/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/backend/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/client/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/config/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/globus/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/login/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/scopes/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/exchange/cloud/token_store/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/case-studies/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/concepts/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/guides/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/guides/hpc/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/guides/tutorial/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/publications/</loc>
-         <lastmod>2025-10-29</lastmod>
+         <lastmod>2025-10-31</lastmod>
     </url>
 </urlset>

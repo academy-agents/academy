@@ -173,7 +173,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
 
-        logger.info('Initialized manager (%s)', self.user_id)
+        logger.info(
+            'Initialized manager (%s)',
+            self.user_id,
+            extra={'academy.user_id': self.user_id},
+        )
 
     async def __aenter__(self) -> Self:
         self.exchange_context_token = exchange_context.set(
@@ -280,7 +284,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             message='Caught failures in agent while shutting down.',
         )
 
-        logger.info('Closed manager (%s)', self.user_id)
+        logger.info(
+            'Closed manager (%s)',
+            self.user_id,
+            extra={'academy.user_id': self.user_id},
+        )
 
     def add_executor(self, name: str, executor: Executor) -> Self:
         """Add an executor to the manager.

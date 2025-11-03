@@ -14,20 +14,23 @@ from academy.logging import init_logging
 
 @pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
 def test_logging_no_file(color: bool, extra: bool) -> None:
-    init_logging(color=color, extra=extra)
+    init_logging(color=color, extra=extra, force=True)
 
     logger = logging.getLogger()
     logger.info('Test logging')
 
 
-@pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
+@pytest.mark.parametrize(
+    ('color', 'extra'),
+    ((True, True), (False, False), (False, 2)),
+)
 def test_logging_with_file(
     color: bool,
     extra: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     filepath = tmp_path / 'log.txt'
-    init_logging(logfile=filepath, color=color, extra=extra)
+    init_logging(logfile=filepath, color=color, extra=extra, force=True)
 
     logger = logging.getLogger()
     logger.info('Test logging')

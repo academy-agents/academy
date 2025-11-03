@@ -118,7 +118,11 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 f'active:{mailbox_id.uid}',
                 _MailboxState.ACTIVE.value,
             )
-            logger.info('Registered %s in exchange', mailbox_id)
+            logger.info(
+                'Registered %s in exchange',
+                mailbox_id,
+                extra={'academy.mailbox_id': mailbox_id},
+            )
         return cls(mailbox_id, client, redis_info=redis_info)
 
     @property

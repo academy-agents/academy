@@ -322,7 +322,11 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 client.executor,
                 client._register_client,
             )
-            logger.info('Registered %s in exchange', mailbox_id)
+            logger.info(
+                'Registered %s in exchange',
+                mailbox_id,
+                extra={'academy.mailbox_id': mailbox_id},
+            )
             return client
 
         return cls(
@@ -383,7 +387,10 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         loop = asyncio.get_running_loop()
         try:
             try:
-                logger.info(f'Receiving message for mailbox {self.mailbox_id}')
+                logger.info(
+                    f'Receiving message for mailbox {self.mailbox_id}',
+                    extra={'academy.mailbox_id': self.mailbox_id},
+                )
                 response = await asyncio.wait_for(
                     loop.run_in_executor(
                         self.executor,
@@ -393,7 +400,10 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     timeout,
                 )
                 message_raw = response['message']
-                logger.info(f'Received message of length {len(message_raw)}')
+                logger.info(
+                    f'Received message of length {len(message_raw)}',
+                    extra={'academy.message_length': len(message_raw)},
+                )
             except AcademyAPIError as e:
                 if e.http_status == StatusCode.TERMINATED.value:
                     raise MailboxTerminatedError(self.mailbox_id) from e
@@ -424,7 +434,10 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             visibility='private',
         )
         client_id = client_response['client']['id']
-        logger.info(f'Created client id: {client_id}')
+        logger.info(
+            f'Created client id: {client_id}',
+            extra={'academy.client_id': client_id},
+        )
 
         # Create secret
         logger.info('Creating secret.')

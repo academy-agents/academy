@@ -174,7 +174,6 @@ class JSONHandler(logging.Handler):
         Each attribute (including extra attributes) of the log record becomes
         an entry in the JSON object. Each value is rendered using ``str``.
         """
-        print('BENC *************************************')
         d = {}
 
         d['formatted'] = self.format(record)

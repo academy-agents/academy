@@ -236,7 +236,6 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             mro_str = (await self._redis_client.get(key)).decode()
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')
-            print(mro_str, fqp)
             if fqp == mro[0] or (allow_subclasses and fqp in mro):
                 aid: AgentId[Any] = AgentId(
                     uid=base32_to_uuid(key.decode().split(':')[-1]),

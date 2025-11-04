@@ -252,11 +252,11 @@ class Handle(Generic[AgentT]):
         await self.exchange.send(request)
         logger.debug(
             'Sent action request from %s to %s (action=%r)',
-            self.client_id,
+            exchange.client_id,
             self.agent_id,
             action,
             extra={
-                'academy.action_src': self.client_id,
+                'academy.action_src': exchange.client_id,
                 'academy.action_dest': self.agent_id,
                 'academy.action': action,
             },
@@ -297,10 +297,10 @@ class Handle(Generic[AgentT]):
         await self.exchange.send(request)
         logger.debug(
             'Sent ping from %s to %s',
-            self.client_id,
+            exchange.client_id,
             self.agent_id,
             extra={
-                'academy.ping_src': self.client_id,
+                'academy.ping_src': exchange.client_id,
                 'academy.ping_dest': self.agent_id,
             },
         )

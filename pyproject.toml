@@ -33,6 +33,7 @@ dependencies = [
     "redis",
     "tomli ; python_version<'3.11'",
     "typing-extensions>=4.3.0 ; python_version<'3.11'",
+    "cachetools",
 ]
 
 [project.urls]
@@ -66,9 +67,6 @@ docs = [
     "mkdocstrings==0.29.1",
     "mkdocstrings-python==1.16.10",
     "mike==2.1.3",
-]
-server = [
-    "cachetools"
 ]
 
 [tool.codespell]

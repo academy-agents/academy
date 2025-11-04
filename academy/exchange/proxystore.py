@@ -2,17 +2,12 @@
 from __future__ import annotations
 
 import functools
+import textwrap
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Mapping
 from typing import Any
 from typing import Generic
-
-from proxystore.proxy import Proxy
-from proxystore.store import get_or_create_store
-from proxystore.store import register_store
-from proxystore.store import Store
-from proxystore.store.utils import resolve_async
 
 from academy.agent import Agent
 from academy.agent import AgentT
@@ -28,6 +23,27 @@ from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+
+PROXYSTORE_IMPORT_ERROR: Exception | None = None
+try:
+    from proxystore.proxy import Proxy
+    from proxystore.store import get_or_create_store
+    from proxystore.store import register_store
+    from proxystore.store import Store
+    from proxystore.store.utils import resolve_async
+except ImportError as e:  # pragma: no cover
+    PROXYSTORE_IMPORT_ERROR = e
+
+
+def _assert_proxystore_available() -> None:
+    if PROXYSTORE_IMPORT_ERROR is not None:  # pragma: no cover
+        message = textwrap.dedent(
+            """\
+            Missing optional dependency proxystore. Install with:
+              $ pip install academy-py[proxystore]  # as an extra
+              $ pip install proxystore              # or proxystore[all]""",
+        )
+        raise ImportError(message) from PROXYSTORE_IMPORT_ERROR
 
 
 def _proxy_item(
@@ -81,6 +97,7 @@ class ProxyStoreExchangeTransport(
         *,
         resolve_async: bool = False,
     ) -> None:
+        _assert_proxystore_available()
         self.transport = transport
         self.store = store
         self.should_proxy = should_proxy
@@ -192,6 +209,7 @@ class ProxyStoreExchangeFactory(
         *,
         resolve_async: bool = False,
     ) -> None:
+        _assert_proxystore_available()
         self.base = base
         self.store = store
         self.should_proxy = should_proxy

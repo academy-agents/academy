@@ -25,15 +25,14 @@ classifiers = [
 dependencies = [
     "aiohttp",
     "aiologic",
+    "cachetools",
     "click!=8.1.4",
     "culsans",
     "globus_sdk>=3.46,<4",
-    "proxystore>=0.8.0",
     "pydantic>=2,<3",
     "redis",
     "tomli ; python_version<'3.11'",
     "typing-extensions>=4.3.0 ; python_version<'3.11'",
-    "cachetools",
 ]
 
 [project.urls]
@@ -50,10 +49,10 @@ dev = [
     "pytest",
     "pytest-asyncio>=1.1",
     "pytest-cov",
+    "responses",
     "ruff>=0.2.0",
     "tox",
     "virtualenv",
-    "responses",
 ]
 docs = [
     "black==25.1.0",
@@ -68,6 +67,7 @@ docs = [
     "mkdocstrings-python==1.16.10",
     "mike==2.1.3",
 ]
+proxystore = ["proxystore>=0.8.0"]
 
 [tool.codespell]
 skip = """

@@ -183,8 +183,8 @@ class JSONHandler(logging.Handler):
         for k, v in record.__dict__.items():
             try:
                 d[k] = str(v)
-            except Exception:  # pragma: no cover
-                d[k] = 'Unrepresentable: {e!r}'
+            except Exception as e:
+                d[k] = f'Unrepresentable: {e!r}'
 
         json.dump(d, fp=self.f)
         print('', file=self.f)

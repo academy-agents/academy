@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import os
+import multiprocessing
 import pathlib
 import sys
 from concurrent.futures import Future
@@ -312,19 +312,24 @@ async def test_executor_pass_kwargs(
         )
 
 
-# Note: these tests are just for coverage to make sure the code is functional.
-# It does not test the agent of init_logging because pytest captures
-# logging already.
+# Logging done in a subprocess is not captured by pytest so we cannot use
+# pytest's caplog fixture to validate output. Set level to WARNING to avoid
+# adding more noise in stdout.
 @pytest.mark.asyncio
 async def test_worker_init_logging_no_logfile(
     http_exchange_factory: HttpExchangeFactory,
 ) -> None:
+    spawn_context = multiprocessing.get_context('spawn')
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
-        executors=ProcessPoolExecutor(max_workers=1),
+        executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
     ) as manager:
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
-        handle = await manager.launch(agent, init_logging=True)
+        handle = await manager.launch(
+            agent,
+            init_logging=True,
+            loglevel='WARNING',
+        )
         await handle.shutdown()
         await manager.wait({handle})
 
@@ -334,15 +339,17 @@ async def test_worker_init_logging_logfile(
     http_exchange_factory: HttpExchangeFactory,
     tmp_path: pathlib.Path,
 ) -> None:
+    spawn_context = multiprocessing.get_context('spawn')
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
-        executors=ProcessPoolExecutor(max_workers=1),
+        executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
     ) as manager:
-        filepath = os.path.join(tmp_path, '{agent_id}-log.txt')
+        filepath = str(tmp_path / 'test-worker-init-logging.log')
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
             init_logging=True,
+            loglevel='WARNING',
             logfile=filepath,
         )
         await handle.shutdown()

@@ -277,6 +277,17 @@ def test_agent_action_decorator_usage_error() -> None:
         action(context=True)(_TestAgent.pos_only)
 
 
+def test_agent_action_decorator_sync_method_error() -> None:
+    with pytest.raises(
+        TypeError,
+        match='Action method "not_async" is not a coroutine',
+    ):
+
+        class _TestAgent(Agent):
+            @action  # type: ignore[arg-type]
+            def not_async(self) -> None: ...
+
+
 def test_agent_action_decorator_name_clash_ok() -> None:
     class _TestAgent(Agent):
         async def ping(self) -> None: ...

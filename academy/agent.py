@@ -172,6 +172,7 @@ def action(
             The `context` will be provided at runtime as a keyword argument.
 
     Raises:
+        TypeError: If the decorated function is not a coroutine.
         TypeError: If `context=True` and the method does not have a parameter
             named `context` or if `context` is a positional only argument.
     """
@@ -189,6 +190,13 @@ def action(
                 UserWarning,
                 stacklevel=3,
             )
+
+        if not inspect.iscoroutinefunction(method_):
+            raise TypeError(
+                f'Action method "{method_.__name__}" is not a coroutine. '
+                'Did you forget an "async" in the method declaration?',
+            )
+
         # Typing the requirement that if context=True then params P should
         # contain a keyword argument named "context" is not easily annotated
         # for mypy so instead we check at runtime.

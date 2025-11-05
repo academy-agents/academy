@@ -130,6 +130,8 @@ def init_logging(  # noqa: PLR0913
         human_handler = logging.FileHandler(path)
         human_handler.setFormatter(_Formatter(color=False, extra=extra))
         human_handler.setLevel(logfile_level)
+        if extra:
+            human_handler.addFilter(_os_thread_filter)
         handlers.append(human_handler)
 
         if extra > 1:

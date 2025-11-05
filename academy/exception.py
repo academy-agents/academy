@@ -18,6 +18,10 @@ class ActionCancelledError(Exception):
 
     def __init__(self, name: str) -> None:
         super().__init__(f'Action "{name}" was cancelled by the agent.')
+        self.name = name
+
+    def __reduce__(self) -> Any:
+        return type(self), (self.name,)
 
 
 class AgentNotInitializedError(Exception):
@@ -33,6 +37,9 @@ class AgentNotInitializedError(Exception):
             'Has the agent been started?',
         )
 
+    def __reduce__(self) -> Any:
+        return type(self), ()
+
 
 class ExchangeError(Exception):
     """Base type for exchange related errors."""
@@ -45,6 +52,10 @@ class BadEntityIdError(ExchangeError):
 
     def __init__(self, uid: EntityId) -> None:
         super().__init__(f'Unknown identifier {uid}.')
+        self.uid = uid
+
+    def __reduce__(self) -> Any:
+        return type(self), (self.uid,)
 
 
 class ForbiddenError(ExchangeError):
@@ -68,6 +79,9 @@ class MessageTooLargeError(ExchangeError):
         super().__init__(
             f'Message of size {size} bytes is larger than limit {limit}.',
         )
+
+    def __reduce__(self) -> Any:
+        return type(self), (self.size, self.limit)
 
 
 class MailboxTerminatedError(ExchangeError):
@@ -135,6 +149,10 @@ class ExchangeClientNotFoundError(Exception):
             f'Handle to {aid} can not find an exchange client to use. See the '
             'exception docstring for troubleshooting.',
         )
+        self.aid = aid
+
+    def __reduce__(self) -> Any:
+        return type(self), (self.aid,)
 
 
 def raise_exceptions(

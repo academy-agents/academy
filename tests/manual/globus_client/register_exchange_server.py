@@ -37,7 +37,7 @@ def register_new_exchange():
         admin_ids=identity_id,
     )
     project = project_response['project']['id']
-    print(f'ACADEMY_TEST_PROJECT_ID={project})')
+    print(f'ACADEMY_TEST_PROJECT_ID={project}')
 
     client_response = auth_client.create_client(
         'academy_exchange',

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from globus_sdk import AuthClient
+from globus_sdk import DependentScopeSpec
 from globus_sdk.gare import GlobusAuthorizationParameters
 from globus_sdk.scopes import AuthScopes
 
@@ -42,7 +43,7 @@ def register_new_exchange():
     client_response = auth_client.create_client(
         'academy_exchange',
         project=project,
-        client_type='confidential_client',
+        client_type='hybrid_confidential_client_resource_server',
         visibility='private',
     )
     client_id = client_response['client']['id']
@@ -56,6 +57,12 @@ def register_new_exchange():
     secret = credentials_response['credential']['secret']
     print(f'{ACADEMY_EXCHANGE_SECRET_ENV_NAME}={secret}')
 
+    # Add dependent scope on Globus Groups
+    groups_scope_spec = DependentScopeSpec(
+        '73320ffe-4cb4-4b25-a0a3-83d53d59ce4f',
+        False,
+        False,
+    )
     # Create scope
     scope_response = auth_client.create_scope(
         client_id,
@@ -63,7 +70,9 @@ def register_new_exchange():
         'Send messages on the exchange',
         'academy_exchange',
         allows_refresh_token=True,
+        dependent_scopes=[groups_scope_spec],
     )
+
     scope_id = scope_response['scopes'][0]['id']
     print(f'{ACADEMY_EXCHANGE_SCOPE_ID_ENV_NAME}={scope_id}')
 

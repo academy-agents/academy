@@ -91,7 +91,7 @@ class UserId(BaseModel):
 
 
 if TYPE_CHECKING:
-    EntityId = Union[AgentId[Any], UserId]
+    EntityId = Union[AgentId[Any], UserId]  # noqa: UP007
     """EntityId union type for type annotations."""
 else:
     # Pydantic produces validation errors with Agent[Any] in versions
@@ -100,4 +100,4 @@ else:
     # stricter requirements.
     # Issue: https://github.com/pydantic/pydantic/issues/9414
     # Fix: https://github.com/pydantic/pydantic/pull/10666
-    EntityId = Union[AgentId, UserId]
+    EntityId = Union[AgentId, UserId]  # noqa: UP007

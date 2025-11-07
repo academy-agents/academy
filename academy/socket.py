@@ -11,9 +11,9 @@ import sys
 import time
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from types import TracebackType
-from typing import Callable
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self

@@ -208,9 +208,9 @@ class SuccessResponse(BaseModel):
     model_config = DEFAULT_FROZEN_CONFIG
 
 
-Request = Union[ActionRequest, PingRequest, ShutdownRequest]
-Response = Union[ActionResponse, ErrorResponse, SuccessResponse]
-Body = Union[Request, Response]
+Request = Union[ActionRequest, PingRequest, ShutdownRequest]  # noqa: UP007
+Response = Union[ActionResponse, ErrorResponse, SuccessResponse]  # noqa: UP007
+Body = Union[Request, Response]  # noqa: UP007
 
 BodyT = TypeVar('BodyT', bound=Body)
 RequestT = TypeVar('RequestT', bound=Request)

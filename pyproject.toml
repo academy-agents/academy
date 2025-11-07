@@ -14,7 +14,7 @@ maintainers = [
 ]
 description = "Build and deploy stateful agents across federated resources."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -127,7 +127,7 @@ markers = [
 
 [tool.ruff]
 line-length = 79
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.format]
 indent-style = "space"

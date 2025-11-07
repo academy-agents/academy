@@ -4,8 +4,8 @@ import os
 import pathlib
 import uuid
 from collections.abc import AsyncGenerator
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
 
 import pytest
 import pytest_asyncio

@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Mapping
 from typing import Any
-from typing import Callable
 from typing import Generic
 
 from proxystore.proxy import Proxy

@@ -54,6 +54,7 @@ from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
 from academy.exception import UnauthorizedError
 from academy.exchange.cloud.authenticate import Authenticator
+from academy.exchange.cloud.authenticate import ClientInfo
 from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
@@ -301,7 +302,7 @@ def authenticate_factory(
         handler: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         try:
-            client_id: str = await authenticator.authenticate_user(
+            client_info: ClientInfo = await authenticator.authenticate_user(
                 request.headers,
             )
         except ForbiddenError:
@@ -316,7 +317,8 @@ def authenticate_factory(
             )
 
         headers = request.headers.copy()
-        headers['client_id'] = client_id
+        headers['client_id'] = client_info.client_id
+        headers['client_groups'] = ','.join(client_info.group_memberships)
 
         # Handle early client-side disconnect in Issue #142
         # This is somewhat hard to reproduce in tests:

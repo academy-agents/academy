@@ -6,7 +6,9 @@ import asyncio
 import logging
 import threading
 from collections.abc import Mapping
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from typing import Protocol
 from typing import runtime_checkable
 
@@ -20,6 +22,15 @@ from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_client_id
 from academy.exchange.cloud.scopes import get_academy_exchange_secret
+
+
+@dataclass
+class ClientInfo:
+    """Hold client info including group and membership info."""
+
+    client_id: str
+    group_memberships: Sequence[str]
+
 
 logger = logging.getLogger(__name__)
 

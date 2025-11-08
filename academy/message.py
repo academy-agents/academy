@@ -8,9 +8,7 @@ from typing import Any
 from typing import Generic
 from typing import get_args
 from typing import Literal
-from typing import Optional
 from typing import TypeVar
-from typing import Union
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -109,7 +107,7 @@ class PingRequest(BaseModel):
 class ShutdownRequest(BaseModel):
     """Agent shutdown request message."""
 
-    terminate: Optional[bool] = Field(  # noqa: UP045
+    terminate: bool | None = Field(
         None,
         description='Override the termination behavior of the agent.',
     )
@@ -135,7 +133,7 @@ class ActionResponse(BaseModel):
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('result', when_used='json')
-    def _pickle_and_encode_result(self, obj: Any) -> Optional[list[Any]]:  # noqa: UP045
+    def _pickle_and_encode_result(self, obj: Any) -> list[Any] | None:
         if (
             isinstance(obj, list)
             and len(obj) == 2  # noqa PLR2004
@@ -182,7 +180,7 @@ class ErrorResponse(BaseModel):
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('exception', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> Optional[str]:  # noqa: UP045
+    def _pickle_and_encode_obj(self, obj: Any) -> str | None:
         raw = pickle.dumps(obj)
         return base64.b64encode(raw).decode('utf-8')
 
@@ -208,9 +206,9 @@ class SuccessResponse(BaseModel):
     model_config = DEFAULT_FROZEN_CONFIG
 
 
-Request = Union[ActionRequest, PingRequest, ShutdownRequest]  # noqa: UP007
-Response = Union[ActionResponse, ErrorResponse, SuccessResponse]  # noqa: UP007
-Body = Union[Request, Response]  # noqa: UP007
+Request = ActionRequest | PingRequest | ShutdownRequest
+Response = ActionResponse | ErrorResponse | SuccessResponse
+Body = Request | Response
 
 BodyT = TypeVar('BodyT', bound=Body)
 RequestT = TypeVar('RequestT', bound=Request)
@@ -231,7 +229,7 @@ class Header(BaseModel):
         default_factory=uuid.uuid4,
         description='Unique message tag used to match requests and responses.',
     )
-    label: Optional[uuid.UUID] = Field(  # noqa: UP045
+    label: uuid.UUID | None = Field(
         None,
         description=(
             'Optional label used to disambiguate response messages when '

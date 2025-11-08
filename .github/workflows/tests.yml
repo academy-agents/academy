@@ -30,6 +30,9 @@ jobs:
         - os: ubuntu-latest
           python: '3.13'
           toxenv: py313
+        - os: ubuntu-latest
+          python: '3.14'
+          toxenv: py314
     runs-on: ${{ matrix.os }}
 
     steps:

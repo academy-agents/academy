@@ -5,10 +5,8 @@ import uuid
 from typing import Any
 from typing import Generic
 from typing import Literal
-from typing import Optional
 from typing import TYPE_CHECKING
 from typing import TypeVar
-from typing import Union
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -28,7 +26,7 @@ class AgentId(BaseModel, Generic[AgentT]):
     """Unique identifier for an agent entity in a multi-agent system."""
 
     uid: uuid.UUID = Field()
-    name: Optional[str] = Field(None)  # noqa: UP045
+    name: str | None = Field(None)
     role: Literal['agent'] = Field('agent', repr=False)
 
     model_config = ConfigDict(
@@ -61,7 +59,7 @@ class UserId(BaseModel):
     """Unique identifier for a user entity in a multi-agent system."""
 
     uid: uuid.UUID = Field()
-    name: Optional[str] = Field(None)  # noqa: UP045
+    name: str | None = Field(None)
     role: Literal['user'] = Field('user', repr=False)
 
     model_config = ConfigDict(
@@ -91,7 +89,7 @@ class UserId(BaseModel):
 
 
 if TYPE_CHECKING:
-    EntityId = Union[AgentId[Any], UserId]  # noqa: UP007
+    EntityId = AgentId[Any] | UserId
     """EntityId union type for type annotations."""
 else:
     # Pydantic produces validation errors with Agent[Any] in versions
@@ -100,4 +98,4 @@ else:
     # stricter requirements.
     # Issue: https://github.com/pydantic/pydantic/issues/9414
     # Fix: https://github.com/pydantic/pydantic/pull/10666
-    EntityId = Union[AgentId, UserId]  # noqa: UP007
+    EntityId = AgentId | UserId

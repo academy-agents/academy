@@ -3,21 +3,16 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
-import sys
 import time
 import uuid
 from contextvars import ContextVar
 from pickle import PicklingError
 from typing import Any
 from typing import Generic
+from typing import ParamSpec
 from typing import TYPE_CHECKING
 from typing import TypeVar
 from weakref import WeakSet
-
-if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
-    from typing import ParamSpec
-else:  # pragma: <3.10 cover
-    from typing_extensions import ParamSpec
 
 from academy.exception import AgentTerminatedError
 from academy.exception import ExchangeClientNotFoundError

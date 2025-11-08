@@ -25,9 +25,9 @@ import logging
 import ssl
 import sys
 from collections.abc import Awaitable
+from collections.abc import Callable
 from collections.abc import Sequence
 from typing import Any
-from typing import Callable
 
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue

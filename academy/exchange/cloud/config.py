@@ -114,7 +114,7 @@ class RedisBackendConfig(BaseModel):
         )
 
 
-BackendConfigT = Union[PythonBackendConfig, RedisBackendConfig]
+BackendConfigT = Union[PythonBackendConfig, RedisBackendConfig]  # noqa: UP007
 
 
 class ExchangeServingConfig(BaseModel):

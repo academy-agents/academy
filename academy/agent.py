@@ -6,32 +6,27 @@ import inspect
 import logging
 import sys
 import warnings
+from collections.abc import Callable
 from collections.abc import Coroutine
 from collections.abc import Generator
 from datetime import timedelta
 from typing import Any
-from typing import Callable
 from typing import Generic
 from typing import get_type_hints
 from typing import Literal
 from typing import overload
+from typing import ParamSpec
 from typing import Protocol
 from typing import TYPE_CHECKING
+from typing import TypeAlias
 from typing import TypeVar
-
-from pydantic import BaseModel
-
-if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
-    from typing import ParamSpec
-    from typing import TypeAlias
-else:  # pragma: <3.10 cover
-    from typing_extensions import ParamSpec
-    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
+
+from pydantic import BaseModel
 
 from academy.event import wait_event_async
 from academy.exception import AgentNotInitializedError
@@ -253,12 +248,8 @@ def loop(method: LoopMethod[AgentT]) -> LoopMethod[AgentT]:
     """
     method._agent_method_type = 'loop'  # type: ignore[attr-defined]
 
-    if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
-        found_sig = inspect.signature(method, eval_str=True)
-        expected_sig = inspect.signature(ControlLoop.__call__, eval_str=True)
-    else:  # pragma: <3.10 cover
-        found_sig = inspect.signature(method)
-        expected_sig = inspect.signature(ControlLoop.__call__)
+    found_sig = inspect.signature(method, eval_str=True)
+    expected_sig = inspect.signature(ControlLoop.__call__, eval_str=True)
 
     if found_sig != expected_sig:
         raise TypeError(

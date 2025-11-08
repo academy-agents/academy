@@ -3,19 +3,12 @@ from __future__ import annotations
 import asyncio
 import multiprocessing
 import pathlib
-import sys
+from collections.abc import Callable
 from concurrent.futures import Future
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
-from typing import Callable
-
-from academy.handle import Handle
-
-if sys.version_info >= (3, 10):  # pragma: >=3.10 cover
-    from typing import ParamSpec
-else:  # pragma: <3.10 cover
-    from typing_extensions import ParamSpec
+from typing import ParamSpec
 
 import pytest
 
@@ -27,6 +20,7 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
+from academy.handle import Handle
 from academy.manager import Manager
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent

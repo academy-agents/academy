@@ -186,7 +186,7 @@ async def test_transport_terminate_reply_pending_requests(
             assert isinstance(body.get_exception(), MailboxTerminatedError)
 
             # No other messages should have been received
-            with pytest.raises(TimeoutError):
+            with pytest.raises(TimeoutError):  # pragma: <3.14 cover
                 await transport1.recv(timeout=TEST_SLEEP_INTERVAL)
 
 

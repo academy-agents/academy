@@ -38,11 +38,14 @@ except ImportError as e:  # pragma: no cover
 def _assert_proxystore_available() -> None:
     if PROXYSTORE_IMPORT_ERROR is not None:  # pragma: no cover
         message = textwrap.dedent(
-            """\
-            Missing optional dependency proxystore. Install with:
-              $ pip install academy-py[proxystore]  # as an extra
-              $ pip install proxystore              # or proxystore[all]""",
-        )
+            """
+            Missing optional dependency proxystore. Install using pip:
+              $ pip install proxystore
+            Or with extra options for specific connectors:
+              $ pip install proxystore[all]
+            Refer to the ProxyStore documentation for additional details.
+            """,
+        ).strip()
         raise ImportError(message) from PROXYSTORE_IMPORT_ERROR
 
 

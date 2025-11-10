@@ -196,7 +196,7 @@ class Handle(Generic[AgentT]):
         if isinstance(body, ActionResponse):
             future.set_result(body.get_result())
         elif isinstance(body, ErrorResponse):
-            future.set_exception(body.exception)
+            future.set_exception(body.get_exception())
         elif isinstance(body, SuccessResponse):
             future.set_result(None)
         else:

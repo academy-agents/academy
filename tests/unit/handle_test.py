@@ -306,7 +306,7 @@ async def test_client_handle_action_cancelled(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(SleepAgent)
-    with pytest.raises(TimeoutError):
+    with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
 
     await asyncio.wait_for(handle.action('sleep', 0.1), 1.0)

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import pytest
+import pytest_asyncio
 
 from academy.exception import AgentTerminatedError
 from academy.exception import ExchangeClientNotFoundError
@@ -11,6 +14,7 @@ from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.client import HttpExchangeFactory
+from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import MailboxStatus
 from academy.handle import exchange_context
 from academy.handle import Handle
@@ -221,12 +225,26 @@ async def test_client_handle_shutdown_log_error_response(caplog) -> None:
     assert f'Failure requesting shutdown for {handle.agent_id}' in caplog.text
 
 
+EXCHANGE_FACTORY_TYPES = (
+    HttpExchangeFactory,  # Test with serialization
+    LocalExchangeFactory,  # Test without serialization
+)
+
+
+@pytest_asyncio.fixture(params=EXCHANGE_FACTORY_TYPES)
+async def factory(
+    request,
+    get_factory,
+) -> AsyncGenerator[ExchangeFactory[Any]]:
+    return get_factory(request.param)
+
+
 @pytest.mark.asyncio
 async def test_client_handle_actions(
-    http_exchange_factory: HttpExchangeFactory,
+    factory: ExchangeFactory[Any],
 ) -> None:
     async with await Manager.from_exchange_factory(
-        factory=http_exchange_factory,
+        factory=factory,
     ) as manager:
         handle = await manager.launch(CounterAgent())
         assert await handle.ping() > 0
@@ -246,24 +264,27 @@ async def test_client_handle_actions(
 @pytest.mark.asyncio
 async def test_client_shutdown_termination(
     terminate: bool,
-    manager: Manager[LocalExchangeTransport],
+    factory: ExchangeFactory[Any],
 ) -> None:
-    handle = await manager.launch(EmptyAgent())
-    await handle.shutdown(terminate=terminate)
-    await manager.wait({handle})
-    status = await manager.exchange_client.status(handle.agent_id)
-    if terminate:
-        assert status == MailboxStatus.TERMINATED
-    else:
-        assert status == MailboxStatus.ACTIVE
+    async with await Manager.from_exchange_factory(
+        factory=factory,
+    ) as manager:
+        handle = await manager.launch(EmptyAgent())
+        await handle.shutdown(terminate=terminate)
+        await manager.wait({handle})
+        status = await manager.exchange_client.status(handle.agent_id)
+        if terminate:
+            assert status == MailboxStatus.TERMINATED
+        else:
+            assert status == MailboxStatus.ACTIVE
 
 
 @pytest.mark.asyncio
 async def test_client_handle_errors(
-    http_exchange_factory: HttpExchangeFactory,
+    factory: ExchangeFactory[Any],
 ) -> None:
     async with await Manager.from_exchange_factory(
-        factory=http_exchange_factory,
+        factory=factory,
     ) as manager:
         handle = await manager.launch(ErrorAgent())
         with pytest.raises(

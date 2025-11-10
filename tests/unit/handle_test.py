@@ -10,6 +10,7 @@ from academy.exception import ExchangeClientNotFoundError
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
+from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.transport import MailboxStatus
 from academy.handle import exchange_context
 from academy.handle import Handle
@@ -222,20 +223,23 @@ async def test_client_handle_shutdown_log_error_response(caplog) -> None:
 
 @pytest.mark.asyncio
 async def test_client_handle_actions(
-    manager: Manager[LocalExchangeTransport],
+    http_exchange_factory: HttpExchangeFactory,
 ) -> None:
-    handle = await manager.launch(CounterAgent())
-    assert await handle.ping() > 0
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+    ) as manager:
+        handle = await manager.launch(CounterAgent())
+        assert await handle.ping() > 0
 
-    await handle.action('add', 1)
-    count: int = await handle.action('count')
-    assert count == 1
+        await handle.action('add', 1)
+        count: int = await handle.action('count')
+        assert count == 1
 
-    await handle.add(1)
-    count = await handle.count()
-    assert count == 2  # noqa: PLR2004
+        await handle.add(1)
+        count = await handle.count()
+        assert count == 2  # noqa: PLR2004
 
-    await handle.shutdown()
+        await handle.shutdown()
 
 
 @pytest.mark.parametrize('terminate', (True, False))
@@ -256,19 +260,22 @@ async def test_client_shutdown_termination(
 
 @pytest.mark.asyncio
 async def test_client_handle_errors(
-    manager: Manager[LocalExchangeTransport],
+    http_exchange_factory: HttpExchangeFactory,
 ) -> None:
-    handle = await manager.launch(ErrorAgent())
-    with pytest.raises(
-        RuntimeError,
-        match=r'This action always fails\.',
-    ):
-        await handle.fails()
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+    ) as manager:
+        handle = await manager.launch(ErrorAgent())
+        with pytest.raises(
+            RuntimeError,
+            match=r'This action always fails\.',
+        ):
+            await handle.fails()
 
-    with pytest.raises(AttributeError, match='null'):
-        await handle.action('null')
+        with pytest.raises(AttributeError, match='null'):
+            await handle.action('null')
 
-    await handle.shutdown()
+        await handle.shutdown()
 
 
 @pytest.mark.asyncio

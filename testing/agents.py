@@ -60,3 +60,7 @@ class SleepAgent(Agent):
         while not shutdown.is_set():
             self.steps += 1
             await asyncio.sleep(self.loop_sleep)
+
+    @action
+    async def sleep(self, action_sleep: float) -> None:
+        await asyncio.sleep(action_sleep)

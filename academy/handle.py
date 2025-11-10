@@ -256,7 +256,7 @@ class Handle(Generic[AgentT]):
                 'academy.action': action,
             },
         )
-        await future
+        await asyncio.shield(future)
         return future.result()
 
     async def ping(self, *, timeout: float | None = None) -> float:

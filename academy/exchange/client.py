@@ -6,18 +6,14 @@ import contextlib
 import logging
 import sys
 import uuid
+from collections.abc import Callable
 from collections.abc import Coroutine
 from types import TracebackType
 from typing import Any
-from typing import Callable
 from typing import Generic
 from typing import TYPE_CHECKING
+from typing import TypeAlias
 from weakref import WeakValueDictionary
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import TypeAlias
-else:  # pragma: <3.11 cover
-    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self

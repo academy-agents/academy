@@ -8,10 +8,10 @@ import logging
 import sys
 import uuid
 from collections.abc import Awaitable
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
-from typing import Callable
 from typing import Generic
 from typing import TypeVar
 

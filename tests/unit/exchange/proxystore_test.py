@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import pickle
+from collections.abc import Callable
 from collections.abc import Generator
 from typing import Any
-from typing import Callable
 
 import pytest
 from proxystore.connectors.local import LocalConnector
@@ -90,7 +90,11 @@ async def test_wrap_basic_transport_functionality(
         assert isinstance(recv_request, ActionRequest)
         assert sent_request_message.tag == recv_request_message.tag
 
-        for old, new in zip(sent_request.get_args(), recv_request.get_args()):
+        for old, new in zip(
+            sent_request.get_args(),
+            recv_request.get_args(),
+            strict=True,
+        ):
             assert (type(new) is Proxy) == should_proxy(old)
             # will resolve the proxy if it exists
             assert old == new

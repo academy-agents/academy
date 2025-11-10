@@ -51,7 +51,7 @@ async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
             'get',
             return_value=response,
         ):
-            with pytest.raises(TimeoutError):
+            with pytest.raises(TimeoutError):  # pragma: <3.14 cover
                 await transport.recv()
 
 

@@ -8,12 +8,9 @@ import pathlib
 import sys
 from typing import Any
 from typing import BinaryIO
-from typing import Dict  # noqa: UP035
 from typing import Literal
-from typing import Optional
 from typing import Protocol
 from typing import TypeVar
-from typing import Union
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -49,11 +46,8 @@ class ExchangeAuthConfig(BaseModel):
 
     model_config = ConfigDict(extra='forbid')
 
-    method: Optional[Literal['globus']] = None  # noqa: UP045
-    kwargs: Dict[str, Any] = Field(  # noqa: UP006
-        default_factory=dict,
-        repr=False,
-    )
+    method: Literal['globus'] | None = None
+    kwargs: dict[str, Any] = Field(default_factory=dict, repr=False)
 
 
 class BackendConfig(Protocol):
@@ -94,10 +88,7 @@ class RedisBackendConfig(BaseModel):
     message_size_limit_kb: int = Field(default=1024, gt=0, le=1024 * 512)
     mailbox_expiration_d: float = Field(default=7, gt=0)
     gravestone_expiration_d: float = Field(default=365, gt=0)
-    kwargs: Dict[str, Any] = Field(  # noqa: UP006
-        default_factory=dict,
-        repr=False,
-    )
+    kwargs: dict[str, Any] = Field(default_factory=dict, repr=False)
     kind: Literal['redis'] = Field(default='redis', repr=False)
 
     def get_backend(self) -> MailboxBackend:
@@ -114,7 +105,7 @@ class RedisBackendConfig(BaseModel):
         )
 
 
-BackendConfigT = Union[PythonBackendConfig, RedisBackendConfig]
+BackendConfigT = PythonBackendConfig | RedisBackendConfig
 
 
 class ExchangeServingConfig(BaseModel):
@@ -133,12 +124,12 @@ class ExchangeServingConfig(BaseModel):
 
     host: str = 'localhost'
     port: int = 8700
-    certfile: Optional[str] = None  # noqa: UP045
-    keyfile: Optional[str] = None  # noqa: UP045
+    certfile: str | None = None
+    keyfile: str | None = None
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
-    log_file: Optional[str] = None  # noqa: UP045
-    log_level: Union[int, str] = logging.INFO  # noqa: UP007
+    log_file: str | None = None
+    log_level: int | str = logging.INFO
 
     @classmethod
     def from_toml(cls, filepath: str | pathlib.Path) -> Self:

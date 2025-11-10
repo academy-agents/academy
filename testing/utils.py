@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from collections.abc import Mapping
 from typing import Any
-from typing import Callable
 from urllib.parse import parse_qsl
 
 from requests import PreparedRequest

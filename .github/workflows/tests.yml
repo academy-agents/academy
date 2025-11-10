@@ -16,9 +16,6 @@ jobs:
       matrix:
         include:
         - os: ubuntu-latest
-          python: '3.9'
-          toxenv: py39
-        - os: ubuntu-latest
           python: '3.10'
           toxenv: py310
         - os: ubuntu-latest
@@ -30,6 +27,9 @@ jobs:
         - os: ubuntu-latest
           python: '3.13'
           toxenv: py313
+        - os: ubuntu-latest
+          python: '3.14'
+          toxenv: py314
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -68,9 +68,6 @@ jobs:
       matrix:
         include:
         - os: ubuntu-latest
-          python: '3.9'
-          toxenv: py39
-        - os: ubuntu-latest
           python: '3.10'
           toxenv: py310
         - os: ubuntu-latest
@@ -82,6 +79,9 @@ jobs:
         - os: ubuntu-latest
           python: '3.13'
           toxenv: py313
+        - os: ubuntu-latest
+          python: '3.14'
+          toxenv: py314
     runs-on: ${{ matrix.os }}
 
     steps:

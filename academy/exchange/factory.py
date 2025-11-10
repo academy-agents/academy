@@ -2,21 +2,11 @@ from __future__ import annotations
 
 import abc
 import logging
-import sys
+from collections.abc import Callable
 from collections.abc import Coroutine
 from typing import Any
-from typing import Callable
 from typing import Generic
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import TypeAlias
-else:  # pragma: <3.11 cover
-    from typing_extensions import TypeAlias
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    pass
-else:  # pragma: <3.11 cover
-    pass
+from typing import TypeAlias
 
 from academy.agent import AgentT
 from academy.exception import BadEntityIdError

@@ -325,10 +325,12 @@ async def test_executor_pass_kwargs(
         exchange_client,
         executors=MockExecutor(),
     ) as manager:
-        await manager.launch(
+        hdl = await manager.launch(
             agent,
             submit_kwargs={'parsl_resource_spec': {'cores': 1}},
         )
+        await hdl.ping(timeout=TEST_WAIT_TIMEOUT)
+        await hdl.shutdown()
 
 
 # Logging done in a subprocess is not captured by pytest so we cannot use

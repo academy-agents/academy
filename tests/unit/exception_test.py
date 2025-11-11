@@ -13,6 +13,7 @@ from academy.exception import ExchangeError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
+from academy.exception import PingCancelledError
 from academy.exception import UnauthorizedError
 from academy.exception import UserTerminatedError
 from academy.identifier import AgentId
@@ -33,6 +34,7 @@ from academy.identifier import UserId
         UserTerminatedError(UserId.new()),
         UnauthorizedError(),
         ExchangeClientNotFoundError(AgentId.new()),
+        PingCancelledError(),
     ),
 )
 def test_pickle_exception(exc: Exception) -> None:

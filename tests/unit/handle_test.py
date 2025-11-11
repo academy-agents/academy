@@ -188,7 +188,7 @@ async def test_client_handle_ping_timeout(
 ) -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
     handle = Handle(registration.agent_id)
-    with pytest.raises(TimeoutError):
+    with pytest.raises(asyncio.TimeoutError):
         await handle.ping(timeout=TEST_SLEEP_INTERVAL)
 
 

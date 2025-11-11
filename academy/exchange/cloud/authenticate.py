@@ -22,19 +22,11 @@ from globus_sdk.services.auth.response import OAuthDependentTokenResponse
 
 from academy.exception import ForbiddenError
 from academy.exception import UnauthorizedError
+from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_client_id
 from academy.exchange.cloud.scopes import get_academy_exchange_secret
-
-
-@dataclass
-class ClientInfo:
-    """Hold client info including group and membership info."""
-
-    client_id: str
-    group_memberships: Sequence[str]
-
 
 logger = logging.getLogger(__name__)
 

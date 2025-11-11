@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import pickle
 from collections.abc import AsyncGenerator
@@ -28,6 +29,7 @@ from academy.message import ShutdownRequest
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
+from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP_INTERVAL
 
 
@@ -297,6 +299,17 @@ async def test_client_handle_errors(
             await handle.action('null')
 
         await handle.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_client_handle_action_cancelled(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    handle = await manager.launch(SleepAgent)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
+
+    await asyncio.wait_for(handle.action('sleep', 0.1), 1.0)
 
 
 @pytest.mark.asyncio

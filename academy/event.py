@@ -3,8 +3,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 
-from academy.task import spawn_guarded_background_task
-
 
 async def wait_event_async(
     *events: asyncio.Event,
@@ -23,7 +21,7 @@ async def wait_event_async(
         TimeoutError: If no event finished within `timeout` seconds.
     """
     tasks = {
-        spawn_guarded_background_task(
+        asyncio.create_task(
             event.wait(),
             name=f'or-event-waiter-{i}',
         ): event

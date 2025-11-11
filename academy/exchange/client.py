@@ -312,6 +312,8 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         user_id: User ID.
         transport: Exchange transport bound to `user_id`.
         start_listener: Start a message listener thread.
+        debug: Start client in debug mode. Errors in message listener
+            task will cause the program to exit.
     """
 
     def __init__(
@@ -320,6 +322,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         transport: ExchangeTransportT,
         *,
         start_listener: bool = True,
+        debug: bool = False,
     ) -> None:
         super().__init__(transport)
         self._user_id = user_id
@@ -328,6 +331,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
             self._listener_task = spawn_guarded_background_task(
                 self._listen_for_messages(),
                 name=f'user-exchange-listener-{self.client_id}',
+                exit_on_error=debug,
             )
 
     @property

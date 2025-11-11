@@ -174,12 +174,6 @@ class ExchangeClientNotFoundError(Exception):
         return type(self), (self.aid,)
 
 
-class SafeTaskExitError(Exception):
-    """Exception that can be raised inside a task to safely exit it."""
-
-    pass
-
-
 def raise_exceptions(
     exceptions: Iterable[BaseException],
     *,

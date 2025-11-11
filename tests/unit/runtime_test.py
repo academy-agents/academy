@@ -641,6 +641,7 @@ def test_runtime_background_error(
                 EmptyAgent(),
                 exchange_factory=exchange_client.factory(),
                 registration=registration,
+                config=RuntimeConfig(debug=True),
             ).run_until_complete()
 
     with pytest.raises(SystemExit):

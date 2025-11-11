@@ -241,7 +241,9 @@ def test_client_background_error(
             '_listen_for_messages',
         ) as listener:
             listener.side_effect = Exception('Unexpected Exception')
-            client = await local_exchange_factory.create_user_client()
+            client = await local_exchange_factory.create_user_client(
+                debug=True,
+            )
             await client.status(client.client_id)
 
     with pytest.raises(SystemExit):

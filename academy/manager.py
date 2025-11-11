@@ -31,7 +31,6 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.logging import execute_and_log_traceback
 from academy.logging import init_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
@@ -137,6 +136,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             when not specified in `launch()`.
         max_retries: Maximum number of times to retry running an agent
             if it exits with an error.
+        debug: Start exchange client and agents in debug mode. Errors in
+            critical tasks will cause the program to exit.
 
     Raises:
         ValueError: If `default_executor` is specified but does not exist
@@ -152,6 +153,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         default_executor: str = 'event_loop',
         max_retries: int = 0,
+        debug: bool = False,
     ) -> None:
         self._executors: dict[str, Executor | None] = {'event_loop': None}
         if isinstance(executors, Executor):
@@ -172,6 +174,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._default_executor = default_executor
         self._max_retries = max_retries
         self._closed = asyncio.Event()
+        self._debug = debug
 
         self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
@@ -222,14 +225,16 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         default_executor: str = 'event_loop',
         max_retries: int = 0,
+        debug: bool = False,
     ) -> Self:
         """Instantiate a new exchange client and manager from a factory."""
-        client = await factory.create_user_client()
+        client = await factory.create_user_client(debug=debug)
         return cls(
             client,
             executors,
             default_executor=default_executor,
             max_retries=max_retries,
+            debug=debug,
         )
 
     @property
@@ -486,7 +491,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         spec = _RunSpec(
             agent=agent,
-            config=RuntimeConfig() if config is None else config,
+            config=RuntimeConfig(debug=self._debug)
+            if config is None
+            else config,
             exchange_factory=self.exchange_factory,
             registration=registration,
             agent_args=() if args is None else args,
@@ -498,9 +505,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         )
 
         task = asyncio.create_task(
-            execute_and_log_traceback(
-                self._run_agent(executor_instance, spec),
-            ),
+            self._run_agent(executor_instance, spec),
             name=f'manager-{executor}-run-{agent_id}',
         )
 

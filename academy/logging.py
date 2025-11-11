@@ -5,8 +5,7 @@ import logging
 import pathlib
 import sys
 import threading
-import traceback
-from collections.abc import Coroutine
+from asyncio import Future
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -197,15 +196,15 @@ class JSONHandler(logging.Handler):
 
 
 async def execute_and_log_traceback(
-    coro: Coroutine[Any, Any, None],
-) -> None:
-    """Execute a coroutine and log any tracebacks.
+    fut: Future[Any],
+) -> Any:
+    """Await a future and log any exception..
 
     Catches any exceptions raised by the coroutine, logs the traceback,
     and re-raises the exception.
     """
     try:
-        return await coro
+        return await fut
     except Exception:
-        logger.error(traceback.format_exc())
+        logger.exception('Background task raised an exception.')
         raise

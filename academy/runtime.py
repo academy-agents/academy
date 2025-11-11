@@ -80,6 +80,8 @@ class RuntimeConfig:
             permanently if the agent shuts down due to an error.
         terminate_on_success: Terminate the agent by closing its mailbox
             permanently if the agent shuts down without an error.
+        debug: Start the agent in debug mode. Errors in background tasks will
+            cause the program to exit.
     """
 
     cancel_actions_on_shutdown: bool = True
@@ -88,6 +90,7 @@ class RuntimeConfig:
     shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
     terminate_on_success: bool = True
+    debug: bool = False
 
 
 class Runtime(Generic[AgentT], NoPickleMixin):
@@ -288,6 +291,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             task = spawn_guarded_background_task(
                 self._execute_action(request),  # type: ignore[arg-type]
                 name=f'execute-action-{body.action}-{request.tag}',
+                exit_on_error=self.config.debug,
             )
             self._action_tasks[request.tag] = task
             task.add_done_callback(
@@ -430,6 +434,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._exchange_listener_task = spawn_guarded_background_task(
             self._exchange_client._listen_for_messages(),
             name=f'exchange-listener-{self.agent_id}',
+            exit_on_error=self.config.debug,
         )
 
         for name, method in self._loops.items():
@@ -438,6 +443,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             task = spawn_guarded_background_task(
                 self._execute_loop(name, method),
                 name=f'execute-loop-{name}-{self.agent_id}',
+                exit_on_error=self.config.debug,
             )
             self._loop_tasks[name] = task
 

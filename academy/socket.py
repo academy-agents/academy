@@ -263,6 +263,8 @@ class SimpleSocketServer:
             handler so it should not perform any heavy/blocking operations.
         host: Host to bind to.
         port: Port to bind to. If `None`, a random port is bound to.
+        debug: Start server in debug mode. Errors in critical background tasks
+            will cause the program to exit.
     """
 
     def __init__(
@@ -271,11 +273,13 @@ class SimpleSocketServer:
         *,
         host: str = '0.0.0.0',
         port: int | None = None,
+        debug: bool = False,
     ) -> None:
         self.host = host
         self.port = port if port is not None else open_port()
         self.handler = handler
         self._client_tasks: set[asyncio.Task[None]] = set()
+        self.debug = debug
 
     async def _read_message(
         self,
@@ -349,6 +353,8 @@ class SimpleSocketServer:
         task = spawn_guarded_background_task(
             self._handle_client(reader, writer),
             name=f'server-{self.host}:{self.port}-handler',
+            log_exception=False,
+            exit_on_error=self.debug,
         )
         self._client_tasks.add(task)
         task.add_done_callback(self._client_tasks.discard)

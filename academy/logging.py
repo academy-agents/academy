@@ -5,6 +5,11 @@ import logging
 import pathlib
 import sys
 import threading
+import traceback
+from collections.abc import Coroutine
+from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # extra keys with this prefix will be added to human-readable logs
 # when `extra > 1`
@@ -189,3 +194,18 @@ class JSONHandler(logging.Handler):
         json.dump(d, fp=self.f)
         print('', file=self.f)
         self.f.flush()
+
+
+async def execute_and_log_traceback(
+    coro: Coroutine[Any, Any, None],
+) -> None:
+    """Execute a coroutine and log any tracebacks.
+
+    Catches any exceptions raised by the coroutine, logs the traceback,
+    and re-raises the exception.
+    """
+    try:
+        return await coro
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise

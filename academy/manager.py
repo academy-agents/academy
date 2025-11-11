@@ -31,6 +31,7 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
+from academy.logging import execute_and_log_traceback
 from academy.logging import init_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
@@ -497,7 +498,9 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         )
 
         task = asyncio.create_task(
-            self._run_agent(executor_instance, spec),
+            execute_and_log_traceback(
+                self._run_agent(executor_instance, spec),
+            ),
             name=f'manager-{executor}-run-{agent_id}',
         )
 

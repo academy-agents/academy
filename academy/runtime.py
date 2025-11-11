@@ -15,6 +15,8 @@ from typing import Any
 from typing import Generic
 from typing import TypeVar
 
+from academy.task import spawn_guarded_background_task
+
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
@@ -283,7 +285,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     async def _request_handler(self, request: Message[Request]) -> None:
         body = request.get_body()
         if isinstance(body, ActionRequest):
-            task = asyncio.create_task(
+            task = spawn_guarded_background_task(
                 self._execute_action(request),  # type: ignore[arg-type]
                 name=f'execute-action-{body.action}-{request.tag}',
             )
@@ -425,13 +427,15 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         )
         self.agent._agent_set_context(context)
 
-        self._exchange_listener_task = asyncio.create_task(
+        self._exchange_listener_task = spawn_guarded_background_task(
             self._exchange_client._listen_for_messages(),
             name=f'exchange-listener-{self.agent_id}',
         )
 
         for name, method in self._loops.items():
-            task = asyncio.create_task(
+            # This guard handles errors in the `_execute_loop` function
+            # not in the user's loop.
+            task = spawn_guarded_background_task(
                 self._execute_loop(name, method),
                 name=f'execute-loop-{name}-{self.agent_id}',
             )

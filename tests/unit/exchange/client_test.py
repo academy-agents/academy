@@ -14,6 +14,8 @@ from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
+from academy.exchange.client import ExchangeClient
+from academy.exchange.local import LocalExchangeFactory
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import UserId
@@ -228,3 +230,19 @@ async def test_client_reply_error_on_request(
             body = response.get_body()
             assert isinstance(body, ErrorResponse)
             assert isinstance(body.get_exception(), TypeError)
+
+
+def test_client_background_error(
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    async def run():
+        with mock.patch.object(
+            ExchangeClient,
+            '_listen_for_messages',
+        ) as listener:
+            listener.side_effect = Exception('Unexpected Exception')
+            client = await local_exchange_factory.create_user_client()
+            await client.status(client.client_id)
+
+    with pytest.raises(SystemExit):
+        asyncio.run(run())

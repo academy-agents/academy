@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from collections.abc import Iterable
 from typing import Any
@@ -7,6 +8,8 @@ from typing import Any
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+
+logger = logging.getLogger(__name__)
 
 
 class ActionCancelledError(Exception):
@@ -169,6 +172,12 @@ class ExchangeClientNotFoundError(Exception):
 
     def __reduce__(self) -> Any:
         return type(self), (self.aid,)
+
+
+class SafeTaskExitError(Exception):
+    """Exception that can be raised inside a task to safely exit it."""
+
+    pass
 
 
 def raise_exceptions(

@@ -85,6 +85,17 @@ class StatusCode(enum.Enum):
 MANAGER_KEY = AppKey('manager', MailboxBackend)
 
 
+def get_client_info(request: Request) -> ClientInfo:
+    """Reconstitute client info from Request."""
+    client_info = ClientInfo(
+        client_id=request.headers.get('client_id', ''),
+        group_memberships=set(
+            request.headers.get('client_groups', '').split(','),
+        ),
+    )
+    return client_info
+
+
 async def _create_mailbox_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -102,9 +113,9 @@ async def _create_mailbox_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.create_mailbox(client_id, mailbox_id, agent)
+        await manager.create_mailbox(client, mailbox_id, agent)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,
@@ -128,9 +139,9 @@ async def _terminate_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.terminate(client_id, mailbox_id)
+        await manager.terminate(client, mailbox_id)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,
@@ -152,9 +163,9 @@ async def _discover_route(request: Request) -> Response:
             text='Missing or invalid arguments',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     agent_ids = await manager.discover(
-        client_id,
+        client,
         agent,
         allow_subclasses,
     )
@@ -179,9 +190,9 @@ async def _check_mailbox_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        status = await manager.check_mailbox(client_id, mailbox_id)
+        status = await manager.check_mailbox(client, mailbox_id)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,
@@ -203,9 +214,9 @@ async def _send_message_route(request: Request) -> Response:
             text='Missing or invalid message',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.put(client_id, message)
+        await manager.put(client, message)
     except BadEntityIdError:
         return Response(
             status=StatusCode.NOT_FOUND.value,
@@ -257,8 +268,8 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
     timeout = data.get('timeout', None)
 
     try:
-        client_id = request.headers.get('client_id', '')
-        message = await manager.get(client_id, mailbox_id, timeout=timeout)
+        client = get_client_info(request)
+        message = await manager.get(client, mailbox_id, timeout=timeout)
     except BadEntityIdError:
         return Response(
             status=StatusCode.NOT_FOUND.value,

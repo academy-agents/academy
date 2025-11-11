@@ -11,6 +11,8 @@ from typing import Protocol
 import redis
 import redis.asyncio
 
+from academy.exchange.cloud.client_info import ClientInfo
+
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
     from asyncio import QueueEmpty

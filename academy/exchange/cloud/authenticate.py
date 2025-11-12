@@ -5,11 +5,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from http import HTTPStatus
 from collections.abc import Mapping
-from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Protocol
 from typing import runtime_checkable
 
@@ -73,7 +71,7 @@ class NullAuthenticator:
         Returns:
             Null user regardless of provided headers.
         """
-        return ClientInfo(client_id='', group_memberships=[])
+        return ClientInfo(client_id='', group_memberships=set())
 
 
 class GlobusAuthenticator:

@@ -172,10 +172,10 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         await self._transport.send(message)
         logger.debug(
             'Sent %s to %s',
-            type(message).__name__,
+            type(message.body).__name__,
             message.dest,
             extra={
-                'academy.message_type': type(message).__name__,
+                'academy.message_type': type(message.body).__name__,
                 'academy.message_dest': message.dest,
             },
         )
@@ -210,11 +210,11 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 break
             logger.debug(
                 'Received %s from %s for %s',
-                type(message).__name__,
+                type(message.body).__name__,
                 message.src,
                 self.client_id,
                 extra={
-                    'academy.message_type': type(message).__name__,
+                    'academy.message_type': type(message.body).__name__,
                     'academy.message_src': message.src,
                     'academy.message_dest': self.client_id,
                 },

@@ -295,11 +295,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         await self._socket_pool.send(address, message.model_serialize())
         logger.debug(
             'Sent %s to %s via p2p at %s',
-            type(message).__name__,
+            type(message.body).__name__,
             message.dest,
             address,
             extra={
-                'academy.message_type': type(message).__name__,
+                'academy.message_type': type(message.body).__name__,
                 'academy.message_dest': message.dest,
                 'academy.via': address,
             },
@@ -351,10 +351,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             )
             logger.debug(
                 'Sent %s to %s via redis',
-                type(message).__name__,
+                type(message.body).__name__,
                 message.dest,
                 extra={
-                    'academy.message_type': type(message).__name__,
+                    'academy.message_type': type(message.body).__name__,
                     'academy.message_dest': message.dest,
                 },
             )
@@ -411,10 +411,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         message: Message[Any] = Message.model_deserialize(raw[1])
         logger.debug(
             'Received %s to %s via redis',
-            type(message).__name__,
+            type(message.body).__name__,
             self.mailbox_id,
             extra={
-                'academy.message_type': type(message).__name__,
+                'academy.message_type': type(message.body).__name__,
                 'academy.message_dest': self.mailbox_id,
             },
         )
@@ -463,10 +463,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         message: Message[Any] = Message.model_deserialize(payload)
         logger.debug(
             'Received %s to %s via p2p',
-            type(message).__name__,
+            type(message.body).__name__,
             self.mailbox_id,
             extra={
-                'academy.message_type': type(message).__name__,
+                'academy.message_type': type(message.body).__name__,
                 'academy.message_dest': self.mailbox_id,
             },
         )

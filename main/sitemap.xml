@@ -45,6 +45,10 @@
          <lastmod>2025-11-12</lastmod>
     </url>
     <url>
+         <loc>https://docs.academy-agents.org/stable/api/debug/</loc>
+         <lastmod>2025-11-12</lastmod>
+    </url>
+    <url>
          <loc>https://docs.academy-agents.org/stable/api/event/</loc>
          <lastmod>2025-11-12</lastmod>
     </url>
@@ -90,6 +94,10 @@
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/api/state/</loc>
+         <lastmod>2025-11-12</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.academy-agents.org/stable/api/task/</loc>
          <lastmod>2025-11-12</lastmod>
     </url>
     <url>

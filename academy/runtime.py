@@ -26,6 +26,7 @@ from academy.context import AgentContext
 from academy.exception import ActionCancelledError
 from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
+from academy.exception import PingCancelledError
 from academy.exception import raise_exceptions
 from academy.exchange import AgentExchangeClient
 from academy.exchange import ExchangeClient
@@ -240,6 +241,20 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             # does not block on a response they will never get.
             await asyncio.shield(self._send_response(response))
 
+    async def _execute_ping(self, request: Message[PingRequest]) -> None:
+        response: Message[Response]
+        try:
+            # Do not run the method until the startup sequence has finished
+            await self._started_event.wait()
+        except asyncio.CancelledError:
+            response = request.create_response(
+                ErrorResponse(exception=PingCancelledError()),
+            )
+        else:
+            response = request.create_response(SuccessResponse())
+        finally:
+            await asyncio.shield(self._send_response(response))
+
     async def _execute_loop(
         self,
         name: str,
@@ -282,8 +297,14 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 self.agent_id,
                 extra={'academy.agent_id': self.agent_id},
             )
-            response = request.create_response(SuccessResponse())
-            await self._send_response(response)
+            task = asyncio.create_task(
+                self._execute_ping(request),  # type: ignore[arg-type]
+                name=f'execute-ping-{request.tag}',
+            )
+            self._action_tasks[request.tag] = task
+            task.add_done_callback(
+                lambda _: self._action_tasks.pop(request.tag),
+            )
         elif isinstance(body, ShutdownRequest):
             self.signal_shutdown(expected=True, terminate=body.terminate)
         else:

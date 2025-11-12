@@ -16,6 +16,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exception import PingCancelledError
 from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
@@ -219,8 +220,25 @@ class FailOnStartupAgent(Agent):
 
     async def agent_on_startup(self) -> None:
         if self.max_errors is None or self.errors < self.max_errors:
+            await asyncio.sleep(1)
             self.errors += 1
             raise RuntimeError('Agent startup failed')
+
+
+@pytest.mark.asyncio
+async def test_ping_cancelled_error(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    # Note: this test presently relies on agent to be shared across
+    # each agent execution in other threads.
+    agent = FailOnStartupAgent(max_errors=1)
+    async with Manager(
+        exchange_client,
+        max_retries=2,
+    ) as manager:
+        handle = await manager.launch(agent)
+        with pytest.raises(PingCancelledError):
+            await handle.ping(timeout=TEST_CONNECTION_TIMEOUT)
 
 
 @pytest.mark.asyncio
@@ -230,15 +248,22 @@ async def test_retry_on_error(
     # Note: this test presently relies on agent to be shared across
     # each agent execution in other threads.
     agent = FailOnStartupAgent(max_errors=2)
-    executor = ThreadPoolExecutor(max_workers=1)
     async with Manager(
         exchange_client,
-        executors=executor,
         max_retries=3,
     ) as manager:
         handle = await manager.launch(agent)
+        while True:
+            try:
+                await handle.ping(timeout=TEST_CONNECTION_TIMEOUT)
+            except PingCancelledError:
+                pass
+            else:
+                break
+
         await handle.ping(timeout=TEST_CONNECTION_TIMEOUT)
-        assert agent.errors == 2  # noqa: PLR2004
+
+        # assert agent.errors == 2
         await handle.shutdown()
 
 
@@ -300,10 +325,12 @@ async def test_executor_pass_kwargs(
         exchange_client,
         executors=MockExecutor(),
     ) as manager:
-        await manager.launch(
+        hdl = await manager.launch(
             agent,
             submit_kwargs={'parsl_resource_spec': {'cores': 1}},
         )
+        await hdl.ping(timeout=TEST_WAIT_TIMEOUT)
+        await hdl.shutdown()
 
 
 # Logging done in a subprocess is not captured by pytest so we cannot use

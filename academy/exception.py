@@ -41,6 +41,22 @@ class AgentNotInitializedError(Exception):
         return type(self), ()
 
 
+class PingCancelledError(Exception):
+    """Ping cancelled before response.
+
+    This error is typically raised when an agent receives a message
+    before startup, then exits while starting.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            'Ping was cancelled. Agent may have exited before starting.',
+        )
+
+    def __reduce__(self) -> Any:
+        return type(self), ()
+
+
 class ExchangeError(Exception):
     """Base type for exchange related errors."""
 

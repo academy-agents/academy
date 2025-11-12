@@ -110,7 +110,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             **redis_info.kwargs,
         )
         # Ensure the redis server is reachable else fail early
-        await client.ping()
+        await client.ping()  # type: ignore[misc]
 
         if mailbox_id is None:
             mailbox_id = UserId.new(name=name)

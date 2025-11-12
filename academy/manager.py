@@ -170,6 +170,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._user_id = self._exchange_client.client_id
         self._default_executor = default_executor
         self._max_retries = max_retries
+        self._closed = asyncio.Event()
 
         self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
@@ -260,6 +261,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         Raises:
             Exception: Any exceptions raised by agents.
         """
+        self._closed.set()  # Stop from launching retries
+
         for acb in self._acbs.values():
             if not acb.task.done():
                 handle = self.get_handle(acb.agent_id)
@@ -341,7 +344,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         run_count = 0
         retries = self._max_retries
 
-        while True:
+        while not self._closed.is_set():
             run_count += 1
             if retries > 0:
                 retries -= 1

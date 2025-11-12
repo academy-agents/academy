@@ -196,7 +196,7 @@ class Handle(Generic[AgentT]):
         if isinstance(body, ActionResponse):
             future.set_result(body.get_result())
         elif isinstance(body, ErrorResponse):
-            future.set_exception(body.exception)
+            future.set_exception(body.get_exception())
         elif isinstance(body, SuccessResponse):
             future.set_result(None)
         else:
@@ -256,7 +256,7 @@ class Handle(Generic[AgentT]):
                 'academy.action': action,
             },
         )
-        await future
+        await asyncio.shield(future)
         return future.result()
 
     async def ping(self, *, timeout: float | None = None) -> float:
@@ -287,6 +287,7 @@ class Handle(Generic[AgentT]):
         )
         loop = asyncio.get_running_loop()
         future: asyncio.Future[None] = loop.create_future()
+        future = asyncio.shield(future)
         self._pending_response_futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)
@@ -300,11 +301,8 @@ class Handle(Generic[AgentT]):
             },
         )
 
-        _, pending = await asyncio.wait({future}, timeout=timeout)
-        if future in pending:
-            raise TimeoutError(
-                f'Did not receive ping response within {timeout} seconds.',
-            )
+        await asyncio.wait_for(future, timeout)
+
         elapsed = time.perf_counter() - start
         logger.debug(
             'Received ping from %s to %s in %.1f ms',

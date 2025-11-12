@@ -100,15 +100,12 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
         *,
         name: str | None = None,
         start_listener: bool = True,
-        debug: bool = False,
     ) -> UserExchangeClient[ExchangeTransportT]:
         """Create a new user in the exchange and associated client.
 
         Args:
             name: Display name of the client on the exchange.
             start_listener: Start a message listener thread.
-            debug: Start client in debug mode. Errors in message listener
-                task will cause the program to exit.
 
         Returns:
             User exchange client.
@@ -120,5 +117,4 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
             user_id,
             transport,
             start_listener=start_listener,
-            debug=debug,
         )

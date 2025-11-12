@@ -10,6 +10,7 @@ from unittest import mock
 import pytest
 import pytest_asyncio
 
+from academy.debug import set_academy_debug
 from academy.exception import BadEntityIdError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
@@ -241,10 +242,9 @@ def test_client_background_error(
             '_listen_for_messages',
         ) as listener:
             listener.side_effect = Exception('Unexpected Exception')
-            client = await local_exchange_factory.create_user_client(
-                debug=True,
-            )
+            client = await local_exchange_factory.create_user_client()
             await client.status(client.client_id)
 
+    set_academy_debug()
     with pytest.raises(SystemExit):
         asyncio.run(run())

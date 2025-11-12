@@ -6,6 +6,7 @@ import logging
 
 import pytest
 
+from academy.debug import set_academy_debug
 from academy.task import SafeTaskExitError
 from academy.task import spawn_guarded_background_task
 
@@ -24,8 +25,9 @@ def test_background_task_exits_on_error() -> None:
         await spawn_guarded_background_task(
             task(),
             name='test-task',
-            exit_on_error=True,
         )
+
+    set_academy_debug()
 
     with (
         contextlib.redirect_stdout(None),
@@ -46,8 +48,9 @@ def test_background_task_no_exit() -> None:
         await spawn_guarded_background_task(
             task(),
             name='test-task',
-            exit_on_error=False,
         )
+
+    set_academy_debug(False)
 
     with (
         contextlib.redirect_stdout(None),
@@ -68,6 +71,8 @@ def test_background_task_error_is_logged(caplog) -> None:
             task(),
             name='test-task',
         )
+
+    set_academy_debug(False)
 
     with (
         contextlib.redirect_stdout(None),
@@ -93,6 +98,8 @@ def test_background_task_error_no_log(caplog) -> None:
             name='test-task',
             log_exception=False,
         )
+
+    set_academy_debug(False)
 
     with (
         contextlib.redirect_stdout(None),

@@ -20,6 +20,7 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 from academy.agent import AgentT
+from academy.debug import set_academy_debug
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
@@ -80,6 +81,7 @@ async def _run_agent_async(
 
 def _run_agent_on_worker(
     spec: _RunSpec[AgentT, ExchangeTransportT],
+    academy_debug_mode: bool = False,
     **kwargs: Any,
 ) -> None:
     if spec.init_logging:
@@ -90,6 +92,7 @@ def _run_agent_on_worker(
 
         init_logging(level=spec.loglevel, logfile=logfile)
 
+    set_academy_debug(academy_debug_mode)
     asyncio.run(_run_agent_async(spec))
 
 
@@ -136,8 +139,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             when not specified in `launch()`.
         max_retries: Maximum number of times to retry running an agent
             if it exits with an error.
-        debug: Start exchange client and agents in debug mode. Errors in
-            critical tasks will cause the program to exit.
 
     Raises:
         ValueError: If `default_executor` is specified but does not exist
@@ -153,7 +154,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         default_executor: str = 'event_loop',
         max_retries: int = 0,
-        debug: bool = False,
     ) -> None:
         self._executors: dict[str, Executor | None] = {'event_loop': None}
         if isinstance(executors, Executor):
@@ -174,7 +174,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._default_executor = default_executor
         self._max_retries = max_retries
         self._closed = asyncio.Event()
-        self._debug = debug
 
         self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
@@ -225,16 +224,14 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         default_executor: str = 'event_loop',
         max_retries: int = 0,
-        debug: bool = False,
     ) -> Self:
         """Instantiate a new exchange client and manager from a factory."""
-        client = await factory.create_user_client(debug=debug)
+        client = await factory.create_user_client()
         return cls(
             client,
             executors,
             default_executor=default_executor,
             max_retries=max_retries,
-            debug=debug,
         )
 
     @property
@@ -491,9 +488,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         spec = _RunSpec(
             agent=agent,
-            config=RuntimeConfig(debug=self._debug)
-            if config is None
-            else config,
+            config=RuntimeConfig() if config is None else config,
             exchange_factory=self.exchange_factory,
             registration=registration,
             agent_args=() if args is None else args,

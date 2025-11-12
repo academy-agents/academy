@@ -85,7 +85,6 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         host: str,
         port: int,
         interface: str | None = None,
-        debug: bool = False,
     ) -> None:
         self._mailbox_id = mailbox_id
         self._redis_client = redis_client
@@ -112,12 +111,10 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._server_task = spawn_guarded_background_task(
             self._run_direct_server(),
             name=f'hybrid-transport-direct-server-{self.mailbox_id}',
-            exit_on_error=debug,
         )
         self._redis_task = spawn_guarded_background_task(
             self._run_redis_listener(),
             name=f'hybrid-transport-redis-watcher-{self.mailbox_id}',
-            exit_on_error=debug,
         )
 
     def _address_key(self, uid: EntityId) -> str:
@@ -142,7 +139,6 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         mailbox_id: EntityId | None = None,
         name: str | None = None,
         port: int | None = None,
-        debug: bool = False,
     ) -> Self:
         """Instantiate a new transport.
 
@@ -157,8 +153,6 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             name: Display name of the registered entity if `mailbox_id` is
                 `None`.
             port: Port to listen for peer connection on.
-            debug: Start exchange client in debug mode. Errors in critical
-                background tasks will cause the program to exit.
 
         Returns:
             An instantiated transport bound to a specific mailbox.
@@ -208,7 +202,6 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             interface=interface,
             host=host,
             port=port,
-            debug=debug,
         )
         # Wait for the direct message server to start
         await asyncio.wait_for(transport._started.wait(), timeout=5)
@@ -517,8 +510,6 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
             user defined set. A StopIteration exception will be raised in
             `create_*_client()` methods if the number of clients in the process
             is greater than the length of the iterable.
-        debug: Create exchange transports in debug mode. Errors in critical
-            background tasks will cause the program to exit.
     """
 
     def __init__(  # noqa: PLR0913
@@ -530,7 +521,6 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
         interface: str | None = None,
         namespace: str | None = 'default',
         ports: Iterable[int] | None = None,
-        debug: bool = False,
     ) -> None:
         self._namespace = (
             namespace
@@ -544,7 +534,6 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
             redis_kwargs if redis_kwargs is not None else {},
         )
         self._ports = None if ports is None else iter(ports)
-        self.debug = debug
 
     async def _create_transport(
         self,
@@ -560,7 +549,6 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
             namespace=self._namespace,
             port=None if self._ports is None else next(self._ports),
             redis_info=self._redis_info,
-            debug=self.debug,
         )
 
 

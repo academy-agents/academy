@@ -251,7 +251,6 @@ async def test_retry_on_error(
     async with Manager(
         exchange_client,
         max_retries=3,
-        debug=True,
     ) as manager:
         handle = await manager.launch(agent)
         while True:
@@ -437,7 +436,6 @@ async def test_event_loop_agent_launch(
     agent = IdentityAgent()
     async with await Manager.from_exchange_factory(
         factory=exchange_client.factory(),
-        debug=True,
     ) as manager:
         hdl = await manager.launch(agent)
         result = await hdl.identity('hello')

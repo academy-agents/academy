@@ -11,6 +11,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
+from academy.debug import set_academy_debug
 from academy.exception import ActionCancelledError
 from academy.exchange import ExchangeClient
 from academy.exchange import LocalExchangeTransport
@@ -641,8 +642,9 @@ def test_runtime_background_error(
                 EmptyAgent(),
                 exchange_factory=exchange_client.factory(),
                 registration=registration,
-                config=RuntimeConfig(debug=True),
+                config=RuntimeConfig(),
             ).run_until_complete()
 
+    set_academy_debug()
     with pytest.raises(SystemExit):
         asyncio.run(run())

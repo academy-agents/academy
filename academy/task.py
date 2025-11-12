@@ -5,6 +5,7 @@ import logging
 from collections.abc import Coroutine
 from typing import Any
 
+from academy.debug import get_academy_debug
 from academy.logging import execute_and_log_traceback
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ def _exit_on_error(task: asyncio.Task[Any]) -> None:
         not task.cancelled()
         and task.exception() is not None
         and not isinstance(task.exception(), SafeTaskExitError)
+        and get_academy_debug()
     ):
         logger.error(
             f'Exception in critical task (name="{task.get_name()}"): '
@@ -35,7 +37,6 @@ def spawn_guarded_background_task(
     *,
     name: str,
     log_exception: bool = True,
-    exit_on_error: bool = False,
 ) -> asyncio.Task[Any]:
     """Run a coroutine safely in the background.
 
@@ -52,8 +53,6 @@ def spawn_guarded_background_task(
             required
         log_exception: Write exception to the log. Set to false if exceptions
             are already logged by coro.
-        exit_on_error: Attach a callback to exit the. Set to true to prevent
-            program from waiting for side-effect from broken coroutine.
 
     Returns:
         Asyncio task handle.
@@ -66,8 +65,6 @@ def spawn_guarded_background_task(
         coro,
         name=name,
     )
-
-    if exit_on_error:
-        task.add_done_callback(_exit_on_error)
+    task.add_done_callback(_exit_on_error)
 
     return task

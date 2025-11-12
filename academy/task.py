@@ -55,7 +55,7 @@ def spawn_guarded_background_task(
             are already logged by coro.
 
     Returns:
-        Asyncio task handle.
+        Asyncio task.
     """
     if log_exception:
         fut = asyncio.ensure_future(coro)

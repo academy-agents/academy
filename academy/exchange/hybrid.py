@@ -12,6 +12,8 @@ from collections.abc import Iterable
 from typing import Any
 from typing import Generic
 
+from academy.task import spawn_guarded_background_task
+
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
@@ -106,11 +108,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             host=host,
             port=port,
         )
-        self._server_task = asyncio.create_task(
+        self._server_task = spawn_guarded_background_task(
             self._run_direct_server(),
             name=f'hybrid-transport-direct-server-{self.mailbox_id}',
         )
-        self._redis_task = asyncio.create_task(
+        self._redis_task = spawn_guarded_background_task(
             self._run_redis_listener(),
             name=f'hybrid-transport-redis-watcher-{self.mailbox_id}',
         )

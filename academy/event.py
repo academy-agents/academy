@@ -21,7 +21,10 @@ async def wait_event_async(
         TimeoutError: If no event finished within `timeout` seconds.
     """
     tasks = {
-        asyncio.create_task(event.wait(), name=f'or-event-waiter-{i}'): event
+        asyncio.create_task(
+            event.wait(),
+            name=f'or-event-waiter-{i}',
+        ): event
         for i, event in enumerate(events)
     }
     done, pending = await asyncio.wait(

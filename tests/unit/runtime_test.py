@@ -11,7 +11,9 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
+from academy.debug import set_academy_debug
 from academy.exception import ActionCancelledError
+from academy.exchange import ExchangeClient
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.exchange.transport import MailboxStatus
@@ -623,3 +625,26 @@ async def test_runtime_agent_action_context(
             args=(exchange_client.client_id,),
             kwargs={},
         )
+
+
+def test_runtime_background_error(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    async def run():
+        registration = await exchange_client.register_agent(EmptyAgent)
+        with mock.patch.object(
+            ExchangeClient,
+            '_listen_for_messages',
+        ) as listener:
+            listener.side_effect = Exception('Unexpected Exception')
+
+            await Runtime(
+                EmptyAgent(),
+                exchange_factory=exchange_client.factory(),
+                registration=registration,
+                config=RuntimeConfig(),
+            ).run_until_complete()
+
+    set_academy_debug()
+    with pytest.raises(SystemExit):
+        asyncio.run(run())

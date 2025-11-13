@@ -15,6 +15,8 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from types import TracebackType
 
+from academy.task import spawn_guarded_background_task
+
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
@@ -344,7 +346,11 @@ class SimpleSocketServer:
         reader: asyncio.StreamReader,
         writer: asyncio.StreamWriter,
     ) -> None:
-        task = asyncio.create_task(self._handle_client(reader, writer))
+        task = spawn_guarded_background_task(
+            self._handle_client(reader, writer),
+            name=f'server-{self.host}:{self.port}-handler',
+            log_exception=False,
+        )
         self._client_tasks.add(task)
         task.add_done_callback(self._client_tasks.discard)
 

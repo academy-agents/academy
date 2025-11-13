@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 from typing import TypeAlias
 from weakref import WeakValueDictionary
 
+from academy.task import spawn_guarded_background_task
+
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
@@ -313,7 +315,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         self._user_id = user_id
         self._listener_task: asyncio.Task[None] | None = None
         if start_listener:
-            self._listener_task = asyncio.create_task(
+            self._listener_task = spawn_guarded_background_task(
                 self._listen_for_messages(),
                 name=f'user-exchange-listener-{self.client_id}',
             )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from collections.abc import Iterable
 from typing import Any
@@ -7,6 +8,8 @@ from typing import Any
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+
+logger = logging.getLogger(__name__)
 
 
 class ActionCancelledError(Exception):

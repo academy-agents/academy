@@ -9,19 +9,16 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import ParamSpec
-from typing import Callable
 
 import pytest
 
 from academy.agent import Agent
 from academy.exception import BadEntityIdError
-from academy.exception import MailboxTerminatedError
 from academy.exception import PingCancelledError
 from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.handle import Handle
 from academy.manager import Manager
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent

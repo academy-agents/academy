@@ -8,6 +8,7 @@ import dataclasses
 import logging
 import sys
 import uuid
+from collections.abc import Awaitable
 from collections.abc import Iterable
 from typing import Any
 from typing import Generic
@@ -175,7 +176,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             **redis_info.kwargs,
         )
         # Ensure the redis server is reachable else fail early
-        await client.ping()  # type: ignore[misc]
+        p = client.ping()
+        assert isinstance(p, Awaitable), (
+            'ping should be awaitable from an async redis instance'
+        )
+        await p
 
         if mailbox_id is None:
             mailbox_id = UserId.new(name=name)

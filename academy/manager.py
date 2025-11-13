@@ -26,9 +26,6 @@ from academy.debug import set_academy_debug
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
-
-# from academy.exchange import ExchangeClient
-# from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
@@ -41,9 +38,9 @@ from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
-    from academy.agent import Agent
-
-AgentT = TypeVar('AgentT', bound='Agent')
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 

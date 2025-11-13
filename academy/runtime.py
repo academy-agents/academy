@@ -23,9 +23,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-# from academy.exchange import AgentExchangeClient
-# from academy.exchange import ExchangeClient
-# from academy.exchange import ExchangeFactory
 import academy.exchange as ae
 from academy.context import ActionContext
 from academy.context import AgentContext
@@ -51,9 +48,9 @@ from academy.message import SuccessResponse
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
-    from academy.agent import Agent
-
-AgentT = TypeVar('AgentT', bound='Agent')
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 

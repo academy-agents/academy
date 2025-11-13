@@ -8,7 +8,6 @@ from typing import Generic
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
-# from academy.exchange import AgentExchangeClient
 import academy.exchange as ae
 from academy.handle import Handle
 from academy.identifier import AgentId

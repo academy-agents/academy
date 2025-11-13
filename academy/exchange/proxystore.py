@@ -26,6 +26,12 @@ from academy.message import ActionResponse
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 
+if TYPE_CHECKING:
+    from academy.agent import Agent
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
+
 PROXYSTORE_IMPORT_ERROR: Exception | None = None
 try:
     from proxystore.proxy import Proxy

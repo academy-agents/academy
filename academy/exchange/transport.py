@@ -24,7 +24,10 @@ from academy.message import Message
 
 if TYPE_CHECKING:
     from academy.agent import Agent
+    from academy.agent import AgentT
     from academy.exchange.factory import ExchangeFactory
+else:
+    AgentT = TypeVar('AgentT')
 
 
 class MailboxStatus(enum.Enum):
@@ -36,9 +39,6 @@ class MailboxStatus(enum.Enum):
     """Mailbox exists and is accepting messages."""
     TERMINATED = 'TERMINATED'
     """Mailbox was terminated and no longer accepts messages."""
-
-
-AgentT = TypeVar('AgentT', bound='Agent')
 
 
 @runtime_checkable

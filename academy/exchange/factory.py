@@ -7,8 +7,8 @@ from collections.abc import Coroutine
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
-from typing import TypeVar
 from typing import TypeAlias
+from typing import TypeVar
 
 from academy.exception import BadEntityIdError
 from academy.exchange.client import AgentExchangeClient
@@ -23,9 +23,9 @@ from academy.message import Message
 from academy.message import RequestT_co
 
 if TYPE_CHECKING:
-    from academy.agent import Agent
-
-AgentT = TypeVar('AgentT', bound='Agent')
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 

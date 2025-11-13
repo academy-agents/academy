@@ -52,8 +52,9 @@ from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
     from academy.agent import Agent
-
-AgentT = TypeVar('AgentT', bound='Agent')
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 

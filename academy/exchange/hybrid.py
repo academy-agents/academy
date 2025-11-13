@@ -58,8 +58,9 @@ from academy.socket import SocketPool
 
 if TYPE_CHECKING:
     from academy.agent import Agent
-
-AgentT = TypeVar('AgentT', bound='Agent')
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 

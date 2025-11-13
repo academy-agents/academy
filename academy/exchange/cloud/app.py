@@ -96,6 +96,34 @@ def get_client_info(request: Request) -> ClientInfo:
     return client_info
 
 
+async def _share_mailbox_route(request: Request) -> Response:
+    """Share mailbox with a Globus Group."""
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    try:
+        raw_mailbox_id = request.match_info['mailbox_id']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+        group_id = data['group']
+
+    except (KeyError, ValidationError):
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    client = get_client_info(request)
+    try:
+        await manager.share_mailbox(client, mailbox_id, group_id)
+    except ForbiddenError:
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+    return Response(status=StatusCode.OKAY.value)
+
+
 async def _create_mailbox_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -364,6 +392,7 @@ def create_app(
     app[MANAGER_KEY] = backend
 
     app.router.add_post('/mailbox', _create_mailbox_route)
+    app.router.add_post('/mailbox/{mailbox_id}/share', _share_mailbox_route)
     app.router.add_delete('/mailbox', _terminate_route)
     app.router.add_get('/mailbox', _check_mailbox_route)
     app.router.add_put('/message', _send_message_route)

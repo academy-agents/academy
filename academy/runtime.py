@@ -200,20 +200,14 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 'destination mailbox was terminated.',
                 self.agent_id,
                 response.dest,
-                extra={
-                    'academy.message_src': self.agent_id,
-                    'academy.message_dest': response.dest,
-                },
+                extra=response.log_extra(),
             )
         except ExchangeError:  # pragma: no cover
             logger.exception(
                 'Failed to send response from %s to %s.',
                 self.agent_id,
                 response.dest,
-                extra={
-                    'academy.message_src': self.agent_id,
-                    'academy.message_dest': response.dest,
-                },
+                extra=response.log_extra(),
             )
 
     async def _execute_action(self, request: Message[ActionRequest]) -> None:

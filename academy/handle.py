@@ -250,9 +250,8 @@ class Handle(Generic[AgentT]):
             exchange.client_id,
             self.agent_id,
             action,
-            extra={
-                'academy.action_src': exchange.client_id,
-                'academy.action_dest': self.agent_id,
+            extra=request.log_extra()
+            | {
                 'academy.action': action,
             },
         )
@@ -295,10 +294,7 @@ class Handle(Generic[AgentT]):
             'Sent ping from %s to %s',
             exchange.client_id,
             self.agent_id,
-            extra={
-                'academy.ping_src': exchange.client_id,
-                'academy.ping_dest': self.agent_id,
-            },
+            extra=request.log_extra(),
         )
 
         await asyncio.wait_for(future, timeout)
@@ -309,9 +305,8 @@ class Handle(Generic[AgentT]):
             exchange.client_id,
             self.agent_id,
             elapsed * 1000,
-            extra={
-                'academy.ping_src': exchange.client_id,
-                'academy.ping_dest': self.agent_id,
+            extra=request.log_extra()
+            | {
                 'academy.ping_time_s': elapsed,
             },
         )
@@ -347,10 +342,7 @@ class Handle(Generic[AgentT]):
             'Sent shutdown request from %s to %s',
             exchange.client_id,
             self.agent_id,
-            extra={
-                'academy.shutdown_src': exchange.client_id,
-                'academy.shutdown_dest': self.agent_id,
-            },
+            extra=request.log_extra(),
         )
 
 

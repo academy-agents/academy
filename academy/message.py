@@ -425,3 +425,13 @@ class Message(BaseModel, Generic[BodyT]):
             The serialized message as bytes.
         """
         return pickle.dumps(self)
+
+    def log_extra(self) -> dict[str, object]:
+        """Returns extra info useful in logs about this Message."""
+        return {
+            'academy.message_type': type(self.body).__name__,
+            'academy.src': self.src,
+            'academy.dest': self.dest,
+            'academy.message_tag': self.tag,
+            'academy.message_label': self.label,
+        }

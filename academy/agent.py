@@ -528,7 +528,7 @@ class Agent:
         return self.agent_context.exchange_client
 
     @property
-    def agent_manager(self) -> m.Manager[Any]:
+    def _agent_manager(self) -> m.Manager[Any]:
         """Agent exchange client.
 
         Raises:
@@ -777,7 +777,7 @@ class Agent:
             kwargs: Keyword arguments used to initialize the agent.
                 Ignored if `agent` is already an instance.
         """
-        return await self.agent_manager.launch(
+        return await self._agent_manager.launch(
             agent,
             args=args,
             kwargs=kwargs,

@@ -77,7 +77,7 @@ async def test_agent_context_initialized_error() -> None:
     with pytest.raises(AgentNotInitializedError):
         _ = agent.agent_exchange_client
     with pytest.raises(AgentNotInitializedError):
-        _ = agent.agent_manager
+        _ = agent._agent_manager
     with pytest.raises(AgentNotInitializedError):
         agent.agent_shutdown()
 

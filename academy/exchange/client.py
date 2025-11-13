@@ -176,10 +176,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             'Sent %s to %s',
             type(message.body).__name__,
             message.dest,
-            extra={
-                'academy.message_type': type(message.body).__name__,
-                'academy.message_dest': message.dest,
-            },
+            extra=message.log_extra(),
         )
 
     async def status(self, uid: EntityId) -> MailboxStatus:
@@ -215,11 +212,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                 type(message.body).__name__,
                 message.src,
                 self.client_id,
-                extra={
-                    'academy.message_type': type(message.body).__name__,
-                    'academy.message_src': message.src,
-                    'academy.message_dest': self.client_id,
-                },
+                extra=message.log_extra(),
             )
             await self._handle_message(message)
 
@@ -289,10 +282,7 @@ class AgentExchangeClient(
                     'message from %s but no corresponding handle exists.',
                     self.client_id,
                     message.src,
-                    extra={
-                        'academy.message_dest': self.client_id,
-                        'academy.message_src': message.src,
-                    },
+                    extra=message.log_extra(),
                 )
                 return
             handle = self._handles[message.label]
@@ -369,10 +359,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 'from %s',
                 self.client_id,
                 message.src,
-                extra={
-                    'academy.message_dest': self.client_id,
-                    'academy.message_src': message.src,
-                },
+                extra=message.log_extra(),
             )
         elif message.is_response():
             if message.label is None or message.label not in self._handles:
@@ -381,10 +368,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                     'message from %s but no corresponding handle exists.',
                     self.client_id,
                     message.src,
-                    extra={
-                        'academy.message_dest': self.client_id,
-                        'academy.message_src': message.src,
-                    },
+                    extra=message.log_extra(),
                 )
                 return
             handle = self._handles[message.label]

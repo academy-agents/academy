@@ -305,9 +305,8 @@ class Handle(Generic[AgentT]):
             exchange.client_id,
             self.agent_id,
             elapsed * 1000,
-            extra={
-                'academy.src': exchange.client_id,
-                'academy.dest': self.agent_id,
+            extra=request.log_extra()
+            | {
                 'academy.ping_time_s': elapsed,
             },
         )

@@ -2229,16 +2229,13 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ExchangeAuthConfig</span>
 
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
-  </span>
-
 <a href="#academy.exchange.cloud.config.ExchangeAuthConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
+
 
         <p>Exchange authentication configuration.</p>
 
@@ -2265,23 +2262,11 @@ class because they often contain secrets.</p>
         </li>
     </ul>
 
-    
-      <p>Config:</p>
-      <ul>
-          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
-      </ul>
 
-        <p>Fields:</p>
-        <ul>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeAuthConfig.method">method</span></code>
-                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;globus&#39;] | None</code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeAuthConfig.kwargs">kwargs</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
-            </li>
-        </ul>
+
+
+
+
 
 
 
@@ -2392,10 +2377,6 @@ class because they often contain secrets.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">PythonBackendConfig</span>
 
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
-  </span>
-
 <a href="#academy.exchange.cloud.config.PythonBackendConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
@@ -2403,25 +2384,14 @@ class because they often contain secrets.</p>
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
 
+
         <p>Config for using PythonBackend.</p>
 
-    
-      <p>Config:</p>
-      <ul>
-          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
-      </ul>
 
-        <p>Fields:</p>
-        <ul>
-            <li>
-              <code><span title="academy.exchange.cloud.config.PythonBackendConfig.message_size_limit_kb">message_size_limit_kb</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.PythonBackendConfig.kind">kind</span></code>
-                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;python&#39;]</code>)
-            </li>
-        </ul>
+
+
+
+
 
 
 
@@ -2481,16 +2451,13 @@ class because they often contain secrets.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">RedisBackendConfig</span>
 
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
-  </span>
-
 <a href="#academy.exchange.cloud.config.RedisBackendConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
+
 
         <p>Config for RedisBackend.</p>
 
@@ -2523,43 +2490,11 @@ class because they often contain secrets.</p>
         </li>
     </ul>
 
-    
-      <p>Config:</p>
-      <ul>
-          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
-      </ul>
 
-        <p>Fields:</p>
-        <ul>
-            <li>
-              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.hostname">hostname</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.port">port</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.message_size_limit_kb">message_size_limit_kb</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.mailbox_expiration_d">mailbox_expiration_d</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.gravestone_expiration_d">gravestone_expiration_d</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.kwargs">kwargs</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.kind">kind</span></code>
-                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;redis&#39;]</code>)
-            </li>
-        </ul>
+
+
+
+
 
 
 
@@ -2637,16 +2572,13 @@ class because they often contain secrets.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ExchangeServingConfig</span>
 
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
-  </span>
-
 <a href="#academy.exchange.cloud.config.ExchangeServingConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
+
 
         <p>Exchange serving configuration.</p>
 
@@ -2688,12 +2620,7 @@ taken from the certfile.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="academy.exchange.cloud.config.ExchangeServingConfig.auth">auth</span></code></b>
-              (<code><a class="autorefs autorefs-internal" title="            ExchangeAuthConfig
-
-
-  
-      pydantic-model
-   (academy.exchange.cloud.config.ExchangeAuthConfig)" href="#academy.exchange.cloud.config.ExchangeAuthConfig">ExchangeAuthConfig</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="            ExchangeAuthConfig (academy.exchange.cloud.config.ExchangeAuthConfig)" href="#academy.exchange.cloud.config.ExchangeAuthConfig">ExchangeAuthConfig</a></code>)
           –
           <div class="doc-md-description">
             <p>Authentication configuration.</p>
@@ -2717,48 +2644,11 @@ taken from the certfile.</p>
         </li>
     </ul>
 
-    
-
-        <p>Fields:</p>
-        <ul>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.host">host</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.port">port</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.certfile">certfile</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.keyfile">keyfile</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.auth">auth</span></code>
-                (<code><a class="autorefs autorefs-internal" title="            ExchangeAuthConfig
 
 
-  
-      pydantic-model
-   (academy.exchange.cloud.config.ExchangeAuthConfig)" href="#academy.exchange.cloud.config.ExchangeAuthConfig">ExchangeAuthConfig</a></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.backend">backend</span></code>
-                (<code><span title="academy.exchange.cloud.config.BackendConfigT">BackendConfigT</span></code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.log_file">log_file</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
-            </li>
-            <li>
-              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.log_level">log_level</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
-            </li>
-        </ul>
+
+
+
 
 
 

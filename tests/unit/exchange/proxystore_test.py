@@ -6,11 +6,6 @@ from collections.abc import Generator
 from typing import Any
 
 import pytest
-from proxystore.connectors.local import LocalConnector
-from proxystore.proxy import Proxy
-from proxystore.store import Store
-from proxystore.store.executor import ProxyAlways
-from proxystore.store.executor import ProxyNever
 
 from academy.exchange import MailboxStatus
 from academy.exchange.local import LocalExchangeFactory
@@ -20,6 +15,18 @@ from academy.message import ActionResponse
 from academy.message import Message
 from academy.message import PingRequest
 from testing.agents import EmptyAgent
+
+try:
+    from proxystore.connectors.local import LocalConnector
+    from proxystore.proxy import Proxy
+    from proxystore.store import Store
+    from proxystore.store.executor import ProxyAlways
+    from proxystore.store.executor import ProxyNever
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        "Optional dependency 'proxystore' is not installed.",
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture

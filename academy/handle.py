@@ -242,6 +242,7 @@ class Handle(Generic[AgentT]):
         )
         loop = asyncio.get_running_loop()
         future: asyncio.Future[R] = loop.create_future()
+        future = asyncio.shield(future)
         self._pending_response_futures[request.tag] = future
 
         await self.exchange.send(request)
@@ -255,7 +256,7 @@ class Handle(Generic[AgentT]):
                 'academy.action': action,
             },
         )
-        await asyncio.shield(future)
+        await future
         return future.result()
 
     async def ping(self, *, timeout: float | None = None) -> float:

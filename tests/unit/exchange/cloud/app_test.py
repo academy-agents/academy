@@ -26,7 +26,6 @@ from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.config import PythonBackendConfig
-from academy.exchange.cloud.login import AcademyExchangeScopes
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message
@@ -133,7 +132,6 @@ async def test_view_mailbox_shares_error(cli) -> None:
             'mailbox': uid.model_dump_json(),
         },
     )
-    logging.warning(f'YADU {response.status=}')
     assert response.status == StatusCode.NOT_FOUND.value
     assert await response.text() == 'Unknown mailbox ID'
 
@@ -159,6 +157,16 @@ async def test_share_bad_mailbox(cli) -> None:
             'group_id': 'globus_group',
             'mailbox': 'foo',
         },
+    )
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert await response.text() == 'Missing or invalid mailbox ID'
+
+
+@pytest.mark.asyncio
+async def test_get_shares_bad_mailbox(cli) -> None:
+    response = await cli.get(
+        '/mailbox/share',
+        json={'mailbox': 'foo'},
     )
     assert response.status == StatusCode.BAD_REQUEST.value
     assert await response.text() == 'Missing or invalid mailbox ID'
@@ -276,55 +284,6 @@ async def test_null_auth_client() -> None:
 
 
 @pytest_asyncio.fixture
-async def auth_client_original() -> AsyncGenerator[
-    TestClient[Request, Application]
-]:
-    auth = ExchangeAuthConfig(
-        method='globus',
-        kwargs={'client_id': str(uuid.uuid4()), 'client_secret': 'test'},
-    )
-    user_1: dict[str, Any] = {
-        'active': True,
-        'username': 'user1',
-        'client_id': '1624cf3f-45ee-4f54-9de4-2d5d79191346',
-        'email': 'username@example.com',
-        'name': 'User Name',
-        'aud': [AcademyExchangeScopes.resource_server],
-    }
-
-    user_2: dict[str, Any] = {
-        'active': True,
-        'username': 'user2',
-        'client_id': '1624cf3f-45ee-4f54-9de4-2d5d79191346',
-        'email': 'username@example.com',
-        'name': 'User Name',
-        'aud': [AcademyExchangeScopes.resource_server],
-    }
-
-    inactive: dict[str, Any] = {
-        'active': False,
-    }
-
-    def authorize(token):
-        if token == 'user_1':
-            return user_1
-        if token == 'user_2':
-            return user_2
-        else:
-            return inactive
-
-    backend = PythonBackendConfig()
-
-    with mock.patch(
-        'globus_sdk.ConfidentialAppAuthClient.oauth2_token_introspect',
-    ) as mock_token_response:
-        mock_token_response.side_effect = authorize
-        app = create_app(backend, auth)
-        async with TestClient(TestServer(app)) as client:
-            yield client
-
-
-@pytest_asyncio.fixture
 async def group_id() -> str:
     return str(uuid.uuid4())
 
@@ -352,7 +311,6 @@ async def auth_client(
     )
 
     def authorize(token):
-        logging.warning(f'YADU : MOCK Authorize called with {token}')
         if 'Authorization' not in token:
             raise UnauthorizedError()
         if 'user_1' in token['Authorization']:
@@ -553,17 +511,41 @@ async def test_share_mailbox(auth_client, group_id) -> None:
 
     # Test access by user_2 who is in the same group
     response = await auth_client.get(
-        '/mailbox/share',
+        '/mailbox',  # Check status
         json={'mailbox': uid.model_dump_json()},
         headers={'Authorization': 'Bearer user_2'},
     )
     assert response.status == StatusCode.OKAY.value
-    response_json = await response.json()
 
-    # Test access by user_3 who is *NOT* in the same group
+    # Non-owner cannot view group access
     response = await auth_client.get(
         '/mailbox/share',
         json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_2'},
+    )
+    assert response.status == StatusCode.FORBIDDEN.value
+
+    # Test access by user_3 who is *NOT* in the same group
+    response = await auth_client.get(
+        '/mailbox',  # Check status
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_3'},
+    )
+    assert response.status == StatusCode.FORBIDDEN.value
+
+
+async def test_share_mailbox_forbidden(auth_client, group_id) -> None:
+    uid = UserId.new()
+    response = await auth_client.post(
+        '/mailbox',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_3'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.post(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
         headers={'Authorization': 'Bearer user_3'},
     )
     assert response.status == StatusCode.FORBIDDEN.value

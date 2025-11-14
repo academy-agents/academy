@@ -167,6 +167,134 @@ async def test_mailbox_backend_timeout(backend: MailboxBackend) -> None:
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_sharing(backend: MailboxBackend) -> None:
+    friend_group = str(uuid.uuid4())
+
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+    friend = ClientInfo(str(uuid.uuid4()), {friend_group})
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    assert (await backend.check_mailbox(client, uid)) == MailboxStatus.ACTIVE
+    with pytest.raises(ForbiddenError):
+        await backend.check_mailbox(friend, uid)
+
+    await backend.share_mailbox(client, uid, friend_group)
+    assert (await backend.check_mailbox(friend, uid)) == MailboxStatus.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_sharing_multi_group(
+    backend: MailboxBackend,
+) -> None:
+    friend_group_1 = str(uuid.uuid4())
+    friend_group_2 = str(uuid.uuid4())
+
+    client = ClientInfo(str(uuid.uuid4()), {friend_group_1, friend_group_2})
+    friend_1 = ClientInfo(str(uuid.uuid4()), {friend_group_1})
+    friend_2 = ClientInfo(str(uuid.uuid4()), {friend_group_2})
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    assert (await backend.check_mailbox(client, uid)) == MailboxStatus.ACTIVE
+    for friend in (friend_1, friend_2):
+        with pytest.raises(ForbiddenError):
+            await backend.check_mailbox(friend, uid)
+
+    await backend.share_mailbox(client, uid, friend_group_1)
+
+    # Only friend1 should have perms now
+    assert (await backend.check_mailbox(friend_1, uid)) == MailboxStatus.ACTIVE
+    with pytest.raises(ForbiddenError):
+        await backend.check_mailbox(friend_2, uid)
+
+    await backend.share_mailbox(client, uid, friend_group_2)
+    # Now both friends should have access via groups sharing
+
+    for friend in (friend_1, friend_2):
+        assert (
+            await backend.check_mailbox(friend, uid)
+        ) == MailboxStatus.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_sharing_requires_ownership(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+
+    client = ClientInfo(str(uuid.uuid4()), set())
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    client2 = ClientInfo(str(uuid.uuid4()), set(friend_group))
+    with pytest.raises(ForbiddenError):
+        await backend.share_mailbox(client2, uid, friend_group)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_sharing_requires_group(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+
+    client = ClientInfo(str(uuid.uuid4()), set())
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    with pytest.raises(ForbiddenError):
+        await backend.share_mailbox(client, uid, friend_group)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_get_mailbox_shares(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    shares = await backend.get_mailbox_shares(client, uid)
+    assert len(shares) == 0
+
+    await backend.share_mailbox(client, uid, friend_group)
+    shares = await backend.get_mailbox_shares(client, uid)
+    assert len(shares) == 1
+    assert shares[0] == friend_group
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_get_mailbox_shares_invalid(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+    uid = UserId.new()
+    with pytest.raises(BadEntityIdError):
+        await backend.get_mailbox_shares(client, uid)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_get_mailbox_shares_requires_ownership(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+    friend = ClientInfo(str(uuid.uuid4()), {friend_group})
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    await backend.share_mailbox(client, uid, friend_group)
+
+    with pytest.raises(ForbiddenError):
+        await backend.get_mailbox_shares(friend, uid)
+
+
+@pytest.mark.asyncio
 async def test_python_backend_message_size() -> None:
     backend = PythonBackend(message_size_limit_kb=0)
     uid = UserId.new()
@@ -246,86 +374,3 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
         await backend.get(client, uid, timeout=0.01)
 
     await backend.terminate(client, uid)
-
-
-@pytest.mark.asyncio
-async def test_redis_backend_sharing(mock_redis) -> None:
-    backend = RedisBackend(mailbox_expiration_s=1)
-    friend_group = str(uuid.uuid4())
-
-    client = ClientInfo(str(uuid.uuid4()), {friend_group})
-    friend = ClientInfo(str(uuid.uuid4()), {friend_group})
-
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    assert await backend._has_permissions(client, uid) is True
-    assert await backend._has_mailbox_ownership(client, uid) is True
-    assert await backend._has_shared_mailbox_access(client, uid) is False
-
-    assert await backend._has_permissions(friend, uid) is False
-    assert await backend._has_mailbox_ownership(friend, uid) is False
-    assert await backend._has_shared_mailbox_access(friend, uid) is False
-
-    await backend.share_mailbox(client, uid, friend_group)
-
-    assert await backend._has_permissions(friend, uid) is True
-    assert await backend._has_mailbox_ownership(friend, uid) is False
-    assert await backend._has_shared_mailbox_access(friend, uid) is True
-
-
-@pytest.mark.asyncio
-async def test_redis_backend_sharing_multi_group(mock_redis) -> None:
-    backend = RedisBackend(mailbox_expiration_s=1)
-
-    friend_group_1 = str(uuid.uuid4())
-    friend_group_2 = str(uuid.uuid4())
-
-    client = ClientInfo(str(uuid.uuid4()), {friend_group_1, friend_group_2})
-    friend_1 = ClientInfo(str(uuid.uuid4()), {friend_group_1})
-    friend_2 = ClientInfo(str(uuid.uuid4()), {friend_group_2})
-
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    assert await backend._has_permissions(client, uid) is True
-    assert await backend._has_mailbox_ownership(client, uid) is True
-    assert await backend._has_shared_mailbox_access(client, uid) is False
-
-    for friend in (friend_1, friend_2):
-        assert await backend._has_permissions(friend, uid) is False
-        assert await backend._has_mailbox_ownership(friend, uid) is False
-        assert await backend._has_shared_mailbox_access(friend, uid) is False
-
-    await backend.share_mailbox(client, uid, friend_group_1)
-
-    # Only friend1 should have perms now
-    assert await backend._has_permissions(friend_1, uid) is True
-    assert await backend._has_mailbox_ownership(friend_1, uid) is False
-    assert await backend._has_shared_mailbox_access(friend_1, uid) is True
-    assert await backend._has_permissions(friend_2, uid) is False
-    assert await backend._has_mailbox_ownership(friend_2, uid) is False
-    assert await backend._has_shared_mailbox_access(friend_2, uid) is False
-
-    await backend.share_mailbox(client, uid, friend_group_2)
-    # Now both friends should have access via groups sharing
-
-    for friend in (friend_1, friend_2):
-        assert await backend._has_permissions(friend, uid) is True
-        assert await backend._has_mailbox_ownership(friend, uid) is False
-        assert await backend._has_shared_mailbox_access(friend, uid) is True
-
-
-@pytest.mark.asyncio
-async def test_redis_backend_sharing_requires_group(mock_redis) -> None:
-    backend = RedisBackend(mailbox_expiration_s=1)
-
-    friend_group = str(uuid.uuid4())
-
-    client = ClientInfo(str(uuid.uuid4()), set())
-
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    with pytest.raises(ForbiddenError):
-        await backend.share_mailbox(client, uid, friend_group)

@@ -23,6 +23,7 @@ from academy.exchange import LocalExchangeTransport
 from academy.exchange import RedisExchangeFactory
 from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.app import create_app
+from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.globus import AcademyGlobusClient
 from academy.exchange.cloud.globus import GlobusExchangeFactory
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME
@@ -154,7 +155,7 @@ async def manager(
 @pytest_asyncio.fixture
 async def http_exchange_server() -> AsyncGenerator[tuple[str, int]]:
     host, port = 'localhost', open_port()
-    app = create_app()
+    app = create_app(auth_config=ExchangeAuthConfig())
 
     runner = AppRunner(app)
     await runner.setup()

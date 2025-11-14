@@ -127,6 +127,21 @@ async def test_groups_and_memberships(dependent_token_response) -> None:
         assert group_id in groups
 
 
+async def test_groups_missing_dependent_scope(
+    dependent_token_response,
+) -> None:
+    authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
+    with mock.patch.object(
+        dependent_token_response.by_scopes,
+        '__getitem__',
+        side_effect=KeyError,
+    ):
+        groups = authenticator._get_groups_and_memberships(
+            dependent_token_response,
+        )
+        assert len(groups) == 0
+
+
 @pytest.mark.asyncio
 async def test_dependent_tokens(dependent_token_response) -> None:
     authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')

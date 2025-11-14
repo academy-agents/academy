@@ -134,7 +134,6 @@ async def _get_mailbox_shares_route(request: Request) -> Response:
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
-        logger.exception('YADU: failed to get')
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pickle
+import uuid
 from unittest import mock
 
 import aiohttp
@@ -14,8 +15,10 @@ from academy.exception import UnauthorizedError
 from academy.exchange import HttpExchangeFactory
 from academy.exchange import HttpExchangeTransport
 from academy.exchange.cloud.app import StatusCode
+from academy.exchange.cloud.authenticate import NullAuthenticator
 from academy.exchange.cloud.client import _raise_for_status
 from academy.exchange.cloud.client import spawn_http_exchange
+from academy.exchange.cloud.client_info import ClientInfo
 from academy.identifier import UserId
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
@@ -68,7 +71,7 @@ async def test_additional_headers(
         assert 'Authorization' in transport._session.headers
 
 
-async def test_raise_for_status_error_conversion() -> None:
+def test_raise_for_status_error_conversion() -> None:
     class _MockResponse(aiohttp.ClientResponse):
         def __init__(self, status: int) -> None:
             self.status = status
@@ -95,6 +98,47 @@ async def test_raise_for_status_error_conversion() -> None:
     response = _MockResponse(StatusCode.TIMEOUT.value)
     with pytest.raises(TimeoutError):
         _raise_for_status(response, UserId.new())
+
+
+@pytest.mark.asyncio
+async def test_create_console(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    console = await http_exchange_factory.console()
+    assert console.factory()._info == http_exchange_factory._info
+
+
+@pytest.mark.asyncio
+async def test_console_share_mailbox(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    group_id = uuid.uuid1()
+    client_info = ClientInfo(client_id='', group_memberships={str(group_id)})
+
+    with mock.patch.object(
+        NullAuthenticator,
+        'authenticate_user',
+        return_value=client_info,
+    ):
+        async with await http_exchange_factory.create_user_client() as client:
+            console = await http_exchange_factory.console()
+            await console.share_mailbox(client.client_id, group_id)
+
+            group_ids = await console.get_shared_groups(client.client_id)
+            assert len(group_ids) == 1
+            assert group_ids[0] == group_id
+
+
+@pytest.mark.asyncio
+async def test_console_share_mailbox_forbidden(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    group_id = uuid.uuid1()
+
+    async with await http_exchange_factory.create_user_client() as client:
+        console = await http_exchange_factory.console()
+        with pytest.raises(ForbiddenError):
+            await console.share_mailbox(client.client_id, group_id)
 
 
 @pytest.mark.asyncio

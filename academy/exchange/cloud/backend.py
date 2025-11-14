@@ -357,9 +357,9 @@ class PythonBackend:
         if uid not in self._owners:
             raise BadEntityIdError(uid)
 
-        if not self._has_permissions(client, uid):
+        if not self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
-                'Mailbox sharing requires ownership',
+                'Viewing shared groups requires ownership',
             )
 
         return list(self._shares.get(uid, set()))
@@ -618,9 +618,9 @@ class RedisBackend:
         if not owner:
             raise BadEntityIdError(uid)
 
-        if not self._has_mailbox_ownership(client, uid):
+        if not await self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
-                'Mailbox sharing requires ownership',
+                'Viewing shared groups requires ownership',
             )
 
         _groups = await self._client.smembers(self._share_key(uid))  # type: ignore[misc]

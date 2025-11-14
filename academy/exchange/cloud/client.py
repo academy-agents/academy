@@ -303,8 +303,8 @@ class HttpExchangeConsole:
         async with self._session.post(
             self._share_url,
             json={
-                'mailbox_id': mailbox_id,
-                'group_id': group_id,
+                'mailbox': mailbox_id.model_dump_json(),
+                'group_id': str(group_id),
             },
         ) as response:
             _raise_for_status(response, None, mailbox_id)
@@ -318,11 +318,11 @@ class HttpExchangeConsole:
         async with self._session.get(
             self._share_url,
             json={
-                'mailbox_id': mailbox_id,
+                'mailbox': mailbox_id.model_dump_json(),
             },
         ) as response:
             _raise_for_status(response, None, mailbox_id)
-            groups_str = (await response.json())['groups']
+            groups_str = (await response.json())['group_ids']
             return [uuid.UUID(group_id) for group_id in groups_str]
 
 

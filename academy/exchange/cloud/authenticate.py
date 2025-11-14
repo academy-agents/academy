@@ -240,10 +240,7 @@ class GlobusAuthenticator:
                 GroupsScopes.view_my_groups_and_memberships
             ]
         except KeyError:
-            logger.exception(
-                'Dependent tokens for group membership info not found.',
-            )
-            logger.debug(
+            logger.warning(
                 'Dependent tokens missing groups scopes %s',
                 dependent_tokens,
             )

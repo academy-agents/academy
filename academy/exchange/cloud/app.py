@@ -101,11 +101,11 @@ async def _share_mailbox_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
     try:
-        raw_mailbox_id = request.match_info['mailbox_id']
+        raw_mailbox_id = data['mailbox']
         mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
             raw_mailbox_id,
         )
-        group_id = data['group']
+        group_id = data['group_id']
 
     except (KeyError, ValidationError):
         return Response(
@@ -122,6 +122,40 @@ async def _share_mailbox_route(request: Request) -> Response:
             text='Incorrect permissions',
         )
     return Response(status=StatusCode.OKAY.value)
+
+
+async def _get_mailbox_shares_route(request: Request) -> Response:
+    """Share mailbox with a Globus Group."""
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+    except (KeyError, ValidationError):
+        logger.exception('YADU: failed to get')
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    client = get_client_info(request)
+    try:
+        shares = await manager.get_mailbox_shares(client, mailbox_id)
+    except BadEntityIdError:
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
+    except ForbiddenError:
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+    return json_response(
+        {'group_ids': shares},
+    )
 
 
 async def _create_mailbox_route(request: Request) -> Response:
@@ -392,7 +426,8 @@ def create_app(
     app[MANAGER_KEY] = backend
 
     app.router.add_post('/mailbox', _create_mailbox_route)
-    app.router.add_post('/mailbox/{mailbox_id}/share', _share_mailbox_route)
+    app.router.add_post('/mailbox/share', _share_mailbox_route)
+    app.router.add_get('/mailbox/share', _get_mailbox_shares_route)
     app.router.add_delete('/mailbox', _terminate_route)
     app.router.add_get('/mailbox', _check_mailbox_route)
     app.router.add_put('/message', _send_message_route)

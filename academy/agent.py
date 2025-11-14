@@ -761,17 +761,11 @@ class Agent:
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
     ) -> Handle[AgentT]:
-        """Launch an child agent in the current event loop.
-
-        Note:
-           This is a wrapper around `self.manager.launch`. For more options
-           and control over launching child agents, use `self.manager`
-           directly.
+        """Launch a child agent in the current event loop.
 
         Args:
-            agent: Agent instance the agent will implement or the
-                agent type that will be initialized on the worker using
-                `args` and `kwargs`.
+            agent: An agent instance to launch, or an agent class to be
+                instantiated before launching using `args` and `kwargs`.
             args: Positional arguments used to initialize the agent.
                 Ignored if `agent` is already an instance.
             kwargs: Keyword arguments used to initialize the agent.

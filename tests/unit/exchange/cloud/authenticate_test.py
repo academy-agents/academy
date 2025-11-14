@@ -139,15 +139,14 @@ async def test_groups_and_memberships(dependent_token_response) -> None:
         assert group_id2 not in groups
 
 
-async def test_groups_missing_dependent_scope(
-    dependent_token_response,
-) -> None:
+async def test_groups_missing_dependent_scope() -> None:
     authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
-    dependent_token_response = mock.MagicMock(dependent_token_response)
-    dependent_token_response.by_scopes.side_effect = KeyError
+    dependent_token_response = mock.MagicMock()
+    dependent_token_response.by_scopes.__getitem__.side_effect = KeyError()
     groups = authenticator._get_groups_and_memberships(
         dependent_token_response,
     )
+    dependent_token_response.by_scopes.__getitem__.assert_called_once()
     assert len(groups) == 0
 
 

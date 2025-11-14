@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
 from typing import TypeVar
 
 from academy.task import spawn_guarded_background_task
@@ -22,7 +23,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import AgentT
+import academy.exchange as ae
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import ActionCancelledError
@@ -30,9 +31,6 @@ from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import PingCancelledError
 from academy.exception import raise_exceptions
-from academy.exchange import AgentExchangeClient
-from academy.exchange import ExchangeClient
-from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
@@ -48,6 +46,11 @@ from academy.message import ResponseT_co
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.serialize import NoPickleMixin
+
+if TYPE_CHECKING:
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +132,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self,
         agent: AgentT,
         *,
-        exchange_factory: ExchangeFactory[ExchangeTransportT],
+        exchange_factory: ae.ExchangeFactory[ExchangeTransportT],
         registration: AgentRegistrationT,
         config: RuntimeConfig | None = None,
     ) -> None:
@@ -157,11 +160,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         )
 
         self._exchange_client: (
-            AgentExchangeClient[AgentT, ExchangeTransportT] | None
+            ae.AgentExchangeClient[AgentT, ExchangeTransportT] | None
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
         self.exchange_context_token: (
-            contextvars.Token[ExchangeClient[Any]] | None
+            contextvars.Token[ae.ExchangeClient[Any]] | None
         ) = None
 
     async def __aenter__(self) -> Self:
@@ -435,6 +438,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             )
             self._loop_tasks[name] = task
 
+        await self.agent._agent_startup()
         await self.agent.agent_on_startup()
         self._agent_startup_called = True
 
@@ -479,6 +483,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             # Don't call agent_on_shutdown() if we never called
             # agent_on_startup()
             await self.agent.agent_on_shutdown()
+
+        await self.agent._agent_shutdown()
 
         # Cancel running control loop tasks
         for task in self._loop_tasks.values():

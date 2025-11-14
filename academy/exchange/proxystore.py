@@ -8,6 +8,8 @@ from collections.abc import Iterable
 from collections.abc import Mapping
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 from academy.agent import Agent
 from academy.agent import AgentT
@@ -23,6 +25,12 @@ from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 PROXYSTORE_IMPORT_ERROR: Exception | None = None
 try:

@@ -16,8 +16,6 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -25,7 +23,11 @@ from academy.message import ErrorResponse
 from academy.message import Message
 
 if TYPE_CHECKING:
+    from academy.agent import Agent
+    from academy.agent import AgentT
     from academy.exchange.factory import ExchangeFactory
+else:
+    AgentT = TypeVar('AgentT')
 
 
 class MailboxStatus(enum.Enum):

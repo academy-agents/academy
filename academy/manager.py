@@ -13,19 +13,19 @@ from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import AgentT
+import academy.exchange as ae
 from academy.debug import set_academy_debug
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
-from academy.exchange import ExchangeClient
-from academy.exchange import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
@@ -37,6 +37,11 @@ from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
 
+if TYPE_CHECKING:
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +49,7 @@ logger = logging.getLogger(__name__)
 class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     agent: AgentT | type[AgentT]
     config: RuntimeConfig
-    exchange_factory: ExchangeFactory[ExchangeTransportT]
+    exchange_factory: ae.ExchangeFactory[ExchangeTransportT]
     registration: AgentRegistration[AgentT]
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
@@ -147,7 +152,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     def __init__(
         self,
-        exchange_client: ExchangeClient[ExchangeTransportT],
+        exchange_client: ae.ExchangeClient[ExchangeTransportT],
         executors: Executor
         | MutableMapping[str, Executor | None]
         | None = None,
@@ -217,7 +222,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     @classmethod
     async def from_exchange_factory(
         cls,
-        factory: ExchangeFactory[ExchangeTransportT],
+        factory: ae.ExchangeFactory[ExchangeTransportT],
         executors: Executor
         | MutableMapping[str, Executor | None]
         | None = None,
@@ -235,12 +240,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         )
 
     @property
-    def exchange_client(self) -> ExchangeClient[ExchangeTransportT]:
+    def exchange_client(self) -> ae.ExchangeClient[ExchangeTransportT]:
         """User client for the exchange."""
         return self._exchange_client
 
     @property
-    def exchange_factory(self) -> ExchangeFactory[ExchangeTransportT]:
+    def exchange_factory(self) -> ae.ExchangeFactory[ExchangeTransportT]:
         """Client factory for the exchange."""
         return self._exchange_factory
 

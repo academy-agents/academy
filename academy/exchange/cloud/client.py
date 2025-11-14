@@ -13,6 +13,8 @@ from typing import Any
 from typing import Generic
 from typing import Literal
 from typing import NamedTuple
+from typing import TYPE_CHECKING
+from typing import TypeVar
 from urllib.parse import urlparse
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -22,8 +24,6 @@ else:  # pragma: <3.11 cover
 
 import aiohttp
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
@@ -41,6 +41,12 @@ from academy.identifier import UserId
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 from academy.socket import wait_connection
+
+if TYPE_CHECKING:
+    from academy.agent import Agent
+    from academy.agent import AgentT
+else:
+    AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
 

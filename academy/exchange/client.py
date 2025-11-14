@@ -15,15 +15,12 @@ from typing import TYPE_CHECKING
 from typing import TypeAlias
 from weakref import WeakValueDictionary
 
-from academy.task import spawn_guarded_background_task
-
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from academy.agent import Agent
-from academy.agent import AgentT
+import academy.agent as aa
 from academy.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
@@ -36,9 +33,11 @@ from academy.identifier import UserId
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import RequestT_co
+from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
     from academy.exchange.factory import ExchangeFactory
+
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +103,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[aa.Agent],
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
@@ -127,7 +126,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Get an exchange factory."""
         return self._transport.factory()
 
-    def register_handle(self, handle: Handle[AgentT]) -> None:
+    def register_handle(self, handle: Handle[aa.AgentT]) -> None:
         """Register an existing handle to receive messages.
 
         Args:
@@ -137,10 +136,10 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def register_agent(
         self,
-        agent: type[AgentT],
+        agent: type[aa.AgentT],
         *,
         name: str | None = None,
-    ) -> AgentRegistration[AgentT]:
+    ) -> AgentRegistration[aa.AgentT]:
         """Register a new agent and associated mailbox with the exchange.
 
         Args:
@@ -222,7 +221,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
 class AgentExchangeClient(
     ExchangeClient[ExchangeTransportT],
-    Generic[AgentT, ExchangeTransportT],
+    Generic[aa.AgentT, ExchangeTransportT],
 ):
     """Agent exchange client.
 
@@ -240,7 +239,7 @@ class AgentExchangeClient(
 
     def __init__(
         self,
-        agent_id: AgentId[AgentT],
+        agent_id: AgentId[aa.AgentT],
         transport: ExchangeTransportT,
         request_handler: RequestHandler[RequestT_co],
     ) -> None:
@@ -249,7 +248,7 @@ class AgentExchangeClient(
         self._request_handler = request_handler
 
     @property
-    def client_id(self) -> AgentId[AgentT]:
+    def client_id(self) -> AgentId[aa.AgentT]:
         """Agent ID of the client."""
         return self._agent_id
 

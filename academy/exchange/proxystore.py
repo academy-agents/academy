@@ -11,8 +11,6 @@ from typing import Generic
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
-from academy.agent import Agent
-from academy.agent import AgentT
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import AgentRegistrationT

@@ -2415,6 +2415,10 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ActionDescription</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.agent.ActionDescription" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
@@ -2422,14 +2426,25 @@
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
 
-
         <p>Typed description of an action.</p>
 
+    
 
-
-
-
-
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="academy.agent.ActionDescription.name">name</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.agent.ActionDescription.type_signature">type_signature</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>)
+            </li>
+            <li>
+              <code><span title="academy.agent.ActionDescription.doc">doc</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+            </li>
+        </ul>
 
 
 
@@ -2460,6 +2475,10 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">AgentDescription</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.agent.AgentDescription" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
@@ -2467,14 +2486,26 @@
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
 
-
         <p>Typed description of an Agent.</p>
 
+    
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="academy.agent.AgentDescription.description">description</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.agent.AgentDescription.actions">actions</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-internal" title="            ActionDescription
 
 
-
-
-
+  
+      pydantic-model
+   (academy.agent.ActionDescription)" href="#academy.agent.ActionDescription">ActionDescription</a>]</code>)
+            </li>
+        </ul>
 
 
 
@@ -3507,7 +3538,12 @@ Ignored if <code>agent</code> is already an instance.</p>
   </span>
 
 <a href="#academy.agent.Agent.agent_describe" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">agent_describe</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentDescription (academy.agent.AgentDescription)" href="#academy.agent.AgentDescription">AgentDescription</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">agent_describe</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            AgentDescription
+
+
+  
+      pydantic-model
+   (academy.agent.AgentDescription)" href="#academy.agent.AgentDescription">AgentDescription</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3518,7 +3554,12 @@ Ignored if <code>agent</code> is already an instance.</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="            AgentDescription (academy.agent.AgentDescription)" href="#academy.agent.AgentDescription">AgentDescription</a></code>
+              <code><a class="autorefs autorefs-internal" title="            AgentDescription
+
+
+  
+      pydantic-model
+   (academy.agent.AgentDescription)" href="#academy.agent.AgentDescription">AgentDescription</a></code>
           –
           <div class="doc-md-description">
             <p>A AgentDescription created from the class documentation.</p>

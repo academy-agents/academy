@@ -90,6 +90,7 @@ async def test_groups_and_memberships(dependent_token_response) -> None:
     groups_response.status_code = 200
 
     group_id = '690baf30-b476-11e3-a878-12313809f035'
+    group_id2 = str(uuid.uuid1())
     content = [
         {
             'name': 'osg.Swift',
@@ -112,6 +113,16 @@ async def test_groups_and_memberships(dependent_token_response) -> None:
             'subscription_id': None,
             'subscription_info': None,
         },
+        {
+            'name': 'osg.Swift',
+            'id': group_id2,
+            'my_memberships': [
+                {
+                    'group_id': group_id2,
+                    'status': 'pending',
+                },
+            ],
+        },
     ]
 
     groups_response._content = json.dumps(content).encode('utf-8')
@@ -125,21 +136,19 @@ async def test_groups_and_memberships(dependent_token_response) -> None:
         )
         assert groups
         assert group_id in groups
+        assert group_id2 not in groups
 
 
 async def test_groups_missing_dependent_scope(
     dependent_token_response,
 ) -> None:
     authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
-    with mock.patch.object(
-        dependent_token_response.by_scopes,
-        '__getitem__',
-        side_effect=KeyError,
-    ):
-        groups = authenticator._get_groups_and_memberships(
-            dependent_token_response,
-        )
-        assert len(groups) == 0
+    dependent_token_response = mock.MagicMock(dependent_token_response)
+    dependent_token_response.by_scopes.side_effect = KeyError
+    groups = authenticator._get_groups_and_memberships(
+        dependent_token_response,
+    )
+    assert len(groups) == 0
 
 
 @pytest.mark.asyncio

@@ -238,14 +238,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         finally:
             # Shield sending the result from being cancelled so the requester
             # does not block on a response they will never get.
-            try:
-                await asyncio.shield(self._send_response(response))
-            except ExchangeError as e:
-                logger.warning(
-                    f'Exception while replying to {response.dest}: {e}',
-                )
-                # We don't want these errors to kill our agent, so continue
-                pass
+            await asyncio.shield(self._send_response(response))
 
     async def _execute_ping(self, request: Message[PingRequest]) -> None:
         response: Message[Response]
@@ -259,13 +252,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         else:
             response = request.create_response(SuccessResponse())
         finally:
-            try:
-                await asyncio.shield(self._send_response(response))
-            except ExchangeError as e:
-                logger.warning(
-                    f'Exception while replying to {response.dest}: {e}',
-                )
-                pass
+            await asyncio.shield(self._send_response(response))
 
     async def _execute_loop(
         self,

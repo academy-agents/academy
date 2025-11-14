@@ -325,6 +325,10 @@ class HttpExchangeConsole:
             groups_str = (await response.json())['group_ids']
             return [uuid.UUID(group_id) for group_id in groups_str]
 
+    async def close(self) -> None:
+        """Close the console session."""
+        await self._session.close()
+
 
 class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
     """Http exchange client factory.

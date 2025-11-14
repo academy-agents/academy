@@ -60,7 +60,7 @@ def register_new_exchange():
     # Add dependent scope on Globus Groups
     groups_scope_spec = DependentScopeSpec(
         '73320ffe-4cb4-4b25-a0a3-83d53d59ce4f',
-        False,
+        True,
         False,
     )
     # Create scope

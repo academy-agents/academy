@@ -128,6 +128,8 @@ async def test_console_share_mailbox(
             assert len(group_ids) == 1
             assert group_ids[0] == group_id
 
+            await console.close()
+
 
 @pytest.mark.asyncio
 async def test_console_share_mailbox_forbidden(
@@ -139,6 +141,7 @@ async def test_console_share_mailbox_forbidden(
         console = await http_exchange_factory.console()
         with pytest.raises(ForbiddenError):
             await console.share_mailbox(client.client_id, group_id)
+        await console.close()
 
 
 @pytest.mark.asyncio

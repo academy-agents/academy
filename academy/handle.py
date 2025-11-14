@@ -190,17 +190,17 @@ class Handle(Generic[AgentT]):
             return
 
         future = self._pending_response_futures.pop(response.tag)
-        assert not future.cancelled()
 
-        body = response.get_body()
-        if isinstance(body, ActionResponse):
-            future.set_result(body.get_result())
-        elif isinstance(body, ErrorResponse):
-            future.set_exception(body.get_exception())
-        elif isinstance(body, SuccessResponse):
-            future.set_result(None)
-        else:
-            raise AssertionError('Unreachable.')
+        if not future.cancelled():
+            body = response.get_body()
+            if isinstance(body, ActionResponse):
+                future.set_result(body.get_result())
+            elif isinstance(body, ErrorResponse):
+                future.set_exception(body.get_exception())
+            elif isinstance(body, SuccessResponse):
+                future.set_result(None)
+            else:
+                raise AssertionError('Unreachable.')
 
     def _register_with_exchange(self, exchange: ExchangeClient[Any]) -> None:
         """Register to receive messages from exchange.
@@ -242,7 +242,6 @@ class Handle(Generic[AgentT]):
         )
         loop = asyncio.get_running_loop()
         future: asyncio.Future[R] = loop.create_future()
-        future = asyncio.shield(future)
         self._pending_response_futures[request.tag] = future
 
         await self.exchange.send(request)
@@ -287,7 +286,6 @@ class Handle(Generic[AgentT]):
         )
         loop = asyncio.get_running_loop()
         future: asyncio.Future[None] = loop.create_future()
-        future = asyncio.shield(future)
         self._pending_response_futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)

@@ -255,7 +255,10 @@ class GlobusAuthenticator:
         )
 
         if response.status_code != HTTPStatus.OK:
-            logger.error('Globus groups query failed %s', response.json())
+            logger.error(
+                'Globus groups query failed: %d',
+                response.status_code,
+            )
         else:
             for group in response.json():
                 for membership in group['my_memberships']:

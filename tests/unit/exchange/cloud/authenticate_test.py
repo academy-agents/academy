@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -148,6 +149,24 @@ async def test_groups_missing_dependent_scope() -> None:
     )
     dependent_token_response.by_scopes.__getitem__.assert_called_once()
     assert len(groups) == 0
+
+
+@pytest.mark.asyncio
+async def test_groups_failed_query(dependent_token_response, caplog) -> None:
+    authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
+    groups_response = Response()
+    groups_response.status_code = 400
+
+    with caplog.at_level(logging.ERROR):
+        with mock.patch(
+            'requests.get',
+        ) as mock_request:
+            mock_request.return_value = groups_response
+            groups = authenticator._get_groups_and_memberships(
+                dependent_token_response,
+            )
+            assert len(groups) == 0
+            assert 'Globus groups query failed' in caplog.text
 
 
 @pytest.mark.asyncio

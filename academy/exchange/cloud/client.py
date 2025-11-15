@@ -234,6 +234,102 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, uid)
 
 
+class HttpExchangeConsole:
+    """Client for Http/Cloud specific exchange operations.
+
+    Args:
+        session: Http session.
+        connection_info: Exchange connection info.
+    """
+
+    def __init__(
+        self,
+        session: aiohttp.ClientSession,
+        connection_info: _HttpConnectionInfo,
+    ) -> None:
+        self._session = session
+        self._info = connection_info
+
+        base_url = self._info.url
+        self._share_url = f'{base_url}/mailbox/share'
+
+    @classmethod
+    async def new(
+        cls,
+        *,
+        connection_info: _HttpConnectionInfo,
+    ) -> Self:
+        """Instantiate a new console.
+
+        Args:
+            connection_info: Exchange connection information.
+
+        Returns:
+            An instantiated transport bound to a specific mailbox.
+        """
+        ssl_verify = connection_info.ssl_verify
+        if ssl_verify is None:  # pragma: no branch
+            scheme = urlparse(connection_info.url).scheme
+            ssl_verify = scheme == 'https'
+
+        session = aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=ssl_verify),
+            headers=connection_info.additional_headers,
+            trust_env=True,
+        )
+        return cls(session, connection_info)
+
+    def factory(self) -> HttpExchangeFactory:
+        # Note: When getting factory, auth method is not preserved
+        # but auth headers (i.e. the bearer token) is.
+        return HttpExchangeFactory(
+            url=self._info.url,
+            additional_headers=self._info.additional_headers,
+            ssl_verify=self._info.ssl_verify,
+        )
+
+    async def share_mailbox(
+        self,
+        mailbox_id: EntityId,
+        group_id: uuid.UUID,
+    ) -> None:
+        """Share mailbox with group.
+
+        Args:
+            mailbox_id: Either AgentId or UserId of mailbox
+            group_id: Id of globus group. User must be part of group to share
+                mailbox.
+        """
+        async with self._session.post(
+            self._share_url,
+            json={
+                'mailbox': mailbox_id.model_dump_json(),
+                'group_id': str(group_id),
+            },
+        ) as response:
+            _raise_for_status(response, None, mailbox_id)
+
+    async def get_shared_groups(self, mailbox_id: EntityId) -> list[uuid.UUID]:
+        """Get the groups mailbox is shared with.
+
+        Args:
+            mailbox_id: Either AgentId or UserId of mailbox
+        """
+        async with self._session.get(
+            self._share_url,
+            json={
+                'mailbox': mailbox_id.model_dump_json(),
+            },
+        ) as response:
+            _raise_for_status(response, None, mailbox_id)
+            groups_str = (await response.json())['group_ids']
+            return [uuid.UUID(group_id) for group_id in groups_str]
+
+    async def close(self) -> None:
+        """Close the console session."""
+        await self._session.close()
+
+
 class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
     """Http exchange client factory.
 
@@ -277,10 +373,15 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             name=name,
         )
 
+    async def console(self) -> HttpExchangeConsole:
+        return await HttpExchangeConsole.new(
+            connection_info=self._info,
+        )
+
 
 def _raise_for_status(
     response: aiohttp.ClientResponse,
-    client_id: EntityId,
+    client_id: EntityId | None,
     resource_id: EntityId | None = None,
 ) -> None:
     # Parse HTTP error codes into the correct error types.
@@ -299,9 +400,17 @@ def _raise_for_status(
             'this resource.',
         )
     elif response.status == StatusCode.NOT_FOUND.value:
-        raise BadEntityIdError(resource_id or client_id)
+        entity_id = resource_id or client_id
+        assert entity_id is not None, (
+            'Either client_id or resource_id must be provided.'
+        )
+        raise BadEntityIdError(entity_id)
     elif response.status == StatusCode.TERMINATED.value:
-        raise MailboxTerminatedError(resource_id or client_id)
+        entity_id = resource_id or client_id
+        assert entity_id is not None, (
+            'Either client_id or resource_id must be provided.'
+        )
+        raise MailboxTerminatedError(entity_id)
     elif response.status == StatusCode.TIMEOUT.value:
         raise TimeoutError()
     else:

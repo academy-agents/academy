@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import fnmatch
 import logging
+from builtins import set as builtins_set
 from collections import defaultdict
 from collections.abc import AsyncGenerator
 from collections.abc import Generator
@@ -20,6 +21,7 @@ class MockRedis:
         self.lists: dict[bytes, list[bytes]] = defaultdict(list)
         self.events: dict[bytes, asyncio.Event] = defaultdict(asyncio.Event)
         self.timeouts: dict[bytes, asyncio.Future[Any]] = {}
+        self.sets: dict[bytes, set[bytes]] = {}
 
         assert (
             'decode_responses' not in kwargs or not kwargs['decode_responses']
@@ -145,6 +147,17 @@ class MockRedis:
         key = self._encode(key)
         value = self._encode(value)
         self.values[key] = value
+
+    async def sadd(self, key: bytes | str, *values: bytes | str) -> None:
+        key = self._encode(key)
+        if self.sets.get(key) is None:
+            self.sets[key] = set()
+
+        for value in values:
+            self.sets[key].add(self._encode(value))
+
+    async def smembers(self, key: bytes | str) -> builtins_set[bytes]:
+        return self.sets.get(self._encode(key), set())
 
 
 @pytest.fixture

@@ -7,15 +7,20 @@ import logging
 import threading
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
+from http import HTTPStatus
 from typing import Protocol
 from typing import runtime_checkable
 
 import globus_sdk
+import requests
 from cachetools import cachedmethod
 from cachetools import TTLCache
+from globus_sdk.scopes import GroupsScopes
+from globus_sdk.services.auth.response import OAuthDependentTokenResponse
 
 from academy.exception import ForbiddenError
 from academy.exception import UnauthorizedError
+from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_client_id
@@ -28,7 +33,10 @@ logger = logging.getLogger(__name__)
 class Authenticator(Protocol):
     """Authenticate users from request headers."""
 
-    async def authenticate_user(self, headers: Mapping[str, str]) -> str:
+    async def authenticate_user(
+        self,
+        headers: Mapping[str, str],
+    ) -> ClientInfo:
         """Authenticate user from request headers.
 
         Warning:
@@ -51,7 +59,10 @@ class Authenticator(Protocol):
 class NullAuthenticator:
     """Authenticator that implements no authentication."""
 
-    async def authenticate_user(self, headers: Mapping[str, str]) -> str:
+    async def authenticate_user(
+        self,
+        headers: Mapping[str, str],
+    ) -> ClientInfo:
         """Authenticate user from request headers.
 
         Args:
@@ -60,7 +71,7 @@ class NullAuthenticator:
         Returns:
             Null user regardless of provided headers.
         """
-        return ''
+        return ClientInfo(client_id='', group_memberships=set())
 
 
 class GlobusAuthenticator:
@@ -86,6 +97,7 @@ class GlobusAuthenticator:
         *,
         token_cache_limit: int = 1024,
         token_ttl_s: int = 60,
+        group_info_cache_ttl_s: int = 60,
     ) -> None:
         self._local_data = threading.local()
         self.executor = ThreadPoolExecutor(
@@ -98,6 +110,14 @@ class GlobusAuthenticator:
         self.token_cache = TTLCache(
             maxsize=token_cache_limit,
             ttl=token_ttl_s,
+        )
+        self.dependent_token_cache = TTLCache(
+            maxsize=token_cache_limit,
+            ttl=group_info_cache_ttl_s,
+        )
+        self.groups_info_cache = TTLCache(
+            maxsize=token_cache_limit,
+            ttl=group_info_cache_ttl_s,
         )
 
     @property
@@ -130,7 +150,10 @@ class GlobusAuthenticator:
         )
         return response
 
-    async def authenticate_user(self, headers: Mapping[str, str]) -> str:
+    async def authenticate_user(
+        self,
+        headers: Mapping[str, str],
+    ) -> ClientInfo:
         """Authenticate a Globus Auth user from request header.
 
         This follows from the [Globus Sample Data Portal](https://github.com/globus/globus-sample-data-portal/blob/30e30cd418ee9b103e04916e19deb9902d3aafd8/service/decorators.py)
@@ -174,7 +197,82 @@ class GlobusAuthenticator:
                 'scopes are requested when the token is created.',
             )
 
-        return token_meta.get('username')
+        dependent_tokens = await loop.run_in_executor(
+            self.executor,
+            self._get_dependent_tokens,
+            token,
+        )
+
+        groups_info = await loop.run_in_executor(
+            self.executor,
+            self._get_groups_and_memberships,
+            dependent_tokens,
+        )
+
+        client_info = ClientInfo(
+            client_id=token_meta.get('username'),
+            group_memberships=groups_info,
+        )
+        return client_info
+
+    @cachedmethod(lambda self: self.dependent_token_cache)
+    def _get_dependent_tokens(
+        self,
+        token: str,
+    ) -> OAuthDependentTokenResponse:
+        """Get dependent tokens from a Globus Auth token."""
+        group_scope = GroupsScopes.view_my_groups_and_memberships
+        dependent_tokens = self.auth_client.oauth2_get_dependent_tokens(
+            token,
+            scope=group_scope,
+        )
+        return dependent_tokens
+
+    @cachedmethod(lambda self: self.groups_info_cache)
+    def _get_groups_and_memberships(
+        self,
+        dependent_tokens: OAuthDependentTokenResponse,
+    ) -> list[str]:
+        """Exchange dependent tokens for groups membership info.
+
+        Returns:
+            List of group membership tokens.
+            Return empty list if there are no group membership
+        """
+        group_info: list[str] = []
+        try:
+            groups_dep_token = dependent_tokens.by_scopes[
+                GroupsScopes.view_my_groups_and_memberships
+            ]
+        except KeyError:
+            logger.warning(
+                'Dependent tokens missing groups scopes %s',
+                dependent_tokens,
+            )
+            return []
+
+        response = requests.get(
+            url='https://groups.api.globus.org/v2/groups/my_groups',
+            headers={
+                'Authorization': 'Bearer '
+                + str(groups_dep_token['access_token']),
+            },
+        )
+
+        if response.status_code != HTTPStatus.OK:
+            logger.error(
+                'Globus groups query failed with status %d',
+                response.status_code,
+            )
+            return []
+
+        for group in response.json():
+            for membership in group['my_memberships']:
+                if membership['status'] == 'active':
+                    group_info.append(group['id'])
+                    break
+
+        return group_info
 
 
 def get_authenticator(config: ExchangeAuthConfig) -> Authenticator:

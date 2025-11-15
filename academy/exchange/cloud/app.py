@@ -57,6 +57,7 @@ from academy.exchange.cloud.authenticate import Authenticator
 from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
+from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import BackendConfig
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
@@ -84,6 +85,78 @@ class StatusCode(enum.Enum):
 MANAGER_KEY = AppKey('manager', MailboxBackend)
 
 
+def get_client_info(request: Request) -> ClientInfo:
+    """Reconstitute client info from Request."""
+    client_info = ClientInfo(
+        client_id=request.headers.get('client_id', ''),
+        group_memberships=set(
+            request.headers.get('client_groups', '').split(','),
+        ),
+    )
+    return client_info
+
+
+async def _share_mailbox_route(request: Request) -> Response:
+    """Share mailbox with a Globus Group."""
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+        group_id = data['group_id']
+
+    except (KeyError, ValidationError):
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    client = get_client_info(request)
+    try:
+        await manager.share_mailbox(client, mailbox_id, group_id)
+    except ForbiddenError:
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+    return Response(status=StatusCode.OKAY.value)
+
+
+async def _get_mailbox_shares_route(request: Request) -> Response:
+    """Share mailbox with a Globus Group."""
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+    except (KeyError, ValidationError):
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    client = get_client_info(request)
+    try:
+        shares = await manager.get_mailbox_shares(client, mailbox_id)
+    except BadEntityIdError:
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
+    except ForbiddenError:
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+    return json_response(
+        {'group_ids': shares},
+    )
+
+
 async def _create_mailbox_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -101,9 +174,9 @@ async def _create_mailbox_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.create_mailbox(client_id, mailbox_id, agent)
+        await manager.create_mailbox(client, mailbox_id, agent)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,
@@ -127,9 +200,9 @@ async def _terminate_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.terminate(client_id, mailbox_id)
+        await manager.terminate(client, mailbox_id)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,
@@ -151,9 +224,9 @@ async def _discover_route(request: Request) -> Response:
             text='Missing or invalid arguments',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     agent_ids = await manager.discover(
-        client_id,
+        client,
         agent,
         allow_subclasses,
     )
@@ -178,9 +251,9 @@ async def _check_mailbox_route(request: Request) -> Response:
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        status = await manager.check_mailbox(client_id, mailbox_id)
+        status = await manager.check_mailbox(client, mailbox_id)
     except ForbiddenError:
         return Response(
             status=StatusCode.FORBIDDEN.value,
@@ -202,9 +275,9 @@ async def _send_message_route(request: Request) -> Response:
             text='Missing or invalid message',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.put(client_id, message)
+        await manager.put(client, message)
     except BadEntityIdError:
         return Response(
             status=StatusCode.NOT_FOUND.value,
@@ -256,8 +329,8 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
     timeout = data.get('timeout', None)
 
     try:
-        client_id = request.headers.get('client_id', '')
-        message = await manager.get(client_id, mailbox_id, timeout=timeout)
+        client = get_client_info(request)
+        message = await manager.get(client, mailbox_id, timeout=timeout)
     except BadEntityIdError:
         return Response(
             status=StatusCode.NOT_FOUND.value,
@@ -301,7 +374,7 @@ def authenticate_factory(
         handler: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         try:
-            client_id: str = await authenticator.authenticate_user(
+            client_info: ClientInfo = await authenticator.authenticate_user(
                 request.headers,
             )
         except ForbiddenError:
@@ -316,7 +389,8 @@ def authenticate_factory(
             )
 
         headers = request.headers.copy()
-        headers['client_id'] = client_id
+        headers['client_id'] = client_info.client_id
+        headers['client_groups'] = ','.join(client_info.group_memberships)
 
         # Handle early client-side disconnect in Issue #142
         # This is somewhat hard to reproduce in tests:
@@ -351,6 +425,8 @@ def create_app(
     app[MANAGER_KEY] = backend
 
     app.router.add_post('/mailbox', _create_mailbox_route)
+    app.router.add_post('/mailbox/share', _share_mailbox_route)
+    app.router.add_get('/mailbox/share', _get_mailbox_shares_route)
     app.router.add_delete('/mailbox', _terminate_route)
     app.router.add_get('/mailbox', _check_mailbox_route)
     app.router.add_put('/message', _send_message_route)

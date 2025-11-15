@@ -97,7 +97,7 @@ class GlobusAuthenticator:
         *,
         token_cache_limit: int = 1024,
         token_ttl_s: int = 60,
-        group_info_cache_ttl_s: int = 60 * 5,
+        group_info_cache_ttl_s: int = 60,
     ) -> None:
         self._local_data = threading.local()
         self.executor = ThreadPoolExecutor(

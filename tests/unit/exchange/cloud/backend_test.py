@@ -219,6 +219,30 @@ async def test_mailbox_backend_sharing_multi_group(
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_sharing_invalid(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    with pytest.raises(BadEntityIdError):
+        await backend.share_mailbox(client, uid, friend_group)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_sharing_terminated(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    await backend.terminate(client, uid)
+    with pytest.raises(MailboxTerminatedError):
+        await backend.share_mailbox(client, uid, friend_group)
+
+
+@pytest.mark.asyncio
 async def test_mailbox_backend_sharing_requires_ownership(
     backend: MailboxBackend,
 ) -> None:
@@ -275,6 +299,19 @@ async def test_mailbox_backend_get_mailbox_shares_invalid(
     client = ClientInfo(str(uuid.uuid4()), {friend_group})
     uid = UserId.new()
     with pytest.raises(BadEntityIdError):
+        await backend.get_mailbox_shares(client, uid)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_get_mailbox_shares_terminated(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    await backend.terminate(client, uid)
+    with pytest.raises(MailboxTerminatedError):
         await backend.get_mailbox_shares(client, uid)
 
 

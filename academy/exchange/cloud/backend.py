@@ -82,48 +82,7 @@ class MailboxBackend(Protocol):
         Raises:
             ForbiddenError: If the client does not have the right permissions.
         """
-
-    async def share_mailbox(
-        self,
-        client: ClientInfo,
-        uid: EntityId,
-        group_uid: str,
-    ) -> None:
-        """Share a mailbox with a Globus Group.
-
-        Only the owner of the Mailbox is allowed to share with a Globus Group.
-        This method should be idempotent.
-
-        Args:
-            client: Client making the request.
-            uid: Mailbox id to share.
-            group_uid: Globus Group id to share.
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-        """
-
-    async def get_mailbox_shares(
-        self,
-        client: ClientInfo,
-        uid: EntityId,
-    ) -> list[str]:
-        """Get list of globus groups the mailbox is shared with.
-
-        Only the owner of the Mailbox is allowed to share with a Globus Group.
-        This method should be idempotent.
-
-        Args:
-            client: Client making the request.
-            uid: Mailbox id to share.
-
-        Returns:
-            List of globus groups id strings
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-            BadEntityIdError: The mailbox requested does not exist.
-        """
+        ...
 
     async def terminate(self, client: ClientInfo, uid: EntityId) -> None:
         """Close a mailbox.
@@ -195,6 +154,53 @@ class MailboxBackend(Protocol):
             MailboxTerminatedError: The mailbox is closed.
             MessageTooLargeError: The message is larger than the message
                 size limit for this exchange.
+        """
+        ...
+
+    async def share_mailbox(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+        group_uid: str,
+    ) -> None:
+        """Share a mailbox with a Globus Group.
+
+        Only the owner of the Mailbox is allowed to share with a Globus Group.
+        This method should be idempotent.
+
+        Args:
+            client: Client making the request.
+            uid: Mailbox id to share.
+            group_uid: Globus Group id to share.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox to share does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+        """
+        ...
+
+    async def get_mailbox_shares(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> list[str]:
+        """Get list of globus groups the mailbox is shared with.
+
+        Only the owner of the Mailbox is allowed to share with a Globus Group.
+        This method should be idempotent.
+
+        Args:
+            client: Client making the request.
+            uid: Mailbox id to share.
+
+        Returns:
+            List of globus groups id strings
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox requested does not exist.
+            MailboxTerminatedError: The mailbox is closed.
         """
         ...
 
@@ -320,66 +326,6 @@ class PythonBackend:
                 uid,
                 extra={'academy.mailbox_id': uid},
             )
-
-    async def share_mailbox(
-        self,
-        client: ClientInfo,
-        uid: EntityId,
-        group_uid: str,
-    ) -> None:
-        """Share a mailbox with a Globus group.
-
-        Args:
-            client: Client making the request.
-            uid: Target Mailbox for sharing
-            group_uid: Group id to share mailbox with.
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-        """
-        if not self._has_mailbox_ownership(client, uid):
-            raise ForbiddenError(
-                'Mailbox sharing requires ownership',
-            )
-
-        if group_uid not in client.group_memberships:
-            raise ForbiddenError(
-                f'Owner does not belong to the group:{group_uid}',
-            )
-
-        if uid not in self._shares:
-            self._shares[uid] = set()
-
-        self._shares[uid].add(group_uid)
-        logger.info('Mailbox %s shared with group %s', uid, group_uid)
-
-    async def get_mailbox_shares(
-        self,
-        client: ClientInfo,
-        uid: EntityId,
-    ) -> list[str]:
-        """Share a mailbox with a Globus group.
-
-        Args:
-            client: Client making the request.
-            uid: Target Mailbox for sharing
-
-        Returns:
-            List of globus groups id strings
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-            BadEntityIdError: If the mailbox is nonexistent
-        """
-        if uid not in self._owners:
-            raise BadEntityIdError(uid)
-
-        if not self._has_mailbox_ownership(client, uid):
-            raise ForbiddenError(
-                'Viewing shared groups requires ownership',
-            )
-
-        return list(self._shares.get(uid, set()))
 
     async def terminate(self, client: ClientInfo, uid: EntityId) -> None:
         """Close a mailbox.
@@ -525,6 +471,80 @@ class PythonBackend:
             except QueueShutDown:
                 raise MailboxTerminatedError(message.dest) from None
 
+    async def share_mailbox(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+        group_uid: str,
+    ) -> None:
+        """Share a mailbox with a Globus group.
+
+        Args:
+            client: Client making the request.
+            uid: Target Mailbox for sharing
+            group_uid: Group id to share mailbox with.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+        """
+        if uid not in self._mailboxes:
+            raise BadEntityIdError(uid)
+
+        if uid in self._terminated:
+            raise MailboxTerminatedError(uid)
+
+        if not self._has_mailbox_ownership(client, uid):
+            raise ForbiddenError(
+                f'{client.client_id} cannot share mailbox '
+                f'{uid} it does not own.',
+            )
+
+        if group_uid not in client.group_memberships:
+            raise ForbiddenError(
+                f'Owner does not belong to the group {group_uid}',
+            )
+
+        if uid not in self._shares:
+            self._shares[uid] = set()
+
+        self._shares[uid].add(group_uid)
+        logger.info('Mailbox %s shared with group %s', uid, group_uid)
+
+    async def get_mailbox_shares(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> list[str]:
+        """Get list of globus groups the mailbox is shared with.
+
+        Only the owner of the Mailbox is allowed to share with a Globus Group.
+        This method should be idempotent.
+
+        Args:
+            client: Client making the request.
+            uid: Mailbox id to share.
+
+        Returns:
+            List of globus groups id strings
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox requested does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+        """
+        if uid not in self._mailboxes:
+            raise BadEntityIdError(uid)
+
+        if uid in self._terminated:
+            raise MailboxTerminatedError(uid)
+
+        if not self._has_mailbox_ownership(client, uid):
+            raise ForbiddenError(
+                'Viewing shared groups requires ownership',
+            )
+
+        return list(self._shares.get(uid, set()))
+
 
 async def _drain_queue(queue: AsyncQueue[Message[Any]]) -> list[Message[Any]]:
     items: list[Message[Any]] = []
@@ -593,66 +613,6 @@ class RedisBackend:
 
     def _share_key(self, uid: EntityId) -> str:
         return f'share:{uid.uid}'
-
-    async def share_mailbox(
-        self,
-        client: ClientInfo,
-        uid: EntityId,
-        group_uid: str,
-    ) -> None:
-        """Share a mailbox with a Globus group.
-
-        Args:
-             client: Client making the request.
-             group_uid: Group id to share mailbox with.
-             uid: Target Mailbox for sharing
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-        """
-        if not await self._has_mailbox_ownership(client, uid):
-            raise ForbiddenError(
-                'Mailbox sharing requires ownership',
-            )
-        if group_uid not in client.group_memberships:
-            raise ForbiddenError(
-                f'Owner does not belong to the group:{group_uid}',
-            )
-
-        await self._client.sadd(self._share_key(uid), group_uid)  # type: ignore[misc]
-
-    async def get_mailbox_shares(
-        self,
-        client: ClientInfo,
-        uid: EntityId,
-    ) -> list[str]:
-        """Get list of globus groups the mailbox is shared with.
-
-        Args:
-             client: Client making the request.
-             uid: Mailbox id to get sharing info
-
-        Returns:
-            List of globus groups id strings
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-            BadEntityIdError: If the mailbox is nonexistent
-        """
-        owner = await self._client.get(
-            self._owner_key(uid),
-        )
-        if not owner:
-            raise BadEntityIdError(uid)
-
-        if not await self._has_mailbox_ownership(client, uid):
-            raise ForbiddenError(
-                'Viewing shared groups requires ownership',
-            )
-
-        _groups = await self._client.smembers(self._share_key(uid))  # type: ignore[misc]
-        groups = [g.decode() for g in _groups]
-        return groups
 
     async def _has_permissions(
         self,
@@ -968,3 +928,74 @@ class RedisBackend:
                 self.mailbox_expiration_s,
                 nx=True,
             )
+
+    async def share_mailbox(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+        group_uid: str,
+    ) -> None:
+        """Share a mailbox with a Globus group.
+
+        Args:
+             client: Client making the request.
+             group_uid: Group id to share mailbox with.
+             uid: Target Mailbox for sharing
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+        """
+        status = await self._client.get(self._active_key(uid))
+        if status is None:
+            raise BadEntityIdError(uid)
+        elif status.decode() == MailboxStatus.TERMINATED.value:
+            raise MailboxTerminatedError(uid)
+
+        if not await self._has_mailbox_ownership(client, uid):
+            raise ForbiddenError(
+                f'{client.client_id} cannot share mailbox '
+                f'{uid} it does not own.',
+            )
+        if group_uid not in client.group_memberships:
+            raise ForbiddenError(
+                f'Owner does not belong to the group {group_uid}',
+            )
+
+        await self._client.sadd(self._share_key(uid), group_uid)  # type: ignore[misc]
+
+    async def get_mailbox_shares(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> list[str]:
+        """Get list of globus groups the mailbox is shared with.
+
+        Only the owner of the Mailbox is allowed to share with a Globus Group.
+        This method should be idempotent.
+
+        Args:
+            client: Client making the request.
+            uid: Mailbox id to share.
+
+        Returns:
+            List of globus groups id strings
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox requested does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+        """
+        status = await self._client.get(self._active_key(uid))
+        if status is None:
+            raise BadEntityIdError(uid)
+        elif status.decode() == MailboxStatus.TERMINATED.value:
+            raise MailboxTerminatedError(uid)
+
+        if not await self._has_mailbox_ownership(client, uid):
+            raise ForbiddenError(
+                'Viewing shared groups requires ownership',
+            )
+
+        _groups = await self._client.smembers(self._share_key(uid))  # type: ignore[misc]
+        groups = [g.decode() for g in _groups]
+        return groups

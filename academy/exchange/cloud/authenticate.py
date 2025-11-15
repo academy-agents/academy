@@ -261,7 +261,7 @@ class GlobusAuthenticator:
 
         if response.status_code != HTTPStatus.OK:
             logger.error(
-                'Globus groups query failed: %d',
+                'Globus groups query failed with status %d',
                 response.status_code,
             )
             return []

@@ -233,7 +233,12 @@ class GlobusAuthenticator:
         self,
         dependent_tokens: OAuthDependentTokenResponse,
     ) -> list[str]:
-        """Exchange dependent tokens for groups membership info."""
+        """Exchange dependent tokens for groups membership info.
+
+        Returns:
+            List of group membership tokens.
+            Return empty list if there are no group membership
+        """
         group_info: list[str] = []
         try:
             groups_dep_token = dependent_tokens.by_scopes[
@@ -244,7 +249,7 @@ class GlobusAuthenticator:
                 'Dependent tokens missing groups scopes %s',
                 dependent_tokens,
             )
-            return group_info
+            return []
 
         response = requests.get(
             url='https://groups.api.globus.org/v2/groups/my_groups',
@@ -259,12 +264,13 @@ class GlobusAuthenticator:
                 'Globus groups query failed: %d',
                 response.status_code,
             )
-        else:
-            for group in response.json():
-                for membership in group['my_memberships']:
-                    if membership['status'] == 'active':
-                        group_info.append(group['id'])
-                        break
+            return []
+
+        for group in response.json():
+            for membership in group['my_memberships']:
+                if membership['status'] == 'active':
+                    group_info.append(group['id'])
+                    break
 
         return group_info
 

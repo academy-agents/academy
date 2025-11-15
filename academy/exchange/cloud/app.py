@@ -54,10 +54,10 @@ from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
 from academy.exception import UnauthorizedError
 from academy.exchange.cloud.authenticate import Authenticator
-from academy.exchange.cloud.authenticate import ClientInfo
 from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
+from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import BackendConfig
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig

@@ -98,6 +98,9 @@ class MailboxBackend(Protocol):
             client: Client making the request.
             uid: Mailbox id to share.
             group_uid: Globus Group id to share.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
         """
 
     async def get_mailbox_shares(
@@ -113,6 +116,13 @@ class MailboxBackend(Protocol):
         Args:
             client: Client making the request.
             uid: Mailbox id to share.
+
+        Returns:
+            List of globus groups id strings
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox requested does not exist.
         """
 
     async def terminate(self, client: ClientInfo, uid: EntityId) -> None:
@@ -323,6 +333,9 @@ class PythonBackend:
             client: Client making the request.
             uid: Target Mailbox for sharing
             group_uid: Group id to share mailbox with.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
         """
         if not self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
@@ -338,7 +351,7 @@ class PythonBackend:
             self._shares[uid] = set()
 
         self._shares[uid].add(group_uid)
-        logger.info('Mailbox:%s shared with group:%s', uid, group_uid)
+        logger.info('Mailbox %s shared with group %s', uid, group_uid)
 
     async def get_mailbox_shares(
         self,
@@ -353,6 +366,10 @@ class PythonBackend:
 
         Returns:
             List of globus groups id strings
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: If the mailbox is nonexistent
         """
         if uid not in self._owners:
             raise BadEntityIdError(uid)
@@ -589,6 +606,9 @@ class RedisBackend:
              client: Client making the request.
              group_uid: Group id to share mailbox with.
              uid: Target Mailbox for sharing
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
         """
         if not await self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
@@ -611,6 +631,13 @@ class RedisBackend:
         Args:
              client: Client making the request.
              uid: Mailbox id to get sharing info
+
+        Returns:
+            List of globus groups id strings
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: If the mailbox is nonexistent
         """
         owner = await self._client.get(
             self._owner_key(uid),

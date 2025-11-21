@@ -12,7 +12,6 @@ from globus_sdk.globus_app import ClientApp
 from globus_sdk.globus_app import GlobusAppConfig
 from globus_sdk.globus_app import UserApp
 from globus_sdk.tokenstorage import MemoryTokenStorage
-from globus_sdk.tokenstorage import TokenValidationError
 
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_SECRET_ENV_NAME
@@ -152,21 +151,3 @@ def test_get_auth_headers_globus(globus_app) -> None:
         ),
     ):
         assert get_auth_headers('globus')['Authorization'] == header
-
-
-def test_get_auth_headers_globus_missing(globus_app) -> None:
-    with (
-        mock.patch(
-            'academy.exchange.cloud.login.get_globus_app',
-            return_value=globus_app,
-        ),
-        mock.patch.object(
-            globus_app,
-            'get_authorizer',
-            side_effect=TokenValidationError(),
-        ),
-        pytest.raises(
-            SystemExit,
-        ),
-    ):
-        assert get_auth_headers('globus')

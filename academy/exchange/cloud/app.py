@@ -108,7 +108,10 @@ async def _share_mailbox_route(request: Request) -> Response:
         group_id = data['group_id']
 
     except (KeyError, ValidationError):
-        logger.warning('Missing or invalid mailbox id in request.')
+        logger.warning(
+            'Missing or invalid mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
@@ -136,7 +139,10 @@ async def _get_mailbox_shares_route(request: Request) -> Response:
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
-        logger.warning('Missing or invalid mailbox id in request.')
+        logger.warning(
+            'Missing or invalid mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
@@ -174,7 +180,10 @@ async def _create_mailbox_route(request: Request) -> Response:
         agent_raw = data.get('agent', None)
         agent = agent_raw.split(',') if agent_raw is not None else None
     except (KeyError, ValidationError):
-        logger.warning('Invalid or missing mailbox id in request.')
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
@@ -202,7 +211,10 @@ async def _terminate_route(request: Request) -> Response:
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
-        logger.warning('Invalid or missing mailbox id in request.')
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
@@ -228,7 +240,7 @@ async def _discover_route(request: Request) -> Response:
         agent = data['agent']
         allow_subclasses = data['allow_subclasses']
     except (KeyError, ValidationError):
-        logger.warning('Missing fields for discover request.')
+        logger.warning('Missing fields for discover request.', exc_info=True)
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid arguments',
@@ -256,7 +268,10 @@ async def _check_mailbox_route(request: Request) -> Response:
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
-        logger.warning('Invalid or missing mailbox id in request.')
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
@@ -282,7 +297,10 @@ async def _send_message_route(request: Request) -> Response:
         raw_message = data.get('message')
         message: Message[Any] = Message.model_validate_json(raw_message)
     except (KeyError, ValidationError):
-        logger.warning('Invalid or missing mailbox id in request.')
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid message',
@@ -292,13 +310,13 @@ async def _send_message_route(request: Request) -> Response:
     try:
         await manager.put(client, message)
     except BadEntityIdError:
-        logger.warning(f'Destination mailbox {message.dest} does not exist.')
+        logger.exception(f'Destination mailbox {message.dest} does not exist.')
         return Response(
             status=StatusCode.NOT_FOUND.value,
             text='Unknown mailbox ID',
         )
     except MailboxTerminatedError:
-        logger.warning(f'Destination mailbox {message.dest} terminated.')
+        logger.exception(f'Destination mailbox {message.dest} terminated.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
@@ -310,7 +328,7 @@ async def _send_message_route(request: Request) -> Response:
             text='Incorrect permissions',
         )
     except MessageTooLargeError as e:
-        logger.warning(f'Message to mailbox {message.dest} too large.')
+        logger.exception(f'Message to mailbox {message.dest} too large.')
         return Response(
             status=StatusCode.TOO_LARGE.value,
             text=f'Message of size {e.size} larger than limit {e.limit}.',
@@ -338,7 +356,10 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
-        logger.warning('Invalid or missing mailbox id in request.')
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
@@ -350,13 +371,13 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         client = get_client_info(request)
         message = await manager.get(client, mailbox_id, timeout=timeout)
     except BadEntityIdError:
-        logger.warning(f'Receive from unknown mailbox {mailbox_id}.')
+        logger.exception(f'Receive from unknown mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.NOT_FOUND.value,
             text='Unknown mailbox ID',
         )
     except MailboxTerminatedError:
-        logger.warning(f'Receive from terminated mailbox {mailbox_id}.')
+        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
@@ -370,7 +391,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             text='Incorrect permissions',
         )
     except TimeoutError:
-        logger.warning('Receive from mailbox {mailbox_id} timed-out.')
+        logger.exception('Receive from mailbox {mailbox_id} timed-out.')
         return Response(
             status=StatusCode.TIMEOUT.value,
             text='Request timeout',

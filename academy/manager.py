@@ -406,6 +406,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                         agent_id,
                         extra={'academy.agent_id': agent_id},
                     )
+                    if spec.config.terminate_on_error:
+                        await self.exchange_client.terminate(
+                            spec.registration.agent_id,
+                        )
                     raise
                 else:
                     logger.exception(

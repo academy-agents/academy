@@ -22,6 +22,7 @@ from academy.exchange.cloud.client_info import ClientInfo
 from academy.identifier import UserId
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
+from testing.constant import TEST_SLEEP_INTERVAL
 
 
 def test_factory_serialize(
@@ -36,26 +37,10 @@ def test_factory_serialize(
 async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
     url = f'http://{host}:{port}'
-    factory = HttpExchangeFactory(url)
-
-    class MockResponse:
-        status = StatusCode.TIMEOUT.value
-
-        async def __aexit__(self, exc_type, exc, tb):
-            pass
-
-        async def __aenter__(self):
-            return self
-
+    factory = HttpExchangeFactory(url, request_timeout_s=TEST_SLEEP_INTERVAL)
     async with await factory._create_transport() as transport:
-        response = MockResponse()
-        with mock.patch.object(
-            transport._session,
-            'get',
-            return_value=response,
-        ):
-            with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-                await transport.recv()
+        with pytest.raises(TimeoutError):  # pragma: <3.14 cover
+            await transport.recv(2 * TEST_SLEEP_INTERVAL)
 
 
 @pytest.mark.asyncio

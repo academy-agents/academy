@@ -428,8 +428,8 @@ async def test_terminate_mailbox_on_launch_error(
 
     class TestAgent(Agent):
         @action
-        async def echo(self, thing: Any) -> Any:
-            return thing
+        async def echo(self, thing: Any) -> Any:  # pragma: no cover
+            return 'Hello'
 
     # Do not want to use context manager so we can explicitly expect
     # a RuntimeError while closing the manager

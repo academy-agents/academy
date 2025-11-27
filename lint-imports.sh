@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 for m in $(find academy -name \*.py | sed 's%/%.%'g | sed 's/^\(.*\)\.py/\1/' ); do
   echo Checking clean import of $m
 

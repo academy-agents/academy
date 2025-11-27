@@ -30,6 +30,9 @@ jobs:
         - os: ubuntu-latest
           python: '3.14'
           toxenv: py314
+        - os: ubuntu-latest
+          python: '3.14'
+          toxenv: importability
     runs-on: ${{ matrix.os }}
 
     steps:

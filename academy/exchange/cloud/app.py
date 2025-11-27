@@ -57,6 +57,7 @@ from academy.exchange.cloud.authenticate import Authenticator
 from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
+from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import BackendConfig
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
@@ -84,6 +85,89 @@ class StatusCode(enum.Enum):
 MANAGER_KEY = AppKey('manager', MailboxBackend)
 
 
+def get_client_info(request: Request) -> ClientInfo:
+    """Reconstitute client info from Request."""
+    client_info = ClientInfo(
+        client_id=request.headers.get('client_id', ''),
+        group_memberships=set(
+            request.headers.get('client_groups', '').split(','),
+        ),
+    )
+    return client_info
+
+
+async def _share_mailbox_route(request: Request) -> Response:
+    """Share mailbox with a Globus Group."""
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+        group_id = data['group_id']
+
+    except (KeyError, ValidationError):
+        logger.warning(
+            'Missing or invalid mailbox id in request.',
+            exc_info=True,
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    client = get_client_info(request)
+    try:
+        await manager.share_mailbox(client, mailbox_id, group_id)
+    except ForbiddenError:
+        logger.exception('Incorrect permissions to share mailbox.')
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+    return Response(status=StatusCode.OKAY.value)
+
+
+async def _get_mailbox_shares_route(request: Request) -> Response:
+    """Share mailbox with a Globus Group."""
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+    except (KeyError, ValidationError):
+        logger.warning(
+            'Missing or invalid mailbox id in request.',
+            exc_info=True,
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    client = get_client_info(request)
+    try:
+        shares = await manager.get_mailbox_shares(client, mailbox_id)
+    except BadEntityIdError:
+        logger.exception('Unknown mailbox id to share.')
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
+    except ForbiddenError:
+        logger.exception('Incorrect permissions to view mailbox groups.')
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+    return json_response(
+        {'group_ids': shares},
+    )
+
+
 async def _create_mailbox_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -96,15 +180,20 @@ async def _create_mailbox_route(request: Request) -> Response:
         agent_raw = data.get('agent', None)
         agent = agent_raw.split(',') if agent_raw is not None else None
     except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.create_mailbox(client_id, mailbox_id, agent)
+        await manager.create_mailbox(client, mailbox_id, agent)
     except ForbiddenError:
+        logger.exception('Incorrect permissions to create mailbox.')
         return Response(
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
@@ -122,15 +211,20 @@ async def _terminate_route(request: Request) -> Response:
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.terminate(client_id, mailbox_id)
+        await manager.terminate(client, mailbox_id)
     except ForbiddenError:
+        logger.exception('Incorrect permissions to terminate mailbox.')
         return Response(
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
@@ -146,14 +240,15 @@ async def _discover_route(request: Request) -> Response:
         agent = data['agent']
         allow_subclasses = data['allow_subclasses']
     except (KeyError, ValidationError):
+        logger.warning('Missing fields for discover request.', exc_info=True)
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid arguments',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     agent_ids = await manager.discover(
-        client_id,
+        client,
         agent,
         allow_subclasses,
     )
@@ -173,15 +268,20 @@ async def _check_mailbox_route(request: Request) -> Response:
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        status = await manager.check_mailbox(client_id, mailbox_id)
+        status = await manager.check_mailbox(client, mailbox_id)
     except ForbiddenError:
+        logger.exception('Incorrect permissions to view mailbox status.')
         return Response(
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
@@ -197,30 +297,38 @@ async def _send_message_route(request: Request) -> Response:
         raw_message = data.get('message')
         message: Message[Any] = Message.model_validate_json(raw_message)
     except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid message',
         )
 
-    client_id = request.headers.get('client_id', '')
+    client = get_client_info(request)
     try:
-        await manager.put(client_id, message)
+        await manager.put(client, message)
     except BadEntityIdError:
+        logger.exception(f'Destination mailbox {message.dest} does not exist.')
         return Response(
             status=StatusCode.NOT_FOUND.value,
             text='Unknown mailbox ID',
         )
     except MailboxTerminatedError:
+        logger.exception(f'Destination mailbox {message.dest} terminated.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
         )
     except ForbiddenError:
+        logger.exception('Invalid permissions to send message to mailbox.')
         return Response(
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
     except MessageTooLargeError as e:
+        logger.exception(f'Message to mailbox {message.dest} too large.')
         return Response(
             status=StatusCode.TOO_LARGE.value,
             text=f'Message of size {e.size} larger than limit {e.limit}.',
@@ -248,6 +356,10 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             raw_mailbox_id,
         )
     except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
@@ -256,24 +368,30 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
     timeout = data.get('timeout', None)
 
     try:
-        client_id = request.headers.get('client_id', '')
-        message = await manager.get(client_id, mailbox_id, timeout=timeout)
+        client = get_client_info(request)
+        message = await manager.get(client, mailbox_id, timeout=timeout)
     except BadEntityIdError:
+        logger.exception(f'Receive from unknown mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.NOT_FOUND.value,
             text='Unknown mailbox ID',
         )
     except MailboxTerminatedError:
+        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
         )
     except ForbiddenError:
+        logger.exception(
+            f'Incorrect permissions to receive from mailbox {mailbox_id}',
+        )
         return Response(
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
     except TimeoutError:
+        logger.exception('Receive from mailbox {mailbox_id} timed-out.')
         return Response(
             status=StatusCode.TIMEOUT.value,
             text='Request timeout',
@@ -301,22 +419,25 @@ def authenticate_factory(
         handler: Callable[[Request], Awaitable[Response]],
     ) -> Response:
         try:
-            client_id: str = await authenticator.authenticate_user(
+            client_info: ClientInfo = await authenticator.authenticate_user(
                 request.headers,
             )
         except ForbiddenError:
+            logger.exception('Could not authenticate.')
             return Response(
                 status=StatusCode.FORBIDDEN.value,
                 text='Token expired or revoked.',
             )
         except UnauthorizedError:
+            logger.exception('Could not authenticate.')
             return Response(
                 status=StatusCode.UNAUTHORIZED.value,
                 text='Missing required headers.',
             )
 
         headers = request.headers.copy()
-        headers['client_id'] = client_id
+        headers['client_id'] = client_info.client_id
+        headers['client_groups'] = ','.join(client_info.group_memberships)
 
         # Handle early client-side disconnect in Issue #142
         # This is somewhat hard to reproduce in tests:
@@ -351,6 +472,8 @@ def create_app(
     app[MANAGER_KEY] = backend
 
     app.router.add_post('/mailbox', _create_mailbox_route)
+    app.router.add_post('/mailbox/share', _share_mailbox_route)
+    app.router.add_get('/mailbox/share', _get_mailbox_shares_route)
     app.router.add_delete('/mailbox', _terminate_route)
     app.router.add_get('/mailbox', _check_mailbox_route)
     app.router.add_put('/message', _send_message_route)

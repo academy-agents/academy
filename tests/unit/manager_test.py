@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import multiprocessing
 import pathlib
+import time
 from collections.abc import Callable
 from concurrent.futures import Future
 from concurrent.futures import ProcessPoolExecutor
@@ -12,8 +13,10 @@ from typing import ParamSpec
 
 import pytest
 
+from academy.agent import action
 from academy.agent import Agent
 from academy.exception import BadEntityIdError
+from academy.exception import MailboxTerminatedError
 from academy.exception import PingCancelledError
 from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
@@ -403,3 +406,38 @@ async def test_event_loop_agent_launch(
         await hdl.shutdown()
         await second.shutdown()
         await manager.wait([hdl, second])
+
+
+@pytest.mark.asyncio
+async def test_terminate_mailbox_on_launch_error(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+):
+    def delay_exception():
+        time.sleep(TEST_SLEEP_INTERVAL)
+        raise RuntimeError()
+
+    class FakeExecutor(ThreadPoolExecutor):
+        def submit(
+            self,
+            fn: Callable[P, Any],
+            /,
+            *args: P.args,
+            **kwargs: P.kwargs,
+        ) -> Future[Any]:
+            return super().submit(delay_exception)
+
+    class TestAgent(Agent):
+        @action
+        async def echo(self, thing: Any) -> Any:  # pragma: no cover
+            return 'Hello'
+
+    # Do not want to use context manager so we can explicitly expect
+    # a RuntimeError while closing the manager
+    manager = Manager(exchange_client, executors=FakeExecutor())
+
+    hdl = await manager.launch(TestAgent)
+    with pytest.raises(MailboxTerminatedError):
+        await hdl.echo('Hello')
+
+    with pytest.raises(RuntimeError):
+        await manager.close()

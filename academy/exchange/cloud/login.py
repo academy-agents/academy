@@ -16,7 +16,6 @@ from globus_sdk.globus_app import GlobusApp
 from globus_sdk.globus_app import GlobusAppConfig
 from globus_sdk.globus_app import UserApp
 from globus_sdk.login_flows import CommandLineLoginFlowManager
-from globus_sdk.tokenstorage import TokenValidationError
 
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.token_store import SafeSQLiteTokenStorage
@@ -214,12 +213,9 @@ def get_auth_headers(
                 ],
             },
         )
-        try:
-            authorizer = app.get_authorizer(
-                AcademyExchangeScopes.resource_server,
-            )
-        except TokenValidationError:
-            raise SystemExit(1) from None
+        authorizer = app.get_authorizer(
+            AcademyExchangeScopes.resource_server,
+        )
 
         bearer = authorizer.get_authorization_header()
         assert bearer is not None

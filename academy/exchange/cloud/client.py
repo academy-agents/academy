@@ -7,6 +7,7 @@ import dataclasses
 import logging
 import multiprocessing
 import sys
+import time
 import uuid
 from collections.abc import Generator
 from typing import Any
@@ -55,6 +56,7 @@ class _HttpConnectionInfo(NamedTuple):
     url: str
     additional_headers: dict[str, str] | None = None
     ssl_verify: bool | None = None
+    request_timeout_s: float = 60
 
 
 @dataclasses.dataclass
@@ -173,23 +175,42 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     async def recv(self, timeout: float | None = None) -> Message[Any]:
-        try:
-            async with self._session.get(
-                self._message_url,
-                json={
-                    'mailbox': self.mailbox_id.model_dump_json(),
-                    'timeout': timeout,
-                },
-                timeout=aiohttp.ClientTimeout(timeout),
-            ) as response:
-                _raise_for_status(response, self.mailbox_id)
-                message_raw = (await response.json()).get('message')
-        except asyncio.TimeoutError as e:
-            # In older versions of Python, ayncio.TimeoutError and TimeoutError
-            # are different types.
+        start_time = time.time()
+        current_time = time.time()
+        while timeout is None or current_time - start_time < timeout:
+            internal_timeout = (
+                self._info.request_timeout_s
+                if timeout is None
+                else min(
+                    (start_time + timeout) - current_time,
+                    self._info.request_timeout_s,
+                )
+            )
+            try:
+                async with self._session.get(
+                    self._message_url,
+                    json={
+                        'mailbox': self.mailbox_id.model_dump_json(),
+                        'timeout': internal_timeout,
+                    },
+                    timeout=aiohttp.ClientTimeout(internal_timeout),
+                ) as response:
+                    _raise_for_status(response, self.mailbox_id)
+                    message_raw = (await response.json()).get('message')
+                    break
+            except asyncio.TimeoutError:
+                logger.debug(
+                    f'Failed to receive response in {internal_timeout} '
+                    'seconds.',
+                )
+                pass
+
+            current_time = time.time()
+
+        else:
             raise TimeoutError(
                 f'Failed to receive response in {timeout} seconds.',
-            ) from e
+            )
 
         return Message.model_validate_json(message_raw)
 
@@ -286,6 +307,7 @@ class HttpExchangeConsole:
             url=self._info.url,
             additional_headers=self._info.additional_headers,
             ssl_verify=self._info.ssl_verify,
+            request_timeout_s=self._info.request_timeout_s,
         )
 
     async def share_mailbox(
@@ -348,6 +370,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         url: str,
         auth_method: Literal['globus'] | None = None,
         additional_headers: dict[str, str] | None = None,
+        request_timeout_s: float = 60,
         ssl_verify: bool | None = None,
     ) -> None:
         if additional_headers is None:
@@ -358,6 +381,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             url=url,
             additional_headers=additional_headers,
             ssl_verify=ssl_verify,
+            request_timeout_s=request_timeout_s,
         )
 
     async def _create_transport(

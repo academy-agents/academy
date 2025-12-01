@@ -7,6 +7,7 @@ import dataclasses
 import logging
 import multiprocessing
 import sys
+import time
 import uuid
 from collections.abc import Generator
 from typing import Any
@@ -174,12 +175,16 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     async def recv(self, timeout: float | None = None) -> Message[Any]:
-        total_time: float = 0
-        while timeout is None or total_time < timeout:
+        start_time = time.time()
+        current_time = time.time()
+        while timeout is None or current_time - start_time < timeout:
             internal_timeout = (
                 self._info.request_timeout_s
                 if timeout is None
-                else min(timeout - total_time, self._info.request_timeout_s)
+                else min(
+                    (start_time + timeout) - current_time,
+                    self._info.request_timeout_s,
+                )
             )
             try:
                 async with self._session.get(
@@ -196,11 +201,11 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             except asyncio.TimeoutError:
                 logger.debug(
                     f'Failed to receive response in {internal_timeout} '
-                    f'seconds.',
+                    'seconds.',
                 )
                 pass
 
-            total_time += internal_timeout
+            current_time = time.time()
 
         else:
             raise TimeoutError(

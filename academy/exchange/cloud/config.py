@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import abc
-import logging
 import pathlib
 import sys
 from typing import Any
@@ -24,6 +23,7 @@ from pydantic import Field
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
+from academy.observability.config import ObservabilityConfig
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     import tomllib
@@ -118,8 +118,7 @@ class ExchangeServingConfig(BaseModel):
         keyfile: Private key file. If not specified, the key will be
             taken from the certfile.
         auth: Authentication configuration.
-        log_file: Location to write logs.
-        log_level: Verbosity of logs.
+        log_config: The configuration for observability.
     """
 
     host: str = 'localhost'
@@ -128,8 +127,8 @@ class ExchangeServingConfig(BaseModel):
     keyfile: str | None = None
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
-    log_file: str | None = None
-    log_level: int | str = logging.INFO
+    log_config: ObservabilityConfig | None = None
+    arbitrary_types_allowed = True
 
     @classmethod
     def from_toml(cls, filepath: str | pathlib.Path) -> Self:

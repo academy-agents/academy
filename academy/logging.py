@@ -100,6 +100,9 @@ def init_logging(  # noqa: PLR0913
     extra: int = False,
     force: bool = False,
 ) -> logging.Logger:
+    raise RuntimeError(
+        'dont use this on this branch -- use academy.observability',
+    )
     """Initialize global logger.
 
     Args:

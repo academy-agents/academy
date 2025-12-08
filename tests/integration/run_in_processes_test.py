@@ -46,6 +46,7 @@ class Reverser(Agent):
 @pytest.mark.asyncio
 async def test_run_in_processes() -> None:
     lc = FilePoolLog()
+    lc.init_logging() # initialize for the workflow side
 
     with spawn_http_exchange(
         'localhost',

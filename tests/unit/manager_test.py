@@ -349,8 +349,8 @@ async def test_worker_init_logging_no_logfile(
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            init_logging=True,
-            loglevel='WARNING',
+            # init_logging=True,
+            # loglevel='WARNING',
         )
         await handle.shutdown()
         await manager.wait({handle})
@@ -371,9 +371,9 @@ async def test_worker_init_logging_logfile(
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            init_logging=True,
-            loglevel='WARNING',
-            logfile=filepath,
+            # init_logging=True,
+            # loglevel='WARNING',
+            # logfile=filepath,
         )
         await handle.shutdown()
         await manager.wait({handle})
@@ -387,7 +387,7 @@ async def test_worker_init_logging_warn(
 ) -> None:
     agent = SleepAgent(TEST_SLEEP_INTERVAL)
     with pytest.warns(UserWarning, match='init_logging'):
-        handle = await manager.launch(agent, init_logging=True)
+        handle = await manager.launch(agent)  # , init_logging=True)
 
     await handle.shutdown()
     await manager.wait({handle})

@@ -40,6 +40,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
+from academy.observability.config import ObservabilityConfig
 from academy.serialize import NoPickleMixin
 from academy.socket import wait_connection
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import pickle
 import uuid
 from unittest import mock
@@ -134,7 +133,6 @@ async def test_spawn_http_exchange() -> None:
     with spawn_http_exchange(
         'localhost',
         open_port(),
-        level=logging.ERROR,
         timeout=TEST_CONNECTION_TIMEOUT,
     ) as factory:
         async with await factory._create_transport() as transport:

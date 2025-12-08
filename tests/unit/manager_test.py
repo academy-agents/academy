@@ -367,7 +367,7 @@ async def test_worker_init_logging_logfile(
         http_exchange_factory,
         executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
     ) as manager:
-        filepath = str(tmp_path / 'test-worker-init-logging.log')
+        _filepath = str(tmp_path / 'test-worker-init-logging.log')
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,

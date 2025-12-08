@@ -446,7 +446,8 @@ def spawn_http_exchange(
     host: str = '0.0.0.0',
     port: int = 5463,
     *,
-    level: int | str = logging.WARNING,
+    # level: int | str = logging.WARNING,
+    log_config: ObservabilityConfig | None = None,
     timeout: float | None = None,
 ) -> Generator[HttpExchangeFactory]:
     """Context manager that spawns an HTTP exchange in a subprocess.
@@ -471,7 +472,7 @@ def spawn_http_exchange(
     Returns:
         Exchange interface connected to the spawned exchange.
     """
-    config = ExchangeServingConfig(host=host, port=port, log_level=level)
+    config = ExchangeServingConfig(host=host, port=port, log_config=log_config)
 
     # Fork is not safe in multi-threaded context.
     context = multiprocessing.get_context('spawn')

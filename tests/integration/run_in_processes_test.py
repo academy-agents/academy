@@ -10,6 +10,7 @@ from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
 from academy.manager import Manager
+from academy.observability.config import FilePoolLog
 from academy.socket import open_port
 
 
@@ -44,7 +45,10 @@ class Reverser(Agent):
 
 @pytest.mark.asyncio
 async def test_run_in_processes() -> None:
-    with spawn_http_exchange('localhost', open_port()) as factory:
+
+    lc = FilePoolLog()
+
+    with spawn_http_exchange('localhost', open_port(), log_config=lc) as factory:
         mp_context = multiprocessing.get_context('spawn')
         executor = ProcessPoolExecutor(max_workers=3, mp_context=mp_context)
 
@@ -52,8 +56,8 @@ async def test_run_in_processes() -> None:
             factory=factory,
             executors=executor,
         ) as manager:
-            lowerer = await manager.launch(Lowerer)
-            reverser = await manager.launch(Reverser)
+            lowerer = await manager.launch(Lowerer, log_config=lc)
+            reverser = await manager.launch(Reverser, log_config=lc)
             coordinator = await manager.launch(
                 Coordinator,
                 args=(lowerer, reverser),

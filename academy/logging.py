@@ -100,9 +100,6 @@ def init_logging(  # noqa: PLR0913
     extra: int = False,
     force: bool = False,
 ) -> logging.Logger:
-    raise RuntimeError(
-        'dont use this on this branch -- use academy.observability',
-    )
     """Initialize global logger.
 
     Args:
@@ -123,6 +120,10 @@ def init_logging(  # noqa: PLR0913
     Returns:
         The root logger.
     """
+    raise RuntimeError(
+        'dont use this on this branch -- use academy.observability',
+    )
+
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(_Formatter(color=color, extra=extra))
     stdout_handler.setLevel(level)

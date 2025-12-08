@@ -467,7 +467,7 @@ def spawn_http_exchange(
     Args:
         host: Host the exchange should listen on.
         port: Port the exchange should listen on.
-        level: Logging level.
+        log_config: Logging configuration.
         timeout: Connection timeout when waiting for exchange to start.
 
     Returns:

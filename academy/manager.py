@@ -463,9 +463,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             name: Readable name of the agent used when registering a new agent.
             registration: If `None`, a new agent will be registered with
                 the exchange.
-            TODO init_logging: Initialize logging before running agent.
-            TODO loglevel: Level of logging.
-            TODO logfile: Location to write logs.
+            log_config: log configuration to use
 
         Returns:
             Handle (client bound) used to interact with the agent.

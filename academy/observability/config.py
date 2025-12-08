@@ -5,11 +5,11 @@ import pathlib
 import sys
 import uuid
 
-logger = logging.getLogger(__name__)
-
 from academy.logging import _Formatter
 from academy.logging import _os_thread_filter
 from academy.logging import JSONHandler
+
+logger = logging.getLogger(__name__)
 
 
 class ObservabilityConfig:
@@ -28,8 +28,10 @@ class ObservabilityConfig:
     logging.
     """
 
-    def init_logging(self):
-        """Hosting environments will call this on the object
+    def init_logging(self) -> None:
+        """Initialize logging in current process.
+
+        Hosting environments will call this on the object
         they have been configured with to initialize
         observability.
 
@@ -39,16 +41,18 @@ class ObservabilityConfig:
         exist within a broader htex worker (e.g. when running
         inside Globus Compute).
 
-        This should return a callback that will uninitialize
-        logging, which can be called by the same hosting
-        environments.
+        In future dev, this should return a callback that will
+        uninitialize logging, which can be called by the same hosting
+        environments. But for now theres no mechanism to turn off
+        logging in a process once started.
         """
         pass
 
 
 class ConsoleLogging(ObservabilityConfig):
-    """Configures logging to the console. This is the
-    console part of academy.logging.init_logging
+    """Configures logging to the console.
+
+    This is the console part of academy.logging.init_logging.
     """
 
     def __init__(
@@ -57,12 +61,13 @@ class ConsoleLogging(ObservabilityConfig):
         level: int | str = logging.INFO,
         color: bool = True,
         extra: int = False,
-    ):
+    ) -> None:
         self.level = level
         self.color = color
         self.extra = extra
 
-    def init_logging(self):
+    def init_logging(self) -> None:
+        """Initialize logging to console."""
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setFormatter(
             _Formatter(color=self.color, extra=self.extra),
@@ -71,8 +76,8 @@ class ConsoleLogging(ObservabilityConfig):
         if self.extra:
             stdout_handler.addFilter(_os_thread_filter)
 
-        rootLogger = logging.getLogger()
-        rootLogger.addHandler(stdout_handler)
+        root_logger = logging.getLogger()
+        root_logger.addHandler(stdout_handler)
 
         # This needs to be after the configuration of the root logger because
         # warnings get logged to a 'py.warnings' logger.
@@ -103,10 +108,11 @@ class FilePoolLog(ObservabilityConfig):
 
     def __init__(
         self,
-    ):
+    ) -> None:
         self._pool_uuid = str(uuid.uuid4())
 
-    def init_logging(self):
+    def init_logging(self) -> None:
+        """Initialize JSON logging into shared pool."""
         # in the parsl prototype, this contains some more context such as
         # a supplied component name. there is also the opportunity for
         # fancy stack inspection to # see who invoked init_logging to

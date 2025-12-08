@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
+
+from academy.logging import _Formatter
+from academy.logging import _os_thread_filter
 
 
 class ObservabilityConfig:
@@ -57,9 +61,11 @@ class ConsoleLogging(ObservabilityConfig):
 
     def init_logging(self):
         stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setFormatter(_Formatter(color=color, extra=extra))
-        stdout_handler.setLevel(level)
-        if extra:
+        stdout_handler.setFormatter(
+            _Formatter(color=self.color, extra=self.extra),
+        )
+        stdout_handler.setLevel(self.level)
+        if self.extra:
             stdout_handler.addFilter(_os_thread_filter)
 
         rootLogger = logging.getLogger()
@@ -70,56 +76,8 @@ class ConsoleLogging(ObservabilityConfig):
         logging.captureWarnings(True)
 
         logger.info(
-            'Configured logger (stdout-level=%s, logfile=%s, logfile-level=%s)',
-            logging.getLevelName(level) if isinstance(level, int) else level,
-            logfile,
-            logging.getLevelName(logfile_level)
-            if isinstance(logfile_level, int)
-            else logfile_level,
-        )
-
-
-class ConsoleLogging(ObservabilityConfig):
-    """Configures logging to the console. This is the
-    console part of academy.logging.init_logging
-    """
-
-    def __init__(
-        self,
-        *,
-        level: int | str = logging.INFO,
-        color: bool = True,
-        extra: int = False,
-    ):
-        self.level = level
-        self.color = color
-        self.extra = extra
-
-    def init_logging(self):
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setFormatter(_Formatter(color=color, extra=extra))
-        stdout_handler.setLevel(level)
-        if extra:
-            stdout_handler.addFilter(_os_thread_filter)
-        handlers: list[logging.Handler] = [stdout_handler]
-
-        logging.basicConfig(
-            datefmt='%Y-%m-%d %H:%M:%S',
-            level=logging.NOTSET,
-            handlers=handlers,
-            force=force,
-        )
-
-        # This needs to be after the configuration of the root logger because
-        # warnings get logged to a 'py.warnings' logger.
-        logging.captureWarnings(True)
-
-        logger = logging.getLogger()
-        logger.info(
-            'Configured logger (stdout-level=%s, logfile=%s, logfile-level=%s)',
-            logging.getLevelName(level) if isinstance(level, int) else level,
-            logfile,
-            logging.getLevelName(logfile_level)
-            if isinstance(logfile_level, int)
-            else logfile_level,
+            'Configured logger (stdout-level=%s)',
+            logging.getLevelName(self.level)
+            if isinstance(self.level, int)
+            else self.level,
         )

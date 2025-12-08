@@ -123,7 +123,7 @@ class ExchangeServingConfig(BaseModel):
 
     # TODO: this is to allow log_config here. but probably this isn't
     # the right way to do it - what *should* log config look like?
-    model_config = ConfigDict(arbitrary_types_allowed = True)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     host: str = 'localhost'
     port: int = 8700

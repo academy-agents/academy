@@ -107,11 +107,11 @@ class FilePoolLog(ObservabilityConfig):
         self._pool_uuid = str(uuid.uuid4())
 
     def init_logging(self):
-        # in the parsl prototype, this contains some more context such as a supplied
-        # component name. there is also the opportunity for fancy stack inspection to
-        # see who invoked init_logging to fabricate more human readable names, but
-        # a core json log notion is that you wouldn't be looking at individual files
-        # manually anyway.
+        # in the parsl prototype, this contains some more context such as
+        # a supplied component name. there is also the opportunity for
+        # fancy stack inspection to # see who invoked init_logging to
+        # fabricate more human readable names, but a core json log notion is
+        # that you wouldn't be looking at individual files manually anyway.
         instance_id = str(uuid.uuid4())
 
         # home resolution is deferred until init_logging time because can

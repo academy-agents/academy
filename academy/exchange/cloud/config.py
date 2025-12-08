@@ -121,6 +121,10 @@ class ExchangeServingConfig(BaseModel):
         log_config: The configuration for observability.
     """
 
+    # TODO: this is to allow log_config here. but probably this isn't
+    # the right way to do it - what *should* log config look like?
+    model_config = ConfigDict(arbitrary_types_allowed = True)
+
     host: str = 'localhost'
     port: int = 8700
     certfile: str | None = None
@@ -128,7 +132,6 @@ class ExchangeServingConfig(BaseModel):
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
     log_config: ObservabilityConfig | None = None
-    arbitrary_types_allowed = True
 
     @classmethod
     def from_toml(cls, filepath: str | pathlib.Path) -> Self:

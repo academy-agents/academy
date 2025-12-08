@@ -45,10 +45,11 @@ class Reverser(Agent):
 
 @pytest.mark.asyncio
 async def test_run_in_processes() -> None:
-
     lc = FilePoolLog()
 
-    with spawn_http_exchange('localhost', open_port(), log_config=lc) as factory:
+    with spawn_http_exchange(
+        'localhost', open_port(), log_config=lc
+    ) as factory:
         mp_context = multiprocessing.get_context('spawn')
         executor = ProcessPoolExecutor(max_workers=3, mp_context=mp_context)
 

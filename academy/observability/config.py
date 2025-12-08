@@ -45,6 +45,7 @@ class ObservabilityConfig:
         """
         pass
 
+
 class ConsoleLogging(ObservabilityConfig):
     """Configures logging to the console. This is the
     console part of academy.logging.init_logging
@@ -106,7 +107,6 @@ class FilePoolLog(ObservabilityConfig):
         self._pool_uuid = str(uuid.uuid4())
 
     def init_logging(self):
-
         # in the parsl prototype, this contains some more context such as a supplied
         # component name. there is also the opportunity for fancy stack inspection to
         # see who invoked init_logging to fabricate more human readable names, but
@@ -117,7 +117,13 @@ class FilePoolLog(ObservabilityConfig):
         # home resolution is deferred until init_logging time because can
         # be different on every invocation as the config object is moved
         # between execution locations.
-        path = pathlib.Path.home() / ".academy" / "logs" / self._pool_uuid / instance_id
+        path = (
+            pathlib.Path.home()
+            / '.academy'
+            / 'logs'
+            / self._pool_uuid
+            / instance_id
+        )
         path.parent.mkdir(parents=True, exist_ok=True)
 
         json_handler = JSONHandler(path.with_suffix('.jsonlog'))
@@ -125,10 +131,10 @@ class FilePoolLog(ObservabilityConfig):
 
         root_logger = logging.getLogger()
         root_logger.addHandler(json_handler)
-        root_logger.setLevel(logging.DEBUG) # this is global ugh
+        root_logger.setLevel(logging.DEBUG)  # this is global ugh
 
         logger.info(
             'Configured FilePoolLoggger logger (pool uuid=%s, path=%s)',
             self._pool_uuid,
-            path
+            path,
         )

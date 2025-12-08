@@ -6,7 +6,7 @@ import pathlib
 
 import pytest
 
-from academy.logging import init_logging
+# from academy.logging import init_logging
 from academy.logging import JSONHandler
 
 # Note: these tests are just for coverage to make sure the code is functional.

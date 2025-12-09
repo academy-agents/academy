@@ -380,17 +380,18 @@ async def test_worker_init_logging_logfile(
     # not any log file locally, because lc was not initialized locally.
 
 
-@pytest.mark.asyncio
-@pytest.mark.skip("what manager unit functionality is this testing?")
-async def test_worker_init_logging_warn(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    agent = SleepAgent(TEST_SLEEP_INTERVAL)
-    with pytest.warns(UserWarning, match='init_logging'):
-        handle = await manager.launch(agent)  # , init_logging=True)
-
-    await handle.shutdown()
-    await manager.wait({handle})
+# This test was testing the logging system warning about multiple inits,
+# but my observability work removes that warning.
+# @pytest.mark.asyncio
+# async def test_worker_init_logging_warn(
+#    manager: Manager[LocalExchangeTransport],
+# ) -> None:
+#    agent = SleepAgent(TEST_SLEEP_INTERVAL)
+#    with pytest.warns(UserWarning, match='init_logging'):
+#        handle = await manager.launch(agent)  # , init_logging=True)
+#
+#    await handle.shutdown()
+#    await manager.wait({handle})
 
 
 @pytest.mark.asyncio

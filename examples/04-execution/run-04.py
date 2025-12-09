@@ -9,7 +9,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
-from academy.logging import init_logging
+from academy.logging import recommended_dev_init_logging
 from academy.manager import Manager
 
 EXCHANGE_PORT = 5346
@@ -46,13 +46,18 @@ class Reverser(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
+    lc = recommended_dev_init_logging()
+    lc.init_logging()
 
-    with spawn_http_exchange('localhost', EXCHANGE_PORT) as factory:
+    with spawn_http_exchange(
+        'localhost',
+        EXCHANGE_PORT,
+        log_config=lc,
+    ) as factory:
         mp_context = multiprocessing.get_context('spawn')
         executor = ProcessPoolExecutor(
             max_workers=3,
-            initializer=init_logging,
+            initializer=lc.init_logging,
             mp_context=mp_context,
         )
 
@@ -69,6 +74,7 @@ async def main() -> int:
             coordinator = await manager.launch(
                 Coordinator,
                 args=(lowerer, reverser),
+                log_config=lc,
             )
 
             text = 'DEADBEEF'

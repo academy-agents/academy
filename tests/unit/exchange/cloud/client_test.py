@@ -113,6 +113,10 @@ async def test_console_share_mailbox(
             assert len(group_ids) == 1
             assert group_ids[0] == group_id
 
+            await console.remove_shared_group(client.client_id, group_id)
+            group_ids = await console.get_shared_groups(client.client_id)
+            assert len(group_ids) == 0
+
             await console.close()
 
 

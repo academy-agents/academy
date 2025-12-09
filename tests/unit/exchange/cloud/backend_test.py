@@ -332,6 +332,73 @@ async def test_mailbox_backend_get_mailbox_shares_requires_ownership(
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_remove_mailbox_shares(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    shares = await backend.get_mailbox_shares(client, uid)
+    assert len(shares) == 0
+
+    await backend.share_mailbox(client, uid, friend_group)
+    shares = await backend.get_mailbox_shares(client, uid)
+    assert len(shares) == 1
+    assert shares[0] == friend_group
+
+    await backend.remove_mailbox_shares(client, uid, friend_group)
+    shares = await backend.get_mailbox_shares(client, uid)
+    assert len(shares) == 0
+
+    # Remove is idempotent
+    await backend.remove_mailbox_shares(client, uid, friend_group)
+    shares = await backend.get_mailbox_shares(client, uid)
+    assert len(shares) == 0
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_remove_mailbox_shares_invalid(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+    uid = UserId.new()
+    with pytest.raises(BadEntityIdError):
+        await backend.remove_mailbox_shares(client, uid, friend_group)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_remove_mailbox_shares_terminated(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    await backend.terminate(client, uid)
+    with pytest.raises(MailboxTerminatedError):
+        await backend.remove_mailbox_shares(client, uid, friend_group)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_remove_mailbox_shares_requires_ownership(
+    backend: MailboxBackend,
+) -> None:
+    friend_group = str(uuid.uuid4())
+    client = ClientInfo(str(uuid.uuid4()), {friend_group})
+    friend = ClientInfo(str(uuid.uuid4()), {friend_group})
+
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+    await backend.share_mailbox(client, uid, friend_group)
+
+    with pytest.raises(ForbiddenError):
+        await backend.remove_mailbox_shares(friend, uid, friend_group)
+
+
+@pytest.mark.asyncio
 async def test_python_backend_message_size() -> None:
     backend = PythonBackend(message_size_limit_kb=0)
     uid = UserId.new()

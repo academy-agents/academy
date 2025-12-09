@@ -173,6 +173,16 @@ async def test_get_shares_bad_mailbox(cli) -> None:
 
 
 @pytest.mark.asyncio
+async def test_remove_shares_bad_mailbox(cli) -> None:
+    response = await cli.delete(
+        '/mailbox/share',
+        json={'mailbox': 'foo'},
+    )
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert await response.text() == 'Missing or invalid mailbox ID'
+
+
+@pytest.mark.asyncio
 async def test_terminate_validation_error(cli) -> None:
     response = await cli.delete('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value

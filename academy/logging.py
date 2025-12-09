@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import pathlib
-import sys
 import threading
 from asyncio import Future
 from typing import Any

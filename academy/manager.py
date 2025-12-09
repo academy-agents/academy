@@ -31,7 +31,7 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.observability.config import ObservabilityConfig
+from academy.observability import ObservabilityConfig
 
 # from academy.logging import init_logging
 from academy.runtime import Runtime

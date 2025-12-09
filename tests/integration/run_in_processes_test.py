@@ -10,7 +10,7 @@ from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
 from academy.manager import Manager
-from academy.observability.config import FilePoolLog
+from academy.observability.examples import FilePoolLog
 from academy.socket import open_port
 
 

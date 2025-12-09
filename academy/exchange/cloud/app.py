@@ -487,9 +487,10 @@ def create_app(
 def _run(
     config: ExchangeServingConfig,
 ) -> None:
-    app = create_app(config.backend, config.auth)
+
     if config.log_config:
         config.log_config.init_logging()
+
     # TODO: in the parsl prototype, I pass in a bunch of context here
     # and I wonder if that's sensible here too? parsl has at least the
     # notion of a rundir, which academy does not, and also has named
@@ -497,7 +498,9 @@ def _run(
     # feature inherited from before this work. Both of those might
     # be good for usability for users poking at files on disk? Or
     # something similar?
-    # init_logging(config.log_level, logfile=config.log_file)
+
+    app = create_app(config.backend, config.auth)
+
     logger.info(
         'Exchange listening on %s:%s (ctrl-C to exit)',
         config.host,

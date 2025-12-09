@@ -23,6 +23,7 @@ from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.manager import Manager
+from academy.observability.examples import FilePoolLog, ConsoleLogging
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
@@ -336,11 +337,11 @@ async def test_executor_pass_kwargs(
 # Logging done in a subprocess is not captured by pytest so we cannot use
 # pytest's caplog fixture to validate output. Set level to WARNING to avoid
 # adding more noise in stdout.
-@pytest.mark.skip('TODO: needs redoing for new log config system')
 @pytest.mark.asyncio
 async def test_worker_init_logging_no_logfile(
     http_exchange_factory: HttpExchangeFactory,
 ) -> None:
+    lc = ConsoleLogging(level='WARNING')
     spawn_context = multiprocessing.get_context('spawn')
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
@@ -349,19 +350,18 @@ async def test_worker_init_logging_no_logfile(
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            # init_logging=True,
-            # loglevel='WARNING',
+            log_config=lc,
         )
         await handle.shutdown()
         await manager.wait({handle})
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip('TODO: needs redoing for new log config system')
 async def test_worker_init_logging_logfile(
     http_exchange_factory: HttpExchangeFactory,
     tmp_path: pathlib.Path,
 ) -> None:
+    lc = FilePoolLog()
     spawn_context = multiprocessing.get_context('spawn')
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
@@ -371,17 +371,17 @@ async def test_worker_init_logging_logfile(
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            # init_logging=True,
-            # loglevel='WARNING',
-            # logfile=filepath,
+            log_config=lc
         )
         await handle.shutdown()
         await manager.wait({handle})
     # TODO: assert the log file was at least created?
+    # we should see only the file pool log from the remote agent,
+    # not any log file locally, because lc was not initialized locally.
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip('TODO: needs redoing for new log config system')
+@pytest.mark.skip("what manager unit functionality is this testing?")
 async def test_worker_init_logging_warn(
     manager: Manager[LocalExchangeTransport],
 ) -> None:

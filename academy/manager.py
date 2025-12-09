@@ -93,13 +93,6 @@ def _run_agent_on_worker(
 ) -> None:
     if spec.log_config:
         spec.log_config.init_logging()
-    # if spec.init_logging:
-    #    if spec.logfile is not None:
-    #        logfile = spec.logfile.format(agent_id=spec.registration.agent_id)
-    #    else:
-    #        logfile = None
-    #
-    #    init_logging(level=spec.loglevel, logfile=logfile)
 
     set_academy_debug(academy_debug_mode)
     asyncio.run(_run_agent_async(spec))

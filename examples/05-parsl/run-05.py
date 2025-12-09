@@ -11,7 +11,7 @@ from parsl import HighThroughputExecutor
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
-from academy.logging import init_logging
+from academy.logging import recommended_dev_log_config
 from academy.manager import Manager
 
 EXCHANGE_PORT = 5346
@@ -46,16 +46,21 @@ class SimulationAgent(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
+    lc = recommended_dev_log_config()
+    lc.init_logging()
 
-    with spawn_http_exchange('localhost', EXCHANGE_PORT) as factory:
+    with spawn_http_exchange(
+        'localhost',
+        EXCHANGE_PORT,
+        log_config=lc,
+    ) as factory:
         executor = ThreadPoolExecutor()
 
         async with await Manager.from_exchange_factory(
             factory=factory,
             executors=executor,
         ) as manager:
-            agent = await manager.launch(SimulationAgent)
+            agent = await manager.launch(SimulationAgent, log_config=lc)
             expected = 42
 
             logger.info(

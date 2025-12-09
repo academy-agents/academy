@@ -27,9 +27,9 @@ from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.config import PythonBackendConfig
 from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.logging import recommended_dev_log_config
 from academy.message import Message
 from academy.message import PingRequest
-from academy.logging import recommended_dev_log_config
 from academy.socket import open_port
 from academy.socket import wait_connection
 from testing.constant import TEST_CONNECTION_TIMEOUT

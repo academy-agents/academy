@@ -159,6 +159,18 @@ class MockRedis:
     async def smembers(self, key: bytes | str) -> builtins_set[bytes]:
         return self.sets.get(self._encode(key), set())
 
+    async def srem(
+        self,
+        key: bytes | str,
+        *values: bytes | str,
+    ) -> None:
+        key = self._encode(key)
+        if key not in self.sets:  # pragma: no cover
+            return
+
+        for value in values:
+            self.sets[key].discard(self._encode(value))
+
 
 @pytest.fixture
 def mock_redis() -> Generator[None]:

@@ -204,6 +204,30 @@ class MailboxBackend(Protocol):
         """
         ...
 
+    async def remove_mailbox_shares(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+        group_uid: str,
+    ) -> None:
+        """Stop sharing a mailbox with a group.
+
+        Only the owner of the Mailbox is allowed to share with a Globus Group.
+        This method should be idempotent (removing a group that the mailbox
+        is not shared with is a no-op).
+
+        Args:
+            client: Client making the request.
+            uid: Mailbox id to share.
+            group_uid: Globus Group id to remove.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox to share does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+        """
+        ...
+
 
 class PythonBackend:
     """Mailbox backend using in-memory python data structures.
@@ -544,6 +568,45 @@ class PythonBackend:
             )
 
         return list(self._shares.get(uid, set()))
+
+    async def remove_mailbox_shares(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+        group_uid: str,
+    ) -> None:
+        """Stop sharing a mailbox with a group.
+
+        Only the owner of the Mailbox is allowed to share with a Globus Group.
+        This method should be idempotent (removing a group that the mailbox
+        is not shared with is a no-op).
+
+        Args:
+            client: Client making the request.
+            uid: Mailbox id to share.
+            group_uid: Globus Group id to remove.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox to share does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+        """
+        ...
+
+        if uid not in self._mailboxes:
+            raise BadEntityIdError(uid)
+
+        if uid in self._terminated:
+            raise MailboxTerminatedError(uid)
+
+        if not self._has_mailbox_ownership(client, uid):
+            raise ForbiddenError(
+                f'{client.client_id} cannot change permissions on'
+                f'mailbox {uid} it does not own.',
+            )
+
+        self._shares[uid].discard(group_uid)
+        logger.info('Group %s removed from mailbox %s', group_uid, uid)
 
 
 async def _drain_queue(queue: AsyncQueue[Message[Any]]) -> list[Message[Any]]:
@@ -999,3 +1062,39 @@ class RedisBackend:
         _groups = await self._client.smembers(self._share_key(uid))  # type: ignore[misc]
         groups = [g.decode() for g in _groups]
         return groups
+
+    async def remove_mailbox_shares(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+        group_uid: str,
+    ) -> None:
+        """Stop sharing a mailbox with a group.
+
+        Only the owner of the Mailbox is allowed to share with a Globus Group.
+        This method should be idempotent (removing a group that the mailbox
+        is not shared with is a no-op).
+
+        Args:
+            client: Client making the request.
+            uid: Mailbox id to share.
+            group_uid: Globus Group id to remove.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox to share does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+        """
+        status = await self._client.get(self._active_key(uid))
+        if status is None:
+            raise BadEntityIdError(uid)
+        elif status.decode() == MailboxStatus.TERMINATED.value:
+            raise MailboxTerminatedError(uid)
+
+        if not await self._has_mailbox_ownership(client, uid):
+            raise ForbiddenError(
+                f'{client.client_id} cannot change permissions on'
+                f'mailbox {uid} it does not own.',
+            )
+
+        await self._client.srem(self._share_key(uid), group_uid)  # type: ignore[misc]

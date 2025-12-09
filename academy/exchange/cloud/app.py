@@ -120,11 +120,23 @@ async def _share_mailbox_route(request: Request) -> Response:
     client = get_client_info(request)
     try:
         await manager.share_mailbox(client, mailbox_id, group_id)
+    except BadEntityIdError:
+        logger.exception('Unknown mailbox id to share.')
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
     except ForbiddenError:
         logger.exception('Incorrect permissions to share mailbox.')
         return Response(
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
+        )
+    except MailboxTerminatedError:
+        logger.exception(f'Mailbox {mailbox_id} was terminated.')
+        return Response(
+            status=StatusCode.TERMINATED.value,
+            text='Mailbox was closed',
         )
     return Response(status=StatusCode.OKAY.value)
 
@@ -163,9 +175,62 @@ async def _get_mailbox_shares_route(request: Request) -> Response:
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
+    except MailboxTerminatedError:
+        logger.exception(f'Mailbox {mailbox_id} was terminated.')
+        return Response(
+            status=StatusCode.TERMINATED.value,
+            text='Mailbox was closed',
+        )
     return json_response(
         {'group_ids': shares},
     )
+
+
+async def _remove_mailbox_shares_route(request: Request) -> Response:
+    """Stop sharing a mailbox with a Globus Group."""
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+        group_id = data['group_id']
+
+    except (KeyError, ValidationError):
+        logger.warning(
+            'Missing or invalid mailbox id in request.',
+            exc_info=True,
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    client = get_client_info(request)
+    try:
+        await manager.remove_mailbox_shares(client, mailbox_id, group_id)
+    except BadEntityIdError:
+        logger.exception(f'Unknown mailbox id {mailbox_id}.')
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
+    except ForbiddenError:
+        logger.exception(
+            'Incorrect permissions to change mailbox permissions.',
+        )
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+    except MailboxTerminatedError:
+        logger.exception(f'Mailbox {mailbox_id} was terminated.')
+        return Response(
+            status=StatusCode.TERMINATED.value,
+            text='Mailbox was closed',
+        )
+    return Response(status=StatusCode.OKAY.value)
 
 
 async def _create_mailbox_route(request: Request) -> Response:
@@ -474,6 +539,7 @@ def create_app(
     app.router.add_post('/mailbox', _create_mailbox_route)
     app.router.add_post('/mailbox/share', _share_mailbox_route)
     app.router.add_get('/mailbox/share', _get_mailbox_shares_route)
+    app.router.add_delete('/mailbox/share', _remove_mailbox_shares_route)
     app.router.add_delete('/mailbox', _terminate_route)
     app.router.add_get('/mailbox', _check_mailbox_route)
     app.router.add_put('/message', _send_message_route)

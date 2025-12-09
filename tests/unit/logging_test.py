@@ -6,9 +6,9 @@ import pathlib
 
 import pytest
 
-from academy.logging import JSONHandler
 from academy.observability.examples import ConsoleLogging
 from academy.observability.examples import FilePoolLog
+from academy.observability.helpers import JSONHandler
 
 # TODO: reexamine this commentary in the context of new logging
 # Note: these tests are just for coverage to make sure the code is functional.

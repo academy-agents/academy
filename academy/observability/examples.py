@@ -5,10 +5,10 @@ import pathlib
 import sys
 import uuid
 
-from academy.logging import _Formatter
-from academy.logging import _os_thread_filter
-from academy.logging import JSONHandler
 from academy.observability import ObservabilityConfig
+from academy.observability.helpers import _Formatter
+from academy.observability.helpers import _os_thread_filter
+from academy.observability.helpers import JSONHandler
 
 logger = logging.getLogger(__name__)
 
@@ -108,3 +108,15 @@ class FilePoolLog(ObservabilityConfig):
             self._pool_uuid,
             path,
         )
+
+
+class MultiLogConfig(ObservabilityConfig):
+    """This captures a collection of other observability configs."""
+
+    def __init__(self, configs: list[ObservabilityConfig]) -> None:
+        self._configs = configs
+
+    def init_logging(self) -> None:
+        """Initializes logging for all of the supplied configs."""
+        for c in self._configs:
+            c.init_logging()

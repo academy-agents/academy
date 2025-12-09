@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import abc
 
-class ObservabilityConfig:
+class ObservabilityConfig(abc.ABC):
     """Implementations of this class can initialize observability.
 
     That means they know how to initialize and de-initialize
@@ -17,6 +18,7 @@ class ObservabilityConfig:
     logging.
     """
 
+    @abc.abstractmethod
     def init_logging(self) -> None:
         """Initialize logging in current process.
 
@@ -35,4 +37,4 @@ class ObservabilityConfig:
         environments. But for now there's no mechanism to turn off
         logging in a process once started.
         """
-        pass
+        ...

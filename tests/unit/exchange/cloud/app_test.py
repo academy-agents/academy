@@ -29,7 +29,7 @@ from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message
 from academy.message import PingRequest
-from academy.observability.examples import ConsoleLogging
+from academy.logging import recommended_dev_log_config
 from academy.socket import open_port
 from academy.socket import wait_connection
 from testing.constant import TEST_CONNECTION_TIMEOUT
@@ -82,8 +82,7 @@ async def test_server_run() -> None:
 
 @pytest.mark.asyncio
 async def test_server_run_with_logging() -> None:
-    # TODO: probably better an observable form of logging to assert against
-    lc = ConsoleLogging()
+    lc = recommended_dev_log_config()
 
     config = ExchangeServingConfig(
         host='127.0.0.1',

@@ -9,7 +9,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
-from academy.logging import recommended_dev_init_logging
+from academy.logging import recommended_dev_log_config
 from academy.manager import Manager
 
 EXCHANGE_PORT = 5346
@@ -46,7 +46,7 @@ class Reverser(Agent):
 
 
 async def main() -> int:
-    lc = recommended_dev_init_logging()
+    lc = recommended_dev_log_config()
     lc.init_logging()
 
     with spawn_http_exchange(

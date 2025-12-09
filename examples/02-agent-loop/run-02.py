@@ -8,7 +8,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
 from academy.exchange import LocalExchangeFactory
-from academy.logging import init_logging
+from academy.logging import recommended_dev_log_config
 from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
@@ -32,13 +32,14 @@ class Counter(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
+    lc = recommended_dev_log_config()
+    lc.init_logging()
 
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
     ) as manager:
-        agent = await manager.launch(Counter)
+        agent = await manager.launch(Counter, log_config=lc)
 
         logger.info('Waiting 2s for agent loops to execute...')
         await asyncio.sleep(2)

@@ -6,7 +6,6 @@ import pathlib
 
 import pytest
 
-# from academy.logging import init_logging
 from academy.logging import JSONHandler
 
 # Note: these tests are just for coverage to make sure the code is functional.
@@ -17,7 +16,7 @@ from academy.logging import JSONHandler
 @pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
 @pytest.mark.skip('rework for different config system')
 def test_logging_no_file(color: bool, extra: bool) -> None:
-    init_logging(color=color, extra=extra)
+    # init_logging(color=color, extra=extra)
 
     logger = logging.getLogger()
     logger.info('Test logging')
@@ -33,8 +32,8 @@ def test_logging_with_file(
     extra: bool,
     tmp_path: pathlib.Path,
 ) -> None:
-    filepath = tmp_path / 'log.txt'
-    init_logging(logfile=filepath, color=color, extra=extra)
+    _filepath = tmp_path / 'log.txt'
+    # init_logging(logfile=filepath, color=color, extra=extra)
 
     logger = logging.getLogger()
     logger.info('Test logging')

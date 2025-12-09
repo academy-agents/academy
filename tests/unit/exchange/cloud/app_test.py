@@ -82,14 +82,13 @@ async def test_server_run() -> None:
 
 @pytest.mark.asyncio
 async def test_server_run_with_logging() -> None:
-
     # TODO: probably better an observable form of logging to assert against
     lc = ConsoleLogging()
 
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_config=lc
+        log_config=lc,
     )
 
     context = multiprocessing.get_context('spawn')
@@ -105,7 +104,6 @@ async def test_server_run_with_logging() -> None:
     process.join()
     assert process.exitcode == 0
     # TODO: some assertions about what appears in the logs, and where
-
 
 
 @pytest.mark.filterwarnings('ignore:Unverified HTTPS request is being made')

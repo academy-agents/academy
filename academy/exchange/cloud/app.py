@@ -487,7 +487,6 @@ def create_app(
 def _run(
     config: ExchangeServingConfig,
 ) -> None:
-
     if config.log_config:
         config.log_config.init_logging()
 

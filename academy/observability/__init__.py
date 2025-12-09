@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 
+
 class ObservabilityConfig(abc.ABC):
     """Implementations of this class can initialize observability.
 

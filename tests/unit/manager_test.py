@@ -23,7 +23,8 @@ from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.manager import Manager
-from academy.observability.examples import FilePoolLog, ConsoleLogging
+from academy.observability.examples import ConsoleLogging
+from academy.observability.examples import FilePoolLog
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
@@ -371,7 +372,7 @@ async def test_worker_init_logging_logfile(
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            log_config=lc
+            log_config=lc,
         )
         await handle.shutdown()
         await manager.wait({handle})

@@ -7,7 +7,8 @@ import pathlib
 import pytest
 
 from academy.logging import JSONHandler
-from academy.observability.examples import ConsoleLogging, FilePoolLog
+from academy.observability.examples import ConsoleLogging
+from academy.observability.examples import FilePoolLog
 
 # TODO: reexamine this commentary in the context of new logging
 # Note: these tests are just for coverage to make sure the code is functional.
@@ -40,15 +41,12 @@ def test_logging_with_file(
     logger = logging.getLogger()
     logger.info('Test logging')
 
-    path = (
-            pathlib.Path.home()
-            / '.academy'
-            / 'logs'
-            / lc._pool_uuid
-        )
+    path = pathlib.Path.home() / '.academy' / 'logs' / lc._pool_uuid
 
     files = list(path.iterdir())
-    assert len(files) == 1, "There should be one log file in the pool directory"
+    assert len(files) == 1, (
+        'There should be one log file in the pool directory'
+    )
 
     # TODO: assert the file exists and the string "Test logging" appears in it.
 

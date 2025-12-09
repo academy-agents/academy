@@ -491,7 +491,7 @@ def _run(
     if config.log_config:
         config.log_config.init_logging()
     # TODO: in the parsl prototype, I pass in a bunch of context here
-    # and I wonder if thats sensible here too? parsl has at least the
+    # and I wonder if that's sensible here too? parsl has at least the
     # notion of a rundir, which academy does not, and also has named
     # components used for naming logfiles, but that is slightly a
     # feature inherited from before this work. Both of those might

@@ -43,7 +43,7 @@ class ObservabilityConfig:
 
         In future dev, this should return a callback that will
         uninitialize logging, which can be called by the same hosting
-        environments. But for now theres no mechanism to turn off
+        environments. But for now there's no mechanism to turn off
         logging in a process once started.
         """
         pass

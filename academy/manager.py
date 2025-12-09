@@ -489,7 +489,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         # its a warning so i'm not too fussed about commenting it out,
         # but the broader story is not handled at all, either before or
         # after this commenting.
-        # if we want one-shot log config in arbitrary contexts, thats
+        # if we want one-shot log config in arbitrary contexts, that's
         # something this API would support experimenting with.
 
         # if init_logging and (

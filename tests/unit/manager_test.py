@@ -44,6 +44,20 @@ async def test_from_exchange_factory() -> None:
 
 
 @pytest.mark.asyncio
+async def test_bad_executor_type() -> None:
+    e: Any = ThreadPoolExecutor
+
+    # TODO: when we know what kind of exception should be raised,
+    # tighten this raises clause.
+    with pytest.raises(Exception):
+        async with await Manager.from_exchange_factory(
+            factory=LocalExchangeFactory(),
+            executors=e,
+        ):
+            pass
+
+
+@pytest.mark.asyncio
 async def test_launch_and_shutdown(
     manager: Manager[LocalExchangeTransport],
 ) -> None:

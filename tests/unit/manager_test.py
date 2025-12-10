@@ -44,6 +44,18 @@ async def test_from_exchange_factory() -> None:
 
 
 @pytest.mark.asyncio
+async def test_bad_executor_type() -> None:
+    e: Any = ThreadPoolExecutor
+
+    with pytest.raises(ValueError, match='Invalid executors parameter'):
+        async with await Manager.from_exchange_factory(
+            factory=LocalExchangeFactory(),
+            executors=e,
+        ):
+            ...
+
+
+@pytest.mark.asyncio
 async def test_launch_and_shutdown(
     manager: Manager[LocalExchangeTransport],
 ) -> None:

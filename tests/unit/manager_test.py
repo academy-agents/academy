@@ -47,14 +47,12 @@ async def test_from_exchange_factory() -> None:
 async def test_bad_executor_type() -> None:
     e: Any = ThreadPoolExecutor
 
-    # TODO: when we know what kind of exception should be raised,
-    # tighten this raises clause.
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match='Invalid executors parameter'):
         async with await Manager.from_exchange_factory(
             factory=LocalExchangeFactory(),
             executors=e,
         ):
-            pass
+            ...
 
 
 @pytest.mark.asyncio

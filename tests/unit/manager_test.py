@@ -23,6 +23,8 @@ from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.manager import Manager
+from academy.observability.examples import ConsoleLogging
+from academy.observability.examples import FilePoolLog
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
@@ -352,6 +354,7 @@ async def test_executor_pass_kwargs(
 async def test_worker_init_logging_no_logfile(
     http_exchange_factory: HttpExchangeFactory,
 ) -> None:
+    lc = ConsoleLogging(level='WARNING')
     spawn_context = multiprocessing.get_context('spawn')
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
@@ -360,8 +363,7 @@ async def test_worker_init_logging_no_logfile(
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            init_logging=True,
-            loglevel='WARNING',
+            log_config=lc,
         )
         await handle.shutdown()
         await manager.wait({handle})
@@ -372,33 +374,37 @@ async def test_worker_init_logging_logfile(
     http_exchange_factory: HttpExchangeFactory,
     tmp_path: pathlib.Path,
 ) -> None:
+    lc = FilePoolLog()
     spawn_context = multiprocessing.get_context('spawn')
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
         executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
     ) as manager:
-        filepath = str(tmp_path / 'test-worker-init-logging.log')
+        _filepath = str(tmp_path / 'test-worker-init-logging.log')
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            init_logging=True,
-            loglevel='WARNING',
-            logfile=filepath,
+            log_config=lc,
         )
         await handle.shutdown()
         await manager.wait({handle})
+    # TODO: assert the log file was at least created?
+    # we should see only the file pool log from the remote agent,
+    # not any log file locally, because lc was not initialized locally.
 
 
-@pytest.mark.asyncio
-async def test_worker_init_logging_warn(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    agent = SleepAgent(TEST_SLEEP_INTERVAL)
-    with pytest.warns(UserWarning, match='init_logging'):
-        handle = await manager.launch(agent, init_logging=True)
-
-    await handle.shutdown()
-    await manager.wait({handle})
+# This test was testing the logging system warning about multiple inits,
+# but my observability work removes that warning.
+# @pytest.mark.asyncio
+# async def test_worker_init_logging_warn(
+#    manager: Manager[LocalExchangeTransport],
+# ) -> None:
+#    agent = SleepAgent(TEST_SLEEP_INTERVAL)
+#    with pytest.warns(UserWarning, match='init_logging'):
+#        handle = await manager.launch(agent)  # , init_logging=True)
+#
+#    await handle.shutdown()
+#    await manager.wait({handle})
 
 
 @pytest.mark.asyncio

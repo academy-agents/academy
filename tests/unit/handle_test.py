@@ -308,6 +308,17 @@ async def test_client_handle_action_cancelled(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(SleepAgent)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
+
+    await asyncio.wait_for(handle.action('sleep', 0.1), 1.0)
+
+
+@pytest.mark.asyncio
+async def test_client_handle_action_cancelled_sends_request(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    handle = await manager.launch(SleepAgent)
     with mock.patch.object(manager.exchange_client, 'send') as send:
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
@@ -316,8 +327,6 @@ async def test_client_handle_action_cancelled(
         cancel_request = send.call_args.args[0]
         assert isinstance(cancel_request, Message)
         assert isinstance(cancel_request.body, CancelRequest)
-
-    await asyncio.wait_for(handle.action('sleep', 0.1), 1.0)
 
 
 @pytest.mark.asyncio

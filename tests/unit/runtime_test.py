@@ -416,6 +416,8 @@ async def test_runtime_cancel_action_message(
                 assert isinstance(body.get_exception(), ActionCancelledError)
             elif message.tag == cancel_request.tag:
                 assert isinstance(body, SuccessResponse)
+            else:  # pragma: no cover
+                pytest.fail('Received unexpected message.')
 
 
 @pytest.mark.asyncio

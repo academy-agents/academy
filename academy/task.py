@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import sys
 from collections.abc import Coroutine
 from typing import Any
 
@@ -62,17 +61,10 @@ def spawn_guarded_background_task(
         fut = asyncio.ensure_future(coro)
         coro = execute_and_log_traceback(fut)
 
-    if sys.version_info >= (3, 12):  # pragma: <3.12 cover
-        task = asyncio.create_task(
-            coro,
-            name=name,
-            eager_start=True,
-        )
-    else:
-        task = asyncio.create_task(
-            coro,
-            name=name,
-        )
+    task = asyncio.create_task(
+        coro,
+        name=name,
+    )
     task.add_done_callback(_exit_on_error)
 
     return task

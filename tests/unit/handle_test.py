@@ -5,6 +5,7 @@ import logging
 import pickle
 from collections.abc import AsyncGenerator
 from typing import Any
+from unittest import mock
 
 import pytest
 import pytest_asyncio
@@ -23,6 +24,7 @@ from academy.handle import ProxyHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.manager import Manager
+from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import ShutdownRequest
@@ -306,8 +308,14 @@ async def test_client_handle_action_cancelled(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     handle = await manager.launch(SleepAgent)
-    with pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
+    with mock.patch.object(manager.exchange_client, 'send') as send:
+        with pytest.raises(asyncio.TimeoutError):
+            await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
+
+        assert send.call_count == 2  # noqa: PLR2004
+        cancel_request = send.call_args.args[0]
+        assert isinstance(cancel_request, Message)
+        assert isinstance(cancel_request.body, CancelRequest)
 
     await asyncio.wait_for(handle.action('sleep', 0.1), 1.0)
 

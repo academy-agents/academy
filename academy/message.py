@@ -104,6 +104,15 @@ class PingRequest(BaseModel):
     model_config = DEFAULT_FROZEN_CONFIG
 
 
+class CancelRequest(BaseModel):
+    """Cancel running action."""
+
+    target_tag: uuid.UUID
+    kind: Literal['cancel-request'] = Field('cancel-request', repr=False)
+
+    model_config = DEFAULT_FROZEN_CONFIG
+
+
 class ShutdownRequest(BaseModel):
     """Agent shutdown request message."""
 
@@ -206,7 +215,7 @@ class SuccessResponse(BaseModel):
     model_config = DEFAULT_FROZEN_CONFIG
 
 
-Request = ActionRequest | PingRequest | ShutdownRequest
+Request = ActionRequest | CancelRequest | PingRequest | ShutdownRequest
 Response = ActionResponse | ErrorResponse | SuccessResponse
 Body = Request | Response
 

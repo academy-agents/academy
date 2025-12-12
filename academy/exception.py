@@ -27,6 +27,19 @@ class ActionCancelledError(Exception):
         return type(self), (self.name,)
 
 
+class ActionInvalidStateError(Exception):
+    """Action was in an invalid state to be cancelled.
+
+    This most often happens when an action has completed and is then cancelled.
+    """
+
+    def __init__(self) -> None:
+        super().__init__('Action state invalid.')
+
+    def __reduce__(self) -> Any:
+        return type(self), ()
+
+
 class AgentNotInitializedError(Exception):
     """Agent runtime context has not been initialized.
 

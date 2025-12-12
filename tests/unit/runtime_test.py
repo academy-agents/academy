@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import uuid
 from typing import Any
 from unittest import mock
 
@@ -13,6 +14,7 @@ from academy.agent import loop
 from academy.context import ActionContext
 from academy.debug import set_academy_debug
 from academy.exception import ActionCancelledError
+from academy.exception import ActionInvalidStateError
 from academy.exchange import ExchangeClient
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
@@ -23,6 +25,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
+from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
@@ -33,6 +36,7 @@ from academy.runtime import RuntimeConfig
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
+from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
 
@@ -375,6 +379,69 @@ async def test_runtime_action_message(
         body = message.get_body()
         assert isinstance(body, ActionResponse)
         assert body.get_result() == value
+
+
+@pytest.mark.asyncio
+async def test_runtime_cancel_action_message(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(SleepAgent)
+    # Cancel listener so test can intercept agent responses
+    await exchange_client._stop_listener_task()
+
+    async with Runtime(
+        SleepAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        value = 1
+        request = Message.create(
+            src=exchange_client.client_id,
+            dest=runtime.agent_id,
+            body=ActionRequest(action='sleep', pargs=(value,)),
+        )
+        await exchange_client.send(request)
+        cancel_request = Message.create(
+            src=exchange_client.client_id,
+            dest=runtime.agent_id,
+            body=CancelRequest(target_tag=request.tag),
+        )
+        await exchange_client.send(cancel_request)
+
+        for _ in range(2):
+            message = await exchange_client._transport.recv()
+            body = message.get_body()
+            if message.tag == request.tag:
+                assert isinstance(body, ErrorResponse)
+                assert isinstance(body.get_exception(), ActionCancelledError)
+            elif message.tag == cancel_request.tag:
+                assert isinstance(body, SuccessResponse)
+
+
+@pytest.mark.asyncio
+async def test_runtime_cancel_action_message_invalid(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(SleepAgent)
+    # Cancel listener so test can intercept agent responses
+    await exchange_client._stop_listener_task()
+
+    async with Runtime(
+        SleepAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        cancel_request = Message.create(
+            src=exchange_client.client_id,
+            dest=runtime.agent_id,
+            body=CancelRequest(target_tag=uuid.uuid4()),
+        )
+
+        await exchange_client.send(cancel_request)
+        message = await exchange_client._transport.recv()
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), ActionInvalidStateError)
 
 
 @pytest.mark.parametrize('cancel', (True, False))

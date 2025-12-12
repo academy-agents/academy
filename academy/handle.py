@@ -19,6 +19,7 @@ from academy.exception import ExchangeClientNotFoundError
 from academy.identifier import AgentId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
+from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
@@ -255,7 +256,20 @@ class Handle(Generic[AgentT]):
                 'academy.action': action,
             },
         )
-        await future
+        try:
+            await future
+        except asyncio.CancelledError:
+            cancel_request = Message.create(
+                src=exchange.client_id,
+                dest=self.agent_id,
+                label=self.handle_id,
+                body=CancelRequest(target_tag=request.tag),
+            )
+            cancel_future: asyncio.Future[None] = loop.create_future()
+            self._pending_response_futures[cancel_request.tag] = cancel_future
+            await self.exchange.send(cancel_request)
+            raise
+
         return future.result()
 
     async def ping(self, *, timeout: float | None = None) -> float:

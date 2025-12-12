@@ -27,6 +27,7 @@ import academy.exchange as ae
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import ActionCancelledError
+from academy.exception import ActionInvalidStateError
 from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import PingCancelledError
@@ -37,6 +38,7 @@ from academy.handle import exchange_context
 from academy.identifier import EntityId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
+from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
@@ -286,6 +288,25 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 self._execute_action(request),  # type: ignore[arg-type]
                 name=f'execute-action-{body.action}-{request.tag}',
             )
+            self._action_tasks[request.tag] = task
+            task.add_done_callback(
+                lambda _: self._action_tasks.pop(request.tag),
+            )
+            logger.debug(f'Started action with tag {request.tag}')
+
+        elif isinstance(body, CancelRequest):
+            response: Message[Response]
+            if (
+                body.target_tag in self._action_tasks
+                and self._action_tasks[body.target_tag].cancel()
+            ):
+                logger.debug(f'Cancelled action with tag {body.target_tag}')
+                response = request.create_response(SuccessResponse())
+            else:
+                response = request.create_response(
+                    ErrorResponse(exception=ActionInvalidStateError()),
+                )
+            task = asyncio.create_task(self._send_response(response))
             self._action_tasks[request.tag] = task
             task.add_done_callback(
                 lambda _: self._action_tasks.pop(request.tag),

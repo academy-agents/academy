@@ -5,6 +5,7 @@ import pickle
 import pytest
 
 from academy.exception import ActionCancelledError
+from academy.exception import ActionInvalidStateError
 from academy.exception import AgentNotInitializedError
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
@@ -24,6 +25,7 @@ from academy.identifier import UserId
     'exc',
     (
         ActionCancelledError('test'),
+        ActionInvalidStateError(),
         AgentNotInitializedError(),
         ExchangeError(),
         BadEntityIdError(AgentId.new()),

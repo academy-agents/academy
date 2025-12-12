@@ -219,6 +219,14 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             )
             await self._handle_message(message)
 
+            # Transport recv does not necessarily wait on io and neither
+            # does _handle_message. If we are persistently receiving messages,
+            # this means the event loop might always be occupied by this task.
+            # We use asyncio.sleep to yield the scheduler. In python >= 3.12,
+            # we use the eager task factory to make this unnecessary.
+            if sys.version_info < (3, 12):  # pragma: <3.12 cover
+                await asyncio.sleep(0)
+
     @abc.abstractmethod
     async def _handle_message(self, message: Message[Any]) -> None: ...
 

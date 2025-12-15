@@ -29,7 +29,7 @@ For the complete code of Langchain interacting with Academy agents, please look 
 
 ## Multi-agent Discussion with LLMs
 
-### Using specialized LLMsf
+### Using specialized LLMs
 
 One advantage of distributing agents as
 

@@ -10,9 +10,9 @@ Language models can be used as the central coordinator in the workflow, where th
 
 ```
 from academy.handle import Handle
-from langchain_core.tools import tool
+from langchain.tools import tool, Tool
 
-def make_sim_tool(handle: Handle[MySimAgent]):
+def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
     @tool
     async def compute_property(smiles: str) -> float:
         """Compute molecule property."""
@@ -23,9 +23,13 @@ tool = make_sim_tool(agent_handle)
 print(tool.args_schema.model_json_schema())
 ```
 
+The LLM needs to be explicitly passed a tool because internally langchain uses the documentation and the signature, which are not available on the handle. This also meanse that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.
+
+For the complete code of Langchain interacting with Academy agents, please look at the [example](https://github.com/academy-agents/academy/tree/main/examples/06-llm) included in the repo.
+
 ## Multi-agent Discussion with LLMs
 
-### Using specialized LLMs
+### Using specialized LLMsf
 
 One advantage of distributing agents as
 

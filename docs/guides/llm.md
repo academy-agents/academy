@@ -1,0 +1,109 @@
+# LLM Agents
+There are a variety of ways to create LLM agents within Academy.
+
+> This page is still under construction, more details and examples to come!
+
+## LLM as an Orchestrator (Agents as Tools)
+
+Language models can be used as the central coordinator in the workflow, where they are used to pick which agents to invoke. In Academy, this means that the language model needs to (1) be wrapped in an agent, and (2) needs to be able to invoke actions on other Agents.
+
+
+You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (i.e. Lanchain or pydanticAI). For instance:
+
+```
+from academy.handle import Handle
+from langchain.tools import tool, Tool
+
+def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
+    @tool
+    async def compute_property(smiles: str) -> float:
+        """Compute molecule property."""
+        return await handle.compute_property(smiles)
+    return compute_property
+
+tool = make_sim_tool(agent_handle)
+print(tool.args_schema.model_json_schema())
+```
+
+The LLM needs to be explicitly passed a tool because internally langchain uses the doc-string and the signature, which are not available on the handle. This also means that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.
+
+Once the action is wrapped in a tool call, Laßngchain can call actions on (potentiall remote) agents, allowing your language model access to research infrastrucutre.
+
+```
+async def main() -> int:
+    ...
+    async with await Manager.from_exchange_factory(
+        executors=<Insert your executor>
+        factory=<Insert your factory>
+    ) as manager:
+        simulator = await manager.launch(MySimAgent)
+        llm = ChatOpenAI(
+            model=self.model,
+            api_key=self.access_token,
+            base_url=self.base_url,
+        )
+
+        tools = [make_sim_tool(agent) for agent in self.simulators]
+        langchain_agent = create_agent(llm, tools=tools)
+        await langchain_agent.ainvoke(
+            {
+                'messages': [{
+                    'role': 'user',
+                    'content': 'What is the simulated ionoization energy of benzene?'
+                }]
+            },
+        )
+        result = await orchestrator.hypothesize(question)
+        print(result)
+
+    return 0
+```
+
+This example still uses the client script to interact with the simulation agent through langchain. It's also possible to make the orchestration agentic  and distributed (i.e. an Academy agent). For example, if the orchestrator relies on a self-hosted language model available only within a certain resource, or if the agent is managing resources (such as the orchestrator running on a login node and starting up agents on compute nodes.) To do this, we can wrap the Langchain code up inside of an agent:
+
+```
+class Orchestrator(Agent):
+    """Orchestrate a scientific workflow."""
+
+    def __init__(
+        self,
+        model: str,
+        access_token: str,
+        simulators: list[Handle[MySimAgent]],
+        base_url: str | None = None,
+    ):
+        self.model = model
+        self.access_token = access_token
+        self.base_url = base_url
+        self.simulators = simulators
+
+    async def agent_on_startup(self) -> None:
+        llm = ChatOpenAI(
+            model=self.model,
+            api_key=self.access_token,
+            base_url=self.base_url,
+        )
+
+        tools = [make_sim_tool(agent) for agent in self.simulators]
+        self.react_loop = create_agent(llm, tools=tools)
+
+    @action
+    async def hypothesize(self, goal: str) -> str:
+        """Use other agents to hypothesize molecules."""
+
+        return await self.react_loop.ainvoke(
+            {'messages': [{'role': 'user', 'content': goal}]},
+        )
+```
+
+For the complete code of Langchain interacting with Academy agents, please look at the [example](https://github.com/academy-agents/academy/tree/main/examples/06-llm) included in the repo.
+
+## Multi-agent Discussion with LLMs
+
+### Using specialized LLMs
+
+One advantage of distributing agents as
+
+
+## Connecting to Academy via MCP
+MCP is a protocol for connecting models to tools. If your language model LLM knows how to call tools via an MCP server, this can be used as an entry point into the Academy ecosystem.

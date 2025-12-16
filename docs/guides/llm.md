@@ -8,6 +8,8 @@ There are a variety of ways to create LLM agents within Academy.
 Language models can be used as the central coordinator in the workflow, where they are used to pick which agents to invoke. In Academy, this means that the language model needs to (1) be wrapped in an agent, and (2) needs to be able to invoke actions on other Agents.
 
 
+You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (i.e. Lanchain or pydanticAI). For instance:
+
 ```
 from academy.handle import Handle
 from langchain.tools import tool, Tool
@@ -25,7 +27,7 @@ print(tool.args_schema.model_json_schema())
 
 The LLM needs to be explicitly passed a tool because internally langchain uses the doc-string and the signature, which are not available on the handle. This also means that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.
 
-Once the action is wrapped in a tool call, Langchain can call actions on (potentiall remote) agents, allowing your language model access to research infrastrucutre.
+Once the action is wrapped in a tool call, Laßngchain can call actions on (potentiall remote) agents, allowing your language model access to research infrastrucutre.
 
 ```
 async def main() -> int:

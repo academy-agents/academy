@@ -23,7 +23,76 @@ tool = make_sim_tool(agent_handle)
 print(tool.args_schema.model_json_schema())
 ```
 
-The LLM needs to be explicitly passed a tool because internally langchain uses the documentation and the signature, which are not available on the handle. This also meanse that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.
+The LLM needs to be explicitly passed a tool because internally langchain uses the doc-string and the signature, which are not available on the handle. This also means that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.
+
+Once the action is wrapped in a tool call, Langchain can call actions on (potentiall remote) agents, allowing your language model access to research infrastrucutre.
+
+```
+async def main() -> int:
+    ...
+    async with await Manager.from_exchange_factory(
+        executors=<Insert your executor>
+        factory=<Insert your factory>
+    ) as manager:
+        simulator = await manager.launch(MySimAgent)
+        llm = ChatOpenAI(
+            model=self.model,
+            api_key=self.access_token,
+            base_url=self.base_url,
+        )
+
+        tools = [make_sim_tool(agent) for agent in self.simulators]
+        langchain_agent = create_agent(llm, tools=tools)
+        await langchain_agent.ainvoke(
+            {
+                'messages': [{
+                    'role': 'user',
+                    'content': 'What is the simulated ionoization energy of benzene?'
+                }]
+            },
+        )
+        result = await orchestrator.hypothesize(question)
+        print(result)
+
+    return 0
+```
+
+This example still uses the client script to interact with the simulation agent through langchain. It's also possible to make the orchestration agentic  and distributed (i.e. an Academy agent). For example, if the orchestrator relies on a self-hosted language model available only within a certain resource, or if the agent is managing resources (such as the orchestrator running on a login node and starting up agents on compute nodes.) To do this, we can wrap the Langchain code up inside of an agent:
+
+```
+class Orchestrator(Agent):
+    """Orchestrate a scientific workflow."""
+
+    def __init__(
+        self,
+        model: str,
+        access_token: str,
+        simulators: list[Handle[MySimAgent]],
+        base_url: str | None = None,
+    ):
+        self.model = model
+        self.access_token = access_token
+        self.base_url = base_url
+        self.simulators = simulators
+
+    async def agent_on_startup(self) -> None:
+        llm = ChatOpenAI(
+            model=self.model,
+            api_key=self.access_token,
+            base_url=self.base_url,
+        )
+
+        tools = [make_sim_tool(agent) for agent in self.simulators]
+        self.react_loop = create_agent(llm, tools=tools)
+
+    @action
+    async def hypothesize(self, goal: str) -> str:
+        """Use other agents to hypothesize molecules."""
+
+        return await self.react_loop.ainvoke(
+            {'messages': [{'role': 'user', 'content': goal}]},
+        )
+```
 
 For the complete code of Langchain interacting with Academy agents, please look at the [example](https://github.com/academy-agents/academy/tree/main/examples/06-llm) included in the repo.
 

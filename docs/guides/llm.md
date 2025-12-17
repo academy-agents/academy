@@ -13,7 +13,7 @@ In Academy, this means that the language model needs to be (1) wrapped in an age
 You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (e.g., LangChain or pydanticAI).
 For example, see the following code from [the LLM example](https://github.com/academy-agents/academy/tree/main/examples/06-llm):
 
-```
+```python
 from academy.handle import Handle
 from langchain.tools import tool, Tool
 
@@ -33,7 +33,7 @@ The LLM needs to be explicitly passed a tool because internally langchain uses t
 
 Once the action is wrapped in a tool call, Langchain can call actions on (potentially remote) agents, allowing your language model access to research infrastrucutre.
 
-```
+```python
 async def main() -> int:
     ...
     async with await Manager.from_exchange_factory(
@@ -64,7 +64,7 @@ async def main() -> int:
 
 This example still uses the client script to interact with the simulation agent through langchain. It is also possible to make the orchestration agentic and distributed (i.e. an Academy agent). For example, if the orchestrator relies on a self-hosted language model available only within a certain resource, or if the agent is managing resources (such as the orchestrator running on a login node and starting up agents on compute nodes.) To do this, we can wrap the Langchain code inside an agent:
 
-```
+```python
 class Orchestrator(Agent):
     """Orchestrate a scientific workflow."""
 

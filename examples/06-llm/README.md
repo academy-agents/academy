@@ -1,6 +1,6 @@
 ## LLM-Calling Agent
 
-This small **agent-of-agents** example illustrates an LLM-powered orchestration pattern in which an LLM-powered orchestrator delegates scientific work to a simulation agent via well-defined actions. 
+This small **agent-of-agents** example illustrates an LLM-powered orchestration pattern in which an LLM-powered orchestrator delegates scientific work to a simulation agent via well-defined actions.
 The
 [**LangChain**](https://docs.langchain.com/oss/python/langchain/overview) agent framework is used to handle reasoning and tool selection;
  **Academy** supplies the agent lifecycle, communication, and execution substrate that allows simulation agents to be instantiated and accessed across heterogeneous environments.
@@ -10,7 +10,7 @@ The
 This module contains additional dependencies to langchain and langchain-openai.
 
 ```
-pip install langchain
+pip install langchain>=1.0
 pip install langchain-openai
 ```
 
@@ -18,7 +18,7 @@ pip install langchain-openai
 
 The program creates two Academy agents:
 - **`Orchestrator`**, which embeds a LLM-powered LangChain agent that processes user requests and decides what tools to call via a [ReAct](https://react-lm.github.io)-style loop. (The LangChain agent uses the [**OpenAI API**](https://platform.openai.com/docs/api-reference/introduction) to access the LLM.)
-- **`MySimAgent`**, a simulation agent that computes a molecular property  
+- **`MySimAgent`**, a simulation agent that computes a molecular property
 
 The `Orchestrator` interprets natural-language questions, decides when to invoke tools (by invoking `MySimAgent`), and aggregates results from simulation agents.
 
@@ -48,9 +48,11 @@ An Academy Agent exposing a single action: compute_property
 ```python
 def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
     @tool
-    async def compute_property(smiles: str) -> float:
-        return await handle.compute_property(smiles)
-    return compute_property
+    async def compute_ionization_energy(smiles: str) -> float:
+        """Compute the ionization energy of a molecule."""
+        return await handle.compute_ionization_energy(smiles)
+
+    return compute_ionization_energy
 ```
 
 - Wraps an Academy agent **handle** as a LangChain **tool**
@@ -84,19 +86,21 @@ class Orchestrator(Agent):
 
 ---
 
-### 4. Orchestrator Action: `hypothesize`
+### 4. Orchestrator Action: `answer`
 
 ```python
 @action
-async def hypothesize(self, goal: str) -> str:
+async def answer(self, goal: str) -> str:
+    """Use other agents to answer questions about molecules."""
+
     return await self.react_loop.ainvoke(
-        {"messages": [{"role": "user", "content": goal}]},
+        {'messages': [{'role': 'user', 'content': goal}]},
     )
 ```
 
 - Exposes a single high-level API method
 - Accepts a natural-language goal or question
-- Delegates reasoning and tool usage to LangChain
+- Delegates reasoning to LLM and tool usage to LangChain
 - Returns a natural-language response
 
 ---
@@ -123,14 +127,14 @@ async def hypothesize(self, goal: str) -> str:
 5. **LLM reasoning loop**
    - Interprets the question
    - Determines that a tool call is required
-   - Invokes `compute_property` via LangChain
+   - Invokes `compute_ionization_energy` via LangChain
 
 6. **Simulation executes**
-   - `MySimAgent.compute_property(...) → 0.5`
+   - `MySimAgent.compute_ionization_energy(...) → 0.5`
 
 7. **Final response returned**
    - The LLM incorporates the result into a natural-language answer
-  
+
 ---
 
 ## What This Example Demonstrates
@@ -202,4 +206,3 @@ flowchart TB
     LC -->|final answer| O
     O -->|return string| Q
 ```
-

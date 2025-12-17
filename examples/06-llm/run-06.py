@@ -18,11 +18,20 @@ from academy.manager import Manager
 logger = logging.getLogger(__name__)
 
 
+# An Academy agent that wraps computational tools: in this case,
+# a single function that runs locally.
+#
+# A more sophisticated version might:
+#  -- Wrap multiple tools
+#  -- Dispatch tool calls to an HPC system
+#
+# Note that the agent and individual tools have doc strings,
+# these are used by the LLM when generating tool calls.
 class MySimAgent(Agent):
-    """Agent for conducting simulations."""
+    """Agent for running tools to characterize molecules."""
 
     @action
-    async def compute_property(self, smiles: str) -> float:
+    async def compute_ionization_energy(self, smiles: str) -> float:
         """Compute the ionization energy for the given molecule."""
         return 0.5
 
@@ -35,13 +44,15 @@ def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
     """
 
     @tool
-    async def compute_property(smiles: str) -> float:
-        """Compute molecule property."""
-        return await handle.compute_property(smiles)
+    async def compute_ionization_energy(smiles: str) -> float:
+        """Compute the ionization energy of a molecule."""
+        return await handle.compute_ionization_energy(smiles)
 
-    return compute_property
+    return compute_ionization_energy
 
 
+# An Academy agent that creates a LangChain agent that will respond to
+# questions about molecules by running a ReACT loop
 class Orchestrator(Agent):
     """Orchestrate a scientific workflow."""
 
@@ -65,17 +76,22 @@ class Orchestrator(Agent):
         )
 
         tools = [make_sim_tool(agent) for agent in self.simulators]
+        # The following call creates the LangChain agent
         self.react_loop = create_agent(llm, tools=tools)
 
     @action
-    async def hypothesize(self, goal: str) -> str:
-        """Use other agents to hypothesize molecules."""
+    async def answer(self, goal: str) -> str:
+        """Use other agents to answer questions about molecules."""
 
+        # This call runs the ReACT loop, in which:
+        #   1) the LLM is used to determine which tool to call,
+        #   2) the tool is called (by messaging the Academy agent)
         return await self.react_loop.ainvoke(
             {'messages': [{'role': 'user', 'content': goal}]},
         )
 
 
+# The main program creates the two Academy agents, SIMULATOR and ORCHESTRATOR
 async def main() -> int:
     init_logging(logging.INFO)
 
@@ -101,10 +117,10 @@ async def main() -> int:
             },
         )
 
-        question = 'What is the simulated ionoization energy of benzene?'
+        question = 'What is the simulated ionization energy of benzene?'
         print(question)
 
-        result = await orchestrator.hypothesize(question)
+        result = await orchestrator.answer(question)
 
         print(result)
 

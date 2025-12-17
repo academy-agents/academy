@@ -17,6 +17,7 @@ from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
 
+
 # An Academy agent that wraps computational tools: in this case, a single function that runs locally.
 #
 # A more sophisticated version might:
@@ -46,6 +47,7 @@ def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
         return await handle.compute_ionization_energy(smiles)
 
     return compute_ionization_energy
+
 
 # An Academy agent that creates a LangChain agent that will respond to
 # questions about molecules by running a ReACT loop
@@ -87,7 +89,7 @@ class Orchestrator(Agent):
         )
 
 
-# The main program creates the two Academy agents, SIMULATOR and ORCHESTRATOR 
+# The main program creates the two Academy agents, SIMULATOR and ORCHESTRATOR
 async def main() -> int:
     init_logging(logging.INFO)
 

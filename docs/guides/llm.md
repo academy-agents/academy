@@ -5,10 +5,11 @@ There are a variety of ways to create LLM agents within Academy.
 
 ## LLM as an Orchestrator (Agents as Tools)
 
-Language models can be used as the central coordinator in the workflow, where they are used to pick which agents to invoke. In Academy, this means that the language model needs to (1) be wrapped in an agent, and (2) needs to be able to invoke actions on other Agents.
+A language model can be used as the central coordinator in a workflow, where it is used to pick which agent(s) to invoke. 
+In Academy, this means that the language model needs to be (1) wrapped in an agent, and (2) able to invoke actions on other Agents.
 
-
-You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (i.e. Lanchain or pydanticAI). For instance:
+You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (e.g., LangChain or pydanticAI). 
+For example, see the following code from [the LLM example](https://github.com/academy-agents/academy/tree/main/examples/06-llm):
 
 ```
 from academy.handle import Handle
@@ -27,7 +28,7 @@ print(tool.args_schema.model_json_schema())
 
 The LLM needs to be explicitly passed a tool because internally langchain uses the doc-string and the signature, which are not available on the handle. This also means that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.
 
-Once the action is wrapped in a tool call, Laßngchain can call actions on (potentiall remote) agents, allowing your language model access to research infrastrucutre.
+Once the action is wrapped in a tool call, Langchain can call actions on (potentially remote) agents, allowing your language model access to research infrastrucutre.
 
 ```
 async def main() -> int:
@@ -59,7 +60,7 @@ async def main() -> int:
     return 0
 ```
 
-This example still uses the client script to interact with the simulation agent through langchain. It's also possible to make the orchestration agentic  and distributed (i.e. an Academy agent). For example, if the orchestrator relies on a self-hosted language model available only within a certain resource, or if the agent is managing resources (such as the orchestrator running on a login node and starting up agents on compute nodes.) To do this, we can wrap the Langchain code up inside of an agent:
+This example still uses the client script to interact with the simulation agent through langchain. It is also possible to make the orchestration agentic and distributed (i.e. an Academy agent). For example, if the orchestrator relies on a self-hosted language model available only within a certain resource, or if the agent is managing resources (such as the orchestrator running on a login node and starting up agents on compute nodes.) To do this, we can wrap the Langchain code inside an agent:
 
 ```
 class Orchestrator(Agent):
@@ -96,11 +97,11 @@ class Orchestrator(Agent):
         )
 ```
 
-For the complete code of Langchain interacting with Academy agents, please look at the [example](https://github.com/academy-agents/academy/tree/main/examples/06-llm) included in the repo.
+For the complete code of LangChain interacting with Academy agents, please look at the [example](https://github.com/academy-agents/academy/tree/main/examples/06-llm) included in the repo.
 
 ## Multi-agent Discussion with LLMs
 
-### Using specialized LLMs
+### Using Specialized LLMs
 
 One advantage of distributing agents as
 

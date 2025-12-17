@@ -1,7 +1,9 @@
 # LLM Agents
 There are a variety of ways to create LLM agents within Academy.
 
-> This page is still under construction, more details and examples to come!
+!!! warning
+
+    This page is still under construction, more details and examples to come!
 
 ## LLM as an Orchestrator (Agents as Tools)
 
@@ -16,14 +18,15 @@ from academy.handle import Handle
 from langchain.tools import tool, Tool
 
 def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
-    @tool
-    async def compute_property(smiles: str) -> float:
-        """Compute molecule property."""
-        return await handle.compute_property(smiles)
-    return compute_property
+    ...
 
-tool = make_sim_tool(agent_handle)
-print(tool.args_schema.model_json_schema())
+    @tool
+    async def compute_ionization_energy(smiles: str) -> float:
+        """Compute the ionization energy of a molecule."""
+        return await handle.compute_ionization_energy(smiles)
+
+    return compute_ionization_energy
+
 ```
 
 The LLM needs to be explicitly passed a tool because internally langchain uses the doc-string and the signature, which are not available on the handle. This also means that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.
@@ -46,7 +49,7 @@ async def main() -> int:
 
         tools = [make_sim_tool(agent) for agent in self.simulators]
         langchain_agent = create_agent(llm, tools=tools)
-        await langchain_agent.ainvoke(
+        result = await langchain_agent.ainvoke(
             {
                 'messages': [{
                     'role': 'user',
@@ -54,7 +57,6 @@ async def main() -> int:
                 }]
             },
         )
-        result = await orchestrator.hypothesize(question)
         print(result)
 
     return 0
@@ -89,9 +91,12 @@ class Orchestrator(Agent):
         self.react_loop = create_agent(llm, tools=tools)
 
     @action
-    async def hypothesize(self, goal: str) -> str:
-        """Use other agents to hypothesize molecules."""
+    async def answer(self, goal: str) -> str:
+        """Use other agents to answer questions about molecules."""
 
+        # This call runs the ReACT loop, in which:
+        #   1) the LLM is used to determine which tool to call,
+        #   2) the tool is called (by messaging the Academy agent)
         return await self.react_loop.ainvoke(
             {'messages': [{'role': 'user', 'content': goal}]},
         )
@@ -101,10 +106,11 @@ For the complete code of LangChain interacting with Academy agents, please look 
 
 ## Multi-agent Discussion with LLMs
 
+Coming soon!
+
 ### Using Specialized LLMs
 
-One advantage of distributing agents as
-
+Coming soon!
 
 ## Connecting to Academy via MCP
-MCP is a protocol for connecting models to tools. If your language model LLM knows how to call tools via an MCP server, this can be used as an entry point into the Academy ecosystem.
+MCP is a protocol for connecting models to tools. If your language model LLM knows how to call tools via an MCP server, this can be used as an entry point into the Academy ecosystem. For details on how to use Academy with an MCP server, please see the [academy-extensions documentation](https://academy-agents.org/academy-extensions/latest/guides/mcp/).

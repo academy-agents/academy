@@ -18,13 +18,15 @@ from academy.manager import Manager
 logger = logging.getLogger(__name__)
 
 
-# An Academy agent that wraps computational tools: in this case, a single function that runs locally.
+# An Academy agent that wraps computational tools: in this case,
+# a single function that runs locally.
 #
 # A more sophisticated version might:
 #  -- Wrap multiple tools
 #  -- Dispatch tool calls to an HPC system
 #
-# Note that the agent and individual tools have doc strings, these are used by the LLM when generating tool calls.
+# Note that the agent and individual tools have doc strings,
+# these are used by the LLM when generating tool calls.
 class MySimAgent(Agent):
     """Agent for running tools to characterize molecules."""
 

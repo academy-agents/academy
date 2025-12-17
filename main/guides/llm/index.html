@@ -895,7 +895,7 @@
           <li class="md-nav__item">
   <a href="#using-specialized-llms" class="md-nav__link">
     <span class="md-ellipsis">
-      Using specialized LLMs
+      Using Specialized LLMs
     </span>
   </a>
   
@@ -2000,7 +2000,7 @@
           <li class="md-nav__item">
   <a href="#using-specialized-llms" class="md-nav__link">
     <span class="md-ellipsis">
-      Using specialized LLMs
+      Using Specialized LLMs
     </span>
   </a>
   
@@ -2045,8 +2045,10 @@
 <p>This page is still under construction, more details and examples to come!</p>
 </blockquote>
 <h2 id="llm-as-an-orchestrator-agents-as-tools">LLM as an Orchestrator (Agents as Tools)<a class="headerlink" href="#llm-as-an-orchestrator-agents-as-tools" title="Permanent link">&para;</a></h2>
-<p>Language models can be used as the central coordinator in the workflow, where they are used to pick which agents to invoke. In Academy, this means that the language model needs to (1) be wrapped in an agent, and (2) needs to be able to invoke actions on other Agents.</p>
-<p>You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (i.e. Lanchain or pydanticAI). For instance:</p>
+<p>A language model can be used as the central coordinator in a workflow, where it is used to pick which agent(s) to invoke.
+In Academy, this means that the language model needs to be (1) wrapped in an agent, and (2) able to invoke actions on other Agents.</p>
+<p>You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (e.g., LangChain or pydanticAI).
+For example, see the following code from <a href="https://github.com/academy-agents/academy/tree/main/examples/06-llm">the LLM example</a>:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>from academy.handle import Handle
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>from langchain.tools import tool, Tool
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -2061,7 +2063,7 @@
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>print(tool.args_schema.model_json_schema())
 </span></code></pre></div>
 <p>The LLM needs to be explicitly passed a tool because internally langchain uses the doc-string and the signature, which are not available on the handle. This also means that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.</p>
-<p>Once the action is wrapped in a tool call, Laßngchain can call actions on (potentiall remote) agents, allowing your language model access to research infrastrucutre.</p>
+<p>Once the action is wrapped in a tool call, Langchain can call actions on (potentially remote) agents, allowing your language model access to research infrastrucutre.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>async def main() -&gt; int:
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    ...
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    async with await Manager.from_exchange_factory(
@@ -2090,7 +2092,7 @@
 </span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>
 </span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>    return 0
 </span></code></pre></div>
-<p>This example still uses the client script to interact with the simulation agent through langchain. It's also possible to make the orchestration agentic  and distributed (i.e. an Academy agent). For example, if the orchestrator relies on a self-hosted language model available only within a certain resource, or if the agent is managing resources (such as the orchestrator running on a login node and starting up agents on compute nodes.) To do this, we can wrap the Langchain code up inside of an agent:</p>
+<p>This example still uses the client script to interact with the simulation agent through langchain. It is also possible to make the orchestration agentic and distributed (i.e. an Academy agent). For example, if the orchestrator relies on a self-hosted language model available only within a certain resource, or if the agent is managing resources (such as the orchestrator running on a login node and starting up agents on compute nodes.) To do this, we can wrap the Langchain code inside an agent:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>class Orchestrator(Agent):
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    &quot;&quot;&quot;Orchestrate a scientific workflow.&quot;&quot;&quot;
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
@@ -2124,9 +2126,9 @@
 </span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>            {&#39;messages&#39;: [{&#39;role&#39;: &#39;user&#39;, &#39;content&#39;: goal}]},
 </span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>        )
 </span></code></pre></div>
-<p>For the complete code of Langchain interacting with Academy agents, please look at the <a href="https://github.com/academy-agents/academy/tree/main/examples/06-llm">example</a> included in the repo.</p>
+<p>For the complete code of LangChain interacting with Academy agents, please look at the <a href="https://github.com/academy-agents/academy/tree/main/examples/06-llm">example</a> included in the repo.</p>
 <h2 id="multi-agent-discussion-with-llms">Multi-agent Discussion with LLMs<a class="headerlink" href="#multi-agent-discussion-with-llms" title="Permanent link">&para;</a></h2>
-<h3 id="using-specialized-llms">Using specialized LLMs<a class="headerlink" href="#using-specialized-llms" title="Permanent link">&para;</a></h3>
+<h3 id="using-specialized-llms">Using Specialized LLMs<a class="headerlink" href="#using-specialized-llms" title="Permanent link">&para;</a></h3>
 <p>One advantage of distributing agents as</p>
 <h2 id="connecting-to-academy-via-mcp">Connecting to Academy via MCP<a class="headerlink" href="#connecting-to-academy-via-mcp" title="Permanent link">&para;</a></h2>
 <p>MCP is a protocol for connecting models to tools. If your language model LLM knows how to call tools via an MCP server, this can be used as an entry point into the Academy ecosystem.</p>

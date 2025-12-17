@@ -5,10 +5,10 @@ There are a variety of ways to create LLM agents within Academy.
 
 ## LLM as an Orchestrator (Agents as Tools)
 
-A language model can be used as the central coordinator in a workflow, where it is used to pick which agent(s) to invoke. 
+A language model can be used as the central coordinator in a workflow, where it is used to pick which agent(s) to invoke.
 In Academy, this means that the language model needs to be (1) wrapped in an agent, and (2) able to invoke actions on other Agents.
 
-You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (e.g., LangChain or pydanticAI). 
+You can wrap an action invocation as a Tool call from a multi-LLM orchestration framework (e.g., LangChain or pydanticAI).
 For example, see the following code from [the LLM example](https://github.com/academy-agents/academy/tree/main/examples/06-llm):
 
 ```

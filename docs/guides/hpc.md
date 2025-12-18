@@ -80,4 +80,13 @@ class SimulationAgent(Agent):
         return await asyncio.wrap_future(expensive_task())
 
 ```
-The configuration will submit jobs to the cluster using Slurm, and run tasks using the HighThroughputExecutor. For information on configuring Parsl, please see the Parsl [docs](https://parsl.readthedocs.io/en/stable/userguide/configuration/index.html).
+The configuration will submit jobs to the cluster using Slurm, and run tasks using the HighThroughputExecutor. For information on configuring Parsl, please see the Parsl [docs](https://parsl.readthedocs.io/en/stable/userguide/configuration/index.html). For a full example see the [example](https://github.com/academy-agents/academy/tree/main/examples/05-parsl) included in the repo.
+
+
+## Running Parallel Agents
+
+Academy also supports creating and coordinating 1000s of agents behaving autonomously. Agents themselves can be launched across an HPC using Parsl as an execution layer. To do this, we configure a `Manager` to use Parsl (or any other task management system like Ray or Dask):
+
+```python title="parsl_agents.py" linenums="1"
+
+```

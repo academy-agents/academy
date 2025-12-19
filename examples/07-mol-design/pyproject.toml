@@ -1,0 +1,19 @@
+[project]
+name = "mol_design_agents"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Alok Kamatar", email = "alokvk2@uchicago.edu" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+# Configure setuptools for a single-file module
+[tool.setuptools]
+# Specify the single module file
+py-modules = ["mol_design_agents"]

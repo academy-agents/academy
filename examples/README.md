@@ -13,6 +13,3 @@ Examples of patterns and techniques for building agents with Academy.
 **05: Parsl Agent**. An agent that delegates actions to a [Parsl]('https://parsl-project.org) program.
 
 **06: LLM-calling Agent**. An agent-of-agents example in which an LLM-powered orchestrator agent delegates scientific work to a simulation agent via well-defined actions, with [LangChain](https://docs.langchain.com/oss/python/langchain/overview) used to handle reasoning and tool selection.
-
-
-

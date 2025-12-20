@@ -106,7 +106,9 @@ For the complete code of LangChain interacting with Academy agents, please look 
 
 ## Multi-agent Discussion with LLMs
 
-Coming soon!
+For an example of a multi-agent conversation built with academy, please look at the [example](https://github.com/academy-agents/academy/tree/main/examples/08-discussion) included in the repo.
+
+More description and explanation coming soon!
 
 ### Using Specialized LLMs
 

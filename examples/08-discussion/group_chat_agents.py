@@ -14,6 +14,18 @@ logger = logging.getLogger(__name__)
 
 
 class GroupChatAgent(Agent):
+    """A participant in a group chat.
+
+    This class can be subclassed to design specific actions or
+    instantiated with a role and a prompt
+
+    Args:
+        llm_or_agent: A Langchain llm instance, or agent.
+        role: The role this participant has in the group chat.
+        prompt: The system prompt to initialize the chat for the
+            agent.
+    """
+
     def __init__(
         self,
         llm_or_agent: Any,
@@ -35,22 +47,36 @@ class GroupChatAgent(Agent):
         self,
         peer: Handle[GroupChatAgent] | Handle[RoundRobinGroupChatManager],
     ) -> None:
+        """Add a peer to this agent.
+
+        Peers receive any message sent by this agent.
+        """
         self.peers.append(peer)
 
     @action
     async def get_role(self) -> str:
+        """Get group chat role."""
         return self.role
 
     @action
     async def get_prompt(self) -> str:
+        """Get group chat prompt."""
         return self.prompt
 
     @action
     async def update_prompt(self, new_prompt: str) -> None:
+        """Update the prompt of this agent."""
         self.prompt = new_prompt
+        self.messages[0] = {'role': 'system', 'content': self.prompt}
 
     @action
     async def receive(self, role: str, content: str) -> None:
+        """Add a message to the conversation history.
+
+        Args:
+            role: Who in the group chat is sending the message.
+            content: Contents of the message.
+        """
         self.messages.append(
             {
                 'role': 'user',
@@ -69,6 +95,11 @@ class GroupChatAgent(Agent):
             await peer.receive(self.role, response.content)
 
         return response.content
+
+    @action
+    async def clear(self) -> None:
+        """Clear the conversation history."""
+        self.messages = self.messages[:1]
 
 
 DEFAULT_STOPPING_PROMPT = (
@@ -105,6 +136,30 @@ DEFAULT_EDIT_PROMPT = (
 
 
 class RoundRobinGroupChatManager(Agent):
+    """Supervisor for a group chat.
+
+    This class coordinates the interactions between agents by invoking
+    the next agent in the chat. This manager also uses the parallel
+    capabilities of academy to supervize the chat, deciding when to stop,
+    but also if, at any point, the conversation has gotten stuck.
+    If the conversation is stuck, the manager has the ability to terminate
+    the conversation or to modify the running agents to help the
+    conversation.
+
+    This implementation could be modified to send messages when the
+    conversation gets stuck.
+
+    Args:
+        participants: List of people in the chat.
+        llm: Langchain LLM to decide stopping condition and supervision
+        max_rounds: Number of rounds before chat is terminated by default
+        stopping_prompt: Prompt to determine stopping condition.
+        supervisor_prompt: Prompt to determine stuck condition
+        edit_prompt: Prompt to edit agent.
+        supervize_sleep: Time (seconds) between checks of ctuck condition.
+            To check every message, set to 0.
+    """
+
     def __init__(  # noqa: PLR0913
         self,
         participants: list[Handle[GroupChatAgent]],
@@ -139,6 +194,12 @@ class RoundRobinGroupChatManager(Agent):
 
     @action
     async def receive(self, role: str, content: str) -> None:
+        """Add a message to the conversation history.
+
+        Args:
+            role: Who in the group chat is sending the message.
+            content: Contents of the message.
+        """
         logger.info(f'{role} says: {content}')
         self.history.append(
             {
@@ -164,6 +225,16 @@ class RoundRobinGroupChatManager(Agent):
         request: str,
         return_history: bool = False,
     ) -> str | list[dict[str, str]]:
+        """Query the agentic system.
+
+        Args:
+            request: Question of prompt to start the conversation.
+            return_history: Weather to return the entire conversation
+                of just the last prompt.
+
+        Returns
+           The last message or the entire conversation.
+        """
         logger.info(f'User says: {request}')
         for participant in self.participants:
             await participant.receive('user', request)
@@ -174,6 +245,7 @@ class RoundRobinGroupChatManager(Agent):
             for participant in self.participants:
                 await self.running.wait()
                 if self.terminate.is_set():
+                    logger.info('Conversation terminated by supervisor.')
                     last_message = 'Conversation terminated by supervisor.'
                     self.history.append(
                         {'role': 'system', 'content': last_message},
@@ -196,11 +268,13 @@ class RoundRobinGroupChatManager(Agent):
                 ],
             )
             if self._check_match(stop_response.content, 'STOP'):
+                logger.info('Conversation met stopping criteria.')
                 break
 
             remaining_rounds -= 1
         else:
             last_message = 'Conversation reached maximum rounds.'
+            logger.info('Conversation reached the maximum number of rounds.')
             self.history.append({'role': 'system', 'content': last_message})
 
         if return_history:
@@ -208,11 +282,24 @@ class RoundRobinGroupChatManager(Agent):
         return last_message
 
     @action
+    async def clear(self) -> None:
+        """Clear the conversation history."""
+        self.history = []
+        for participant in self.participants:
+            await participant.clear()
+
+    @action
     async def update_participant(
         self,
         history: list[dict[str, str]],
         participant: Handle[GroupChatAgent],
     ) -> None:
+        """Decide weather the participant needs to be updated.
+
+        Args:
+            history: Chat history to base decision.
+            participant: Which agent to investigate.
+        """
         role = await participant.get_role()
         prompt = await participant.get_prompt()
         history_str = self._format_history(history)
@@ -242,6 +329,8 @@ class RoundRobinGroupChatManager(Agent):
 
     @loop
     async def supervize(self, shutdown: asyncio.Event) -> None:
+        """Background loop to make sure agents are making progress."""
+
         while not shutdown.is_set():
             await self.new_messages.wait()
             logger.info('Beginning supervior checks.')

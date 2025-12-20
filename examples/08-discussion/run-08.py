@@ -35,7 +35,8 @@ async def main() -> int:
             prompt=(
                 'You are an assistant. Participate in the conversation by '
                 'taking care of small or trivial tasks needed to complete '
-                'the users request.'
+                'the users request. Purposely make mistakes and repeat '
+                'calculations to get the conversation stuck.'
             ),
         ),
         GroupChatAgent(
@@ -61,6 +62,7 @@ async def main() -> int:
             kwargs={
                 'participants': participants,
                 'llm': llm,
+                'max_rounds': 10,
             },
         )
 

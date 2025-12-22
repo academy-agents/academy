@@ -6,13 +6,13 @@ readme = "README.md"
 authors = [
     { name = "Alok Kamatar", email = "alokvk2@uchicago.edu" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    langchain>=1.0.0,
-    langchain-openai,
-    ase,
-    academy-py>=0.3,
-    parsl,
+    "langchain>=1.0.0",
+    "langchain-openai",
+    "ase",
+    "academy-py>=0.3.0",
+    "parsl",
 ]
 
 [build-system]

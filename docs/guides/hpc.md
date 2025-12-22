@@ -85,8 +85,31 @@ The configuration will submit jobs to the cluster using Slurm, and run tasks usi
 
 ## Running Parallel Agents
 
-Academy also supports creating and coordinating 1000s of agents behaving autonomously. Agents themselves can be launched across an HPC using Parsl as an execution layer. To do this, we configure a `Manager` to use Parsl (or any other task management system like Ray or Dask):
+Academy also supports depploying Agents themselves across HPC infrastructure. This enables 100s to 1000s of agents in parallel behaving autonomously and coordinating. For example, this is useful for high-throughput exploriation, where each agent needs state (so we can't easily decompose the application into embarrassignly parallel bags of task). To use this pattern, we configure a `Manager` to use Parsl (or any other task management system like Ray or Dask):
 
-```python title="parsl_agents.py" linenums="1"
+```python title="run-07.py" linenums="1"
+
+config = Config(
+    executors=[
+        HighThroughputExecutor(
+            provider=LocalProvider(
+                worker_init=(
+                    f'cd {os.getcwd()}conda activate ./mol-design;'
+                ),
+            ),
+            max_workers_per_node=2,
+        ),
+    ],
+)
+executor = ParslPoolExecutor(config)
+
+async with await Manager.from_exchange_factory(
+    factory=RedisExchangeFactory('localhost', 6379),
+    executors=executor,
+) as manager:
 
 ```
+The `parsl.concurrent.ParslPoolExecutor` turns any Parsl configuration into a `concurrent.futures.Executor` compatible interface. To create a `ParslPoolExecutor`, we first define a Parsl configuration, then pass that configuration to the executor.
+
+
+For a complete example, check out the code for the [molecular design example](https://github.com/academy-agents/academy/tree/main/examples/05-parsl) where parallel reasoning agents are deployed to explore different areas of chemical space, searching for a target property.

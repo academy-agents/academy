@@ -7,7 +7,13 @@ authors = [
     { name = "Alok Kamatar", email = "alokvk2@uchicago.edu" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    langchain>=1.0.0,
+    langchain-openai,
+    ase,
+    academy-py>=0.3,
+    parsl,
+]
 
 [build-system]
 requires = ["setuptools"]

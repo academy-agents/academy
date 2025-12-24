@@ -245,18 +245,18 @@ class Handle(Generic[AgentT]):
         future: asyncio.Future[R] = loop.create_future()
         self._pending_response_futures[request.tag] = future
 
-        await self.exchange.send(request)
-        logger.debug(
-            'Sent action request from %s to %s (action=%r)',
-            exchange.client_id,
-            self.agent_id,
-            action,
-            extra=request.log_extra()
-            | {
-                'academy.action': action,
-            },
-        )
         try:
+            await self.exchange.send(request)
+            logger.debug(
+                'Sent action request from %s to %s (action=%r)',
+                exchange.client_id,
+                self.agent_id,
+                action,
+                extra=request.log_extra()
+                | {
+                    'academy.action': action,
+                },
+            )
             await future
         except asyncio.CancelledError:
             cancel_request = Message.create(

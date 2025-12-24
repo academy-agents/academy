@@ -356,7 +356,7 @@ async def test_client_handle_action_cancelled_during_send(
             handle.action('sleep', 0, 1),
         )
         if sys.version_info < (3, 12):  # pragma: <3.12 cover
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
 
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):

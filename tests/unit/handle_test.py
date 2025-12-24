@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import pickle
+import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest import mock
@@ -324,6 +326,44 @@ async def test_client_handle_action_cancelled_sends_request(
             await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
 
         assert send.call_count == 2  # noqa: PLR2004
+        cancel_request = send.call_args.args[0]
+        assert isinstance(cancel_request, Message)
+        assert isinstance(cancel_request.body, CancelRequest)
+
+
+@pytest.mark.asyncio
+async def test_client_handle_action_cancelled_during_send(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    # This test relies on eager creation of tasks to ensure the action
+    # task is created before it is cancelled.
+    if sys.version_info >= (3, 12):  # pragma: >=3.12 cover
+        loop = asyncio.get_event_loop()
+        loop.set_task_factory(asyncio.eager_task_factory)
+
+    handle = await manager.launch(SleepAgent)
+    with mock.patch.object(
+        manager.exchange_client,
+        'send',
+        new_callable=mock.AsyncMock,
+    ) as send:
+
+        async def sleep(x: Any):
+            await asyncio.sleep(0.1)
+
+        send.side_effect = sleep  # Make sure we yield the scheduler on send.
+        task: asyncio.Task[None] = asyncio.create_task(
+            handle.action('sleep', 0, 1),
+        )
+        if sys.version_info < (3, 12):  # pragma: <3.12 cover
+            asyncio.sleep(0)
+
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            # Wait for cancel to finish.
+            await task
+
+        assert send.call_count >= 2  # noqa: PLR2004
         cancel_request = send.call_args.args[0]
         assert isinstance(cancel_request, Message)
         assert isinstance(cancel_request.body, CancelRequest)

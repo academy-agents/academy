@@ -200,6 +200,11 @@ async def execute_and_log_traceback(
 ) -> Any:
     """Await a future and log any exception..
 
+    Warning:
+        For developers. Other functions rely on the first await call to be on
+        the wrapped future to that task cancellation can be properly caught
+        in the wrapped task.
+
     Catches any exceptions raised by the coroutine, logs the traceback,
     and re-raises the exception.
     """

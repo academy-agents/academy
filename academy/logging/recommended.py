@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 
-import academy.observability.examples as loggers
 from academy.logging import config
+from academy.logging.configs.console import ConsoleLogging
+from academy.logging.configs.file import FilePoolLog
+from academy.logging.configs.multi import MultiLogConfig
 
 
 def recommended_dev_log_config() -> config.ObservabilityConfig:
@@ -13,6 +15,6 @@ def recommended_dev_log_config() -> config.ObservabilityConfig:
     and make debug-level logs for all Python logging into JSON formatted
     log files in ~/.academy/
     """
-    return loggers.MultiLogConfig(
-        [loggers.ConsoleLogging(level=logging.WARN), loggers.FilePoolLog()],
+    return MultiLogConfig(
+        [ConsoleLogging(level=logging.WARN), FilePoolLog()],
     )

@@ -22,9 +22,9 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
+from academy.logging.configs.console import ConsoleLogging
+from academy.logging.configs.file import FilePoolLog
 from academy.manager import Manager
-from academy.observability.examples import ConsoleLogging
-from academy.observability.examples import FilePoolLog
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import SleepAgent

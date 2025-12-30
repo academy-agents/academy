@@ -23,7 +23,7 @@ from pydantic import Field
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
-from academy.observability import ObservabilityConfig
+from academy.logging.config import ObservabilityConfig
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     import tomllib

@@ -4,10 +4,8 @@ import logging
 from asyncio import Future
 from typing import Any
 
-from academy.observability import ObservabilityConfig
-from academy.observability.examples import ConsoleLogging
-from academy.observability.examples import FilePoolLog
-from academy.observability.examples import MultiLogConfig
+import academy.observability.examples as loggers
+from academy.logging import config
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +29,13 @@ async def execute_and_log_traceback(
         raise
 
 
-def recommended_dev_log_config() -> ObservabilityConfig:
+def recommended_dev_log_config() -> config.ObservabilityConfig:
     """Returns a log configuration recommended for development use.
 
     This will configure console logging for academy WARNINGs and worse,
     and make debug-level logs for all Python logging into JSON formatted
     log files in ~/.academy/
     """
-    return MultiLogConfig(
-        [ConsoleLogging(level=logging.WARN), FilePoolLog()],
+    return loggers.MultiLogConfig(
+        [loggers.ConsoleLogging(level=logging.WARN), loggers.FilePoolLog()],
     )

@@ -39,8 +39,8 @@ from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+from academy.logging.config import ObservabilityConfig
 from academy.message import Message
-from academy.observability import ObservabilityConfig
 from academy.serialize import NoPickleMixin
 from academy.socket import wait_connection
 

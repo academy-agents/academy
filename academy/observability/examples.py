@@ -5,7 +5,7 @@ import pathlib
 import sys
 import uuid
 
-from academy.observability import ObservabilityConfig
+from academy.logging import config
 from academy.observability.helpers import _Formatter
 from academy.observability.helpers import _os_thread_filter
 from academy.observability.helpers import JSONHandler
@@ -13,7 +13,7 @@ from academy.observability.helpers import JSONHandler
 logger = logging.getLogger(__name__)
 
 
-class ConsoleLogging(ObservabilityConfig):
+class ConsoleLogging(config.ObservabilityConfig):
     """Configures logging to the console.
 
     This is the console part of academy.logging.init_logging.
@@ -55,7 +55,7 @@ class ConsoleLogging(ObservabilityConfig):
         )
 
 
-class FilePoolLog(ObservabilityConfig):
+class FilePoolLog(config.ObservabilityConfig):
     """Configures logging to files in home directory log pool.
 
     This is intended to make it so json logs go into a uniquely identified
@@ -110,10 +110,10 @@ class FilePoolLog(ObservabilityConfig):
         )
 
 
-class MultiLogConfig(ObservabilityConfig):
+class MultiLogConfig(config.ObservabilityConfig):
     """This captures a collection of other observability configs."""
 
-    def __init__(self, configs: list[ObservabilityConfig]) -> None:
+    def __init__(self, configs: list[config.ObservabilityConfig]) -> None:
         self._configs = configs
 
     def init_logging(self) -> None:

@@ -6,9 +6,9 @@ import sys
 import uuid
 
 from academy.logging import config
-from academy.observability.helpers import _Formatter
-from academy.observability.helpers import _os_thread_filter
-from academy.observability.helpers import JSONHandler
+from academy.logging.helpers import _Formatter
+from academy.logging.helpers import _os_thread_filter
+from academy.logging.helpers import JSONHandler
 
 logger = logging.getLogger(__name__)
 

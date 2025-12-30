@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pickle
+import uuid
 from typing import Any
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from academy.identifier import AgentId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
+from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Header
 from academy.message import Message
@@ -20,6 +22,7 @@ from academy.message import SuccessResponse
     'message_body',
     (
         ActionRequest(action='foo', pargs=(b'bar',)),
+        CancelRequest(target_tag=uuid.uuid4()),
         PingRequest(),
         ShutdownRequest(),
     ),

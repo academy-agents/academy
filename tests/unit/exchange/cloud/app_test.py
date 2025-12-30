@@ -196,6 +196,16 @@ async def test_get_shares_bad_mailbox(cli) -> None:
 
 
 @pytest.mark.asyncio
+async def test_remove_shares_bad_mailbox(cli) -> None:
+    response = await cli.delete(
+        '/mailbox/share',
+        json={'mailbox': 'foo'},
+    )
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert await response.text() == 'Missing or invalid mailbox ID'
+
+
+@pytest.mark.asyncio
 async def test_terminate_validation_error(cli) -> None:
     response = await cli.delete('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
@@ -556,8 +566,32 @@ async def test_share_mailbox(auth_client, group_id) -> None:
     )
     assert response.status == StatusCode.FORBIDDEN.value
 
+    # Non-owner cannot remove group access
+    response = await auth_client.delete(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_2'},
+    )
+    assert response.status == StatusCode.FORBIDDEN.value
 
-async def test_share_mailbox_forbidden(auth_client, group_id) -> None:
+    # Remove access
+    response = await auth_client.delete(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    # Test access by user_2 who is in the same group
+    response = await auth_client.get(
+        '/mailbox',  # Check status
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_2'},
+    )
+    assert response.status == StatusCode.FORBIDDEN.value
+
+
+async def test_share_mailbox_bad_group(auth_client, group_id) -> None:
     uid = UserId.new()
     response = await auth_client.post(
         '/mailbox',
@@ -572,3 +606,119 @@ async def test_share_mailbox_forbidden(auth_client, group_id) -> None:
         headers={'Authorization': 'Bearer user_3'},
     )
     assert response.status == StatusCode.FORBIDDEN.value
+
+
+async def test_share_mailbox_terminated(auth_client, group_id) -> None:
+    uid = UserId.new()
+    response = await auth_client.post(
+        '/mailbox',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.delete(
+        '/mailbox',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.post(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.TERMINATED.value
+
+
+async def test_share_mailbox_bad_id(auth_client, group_id) -> None:
+    uid = UserId.new()
+    response = await auth_client.post(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.NOT_FOUND.value
+
+
+async def test_get_shares_terminated(auth_client, group_id) -> None:
+    uid = UserId.new()
+    response = await auth_client.post(
+        '/mailbox',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.post(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.delete(
+        '/mailbox',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.get(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.TERMINATED.value
+
+
+async def test_get_shares_bad_id(auth_client, group_id) -> None:
+    uid = UserId.new()
+    response = await auth_client.get(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.NOT_FOUND.value
+
+
+async def test_remove_share_terminated(auth_client, group_id) -> None:
+    uid = UserId.new()
+    response = await auth_client.post(
+        '/mailbox',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.post(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.delete(
+        '/mailbox',
+        json={'mailbox': uid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.delete(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.TERMINATED.value
+
+
+async def test_remove_share_bad_id(auth_client, group_id) -> None:
+    uid = UserId.new()
+    response = await auth_client.delete(
+        '/mailbox/share',
+        json={'mailbox': uid.model_dump_json(), 'group_id': group_id},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.NOT_FOUND.value

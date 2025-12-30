@@ -8,4 +8,6 @@ The best way to get started with Academy basics is the [Tutorial](tutorial.md)
 
 ## Guides
 
-[HPC Integration Patterns](hpc.md)
+**[HPC Integration Patterns](hpc.md)**
+
+**[LLM Integration Patterns](llm.md)**

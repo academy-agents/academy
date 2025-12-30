@@ -138,7 +138,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
     Raises:
         ValueError: If `default_executor` is specified but does not exist
-            in `executors`.
+            in `executors`, or if executors is badly typed.
     """
 
     def __init__(
@@ -157,6 +157,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             default_executor = 'default'
         elif isinstance(executors, MutableMapping):
             self._executors.update(executors)
+        elif executors is None:
+            pass
+        else:  # unreachable if types are followed
+            raise ValueError('Invalid executors parameter')
 
         if default_executor not in self._executors:
             raise ValueError(
@@ -343,7 +347,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         run_count = 0
         retries = self._max_retries
 
-        while not self._closed.is_set():
+        while not self._closed.is_set():  # pragma: no branch
             run_count += 1
             if retries > 0:
                 retries -= 1

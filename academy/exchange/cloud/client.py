@@ -348,6 +348,27 @@ class HttpExchangeConsole:
             groups_str = (await response.json())['group_ids']
             return [uuid.UUID(group_id) for group_id in groups_str]
 
+    async def remove_shared_group(
+        self,
+        mailbox_id: EntityId,
+        group_id: uuid.UUID,
+    ) -> None:
+        """Stop sharing mailbox with a group.
+
+        Args:
+            mailbox_id: Either AgentId or UserId of mailbox
+            group_id: Id of globus group. User must be part of group to share
+                mailbox.
+        """
+        async with self._session.delete(
+            self._share_url,
+            json={
+                'mailbox': mailbox_id.model_dump_json(),
+                'group_id': str(group_id),
+            },
+        ) as response:
+            _raise_for_status(response, None, mailbox_id)
+
     async def close(self) -> None:
         """Close the console session."""
         await self._session.close()

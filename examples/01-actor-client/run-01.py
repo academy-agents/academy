@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange import LocalExchangeFactory
-from academy.logging import init_logging
+from academy.logging import recommended_dev_log_config
 from academy.manager import Manager
 
 
@@ -27,13 +26,14 @@ class Counter(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
+    lc = recommended_dev_log_config()
+    lc.init_logging()
 
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
     ) as manager:
-        agent_handle = await manager.launch(Counter)
+        agent_handle = await manager.launch(Counter, log_config=lc)
 
         count = await agent_handle.get_count()
         assert count == 0

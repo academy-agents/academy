@@ -12,7 +12,6 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange import LocalExchangeFactory
 from academy.handle import Handle
-from academy.logging import init_logging
 from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
@@ -93,8 +92,6 @@ class Orchestrator(Agent):
 
 # The main program creates the two Academy agents, SIMULATOR and ORCHESTRATOR
 async def main() -> int:
-    init_logging(logging.INFO)
-
     model = await asyncio.to_thread(input, 'Please input a model name: ')
     token = await asyncio.to_thread(input, 'Please input an access token: ')
     url_input = await asyncio.to_thread(

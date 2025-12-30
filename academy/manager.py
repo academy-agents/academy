@@ -9,7 +9,6 @@ import warnings
 from collections.abc import Iterable
 from collections.abc import MutableMapping
 from concurrent.futures import Executor
-from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -32,7 +31,9 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.logging import init_logging
+from academy.logging.config import ObservabilityConfig
+
+# from academy.logging import init_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
@@ -54,9 +55,10 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
     submit_kwargs: dict[str, Any]
-    init_logging: bool = False
-    loglevel: int | str = logging.INFO
-    logfile: str | None = None
+    # init_logging: bool = False
+    # loglevel: int | str = logging.INFO
+    # logfile: str | None = None
+    log_config: ObservabilityConfig | None = None
 
 
 async def _run_agent_async(
@@ -89,13 +91,8 @@ def _run_agent_on_worker(
     academy_debug_mode: bool = False,
     **kwargs: Any,
 ) -> None:
-    if spec.init_logging:
-        if spec.logfile is not None:
-            logfile = spec.logfile.format(agent_id=spec.registration.agent_id)
-        else:
-            logfile = None
-
-        init_logging(level=spec.loglevel, logfile=logfile)
+    if spec.log_config:
+        spec.log_config.init_logging()
 
     set_academy_debug(academy_debug_mode)
     asyncio.run(_run_agent_async(spec))
@@ -120,12 +117,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         This class can be used as a context manager. Upon exiting the context,
         running agents will be shutdown, any agent handles created by the
         manager will be closed, and the executors will be shutdown.
-
-    Tip:
-        When using
-        [`ProcessPoolExecutors`][concurrent.futures.ProcessPoolExecutor],
-        use the `initializer` argument to configure logging in the worker
-        processes that will execute agents.
 
     Note:
         The manager takes ownership of the exchange client and executors,
@@ -440,9 +431,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         submit_kwargs: dict[str, Any] | None = None,
         name: str | None = None,
         registration: AgentRegistration[AgentT] | None = None,
-        init_logging: bool = False,
-        loglevel: int | str = logging.INFO,
-        logfile: str | None = None,
+        log_config: ObservabilityConfig | None = None,
+        # init_logging: bool = False,
+        # loglevel: int | str = logging.INFO,
+        # logfile: str | None = None,
     ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 
@@ -462,9 +454,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             name: Readable name of the agent used when registering a new agent.
             registration: If `None`, a new agent will be registered with
                 the exchange.
-            init_logging: Initialize logging before running agent.
-            loglevel: Level of logging.
-            logfile: Location to write logs.
+            log_config: log configuration to use
 
         Returns:
             Handle (client bound) used to interact with the agent.
@@ -485,17 +475,25 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 f'{registration.agent_id} has already been executed.',
             )
 
-        if init_logging and (
-            executor_instance is None
-            or isinstance(executor_instance, ThreadPoolExecutor)
-        ):
-            warnings.warn(
-                f'`init_logging` was specified for agent '
-                f'{registration.agent_id} running in the same process as the '
-                f'Manager. `init_logging` should only be called once per '
-                f'process.',
-                stacklevel=2,
-            )
+        # this is a more general problem - for example, should this happen
+        # multiple times for the same htex worker?
+        # its a warning so i'm not too fussed about commenting it out,
+        # but the broader story is not handled at all, either before or
+        # after this commenting.
+        # if we want one-shot log config in arbitrary contexts, that's
+        # something this API would support experimenting with.
+
+        # if init_logging and (
+        #    executor_instance is None
+        #    or isinstance(executor_instance, ThreadPoolExecutor)
+        # ):
+        #    warnings.warn(
+        #        f'`init_logging` was specified for agent '
+        #        f'{registration.agent_id} running in the same process as the '
+        #        f'Manager. `init_logging` should only be called once per '
+        #        f'process.',
+        #        stacklevel=2,
+        #    )
 
         agent_id = registration.agent_id
 
@@ -507,9 +505,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             agent_args=() if args is None else args,
             agent_kwargs={} if kwargs is None else kwargs,
             submit_kwargs={} if submit_kwargs is None else submit_kwargs,
-            init_logging=init_logging,
-            loglevel=loglevel,
-            logfile=logfile,
+            log_config=log_config,
+            # init_logging=init_logging,
+            # loglevel=loglevel,
+            # logfile=logfile,
         )
 
         task = asyncio.create_task(

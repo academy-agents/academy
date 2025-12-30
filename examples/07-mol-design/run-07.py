@@ -12,15 +12,12 @@ from parsl.concurrent import ParslPoolExecutor
 from parsl.providers import LocalProvider
 
 from academy.exchange import RedisExchangeFactory
-from academy.logging import init_logging
 from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
-
     config = Config(
         executors=[
             HighThroughputExecutor(

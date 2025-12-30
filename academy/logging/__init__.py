@@ -4,8 +4,7 @@ import logging
 from asyncio import Future
 from typing import Any
 
-import academy.observability.examples as loggers
-from academy.logging import config
+from academy.logging.recommended import recommended_dev_log_config
 
 logger = logging.getLogger(__name__)
 
@@ -27,15 +26,3 @@ async def execute_and_log_traceback(
     except Exception:
         logger.exception('Background task raised an exception.')
         raise
-
-
-def recommended_dev_log_config() -> config.ObservabilityConfig:
-    """Returns a log configuration recommended for development use.
-
-    This will configure console logging for academy WARNINGs and worse,
-    and make debug-level logs for all Python logging into JSON formatted
-    log files in ~/.academy/
-    """
-    return loggers.MultiLogConfig(
-        [loggers.ConsoleLogging(level=logging.WARN), loggers.FilePoolLog()],
-    )

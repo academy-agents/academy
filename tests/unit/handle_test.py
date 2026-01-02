@@ -348,10 +348,12 @@ async def test_client_handle_action_cancelled_during_send(
         new_callable=mock.AsyncMock,
     ) as send:
 
-        async def sleep(x: Any):
-            await asyncio.sleep(0.1)
+        async def send_effect(msg: Any):
+            await asyncio.sleep(0)
 
-        send.side_effect = sleep  # Make sure we yield the scheduler on send.
+        send.side_effect = (
+            send_effect  # Make sure we yield the scheduler on send.
+        )
         task: asyncio.Task[None] = asyncio.create_task(
             handle.action('sleep', 0, 1),
         )

@@ -341,11 +341,13 @@ async def test_client_handle_action_cancelled_during_send(
         'send',
         new_callable=mock.AsyncMock,
     ) as send:
+        sending_event = asyncio.Event()
         cancelled_event = asyncio.Event()
 
         async def send_effect(msg: Message[Request]):
             if isinstance(msg.body, ActionRequest):
                 try:
+                    sending_event.set()
                     # 600 is an approximation of forever
                     await asyncio.sleep(600)
                     raise RuntimeError(
@@ -370,7 +372,9 @@ async def test_client_handle_action_cancelled_during_send(
             handle.action('sleep', 0, 1),
         )
 
+        await sending_event.wait()
         task.cancel()
+
         with pytest.raises(asyncio.CancelledError):
             # Wait for cancel to finish.
             await task

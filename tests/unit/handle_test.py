@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 import pickle
-import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest import mock
@@ -26,9 +24,11 @@ from academy.handle import ProxyHandle
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.manager import Manager
+from academy.message import ActionRequest
 from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Message
+from academy.message import Request
 from academy.message import ShutdownRequest
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
@@ -335,38 +335,64 @@ async def test_client_handle_action_cancelled_sends_request(
 async def test_client_handle_action_cancelled_during_send(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    # This test relies on eager creation of tasks to ensure the action
-    # task is created before it is cancelled.
-    if sys.version_info >= (3, 12):  # pragma: >=3.12 cover
-        loop = asyncio.get_event_loop()
-        loop.set_task_factory(asyncio.eager_task_factory)
-
     handle = await manager.launch(SleepAgent)
     with mock.patch.object(
         manager.exchange_client,
         'send',
         new_callable=mock.AsyncMock,
     ) as send:
+        sending_event = asyncio.Event()
+        cancelled_event = asyncio.Event()
 
-        async def sleep(x: Any):
-            await asyncio.sleep(0.1)
+        async def send_effect(msg: Message[Request]):
+            if isinstance(msg.body, ActionRequest):
+                try:
+                    sending_event.set()
+                    # 600 is an approximation of forever
+                    await asyncio.sleep(600)
+                    raise RuntimeError(
+                        'send sleep should never complete',
+                    )  # pragma: no cover
+                except asyncio.CancelledError:
+                    cancelled_event.set()
+                    raise
+            elif isinstance(msg.body, CancelRequest):
+                # no need for any async behaviour by the time we've reached
+                # the cancellation message.
+                pass
+            else:
+                raise RuntimeError(
+                    f'This mock cannot handle {msg}',
+                )  # pragma: no cover
 
-        send.side_effect = sleep  # Make sure we yield the scheduler on send.
+        send.side_effect = (
+            send_effect  # Make sure we yield the scheduler on send.
+        )
         task: asyncio.Task[None] = asyncio.create_task(
             handle.action('sleep', 0, 1),
         )
-        if sys.version_info < (3, 12):  # pragma: <3.12 cover
-            await asyncio.sleep(0)
 
+        await sending_event.wait()
         task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
+
+        with pytest.raises(asyncio.CancelledError):
             # Wait for cancel to finish.
             await task
 
-        assert send.call_count >= 2  # noqa: PLR2004
+        assert cancelled_event.is_set(), (
+            'send_effect should have set cancelled event'
+        )
+        assert send.call_count > 1, (
+            'send should be called once for action and once for cancel'
+        )
+
         cancel_request = send.call_args.args[0]
-        assert isinstance(cancel_request, Message)
-        assert isinstance(cancel_request.body, CancelRequest)
+        assert isinstance(cancel_request, Message), (
+            'The last send should have been a message'
+        )
+        assert isinstance(cancel_request.body, CancelRequest), (
+            'The last send should have been a cancellation'
+        )
 
 
 @pytest.mark.asyncio

@@ -356,7 +356,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         run_count = 0
         retries = self._max_retries
 
-        while not self._closed.is_set():
+        while not self._closed.is_set():  # pragma: no branch
             run_count += 1
             if retries > 0:
                 retries -= 1

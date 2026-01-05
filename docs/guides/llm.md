@@ -42,12 +42,10 @@ async def main() -> int:
     ) as manager:
         simulator = await manager.launch(MySimAgent)
         llm = ChatOpenAI(
-            model=self.model,
-            api_key=self.access_token,
-            base_url=self.base_url,
+            model=model
         )
 
-        tools = [make_sim_tool(agent) for agent in self.simulators]
+        tools = [make_sim_tool(simulator),]
         langchain_agent = create_agent(llm, tools=tools)
         result = await langchain_agent.ainvoke(
             {

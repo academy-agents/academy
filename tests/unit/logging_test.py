@@ -6,6 +6,7 @@ import pathlib
 
 import pytest
 
+from academy.logging import init_logging
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import FilePoolLog
@@ -15,6 +16,16 @@ from academy.logging.helpers import JSONHandler
 # Note: these tests are just for coverage to make sure the code is functional.
 # It does not test the agent of init_logging because pytest captures
 # logging already.
+
+
+@pytest.mark.parametrize('logfile', (None, 'test.txt'))
+def test_init_logging(logfile) -> None:
+    lc = init_logging(logfile=logfile)
+
+    logger = logging.getLogger()
+    logger.info('Test logging')
+
+    # TODO: what to assert here?
 
 
 @pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
@@ -27,7 +38,7 @@ def test_console_logging(color: bool, extra: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    ('extra'),
+    'extra',
     (False, True, 2),
 )
 def test_logging_with_file(

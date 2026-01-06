@@ -4,6 +4,7 @@ import logging
 from asyncio import Future
 from typing import Any
 
+from academy.logging.recommended import init_logging
 from academy.logging.recommended import recommended_dev_log_config
 
 logger = logging.getLogger(__name__)

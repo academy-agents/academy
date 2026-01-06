@@ -7,6 +7,7 @@ import pathlib
 import pytest
 
 from academy.logging import init_logging
+from academy.logging.config import ObservabilityConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import FilePoolLog
@@ -21,6 +22,7 @@ from academy.logging.helpers import JSONHandler
 @pytest.mark.parametrize('logfile', (None, 'test.txt'))
 def test_init_logging(logfile) -> None:
     lc = init_logging(logfile=logfile)
+    assert isinstance(lc, ObservabilityConfig)
 
     logger = logging.getLogger()
     logger.info('Test logging')

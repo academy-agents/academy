@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ConsoleLogging(config.ObservabilityConfig):
     """Configures logging to the console.
 
-    This is the console part of academy.logging.init_logging.
+    TODO: This is the console part of academy.logging.init_logging.
     """
 
     def __init__(

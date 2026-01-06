@@ -7,6 +7,7 @@ import pathlib
 import pytest
 
 from academy.logging.configs.console import ConsoleLogging
+from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import FilePoolLog
 from academy.logging.helpers import JSONHandler
 
@@ -27,11 +28,24 @@ def test_console_logging(color: bool, extra: bool) -> None:
 
 @pytest.mark.parametrize(
     ('extra'),
-    ((True,), (False,), (2,)),
+    (False, True, 2),
 )
 def test_logging_with_file(
+    tmp_path: pathlib.Path,
     extra: bool,
 ) -> None:
+    _filepath = tmp_path / 'log.txt'
+    assert isinstance(extra, int)
+    lc = FileLogging(logfile=_filepath, extra=extra)
+    lc.init_logging()
+
+    logger = logging.getLogger()
+    logger.info('Test logging')
+
+    # TODO: assert the file exists and the string "Test logging" appears in it.
+
+
+def test_logging_with_filepool() -> None:
     # TODO: what sort of path override makes sense here? for users and
     # for testing? for testing, to keep test files out of  ~/.academy
     # _filepath = tmp_path / 'log.txt'

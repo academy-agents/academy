@@ -33,7 +33,6 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.logging.config import ObservabilityConfig
 
-# from academy.logging import init_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin

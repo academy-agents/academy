@@ -4,7 +4,7 @@ import logging
 
 from academy.logging import config
 from academy.logging.configs.console import ConsoleLogging
-from academy.logging.configs.file import FilePoolLog
+from academy.logging.configs.jsonpool import FilePoolLog
 from academy.logging.configs.multi import MultiLogConfig
 
 

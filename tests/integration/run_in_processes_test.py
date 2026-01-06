@@ -9,7 +9,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
-from academy.logging.configs.file import FilePoolLog
+from academy.logging.configs.jsonpool import FilePoolLog
 from academy.manager import Manager
 from academy.socket import open_port
 

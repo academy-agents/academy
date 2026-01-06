@@ -62,7 +62,6 @@ from academy.exchange.cloud.config import BackendConfig
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.identifier import EntityId
-
 from academy.message import Message
 
 logger = logging.getLogger(__name__)

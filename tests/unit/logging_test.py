@@ -7,7 +7,7 @@ import pathlib
 import pytest
 
 from academy.logging.configs.console import ConsoleLogging
-from academy.logging.configs.file import FilePoolLog
+from academy.logging.configs.jsonpool import FilePoolLog
 from academy.logging.helpers import JSONHandler
 
 # TODO: reexamine this commentary in the context of new logging

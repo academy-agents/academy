@@ -53,9 +53,6 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
     submit_kwargs: dict[str, Any]
-    # init_logging: bool = False
-    # loglevel: int | str = logging.INFO
-    # logfile: str | None = None
     log_config: ObservabilityConfig | None = None
 
 

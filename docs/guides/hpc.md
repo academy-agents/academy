@@ -112,4 +112,4 @@ async with await Manager.from_exchange_factory(
 The `parsl.concurrent.ParslPoolExecutor` turns any Parsl configuration into a `concurrent.futures.Executor` compatible interface. To create a `ParslPoolExecutor`, we first define a Parsl configuration, then pass that configuration to the executor.
 
 
-For a complete example, check out the code for the [molecular design example](https://github.com/academy-agents/academy/tree/main/examples/05-parsl) where parallel reasoning agents are deployed to explore different areas of chemical space, searching for a target property.
+For a complete example, check out the code for the [molecular design example](https://github.com/academy-agents/academy/tree/main/examples/07-mol-design) where parallel reasoning agents are deployed to explore different areas of chemical space, searching for a target property.

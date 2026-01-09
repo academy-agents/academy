@@ -7,35 +7,75 @@ import pathlib
 import pytest
 
 from academy.logging import init_logging
-from academy.logging import JSONHandler
+from academy.logging.config import ObservabilityConfig
+from academy.logging.configs.console import ConsoleLogging
+from academy.logging.configs.file import FileLogging
+from academy.logging.configs.jsonpool import FilePoolLog
+from academy.logging.helpers import JSONHandler
 
+# TODO: reexamine this commentary in the context of new logging
 # Note: these tests are just for coverage to make sure the code is functional.
 # It does not test the agent of init_logging because pytest captures
 # logging already.
 
 
+@pytest.mark.parametrize('logfile', (None, 'test.txt'))
+def test_init_logging(logfile) -> None:
+    lc = init_logging(logfile=logfile)
+    assert isinstance(lc, ObservabilityConfig)
+
+    logger = logging.getLogger()
+    logger.info('Test logging')
+
+    # TODO: what to assert here?
+
+
 @pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
-def test_logging_no_file(color: bool, extra: bool) -> None:
-    init_logging(color=color, extra=extra)
+def test_console_logging(color: bool, extra: bool) -> None:
+    lc = ConsoleLogging(color=color, extra=extra)
+    lc.init_logging()
 
     logger = logging.getLogger()
     logger.info('Test logging')
 
 
 @pytest.mark.parametrize(
-    ('color', 'extra'),
-    ((True, True), (False, False), (False, 2)),
+    'extra',
+    (False, True, 2),
 )
 def test_logging_with_file(
-    color: bool,
-    extra: bool,
     tmp_path: pathlib.Path,
+    extra: bool,
 ) -> None:
-    filepath = tmp_path / 'log.txt'
-    init_logging(logfile=filepath, color=color, extra=extra)
+    _filepath = tmp_path / 'log.txt'
+    assert isinstance(extra, int)
+    lc = FileLogging(logfile=_filepath, extra=extra)
+    lc.init_logging()
 
     logger = logging.getLogger()
     logger.info('Test logging')
+
+    # TODO: assert the file exists and the string "Test logging" appears in it.
+
+
+def test_logging_with_filepool() -> None:
+    # TODO: what sort of path override makes sense here? for users and
+    # for testing? for testing, to keep test files out of  ~/.academy
+    # _filepath = tmp_path / 'log.txt'
+    lc = FilePoolLog()
+    lc.init_logging()
+
+    logger = logging.getLogger()
+    logger.info('Test logging')
+
+    path = pathlib.Path.home() / '.academy' / 'logs' / lc._pool_uuid
+
+    files = list(path.iterdir())
+    assert len(files) == 1, (
+        'There should be one log file in the pool directory'
+    )
+
+    # TODO: assert the file exists and the string "Test logging" appears in it.
 
 
 def test_json_handler_emit(tmp_path: pathlib.Path) -> None:

@@ -6,8 +6,10 @@
 
 ### How to enable agent logging in the Manager?
 
+TODO: all wrong now
+
 The [`Manager`][academy.manager.Manager] does not configure logging when an agent starts on a worker within an executor.
-We recommend using the worker initialization features of executors to configure logging, such as by calling [`init_logging()`][academy.logging.init_logging] or [`logging.basicConfig()`][logging.basicConfig].
+We recommend using the worker initialization features of executors to configure logging, such as by calling `init_logging()` or [`logging.basicConfig()`][logging.basicConfig].
 For example, use the `initializer` argument when using a [`ProcessPoolExecutor`][concurrent.futures.ProcessPoolExecutor].
 
 ```python

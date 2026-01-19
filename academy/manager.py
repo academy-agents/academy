@@ -86,6 +86,7 @@ def _run_agent_on_worker(
     academy_debug_mode: bool = False,
     **kwargs: Any,
 ) -> None:
+    print(f'BENC: run agent on worker, with log config: {spec.log_config!r}')
     if spec.log_config:
         spec.log_config.init_logging()
 

@@ -29,6 +29,7 @@ class FileLogging(config.ObservabilityConfig):
 
     def init_logging(self) -> None:
         """Initialize logging to file."""
+        print('BENC: FileLogging initialization start')
         path = pathlib.Path(self.logfile)
         path.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(path)
@@ -42,8 +43,16 @@ class FileLogging(config.ObservabilityConfig):
         root_logger = logging.getLogger()
         root_logger.addHandler(file_handler)
 
+        # if the root logger is not going to log at this level, reconfigure it to do so.
+        # (smaller log levels = more logging)
+        # for example, by default the root logger logs at level 30 WARNING, which
+        # means INFO (20) logs will not be recorded. But implicitly if the user is asking
+        # for INFO logs, we should provide INFO logs.
+        root_logger.level = min(root_logger.level, file_handler.level)
+
         # This needs to be after the configuration of the root logger because
         # warnings get logged to a 'py.warnings' logger.
+        # TODO: unclear about that ordering requirement?
         logging.captureWarnings(True)
 
         logger.info(
@@ -51,4 +60,14 @@ class FileLogging(config.ObservabilityConfig):
             logging.getLevelName(self.level)
             if isinstance(self.level, int)
             else self.level,
+        )
+        file_handler.flush()
+        print(f'BENC: FileLogging initialization end, {self.logfile}')
+        print(
+            f'BENC: FileLogging initialization end2, {self.logfile} root logger level={root_logger.level}',
+        )
+
+    def __repr__(self):
+        return (
+            f'<file config {self.logfile}, {self.level}, extra={self.extra}>'
         )

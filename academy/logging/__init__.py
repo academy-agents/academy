@@ -8,7 +8,6 @@ from typing import Any
 from academy.logging.recommended import init_logging
 from academy.logging.recommended import recommended_dev_log_config
 
-
 logger = logging.getLogger(__name__)
 
 # extra keys with this prefix will be added to human-readable logs
@@ -38,6 +37,12 @@ async def execute_and_log_traceback(
 
 @contextlib.contextmanager
 def log_context(c):
-    print("BENC: entering log_context context manager")
+    logger.info(
+        f'BENC: entering log_context context manager, with log config {c}',
+    )
+    # TODO: one-shot
+    c.init_logging()
+    logger.info('BENC: yielding to inner block')
     yield
-    print("BENC: leaving log_context context manager")
+    # TODO: unconfigure
+    logger.info('BENC: leaving log_context context manager')

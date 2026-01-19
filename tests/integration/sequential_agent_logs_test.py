@@ -25,10 +25,10 @@ from concurrent.futures import ProcessPoolExecutor
 import pytest
 
 from academy.agent import Agent
-from academy.manager import Manager
 from academy.logging import log_context
-from academy.logging.recommended import recommended_logging2
 from academy.logging.configs.file import FileLogging
+from academy.logging.recommended import recommended_logging2
+from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class LogAgent(Agent):
         self._s = s
 
     async def agent_on_startup(self) -> None:
-        logger.info('HELLO FROM BENC')
+        logger.info(f'Log agent proof-of-log token {self._s}')
 
 
 @pytest.mark.asyncio
@@ -73,12 +73,12 @@ async def test_benc(http_exchange_factory, tmp_path):
             logger.info('Inside manager, step 1')
 
             a_filepath = str(tmp_path / f'{uuid.uuid4()!s}.log')
-            b_lc = FileLogging(logfile = a_filepath, level=logging.INFO)
-            agent = LogAgent('A')
+            a_lc = FileLogging(logfile=a_filepath, level=logging.INFO)
+            agent = LogAgent(a_str)
             logger.info('prelaunch A')
             handle = await manager.launch(
                 agent,
-                log_config=b_lc,
+                log_config=a_lc,
             )
             await handle.shutdown()
             logger.info('after A shutdown')
@@ -87,8 +87,8 @@ async def test_benc(http_exchange_factory, tmp_path):
             # removal in future dev) has happened?
 
             b_filepath = str(tmp_path / f'{uuid.uuid4()!s}.log')
-            b_lc = FileLogging(logfile = b_filepath, level=logging.INFO)
-            agent = LogAgent('B')
+            b_lc = FileLogging(logfile=b_filepath, level=logging.INFO)
+            agent = LogAgent(b_str)
             handle = await manager.launch(
                 agent,
                 log_config=b_lc,
@@ -104,12 +104,16 @@ async def test_benc(http_exchange_factory, tmp_path):
             with open(b_filepath) as f:
                 b_contents = f.read()
 
-            assert a_str in a_contents, 'A-log should be in first log file'
+            assert a_str in a_contents, (
+                f'A-log should be in first log file {a_filepath}'
+            )
             assert a_str not in b_contents, (
-                'A-log should not be in second log file'
+                f'A-log should not be in second log file {b_filepath}'
             )
 
             assert b_str not in a_contents, (
-                'B-log should not be in first log file'
+                f'B-log should not be in first log file {a_filepath}'
             )
-            assert b_str in b_contents, 'B-log should be in second log file'
+            assert b_str in b_contents, (
+                f'B-log should be in second log file {b_filepath}'
+            )

@@ -6,7 +6,7 @@ import pathlib
 
 import pytest
 
-from academy.logging import init_logging
+from academy.logging import init_logging, log_context
 from academy.logging.config import ObservabilityConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
@@ -33,10 +33,9 @@ def test_init_logging(logfile) -> None:
 @pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
 def test_console_logging(color: bool, extra: bool) -> None:
     lc = ConsoleLogging(color=color, extra=extra)
-    lc.init_logging()
-
-    logger = logging.getLogger()
-    logger.info('Test logging')
+    with log_context(lc):
+        logger = logging.getLogger()
+        logger.info('Test logging')
 
 
 @pytest.mark.parametrize(
@@ -50,12 +49,11 @@ def test_logging_with_file(
     _filepath = tmp_path / 'log.txt'
     assert isinstance(extra, int)
     lc = FileLogging(logfile=_filepath, extra=extra)
-    lc.init_logging()
+    with log_context(lc):
+        logger = logging.getLogger()
+        logger.info('Test logging')
 
-    logger = logging.getLogger()
-    logger.info('Test logging')
-
-    # TODO: assert the file exists and the string "Test logging" appears in it.
+        # TODO: assert the file exists and the string "Test logging" appears in it.
 
 
 def test_logging_with_filepool() -> None:
@@ -63,19 +61,19 @@ def test_logging_with_filepool() -> None:
     # for testing? for testing, to keep test files out of  ~/.academy
     # _filepath = tmp_path / 'log.txt'
     lc = FilePoolLog()
-    lc.init_logging()
+    with log_context(lc):
 
-    logger = logging.getLogger()
-    logger.info('Test logging')
+        logger = logging.getLogger()
+        logger.info('Test logging')
 
-    path = pathlib.Path.home() / '.academy' / 'logs' / lc._pool_uuid
+        path = pathlib.Path.home() / '.academy' / 'logs' / lc._pool_uuid
 
-    files = list(path.iterdir())
-    assert len(files) == 1, (
-        'There should be one log file in the pool directory'
-    )
+        files = list(path.iterdir())
+        assert len(files) == 1, (
+            'There should be one log file in the pool directory'
+        )
 
-    # TODO: assert the file exists and the string "Test logging" appears in it.
+        # TODO: assert the file exists and the string "Test logging" appears in it.
 
 
 def test_json_handler_emit(tmp_path: pathlib.Path) -> None:

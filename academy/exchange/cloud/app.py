@@ -552,7 +552,9 @@ def _run(
     config: ExchangeServingConfig,
 ) -> None:
     if config.log_config:
-        config.log_config.init_logging()
+        log_uninit = config.log_config.init_logging()
+    else:
+        log_uninit = None
 
     # TODO: in the parsl prototype, I pass in a bunch of context here
     # and I wonder if that's sensible here too? parsl has at least the
@@ -587,6 +589,8 @@ def _run(
         ssl_context=ssl_context,
     )
     logger.info('Exchange closed!')
+    if callable(log_uninit):
+        log_uninit()
 
 
 def _main(argv: Sequence[str] | None = None) -> int:

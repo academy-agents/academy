@@ -42,13 +42,11 @@ def log_context(c):
     )
     # TODO: one-shot
     uninit = c.init_logging()
+    assert callable(uninit), (
+        f'Log config {c} should have returned a callable, not {uninit}'
+    )
     logger.info('BENC: yielding to inner block')
     yield
-    if uninit:
-        logger.info('BENC: uninitializing')
-        uninit()
-    else:
-        logger.warning(
-            'BENC: logger will not be uninitialized as no uninitializer',
-        )
+    logger.info('BENC: uninitializing')
+    uninit()
     logger.info('BENC: leaving log_context context manager')

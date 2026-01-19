@@ -50,3 +50,9 @@ class ConsoleLogging(config.ObservabilityConfig):
             if isinstance(self.level, int)
             else self.level,
         )
+
+        def uninitialize_callback():
+            root_logger.removeHandler(stdout_handler)
+            stdout_handler.close()
+
+        return uninitialize_callback

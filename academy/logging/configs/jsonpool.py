@@ -30,7 +30,7 @@ class FilePoolLog(config.ObservabilityConfig):
     ) -> None:
         self._pool_uuid = str(uuid.uuid4())
 
-    def init_logging(self) -> None:
+    def init_logging(self):
         """Initialize JSON logging into shared pool."""
         # in the parsl prototype, this contains some more context such as
         # a supplied component name. there is also the opportunity for
@@ -56,10 +56,18 @@ class FilePoolLog(config.ObservabilityConfig):
 
         root_logger = logging.getLogger()
         root_logger.addHandler(json_handler)
-        root_logger.setLevel(logging.DEBUG)  # this is global ugh
+        root_logger.setLevel(
+            logging.DEBUG
+        )  # TODO: this is global ugh but see the `min` approach I did in file logger
 
         logger.info(
             'Configured FilePoolLoggger logger (pool uuid=%s, path=%s)',
             self._pool_uuid,
             path,
         )
+
+        def uninitialize_callback():
+            root_logger.removeHandler(json_handler)
+            json_handler.close()
+
+        return uninitialize_callback

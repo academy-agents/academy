@@ -28,7 +28,7 @@ def recommended_dev_log_config() -> config.ObservabilityConfig:
 # with some extras
 
 
-def init_logging(  # noqa: PLR0913
+def recommended_logging2(  # noqa: PLR0913
     level: int | str = logging.INFO,
     *,
     logfile: str | pathlib.Path | None = None,
@@ -64,5 +64,10 @@ def init_logging(  # noqa: PLR0913
 
     lc = configs[0] if len(configs) == 1 else MultiLogConfig(configs)
 
+    return lc
+
+
+def init_logging(*args, **kwargs):
+    lc = recommended_logging2(*args, **kwargs)
     lc.init_logging()
     return lc

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pathlib
+from typing import Any
 
 from academy.logging import config
 from academy.logging.configs.console import ConsoleLogging
@@ -67,7 +68,7 @@ def recommended_logging2(  # noqa: PLR0913
     return lc
 
 
-def init_logging(*args, **kwargs):
+def init_logging(*args: Any, **kwargs: Any) -> config.ObservabilityConfig:
     lc = recommended_logging2(*args, **kwargs)
     lc.init_logging()
     return lc

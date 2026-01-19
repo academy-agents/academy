@@ -6,7 +6,8 @@ import pathlib
 
 import pytest
 
-from academy.logging import init_logging, log_context
+from academy.logging import init_logging
+from academy.logging import log_context
 from academy.logging.config import ObservabilityConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
@@ -62,7 +63,6 @@ def test_logging_with_filepool() -> None:
     # _filepath = tmp_path / 'log.txt'
     lc = FilePoolLog()
     with log_context(lc):
-
         logger = logging.getLogger()
         logger.info('Test logging')
 

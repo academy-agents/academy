@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pathlib
+from collections.abc import Callable
 
 from academy.logging import config
 from academy.logging.helpers import _Formatter
@@ -27,7 +28,7 @@ class FileLogging(config.ObservabilityConfig):
         self.level = level
         self.extra = extra
 
-    def init_logging(self) -> Callable:
+    def init_logging(self) -> Callable[[], None]:
         """Initialize logging to file."""
         print('BENC: FileLogging initialization start')
         path = pathlib.Path(self.logfile)
@@ -72,13 +73,13 @@ class FileLogging(config.ObservabilityConfig):
         # on this configuration object. live state is not part of the cross-process meaning of this
         # configuration.
 
-        def uninitialize_callback():
+        def uninitialize_callback() -> None:
             root_logger.removeHandler(file_handler)
             file_handler.close()
 
         return uninitialize_callback
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f'<file config {self.logfile}, {self.level}, extra={self.extra}>'
         )

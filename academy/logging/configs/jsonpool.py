@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import pathlib
 import uuid
+from collections.abc import Callable
 
 from academy.logging import config
 from academy.logging.helpers import JSONHandler
@@ -30,7 +31,7 @@ class FilePoolLog(config.ObservabilityConfig):
     ) -> None:
         self._pool_uuid = str(uuid.uuid4())
 
-    def init_logging(self):
+    def init_logging(self) -> Callable[[], None]:
         """Initialize JSON logging into shared pool."""
         # in the parsl prototype, this contains some more context such as
         # a supplied component name. there is also the opportunity for
@@ -57,7 +58,7 @@ class FilePoolLog(config.ObservabilityConfig):
         root_logger = logging.getLogger()
         root_logger.addHandler(json_handler)
         root_logger.setLevel(
-            logging.DEBUG
+            logging.DEBUG,
         )  # TODO: this is global ugh but see the `min` approach I did in file logger
 
         logger.info(
@@ -66,7 +67,7 @@ class FilePoolLog(config.ObservabilityConfig):
             path,
         )
 
-        def uninitialize_callback():
+        def uninitialize_callback() -> None:
             root_logger.removeHandler(json_handler)
             json_handler.close()
 

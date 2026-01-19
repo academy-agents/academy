@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Callable
 
 
 class ObservabilityConfig(abc.ABC):
@@ -20,7 +21,7 @@ class ObservabilityConfig(abc.ABC):
     """
 
     @abc.abstractmethod
-    def init_logging(self) -> None:
+    def init_logging(self) -> Callable[[], None]:
         """Initialize logging in current process.
 
         Hosting environments will call this on the object

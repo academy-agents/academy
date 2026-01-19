@@ -3,8 +3,10 @@ from __future__ import annotations
 import contextlib
 import logging
 from asyncio import Future
+from collections.abc import Generator
 from typing import Any
 
+from academy.logging.config import ObservabilityConfig
 from academy.logging.recommended import init_logging
 from academy.logging.recommended import recommended_dev_log_config
 
@@ -36,7 +38,7 @@ async def execute_and_log_traceback(
 
 
 @contextlib.contextmanager
-def log_context(c):
+def log_context(c: ObservabilityConfig) -> Generator[None, None, None]:
     logger.info(
         f'BENC: entering log_context context manager, with log config {c}',
     )

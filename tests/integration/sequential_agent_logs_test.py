@@ -96,7 +96,7 @@ async def test_benc(http_exchange_factory, tmp_path):
             await handle.shutdown()
 
             # there's a race condition here on the log lines appearing
-            # because they aren't (appparently) written synchronously
+            # because they aren't (apparently) written synchronously
             await asyncio.sleep(10)
 
             with open(a_filepath) as f:

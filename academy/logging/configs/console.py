@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable
 
 from academy.logging import config
 from academy.logging.helpers import _Formatter
@@ -27,7 +28,7 @@ class ConsoleLogging(config.ObservabilityConfig):
         self.color = color
         self.extra = extra
 
-    def init_logging(self) -> None:
+    def init_logging(self) -> Callable[[], None]:
         """Initialize logging to console."""
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setFormatter(
@@ -51,7 +52,7 @@ class ConsoleLogging(config.ObservabilityConfig):
             else self.level,
         )
 
-        def uninitialize_callback():
+        def uninitialize_callback() -> None:
             root_logger.removeHandler(stdout_handler)
             stdout_handler.close()
 

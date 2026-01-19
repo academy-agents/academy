@@ -27,7 +27,7 @@ class FileLogging(config.ObservabilityConfig):
         self.level = level
         self.extra = extra
 
-    def init_logging(self) -> None:
+    def init_logging(self) -> Callable:
         """Initialize logging to file."""
         print('BENC: FileLogging initialization start')
         path = pathlib.Path(self.logfile)
@@ -66,6 +66,17 @@ class FileLogging(config.ObservabilityConfig):
         print(
             f'BENC: FileLogging initialization end2, {self.logfile} root logger level={root_logger.level}',
         )
+
+        # TODO: document: any live state (that shouldn't be serialized around to other users) should
+        # be captured in a callable object to return here (e.g. a new object) rather than being stored
+        # on this configuration object. live state is not part of the cross-process meaning of this
+        # configuration.
+
+        def uninitialize_callback():
+            root_logger.removeHandler(file_handler)
+            file_handler.close()
+
+        return uninitialize_callback
 
     def __repr__(self):
         return (

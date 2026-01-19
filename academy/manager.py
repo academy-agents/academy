@@ -87,11 +87,17 @@ def _run_agent_on_worker(
     **kwargs: Any,
 ) -> None:
     print(f'BENC: run agent on worker, with log config: {spec.log_config!r}')
+    # TODO: do alongside-agents also have log configs? (is it part of the enclosing environment (aka event loop) or part of the agent?)
     if spec.log_config:
-        spec.log_config.init_logging()
+        log_uninit = spec.log_config.init_logging()
+    else:
+        log_uninit = None
 
     set_academy_debug(academy_debug_mode)
     asyncio.run(_run_agent_async(spec))
+
+    if log_uninit:
+        log_uninit()
 
 
 @dataclasses.dataclass

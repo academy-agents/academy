@@ -41,8 +41,14 @@ def log_context(c):
         f'BENC: entering log_context context manager, with log config {c}',
     )
     # TODO: one-shot
-    c.init_logging()
+    uninit = c.init_logging()
     logger.info('BENC: yielding to inner block')
     yield
-    # TODO: unconfigure
+    if uninit:
+        logger.info('BENC: uninitializing')
+        uninit()
+    else:
+        logger.warning(
+            'BENC: logger will not be uninitialized as no uninitializer',
+        )
     logger.info('BENC: leaving log_context context manager')

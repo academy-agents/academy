@@ -59,7 +59,8 @@ class FilePoolLog(config.ObservabilityConfig):
         root_logger.addHandler(json_handler)
         root_logger.setLevel(
             logging.DEBUG,
-        )  # TODO: this is global ugh but see the `min` approach I did in file logger
+        )  # TODO: this is global ugh but see the `min`
+        # approach I did in file logger
 
         logger.info(
             'Configured FilePoolLoggger logger (pool uuid=%s, path=%s)',

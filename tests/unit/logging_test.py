@@ -54,7 +54,8 @@ def test_logging_with_file(
         logger = logging.getLogger()
         logger.info('Test logging')
 
-        # TODO: assert the file exists and the string "Test logging" appears in it.
+        # TODO: assert the file exists and the string
+        # "Test logging" appears in it.
 
 
 def test_logging_with_filepool() -> None:
@@ -73,7 +74,8 @@ def test_logging_with_filepool() -> None:
             'There should be one log file in the pool directory'
         )
 
-        # TODO: assert the file exists and the string "Test logging" appears in it.
+        # TODO: assert the file exists and the string
+        # "Test logging" appears in it.
 
 
 def test_json_handler_emit(tmp_path: pathlib.Path) -> None:

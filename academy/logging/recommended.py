@@ -69,6 +69,10 @@ def recommended_logging2(  # noqa: PLR0913
 
 
 def init_logging(*args: Any, **kwargs: Any) -> config.ObservabilityConfig:
+    """Initialize logging locally. TODO: maybe this should be deprecated.
+
+    Instead use log_context and a recommended_* function?
+    """
     lc = recommended_logging2(*args, **kwargs)
     lc.init_logging()
     return lc

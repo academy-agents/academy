@@ -44,11 +44,11 @@ class FileLogging(config.ObservabilityConfig):
         root_logger = logging.getLogger()
         root_logger.addHandler(file_handler)
 
-        # if the root logger is not going to log at this level, reconfigure it to do so.
-        # (smaller log levels = more logging)
-        # for example, by default the root logger logs at level 30 WARNING, which
-        # means INFO (20) logs will not be recorded. But implicitly if the user is asking
-        # for INFO logs, we should provide INFO logs.
+        # if the root logger is not going to log at this level, reconfigure it
+        # to do so. (smaller log levels = more logging)
+        # for example, by default the root logger logs at level 30 WARNING,
+        # which means INFO (20) logs will not be recorded. But implicitly
+        # if the user is asking for INFO logs, we should provide INFO logs.
         root_logger.level = min(root_logger.level, file_handler.level)
 
         # This needs to be after the configuration of the root logger because
@@ -63,15 +63,12 @@ class FileLogging(config.ObservabilityConfig):
             else self.level,
         )
         file_handler.flush()
-        print(f'BENC: FileLogging initialization end, {self.logfile}')
-        print(
-            f'BENC: FileLogging initialization end2, {self.logfile} root logger level={root_logger.level}',
-        )
 
-        # TODO: document: any live state (that shouldn't be serialized around to other users) should
-        # be captured in a callable object to return here (e.g. a new object) rather than being stored
-        # on this configuration object. live state is not part of the cross-process meaning of this
-        # configuration.
+        # TODO: document: any live state (that shouldn't be serialized around
+        # to other users) should be captured in a callable object to return
+        # here (e.g. a new object) rather than being stored on this
+        # configuration object. Live state is not part of the cross-process
+        # meaning of this configuration.
 
         def uninitialize_callback() -> None:
             root_logger.removeHandler(file_handler)

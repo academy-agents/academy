@@ -39,6 +39,7 @@ async def execute_and_log_traceback(
 
 @contextlib.contextmanager
 def log_context(c: ObservabilityConfig) -> Generator[None, None, None]:
+    """Context manager for initializing and uninitializing a log."""
     logger.info(
         f'BENC: entering log_context context manager, with log config {c}',
     )

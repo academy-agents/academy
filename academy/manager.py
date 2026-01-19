@@ -87,11 +87,15 @@ def _run_agent_on_worker(
     **kwargs: Any,
 ) -> None:
     print(f'BENC: run agent on worker, with log config: {spec.log_config!r}')
-    # TODO: do alongside-agents also have log configs? (is it part of the enclosing environment (aka event loop) or part of the agent?)
+    # TODO: do alongside-agents also have log configs?
+    # (is it part of the enclosing environment (aka event loop) or part of
+    # the agent?)
     if spec.log_config:
         log_uninit = spec.log_config.init_logging()
         assert callable(log_uninit), (
-            f'TODO: remove this? this is to help me debug my impl, log config={spec.log_config}, log_uninit={log_uninit}'
+            'TODO: remove this? '
+            'this is to help me debug my impl, '
+            f'log config={spec.log_config}, log_uninit={log_uninit}'
         )
     else:
         log_uninit = None

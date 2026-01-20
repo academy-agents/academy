@@ -24,6 +24,7 @@ class FileLogging(config.ObservabilityConfig):
         level: int | str = logging.INFO,
         extra: int = False,
     ) -> None:
+        super().__init__()
         self.logfile = logfile
         self.level = level
         self.extra = extra

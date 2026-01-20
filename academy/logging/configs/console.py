@@ -24,6 +24,7 @@ class ConsoleLogging(config.ObservabilityConfig):
         color: bool = True,
         extra: int = False,
     ) -> None:
+        super().__init__()
         self.level = level
         self.color = color
         self.extra = extra

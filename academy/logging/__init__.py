@@ -41,7 +41,8 @@ async def execute_and_log_traceback(
 # it is a string, so string comparison rules apply, not
 # uuid comparison rules, and it can be any unique-enough ID,
 # like a message-id format string too.
-initialized_log_contexts: Dict[str, int] = {}
+initialized_log_contexts: dict[str, int] = {}
+
 
 @contextlib.contextmanager
 def log_context(c: ObservabilityConfig) -> Generator[None, None, None]:

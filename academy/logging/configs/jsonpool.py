@@ -29,6 +29,7 @@ class FilePoolLog(config.ObservabilityConfig):
     def __init__(
         self,
     ) -> None:
+        super().__init__()
         self._pool_uuid = str(uuid.uuid4())
 
     def init_logging(self) -> Callable[[], None]:

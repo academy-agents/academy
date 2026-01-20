@@ -29,7 +29,7 @@ class MultiLogConfig(config.ObservabilityConfig):
 
         return uninit_callback
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             '<MultiLogConfig ['
             + ', '.join([repr(r) for r in self._configs])

@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import logging
-import multiprocessing
 import uuid
 
 import pytest
@@ -40,9 +39,8 @@ async def test_nested_log_configs(http_exchange_factory, tmp_path):
     # close final context
     # check log does not appear
 
-    # again with non-nested blocks (start A, start B, end A, end B) with 1-log tests at each stage
-
-    spawn_context = multiprocessing.get_context('spawn')
+    # TODO: again with non-nested blocks (start A, start B, end A, end B)
+    # with 1-log tests at each stage
 
     # arbitrary strings to log that we expect to not otherwise occur
 
@@ -72,14 +70,14 @@ async def test_nested_log_configs(http_exchange_factory, tmp_path):
         logger.info(m3_str)
 
     with open(m_filepath) as f:
-        assert len([l for l in f if m1_str in l]) == 1, (
+        assert len([line for line in f if m1_str in line]) == 1, (
             f'uuid should appear once in logfile {m_filepath}'
         )
     with open(m_filepath) as f:
-        assert len([l for l in f if m3_str in l]) == 1, (
+        assert len([line for line in f if m3_str in line]) == 1, (
             f'uuid should appear once in logfile {m_filepath}'
         )
     with open(m_filepath) as f:
-        assert len([l for l in f if m2_str in l]) == 1, (
+        assert len([line for line in f if m2_str in line]) == 1, (
             f'uuid should appear once in logfile {m_filepath}'
         )

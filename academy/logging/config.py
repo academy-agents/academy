@@ -21,7 +21,7 @@ class ObservabilityConfig(abc.ABC):
     logging.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.uuid = str(uuid.uuid4())
 
     @abc.abstractmethod

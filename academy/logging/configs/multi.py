@@ -19,7 +19,7 @@ class MultiLogConfig(config.ObservabilityConfig):
 
     def init_logging(self) -> Callable[[], None]:
         """Initializes logging for all of the supplied configs."""
-        uninits = [c.init_logging for c in self._configs]
+        uninits = [c.init_logging() for c in self._configs]
 
         def uninit_callback() -> None:
             for uninit in uninits:
@@ -27,3 +27,6 @@ class MultiLogConfig(config.ObservabilityConfig):
                 uninit()
 
         return uninit_callback
+
+    def __repr__(self):
+      return "<MultiLogConfig [" + ", ".join([repr(r) for r in self._configs]) + ">"

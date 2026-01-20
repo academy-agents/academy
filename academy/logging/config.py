@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import uuid
 from collections.abc import Callable
 
 
@@ -19,6 +20,9 @@ class ObservabilityConfig(abc.ABC):
     being careful about what state is stored when initializing
     logging.
     """
+
+    def __init__(self):
+        self.uuid = str(uuid.uuid4())
 
     @abc.abstractmethod
     def init_logging(self) -> Callable[[], None]:

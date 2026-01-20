@@ -16,26 +16,20 @@
 # assert that the log lines went to the right place
 from __future__ import annotations
 
-import asyncio
 import logging
 import multiprocessing
 import uuid
-from concurrent.futures import ProcessPoolExecutor
 
 import pytest
 
-from academy.agent import Agent
 from academy.logging import log_context
-from academy.logging.configs.file import FileLogging
 from academy.logging.recommended import recommended_logging2
-from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.mark.asyncio
 async def test_nested_log_configs(http_exchange_factory, tmp_path):
-
     # to test:
     # start a context with a log config
     # check log appears once
@@ -77,10 +71,15 @@ async def test_nested_log_configs(http_exchange_factory, tmp_path):
         m3_str = str(uuid.uuid4())
         logger.info(m3_str)
 
-
     with open(m_filepath) as f:
-        assert len([l for l in f if m1_str in l]) == 1, f"uuid should appear once in logfile {m_filepath}"
+        assert len([l for l in f if m1_str in l]) == 1, (
+            f'uuid should appear once in logfile {m_filepath}'
+        )
     with open(m_filepath) as f:
-        assert len([l for l in f if m3_str in l]) == 1, f"uuid should appear once in logfile {m_filepath}"
+        assert len([l for l in f if m3_str in l]) == 1, (
+            f'uuid should appear once in logfile {m_filepath}'
+        )
     with open(m_filepath) as f:
-        assert len([l for l in f if m2_str in l]) == 1, f"uuid should appear once in logfile {m_filepath}"
+        assert len([l for l in f if m2_str in l]) == 1, (
+            f'uuid should appear once in logfile {m_filepath}'
+        )

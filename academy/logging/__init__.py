@@ -37,19 +37,45 @@ async def execute_and_log_traceback(
         raise
 
 
+# ID to reference count. ID is e.g. uuid-like as a string
+# it is a string, so string comparison rules apply, not
+# uuid comparison rules, and it can be any unique-enough ID,
+# like a message-id format string too.
+initialized_log_contexts: Dict[str, int] = {}
+
 @contextlib.contextmanager
 def log_context(c: ObservabilityConfig) -> Generator[None, None, None]:
     """Context manager for initializing and uninitializing a log."""
     logger.info(
         f'BENC: entering log_context context manager, with log config {c}',
     )
-    # TODO: one-shot
-    uninit = c.init_logging()
-    assert callable(uninit), (
-        f'Log config {c} should have returned a callable, not {uninit}'
-    )
-    logger.info('BENC: yielding to inner block')
+    if c.uuid not in initialized_log_contexts:
+        initialized_log_contexts[c.uuid] = 0
+
+    assert c.uuid in initialized_log_contexts
+
+    if initialized_log_contexts[c.uuid] > 0:
+        initialized_log_contexts[c.uuid] += 1
+    else:
+        initialized_log_contexts[c.uuid] += 1
+        uninit = c.init_logging()
+        assert callable(uninit), (
+            f'Log config {c} should have returned a callable, not {uninit}'
+        )
+        logger.info('BENC: yielding to inner block')
+
     yield
+
     logger.info('BENC: uninitializing')
-    uninit()
-    logger.info('BENC: leaving log_context context manager')
+
+    # buggy use of reference counting might have removed this from the
+    # structure, if unpaired references have been dropped.
+    assert c.uuid in initialized_log_contexts
+
+    if initialized_log_contexts[c.uuid] > 1:
+        initialized_log_contexts[c.uuid] -= 1
+    else:
+        initialized_log_contexts[c.uuid] -= 1
+        uninit()
+        logger.info('BENC: leaving log_context context manager')
+        del initialized_log_contexts[c.uuid]

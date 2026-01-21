@@ -104,7 +104,7 @@ For the complete code of LangChain interacting with Academy agents, please look 
 
 ## Multi-agent Discussion with LLMs
 
-Multi-agent discussion are a popular technique to elicit higher level planning and reasoning from language models through collaboration. In the [parallel agents example](hpc.md), we use LangGraph to coordinate a multi-turn interaction with an LLM, however Academy can be used to coordinate this interaction. This allows (1) increased autonomy as agents can act independently and in parallel with other agents in the discussion, and (2) visibility through the exchange so a user or another agent can monitror the discussion.  In the following code (taken from this example in the repository [example](https://github.com/academy-agents/academy/tree/main/examples/08-discussion)), we demonstrate setting up and monitoring a multi-agent chat:
+Multi-agent discussion are a popular technique to elicit higher level planning and reasoning from language models through collaboration. In the [parallel agents example](hpc.md), we use LangGraph to coordinate a multi-turn interaction with an LLM, however Academy can be used to coordinate this interaction. This allows (1) increased autonomy as agents can act independently and in parallel with other agents in the discussion, and (2) visibility through the exchange so a user or another agent can monitor the discussion.  In the following code (taken from this example in the repository [example](https://github.com/academy-agents/academy/tree/main/examples/08-discussion)), we demonstrate setting up and monitoring a multi-agent chat:
 
 ```python
 class GroupChatAgent(Agent):

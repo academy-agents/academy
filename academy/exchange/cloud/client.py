@@ -377,7 +377,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
     """Http exchange client factory.
 
     Args:
-        url: Address of HTTP exchange
+        url: Address of HTTP exchange. Defaults to the Academy-hosted exchange
         auth_method: Method to get authorization headers
         additional_headers: Any other information necessary to communicate
             with the exchange. Used for passing the Globus bearer token
@@ -388,7 +388,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
 
     def __init__(
         self,
-        url: str,
+        url: str = 'https://exchange.academy-agents.org',
         auth_method: Literal['globus'] | None = None,
         additional_headers: dict[str, str] | None = None,
         request_timeout_s: float = 60,

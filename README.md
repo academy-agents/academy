@@ -108,13 +108,13 @@ Here's what makes Academy valuable:
 The Academy preprint is available on [arXiv](https://arxiv.org/abs/2505.05428).
 
 ```bibtex
-@misc{pauloski2025academy,
-    title = {{E}mpowering {S}cientific {W}orkflows with {F}ederated {A}gents},
-    author = {J. Gregory Pauloski and Yadu Babuji and Ryan Chard and Mansi Sakarvadia and Kyle Chard and Ian Foster},
-    archivePrefix = {arXiv},
+@misc{pauloski2026academy,
+    title={Empowering Scientific Workflows with Federated Agents},
+    author={Alok Kamatar and J. Gregory Pauloski and Yadu Babuji and Ryan Chard and Mansi Sakarvadia and Daniel Babnigg and Kyle Chard and Ian Foster},
+    archiveprefix = {arXiv},
     eprint = {2505.05428},
-    primaryClass = {cs.MA},
+    primaryclass = {cs.MA},
     url = {https://arxiv.org/abs/2505.05428},
-    year = {2025},
+    year = {2026}
 }
 ```

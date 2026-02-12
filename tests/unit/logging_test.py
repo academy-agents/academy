@@ -44,7 +44,7 @@ def test_console_logging(color: bool, extra: bool) -> None:
 
 
 def test_nested_context() -> None:
-    """This nests that nesting/reference counting happens based on string ID.
+    """This tests that nesting/reference counting happens based on string ID.
 
     The behaviour under test is that a configuration may be defined in one
     process (e.g. workflow submit process) and then be conveyed using pickle
@@ -76,7 +76,7 @@ def test_nested_context() -> None:
 
 
 def test_nested_context_same_uuid_different_object() -> None:
-    """This nests that nesting/reference counting happens based on uuid.
+    """This tests that nesting/reference counting happens based on uuid.
 
     The behaviour under test is that a configuration may be defined in one
     process (e.g. workflow submit process) and then be conveyed using pickle

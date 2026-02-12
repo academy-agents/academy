@@ -14,7 +14,7 @@ from academy.logging import log_context
 from academy.logging.config import LogConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
-from academy.logging.configs.jsonpool import FilePoolLog
+from academy.logging.configs.jsonpool import JSONPoolLogging
 from academy.logging.configs.multi import MultiLogConfig
 from academy.logging.helpers import JSONHandler
 
@@ -163,7 +163,7 @@ def test_logging_with_filepool() -> None:
     # TODO: what sort of path override makes sense here? for users and
     # for testing? for testing, to keep test files out of  ~/.academy
     # _filepath = tmp_path / 'log.txt'
-    lc = FilePoolLog()
+    lc = JSONPoolLogging()
     with log_context(lc):
         logger = logging.getLogger()
         logger.info('Test logging')
@@ -180,7 +180,7 @@ def test_logging_with_filepool() -> None:
 
 
 def test_multi_config_repr() -> None:
-    a = FilePoolLog()
+    a = JSONPoolLogging()
     b = ConsoleLogging()
 
     lc = MultiLogConfig([a, b])

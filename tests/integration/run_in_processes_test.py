@@ -9,7 +9,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
-from academy.logging.configs.jsonpool import FilePoolLog
+from academy.logging.configs.jsonpool import JSONPoolLogging
 from academy.manager import Manager
 from academy.socket import open_port
 
@@ -45,7 +45,7 @@ class Reverser(Agent):
 
 @pytest.mark.asyncio
 async def test_run_in_processes() -> None:
-    lc = FilePoolLog()
+    lc = JSONPoolLogging()
     lc.init_logging()  # initialize for the workflow side
 
     with spawn_http_exchange(

@@ -11,7 +11,7 @@ from academy.logging.helpers import JSONHandler
 logger = logging.getLogger(__name__)
 
 
-class FilePoolLog(config.LogConfig):
+class JSONPoolLogging(config.LogConfig):
     """Configures logging to files in home directory log pool.
 
     This is intended to make it so json logs go into a uniquely identified
@@ -64,7 +64,7 @@ class FilePoolLog(config.LogConfig):
         # approach I did in file logger
 
         logger.info(
-            'Configured FilePoolLoggger logger (pool uuid=%s, path=%s)',
+            'Configured JSONPoolLogging (pool uuid=%s, path=%s)',
             self._pool_uuid,
             path,
         )

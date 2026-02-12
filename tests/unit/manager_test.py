@@ -23,7 +23,7 @@ from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.logging.configs.console import ConsoleLogging
-from academy.logging.configs.jsonpool import FilePoolLog
+from academy.logging.configs.jsonpool import JSONPoolLogging
 from academy.manager import Manager
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
@@ -374,7 +374,7 @@ async def test_worker_init_logging_logfile(
     http_exchange_factory: HttpExchangeFactory,
     tmp_path: pathlib.Path,
 ) -> None:
-    lc = FilePoolLog()
+    lc = JSONPoolLogging()
     spawn_context = multiprocessing.get_context('spawn')
     async with await Manager.from_exchange_factory(
         http_exchange_factory,

@@ -12,6 +12,7 @@ from academy.logging.config import ObservabilityConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import FilePoolLog
+from academy.logging.configs.multi import MultiLogConfig
 from academy.logging.helpers import JSONHandler
 
 # TODO: reexamine this commentary in the context of new logging
@@ -76,6 +77,20 @@ def test_logging_with_filepool() -> None:
 
         # TODO: assert the file exists and the string
         # "Test logging" appears in it.
+
+
+def test_multi_config_repr() -> None:
+    a = FilePoolLog()
+    b = ConsoleLogging()
+
+    lc = MultiLogConfig([a, b])
+
+    assert repr(a) in repr(lc), (
+        'MultiLogConfig repr should include subconfig repr'
+    )
+    assert repr(b) in repr(lc), (
+        'MultiLogConfig repr should include subconfig repr'
+    )
 
 
 def test_json_handler_emit(tmp_path: pathlib.Path) -> None:

@@ -29,6 +29,9 @@ from collections.abc import Callable
 from collections.abc import Sequence
 from typing import Any
 
+from academy.logging import log_context
+from academy.logging.recommended import recommended_logging2
+
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
 
@@ -551,46 +554,42 @@ def create_app(
 def _run(
     config: ExchangeServingConfig,
 ) -> None:
-    if config.log_config:
-        log_uninit = config.log_config.init_logging()
-    else:
-        log_uninit = None
 
-    # TODO: in the parsl prototype, I pass in a bunch of context here
-    # and I wonder if that's sensible here too? parsl has at least the
-    # notion of a rundir, which academy does not, and also has named
-    # components used for naming logfiles, but that is slightly a
-    # feature inherited from before this work. Both of those might
-    # be good for usability for users poking at files on disk? Or
-    # something similar?
-
-    app = create_app(config.backend, config.auth)
-
-    logger.info(
-        'Exchange listening on %s:%s (ctrl-C to exit)',
-        config.host,
-        config.port,
-        extra={
-            'academy.host': config.host,
-            'academy.port': config.port,
-        },
+    log_config = (
+        config.log_config
+        if config.log_config is not None
+        else recommended_logging2()
     )
 
-    ssl_context: ssl.SSLContext | None = None
-    if config.certfile is not None:  # pragma: no cover
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.load_cert_chain(config.certfile, keyfile=config.keyfile)
+    with log_context(log_config):
+        app = create_app(config.backend, config.auth)
 
-    run_app(
-        app,
-        host=config.host,
-        port=config.port,
-        print=None,
-        ssl_context=ssl_context,
-    )
-    logger.info('Exchange closed!')
-    if callable(log_uninit):
-        log_uninit()
+        logger.info(
+            'Exchange listening on %s:%s (ctrl-C to exit)',
+            config.host,
+            config.port,
+            extra={
+                'academy.host': config.host,
+                'academy.port': config.port,
+            },
+        )
+
+        ssl_context: ssl.SSLContext | None = None
+        if config.certfile is not None:  # pragma: no cover
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(
+                config.certfile,
+                keyfile=config.keyfile,
+            )
+
+        run_app(
+            app,
+            host=config.host,
+            port=config.port,
+            print=None,
+            ssl_context=ssl_context,
+        )
+        logger.info('Exchange closed!')
 
 
 def _main(argv: Sequence[str] | None = None) -> int:

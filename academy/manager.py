@@ -514,9 +514,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             agent_kwargs={} if kwargs is None else kwargs,
             submit_kwargs={} if submit_kwargs is None else submit_kwargs,
             log_config=log_config,
-            # init_logging=init_logging,
-            # loglevel=loglevel,
-            # logfile=logfile,
         )
 
         task = asyncio.create_task(

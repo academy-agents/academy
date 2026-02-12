@@ -118,6 +118,28 @@ def test_nested_context_same_uuid_different_object() -> None:
     lc2.init_logging.assert_not_called()
 
 
+def test_nested_context_different_uuid() -> None:
+    """This tests that two different configs are both initialized.
+
+    The behaviour under test is that multiple configurations may
+    "visit" a Python process and both be initialised, rather than
+    one configuration being favoured.
+    """
+    lc1 = mock.Mock(ObservabilityConfig)
+    lc1.uuid = str(uuid.uuid4())
+    lc2 = mock.Mock(ObservabilityConfig)
+    lc2.uuid = str(uuid.uuid4())
+
+    lc1.init_logging.assert_not_called()
+    lc2.init_logging.assert_not_called()
+    with log_context(lc1):
+        lc1.init_logging.assert_called_once()
+        with log_context(lc2):
+            lc2.init_logging.assert_called_once()
+    lc1.init_logging.assert_called_once()
+    lc2.init_logging.assert_called_once()
+
+
 @pytest.mark.parametrize(
     'extra',
     (False, True, 2),

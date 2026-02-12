@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import logging
 import pathlib
+import uuid
+from unittest import mock
 
 import pytest
 
@@ -42,7 +44,15 @@ def test_console_logging(color: bool, extra: bool) -> None:
 
 
 def test_nested_context() -> None:
-    lc = ConsoleLogging()  # TODO: mock
+    """This nests that nesting/reference counting happens based on string ID.
+
+    The behaviour under test is that a configuration may be defined in one
+    process (e.g. workflow submit process) and then be conveyed using pickle
+    multiple times to a destination process, such as a Parsl worker process,
+    resulting in two distinct objects for the same configuration, and that
+    configuration should be initialized only once.
+    """
+    lc = mock.Mock()
     assert lc.uuid not in initialized_log_contexts, (
         'lc should not be in a context yet'
     )
@@ -63,6 +73,49 @@ def test_nested_context() -> None:
     assert lc.uuid not in initialized_log_contexts, (
         'lc should not be in a context after all with blocks exited'
     )
+
+
+def test_nested_context_same_uuid_different_object() -> None:
+    """This nests that nesting/reference counting happens based on uuid.
+
+    The behaviour under test is that a configuration may be defined in one
+    process (e.g. workflow submit process) and then be conveyed using pickle
+    multiple times to a destination process, such as a Parsl worker process,
+    resulting in two distinct objects for the same configuration, and that
+    configuration should be initialized only once.
+    """
+    u = str(uuid.uuid4())
+    lc1 = mock.Mock(ObservabilityConfig)
+    lc1.uuid = u
+    lc2 = mock.Mock(ObservabilityConfig)
+    lc2.uuid = u
+
+    assert u not in initialized_log_contexts, (
+        'config should not be in a context yet'
+    )
+
+    lc1.init_logging.assert_not_called()
+    with log_context(lc1):
+        lc1.init_logging.assert_called_once()
+        assert initialized_log_contexts[u] == 1, (
+            'config should have one reference'
+        )
+        with log_context(lc2):
+            # PLR2004 Magic value used in comparison
+            # This is a lexical property of the surrounding code, the nesting
+            # depth.
+            assert initialized_log_contexts[u] == 2, (  # noqa: PLR2004
+                'config should have two references'
+            )
+        assert initialized_log_contexts[u] == 1, (
+            'config should have one reference after end of one with block'
+        )
+    assert u not in initialized_log_contexts, (
+        'config should not be in a context after all with blocks exited'
+    )
+
+    lc1.init_logging.assert_called_once()
+    lc2.init_logging.assert_not_called()
 
 
 @pytest.mark.parametrize(

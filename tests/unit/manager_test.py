@@ -373,20 +373,23 @@ async def test_worker_init_logging_logfile(
     tmp_path: pathlib.Path,
 ) -> None:
     spawn_context = multiprocessing.get_context('spawn')
+    filepath = tmp_path / 'test-worker-init-logging.log'
+
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
         executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
     ) as manager:
-        filepath = str(tmp_path / 'test-worker-init-logging.log')
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
             init_logging=True,
             loglevel='WARNING',
-            logfile=filepath,
+            logfile=str(filepath),
         )
         await handle.shutdown()
         await manager.wait({handle})
+
+    assert filepath.exists(), 'log file from manager should exist'
 
 
 @pytest.mark.asyncio

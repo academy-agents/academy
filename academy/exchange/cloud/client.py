@@ -468,7 +468,6 @@ def spawn_http_exchange(
     host: str = '0.0.0.0',
     port: int = 5463,
     *,
-    # level: int | str = logging.WARNING,
     log_config: ObservabilityConfig | None = None,
     timeout: float | None = None,
 ) -> Generator[HttpExchangeFactory]:

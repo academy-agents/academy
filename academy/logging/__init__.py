@@ -46,7 +46,7 @@ initialized_log_contexts: dict[str, int] = {}
 
 @contextlib.contextmanager
 def log_context(c: ObservabilityConfig) -> Generator[None, None, None]:
-    """Context manager for initializing and uninitializing a log."""
+    """Context manager for using an ObservabilityConfig."""
     logger.info(
         f'BENC: entering log_context context manager, with log config {c}',
     )

@@ -6,7 +6,7 @@ from asyncio import Future
 from collections.abc import Generator
 from typing import Any
 
-from academy.logging.config import ObservabilityConfig
+from academy.logging.config import LogConfig
 from academy.logging.recommended import init_logging
 from academy.logging.recommended import recommended_dev_log_config
 
@@ -45,8 +45,8 @@ initialized_log_contexts: dict[str, int] = {}
 
 
 @contextlib.contextmanager
-def log_context(c: ObservabilityConfig) -> Generator[None, None, None]:
-    """Context manager for using an ObservabilityConfig."""
+def log_context(c: LogConfig) -> Generator[None, None, None]:
+    """Context manager for using an LogConfig."""
     logger.info(
         f'BENC: entering log_context context manager, with log config {c}',
     )

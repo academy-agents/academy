@@ -39,7 +39,7 @@ from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
-from academy.logging.config import ObservabilityConfig
+from academy.logging.config import LogConfig
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 from academy.socket import wait_connection
@@ -468,7 +468,7 @@ def spawn_http_exchange(
     host: str = '0.0.0.0',
     port: int = 5463,
     *,
-    log_config: ObservabilityConfig | None = None,
+    log_config: LogConfig | None = None,
     timeout: float | None = None,
 ) -> Generator[HttpExchangeFactory]:
     """Context manager that spawns an HTTP exchange in a subprocess.

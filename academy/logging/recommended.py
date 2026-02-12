@@ -13,7 +13,7 @@ from academy.logging.configs.multi import MultiLogConfig
 # TODO: here's an example new configuration...
 
 
-def recommended_dev_log_config() -> config.ObservabilityConfig:
+def recommended_dev_log_config() -> config.LogConfig:
     """Returns a log configuration recommended for development use.
 
     This will configure console logging for academy WARNINGs and worse,
@@ -39,13 +39,13 @@ def recommended_logging2(  # noqa: PLR0913
     force: bool = False,
     # TODO: what to do about force? its horrible and it broke
     # something before in tests...
-) -> config.ObservabilityConfig:
+) -> config.LogConfig:
     """Initialize process global logger and return config for further use.
 
     The config object can be passed to other environments to get the same
     log configuration in those other environments.
     """
-    configs: list[config.ObservabilityConfig] = []
+    configs: list[config.LogConfig] = []
 
     # Always makes a console logger.
     configs.append(ConsoleLogging(level=level, color=color, extra=extra))
@@ -68,7 +68,7 @@ def recommended_logging2(  # noqa: PLR0913
     return lc
 
 
-def init_logging(*args: Any, **kwargs: Any) -> config.ObservabilityConfig:
+def init_logging(*args: Any, **kwargs: Any) -> config.LogConfig:
     """Initialize logging locally. TODO: maybe this should be deprecated.
 
     Instead use log_context and a recommended_* function?

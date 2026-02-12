@@ -8,12 +8,12 @@ from academy.logging import config
 logger = logging.getLogger(__name__)
 
 
-class MultiLogConfig(config.ObservabilityConfig):
+class MultiLogConfig(config.LogConfig):
     """This captures a collection of other observability configs."""
 
     def __init__(
         self,
-        configs: list[config.ObservabilityConfig],
+        configs: list[config.LogConfig],
     ) -> None:
         super().__init__()
         self._configs = configs

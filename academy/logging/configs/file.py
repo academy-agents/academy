@@ -11,7 +11,7 @@ from academy.logging.helpers import _os_thread_filter
 logger = logging.getLogger(__name__)
 
 
-class FileLogging(config.ObservabilityConfig):
+class FileLogging(config.LogConfig):
     """Configures logging to a file.
 
     This is the console part of academy.logging.init_logging.

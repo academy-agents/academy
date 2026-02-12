@@ -23,7 +23,7 @@ from pydantic import Field
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
-from academy.logging.config import ObservabilityConfig
+from academy.logging.config import LogConfig
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     import tomllib
@@ -131,7 +131,7 @@ class ExchangeServingConfig(BaseModel):
     keyfile: str | None = None
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
-    log_config: ObservabilityConfig | None = None
+    log_config: LogConfig | None = None
 
     @classmethod
     def from_toml(cls, filepath: str | pathlib.Path) -> Self:

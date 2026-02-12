@@ -31,7 +31,7 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.logging.config import ObservabilityConfig
+from academy.logging.config import LogConfig
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
@@ -53,7 +53,7 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
     submit_kwargs: dict[str, Any]
-    log_config: ObservabilityConfig | None = None
+    log_config: LogConfig | None = None
 
 
 async def _run_agent_async(
@@ -442,7 +442,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         submit_kwargs: dict[str, Any] | None = None,
         name: str | None = None,
         registration: AgentRegistration[AgentT] | None = None,
-        log_config: ObservabilityConfig | None = None,
+        log_config: LogConfig | None = None,
     ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 

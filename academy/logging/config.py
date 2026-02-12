@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Callable
 
 
-class ObservabilityConfig(abc.ABC):
+class LogConfig(abc.ABC):
     """Implementations of this class can initialize observability.
 
     That means they know how to initialize and de-initialize

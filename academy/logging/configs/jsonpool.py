@@ -11,7 +11,7 @@ from academy.logging.helpers import JSONHandler
 logger = logging.getLogger(__name__)
 
 
-class FilePoolLog(config.ObservabilityConfig):
+class FilePoolLog(config.LogConfig):
     """Configures logging to files in home directory log pool.
 
     This is intended to make it so json logs go into a uniquely identified

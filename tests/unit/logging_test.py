@@ -11,7 +11,7 @@ import pytest
 from academy.logging import init_logging
 from academy.logging import initialized_log_contexts
 from academy.logging import log_context
-from academy.logging.config import ObservabilityConfig
+from academy.logging.config import LogConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import FilePoolLog
@@ -27,7 +27,7 @@ from academy.logging.helpers import JSONHandler
 @pytest.mark.parametrize('logfile', (None, 'test.txt'))
 def test_init_logging(logfile) -> None:
     lc = init_logging(logfile=logfile)
-    assert isinstance(lc, ObservabilityConfig)
+    assert isinstance(lc, LogConfig)
 
     logger = logging.getLogger()
     logger.info('Test logging')
@@ -85,9 +85,9 @@ def test_nested_context_same_uuid_different_object() -> None:
     configuration should be initialized only once.
     """
     u = str(uuid.uuid4())
-    lc1 = mock.Mock(ObservabilityConfig)
+    lc1 = mock.Mock(LogConfig)
     lc1.uuid = u
-    lc2 = mock.Mock(ObservabilityConfig)
+    lc2 = mock.Mock(LogConfig)
     lc2.uuid = u
 
     assert u not in initialized_log_contexts, (
@@ -125,9 +125,9 @@ def test_nested_context_different_uuid() -> None:
     "visit" a Python process and both be initialised, rather than
     one configuration being favoured.
     """
-    lc1 = mock.Mock(ObservabilityConfig)
+    lc1 = mock.Mock(LogConfig)
     lc1.uuid = str(uuid.uuid4())
-    lc2 = mock.Mock(ObservabilityConfig)
+    lc2 = mock.Mock(LogConfig)
     lc2.uuid = str(uuid.uuid4())
 
     lc1.init_logging.assert_not_called()

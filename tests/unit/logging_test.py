@@ -7,6 +7,7 @@ import pathlib
 import pytest
 
 from academy.logging import init_logging
+from academy.logging import initialized_log_contexts
 from academy.logging import log_context
 from academy.logging.config import ObservabilityConfig
 from academy.logging.configs.console import ConsoleLogging
@@ -38,6 +39,30 @@ def test_console_logging(color: bool, extra: bool) -> None:
     with log_context(lc):
         logger = logging.getLogger()
         logger.info('Test logging')
+
+
+def test_nested_context() -> None:
+    lc = ConsoleLogging()  # TODO: mock
+    assert lc.uuid not in initialized_log_contexts, (
+        'lc should not be in a context yet'
+    )
+    with log_context(lc):
+        assert initialized_log_contexts[lc.uuid] == 1, (
+            'lc should have one reference'
+        )
+        with log_context(lc):
+            # PLR2004 Magic value used in comparison
+            # This is a lexical property of the surrounding code, the nesting
+            # depth.
+            assert initialized_log_contexts[lc.uuid] == 2, (  # noqa: PLR2004
+                'lc should have two references'
+            )
+        assert initialized_log_contexts[lc.uuid] == 1, (
+            'lc should have one reference after end of one with block'
+        )
+    assert lc.uuid not in initialized_log_contexts, (
+        'lc should not be in a context after all with blocks exited'
+    )
 
 
 @pytest.mark.parametrize(

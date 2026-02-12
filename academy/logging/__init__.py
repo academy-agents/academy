@@ -51,7 +51,13 @@ def log_context(c: ObservabilityConfig) -> Generator[None, None, None]:
         f'BENC: entering log_context context manager, with log config {c}',
     )
     if c.uuid not in initialized_log_contexts:
+        logger.debug(f'BENC: first entry to log config {c} (in this process)')
         initialized_log_contexts[c.uuid] = 0
+    else:
+        logger.debug(
+            f'BENC: subsequent entry to log config {c} (in this process), '
+            f'prior count is {initialized_log_contexts[c.uuid]}',
+        )
 
     assert c.uuid in initialized_log_contexts
 

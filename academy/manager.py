@@ -443,9 +443,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         name: str | None = None,
         registration: AgentRegistration[AgentT] | None = None,
         log_config: ObservabilityConfig | None = None,
-        # init_logging: bool = False,
-        # loglevel: int | str = logging.INFO,
-        # logfile: str | None = None,
     ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 

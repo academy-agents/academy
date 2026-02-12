@@ -159,7 +159,7 @@ def test_logging_with_file(
         # "Test logging" appears in it.
 
 
-def test_logging_with_filepool() -> None:
+def test_logging_with_jsonpool() -> None:
     # TODO: what sort of path override makes sense here? for users and
     # for testing? for testing, to keep test files out of  ~/.academy
     # _filepath = tmp_path / 'log.txt'

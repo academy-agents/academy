@@ -8,7 +8,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange import LocalExchangeFactory
 from academy.handle import Handle
-from academy.logging import init_logging
+from academy.logging import recommended_dev_log_config
 from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
@@ -44,17 +44,19 @@ class Reverser(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
+    lc = recommended_dev_log_config()
+    lc.init_logging()
 
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
     ) as manager:
-        lowerer = await manager.launch(Lowerer)
-        reverser = await manager.launch(Reverser)
+        lowerer = await manager.launch(Lowerer, log_config=lc)
+        reverser = await manager.launch(Reverser, log_config=lc)
         coordinator = await manager.launch(
             Coordinator,
             args=(lowerer, reverser),
+            log_config=lc,
         )
 
         text = 'DEADBEEF'

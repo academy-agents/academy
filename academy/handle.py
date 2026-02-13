@@ -232,6 +232,18 @@ class Handle(Generic[AgentT]):
                 (it self terminated or via another handle).
             Exception: Any exception raised by the action.
         """
+        action_invocation_id = uuid.uuid4()
+        logger.debug(
+            'Invoking action %s with id %s',
+            action,
+            action_invocation_id,
+            extra={
+                'academy.action': action,
+                'academy.action_invocation': action_invocation_id,
+                'academy.action_state': 'start',
+            },
+        )
+
         exchange = self.exchange
         self._register_with_exchange(exchange)
 
@@ -248,13 +260,15 @@ class Handle(Generic[AgentT]):
         try:
             await self.exchange.send(request)
             logger.debug(
-                'Sent action request from %s to %s (action=%r)',
+                'Sent action request from %s to %s (action=%r, invocation=%s)',
                 exchange.client_id,
                 self.agent_id,
                 action,
+                action_invocation_id,
                 extra=request.log_extra()
                 | {
                     'academy.action': action,
+                    'academy.action_invocation': action_invocation_id,
                 },
             )
             await future
@@ -270,7 +284,18 @@ class Handle(Generic[AgentT]):
             await self.exchange.send(cancel_request)
             raise
 
-        return future.result()
+        # TODO: what happens log-wise when this raises rather than returns?
+
+        r = future.result()
+        logger.debug(
+            'Action id %s completed',
+            action_invocation_id,
+            extra={
+                'academy.action_invocation': action_invocation_id,
+                'academy.action_state': 'completed',
+            },
+        )
+        return r
 
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.

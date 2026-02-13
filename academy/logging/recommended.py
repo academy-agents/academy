@@ -10,8 +10,6 @@ from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import JSONPoolLogging
 from academy.logging.configs.multi import MultiLogConfig
 
-# TODO: here's an example new configuration...
-
 
 def recommended_dev_log_config() -> config.LogConfig:
     """Returns a log configuration recommended for development use.

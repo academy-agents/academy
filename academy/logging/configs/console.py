@@ -12,10 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConsoleLogging(config.LogConfig):
-    """Configures logging to the console.
-
-    TODO: This is the console part of academy.logging.init_logging.
-    """
+    """Configures logging to the console."""
 
     def __init__(
         self,

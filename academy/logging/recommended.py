@@ -23,11 +23,7 @@ def recommended_dev_log_config() -> config.LogConfig:
     )
 
 
-# TODO: ... and here's my attempt to replicate the old configuration,
-# with some extras
-
-
-def recommended_logging2(  # noqa: PLR0913
+def recommended_logging(  # noqa: PLR0913
     level: int | str = logging.INFO,
     *,
     logfile: str | pathlib.Path | None = None,
@@ -71,6 +67,6 @@ def init_logging(*args: Any, **kwargs: Any) -> config.LogConfig:
 
     Instead use log_context and a recommended_* function?
     """
-    lc = recommended_logging2(*args, **kwargs)
+    lc = recommended_logging(*args, **kwargs)
     lc.init_logging()
     return lc

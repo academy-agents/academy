@@ -30,7 +30,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from academy.logging import log_context
-from academy.logging.recommended import recommended_logging2
+from academy.logging.recommended import recommended_logging
 
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
@@ -558,7 +558,7 @@ def _run(
     log_config = (
         config.log_config
         if config.log_config is not None
-        else recommended_logging2()
+        else recommended_logging()
     )
 
     with log_context(log_config):

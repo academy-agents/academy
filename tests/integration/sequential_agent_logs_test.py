@@ -27,7 +27,7 @@ import pytest
 from academy.agent import Agent
 from academy.logging import log_context
 from academy.logging.configs.file import FileLogging
-from academy.logging.recommended import recommended_logging2
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ async def test_benc(http_exchange_factory, tmp_path):
     # thing to do. In which case, a log manager wrapper?
 
     with log_context(
-        recommended_logging2(logfile=m_filepath, extra=2, level=logging.INFO),
+        recommended_logging(logfile=m_filepath, extra=2, level=logging.INFO),
     ):
         async with await Manager.from_exchange_factory(
             http_exchange_factory,

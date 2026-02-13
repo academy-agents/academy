@@ -22,7 +22,7 @@ import uuid
 import pytest
 
 from academy.logging import log_context
-from academy.logging.recommended import recommended_logging2
+from academy.logging.recommended import recommended_logging
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ async def test_nested_log_configs(http_exchange_factory, tmp_path):
     # configs should be serializable, so keeping them simple is a good
     # thing to do. In which case, a log manager wrapper?
 
-    lc = recommended_logging2(logfile=m_filepath, extra=2, level=logging.INFO)
+    lc = recommended_logging(logfile=m_filepath, extra=2, level=logging.INFO)
 
     with log_context(lc):
         logger.info('inside outer log context')

@@ -555,10 +555,9 @@ def _run(
     config: ExchangeServingConfig,
 ) -> None:
 
-    log_config = (
-        config.log_config
-        if config.log_config is not None
-        else recommended_logging()
+    log_config = recommended_logging(
+        logfile=config.log_file,
+        level=config.log_level,
     )
 
     with log_context(log_config):

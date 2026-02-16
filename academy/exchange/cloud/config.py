@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+import logging
 import pathlib
 import sys
 from typing import Any
@@ -23,7 +24,6 @@ from pydantic import Field
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
-from academy.logging.config import LogConfig
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     import tomllib
@@ -118,12 +118,9 @@ class ExchangeServingConfig(BaseModel):
         keyfile: Private key file. If not specified, the key will be
             taken from the certfile.
         auth: Authentication configuration.
-        log_config: The configuration for observability.
+        log_file: Location to write logs.
+        log_level: Verbosity of logs.
     """
-
-    # TODO: this is to allow log_config here. but probably this isn't
-    # the right way to do it - what *should* log config look like?
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     host: str = 'localhost'
     port: int = 8700
@@ -131,7 +128,8 @@ class ExchangeServingConfig(BaseModel):
     keyfile: str | None = None
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
-    log_config: LogConfig | None = None
+    log_file: str | None = None
+    log_level: int | str = logging.INFO
 
     @classmethod
     def from_toml(cls, filepath: str | pathlib.Path) -> Self:

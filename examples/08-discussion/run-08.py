@@ -9,14 +9,12 @@ from langchain_openai import ChatOpenAI
 
 from academy.exchange import LocalExchangeFactory
 from academy.handle import Handle
-from academy.logging import init_logging
 from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
     llm = ChatOpenAI(model='meta-llama/Llama-4-Scout-17B-16E-Instruct')
     agents = [
         GroupChatAgent(

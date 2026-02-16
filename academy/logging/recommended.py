@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import pathlib
-from typing import Any
 
 from academy.logging import config
 from academy.logging.configs.console import ConsoleLogging
@@ -59,14 +58,4 @@ def recommended_logging(  # noqa: PLR0913
 
     lc = configs[0] if len(configs) == 1 else MultiLogConfig(configs)
 
-    return lc
-
-
-def init_logging(*args: Any, **kwargs: Any) -> config.LogConfig:
-    """Initialize logging locally. TODO: maybe this should be deprecated.
-
-    Instead use log_context and a recommended_* function?
-    """
-    lc = recommended_logging(*args, **kwargs)
-    lc.init_logging()
     return lc

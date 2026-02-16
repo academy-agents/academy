@@ -8,7 +8,6 @@ from unittest import mock
 
 import pytest
 
-from academy.logging import init_logging
 from academy.logging import initialized_log_contexts
 from academy.logging import log_context
 from academy.logging.config import LogConfig
@@ -17,30 +16,26 @@ from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import JSONPoolLogging
 from academy.logging.configs.multi import MultiLogConfig
 from academy.logging.helpers import JSONHandler
-
-# TODO: reexamine this commentary in the context of new logging
-# Note: these tests are just for coverage to make sure the code is functional.
-# It does not test the agent of init_logging because pytest captures
-# logging already.
-
-
-@pytest.mark.parametrize('logfile', (None, 'test.txt'))
-def test_init_logging(logfile) -> None:
-    lc = init_logging(logfile=logfile)
-    assert isinstance(lc, LogConfig)
-
-    logger = logging.getLogger()
-    logger.info('Test logging')
-
-    # TODO: what to assert here?
+from academy.logging.recommended import recommended_logging
 
 
 @pytest.mark.parametrize(('color', 'extra'), ((True, True), (False, False)))
-def test_console_logging(color: bool, extra: bool) -> None:
+def test_console_logging(color: bool, extra: bool, capteesys) -> None:
     lc = ConsoleLogging(color=color, extra=extra)
     with log_context(lc):
         logger = logging.getLogger()
         logger.info('Test logging')
+        assert 'Test logging' in capteesys.readouterr().out
+
+
+def test_recommended_logging(capteesys, tmp_path) -> None:
+    logfile = tmp_path / 'log'
+    with log_context(recommended_logging(logfile=logfile)):
+        logger = logging.getLogger()
+        logger.info('Test logging')
+        assert 'Test logging' in capteesys.readouterr().out
+        with open(logfile) as f:
+            assert 'Test logging' in f.read()
 
 
 def test_nested_context() -> None:

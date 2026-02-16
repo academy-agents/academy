@@ -7,7 +7,6 @@ from collections.abc import Generator
 from typing import Any
 
 from academy.logging.config import LogConfig
-from academy.logging.recommended import init_logging
 from academy.logging.recommended import recommended_dev_log_config
 
 logger = logging.getLogger(__name__)

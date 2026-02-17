@@ -443,3 +443,95 @@ async def test_handle_ignore_context_error(
     registration = await exchange_client.register_agent(EmptyAgent)
     with pytest.raises(ValueError, match='no explicit exchange'):
         Handle(registration.agent_id, ignore_context=True)
+
+
+def assert_one_invocation_id(caplog) -> None:
+    ids = {
+        r.__dict__['academy.action_invocation']
+        for r in caplog.records
+        if 'academy.action_invocation' in r.__dict__
+    }
+    assert len(ids) == 1, 'Log records should have a single invocation ID'
+
+
+def get_invocation_states(caplog) -> set[str]:
+    return {
+        r.__dict__['academy.action_state']
+        for r in caplog.records
+        if 'academy.action_state' in r.__dict__
+    }
+
+
+@pytest.mark.asyncio
+async def test_handle_logs_actions_success(
+    factory: ExchangeFactory[Any],
+    caplog,
+) -> None:
+    async with await Manager.from_exchange_factory(
+        factory=factory,
+    ) as manager:
+        handle = await manager.launch(CounterAgent())
+
+        with caplog.at_level(logging.DEBUG):
+            await handle.action('add', 1)
+
+        assert_one_invocation_id(caplog)
+
+        assert get_invocation_states(caplog) == {
+            'start',
+            'sending',
+            'waiting',
+            'success',
+        }, 'Log records should show successful-path states'
+
+        await handle.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_handle_logs_actions_fails(
+    factory: ExchangeFactory[Any],
+    caplog,
+) -> None:
+    async with await Manager.from_exchange_factory(
+        factory=factory,
+    ) as manager:
+        handle = await manager.launch(ErrorAgent())
+
+        with caplog.at_level(logging.DEBUG):
+            with pytest.raises(RuntimeError):
+                await handle.action('fails')
+
+        assert_one_invocation_id(caplog)
+
+        assert get_invocation_states(caplog) == {
+            'start',
+            'sending',
+            'waiting',
+            'exception',
+        }, 'Log records should show failure-path states'
+
+        await handle.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_handle_logs_actions_cancelled(
+    factory: ExchangeFactory[Any],
+    caplog,
+) -> None:
+    async with await Manager.from_exchange_factory(
+        factory=factory,
+    ) as manager:
+        handle = await manager.launch(SleepAgent)
+        with caplog.at_level(logging.DEBUG):
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
+
+        assert_one_invocation_id(caplog)
+
+        # sending and waiting states might appear, or not, depending on
+        # when the cancellation happens.
+        assert get_invocation_states(caplog) >= {'start', 'cancelled'}, (
+            'Log records should show cancelled-path states'
+        )
+
+        await handle.shutdown()

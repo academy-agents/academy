@@ -9,7 +9,6 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
-from academy.logging.configs.jsonpool import JSONPoolLogging
 from academy.manager import Manager
 from academy.socket import open_port
 
@@ -45,13 +44,9 @@ class Reverser(Agent):
 
 @pytest.mark.asyncio
 async def test_run_in_processes() -> None:
-    lc = JSONPoolLogging()
-    lc.init_logging()  # initialize for the workflow side
-
     with spawn_http_exchange(
         'localhost',
         open_port(),
-        log_config=lc,
     ) as factory:
         mp_context = multiprocessing.get_context('spawn')
         executor = ProcessPoolExecutor(max_workers=3, mp_context=mp_context)
@@ -60,8 +55,8 @@ async def test_run_in_processes() -> None:
             factory=factory,
             executors=executor,
         ) as manager:
-            lowerer = await manager.launch(Lowerer, log_config=lc)
-            reverser = await manager.launch(Reverser, log_config=lc)
+            lowerer = await manager.launch(Lowerer)
+            reverser = await manager.launch(Reverser)
             coordinator = await manager.launch(
                 Coordinator,
                 args=(lowerer, reverser),

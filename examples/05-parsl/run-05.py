@@ -11,7 +11,8 @@ from parsl import HighThroughputExecutor
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
-from academy.logging import recommended_dev_log_config
+from academy.logging import log_context
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 EXCHANGE_PORT = 5346
@@ -46,33 +47,32 @@ class SimulationAgent(Agent):
 
 
 async def main() -> int:
-    lc = recommended_dev_log_config()
-    lc.init_logging()
+    lc = recommended_logging()
+    with log_context(lc):
+        with spawn_http_exchange(
+            'localhost',
+            EXCHANGE_PORT,
+        ) as factory:
+            executor = ThreadPoolExecutor()
 
-    with spawn_http_exchange(
-        'localhost',
-        EXCHANGE_PORT,
-        log_config=lc,
-    ) as factory:
-        executor = ThreadPoolExecutor()
+            async with await Manager.from_exchange_factory(
+                factory=factory,
+                executors=executor,
+            ) as manager:
+                agent = await manager.launch(SimulationAgent, log_config=lc)
+                expected = 42
 
-        async with await Manager.from_exchange_factory(
-            factory=factory,
-            executors=executor,
-        ) as manager:
-            agent = await manager.launch(SimulationAgent, log_config=lc)
-            expected = 42
+                logger.info(
+                    'Invoking parsl task on %s',
+                    agent.agent_id,
+                )
+                result = await agent.run_expensive_task()
+                assert result == expected
+                logger.info('The answer to life is: "%s"', result)
 
-            logger.info(
-                'Invoking parsl task on %s',
-                agent.agent_id,
-            )
-            result = await agent.run_expensive_task()
-            assert result == expected
-            logger.info('The answer to life is: "%s"', result)
-
-        # Upon exit, the Manager context will instruct each agent to shutdown,
-        # closing their respective handles, and shutting down the executors.
+            # Upon exit, the Manager context will instruct each agent to
+            # shutdown, closing their respective handles, and shutting down
+            # the executors.
 
     return 0
 

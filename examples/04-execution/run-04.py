@@ -9,6 +9,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud import spawn_http_exchange
 from academy.handle import Handle
+from academy.logging import log_context
 from academy.logging import recommended_dev_log_config
 from academy.manager import Manager
 
@@ -47,50 +48,48 @@ class Reverser(Agent):
 
 async def main() -> int:
     lc = recommended_dev_log_config()
-    lc.init_logging()
-
-    with spawn_http_exchange(
-        'localhost',
-        EXCHANGE_PORT,
-        log_config=lc,
-    ) as factory:
-        mp_context = multiprocessing.get_context('spawn')
-        executor = ProcessPoolExecutor(
-            max_workers=3,
-            initializer=lc.init_logging,
-            mp_context=mp_context,
-        )
-
-        async with await Manager.from_exchange_factory(
-            factory=factory,
-            # Agents are run by the manager in the processes of this
-            # process pool executor.
-            executors=executor,
-        ) as manager:
-            # Launch each of the three agents types. The returned type is
-            # a handle to that agent used to invoke actions.
-            lowerer = await manager.launch(Lowerer)
-            reverser = await manager.launch(Reverser)
-            coordinator = await manager.launch(
-                Coordinator,
-                args=(lowerer, reverser),
-                log_config=lc,
+    with log_context(lc):
+        with spawn_http_exchange(
+            'localhost',
+            EXCHANGE_PORT,
+        ) as factory:
+            mp_context = multiprocessing.get_context('spawn')
+            executor = ProcessPoolExecutor(
+                max_workers=3,
+                mp_context=mp_context,
             )
 
-            text = 'DEADBEEF'
-            expected = 'feebdaed'
+            async with await Manager.from_exchange_factory(
+                factory=factory,
+                # Agents are run by the manager in the processes of this
+                # process pool executor.
+                executors=executor,
+            ) as manager:
+                # Launch each of the three agents types. The returned type is
+                # a handle to that agent used to invoke actions.
+                lowerer = await manager.launch(Lowerer)
+                reverser = await manager.launch(Reverser)
+                coordinator = await manager.launch(
+                    Coordinator,
+                    args=(lowerer, reverser),
+                    log_config=lc,
+                )
 
-            logger.info(
-                'Invoking process("%s") on %s',
-                text,
-                coordinator.agent_id,
-            )
-            result = await coordinator.process(text)
-            assert result == expected
-            logger.info('Received result: "%s"', result)
+                text = 'DEADBEEF'
+                expected = 'feebdaed'
 
-        # Upon exit, the Manager context will instruct each agent to shutdown,
-        # closing their respective handles, and shutting down the executors.
+                logger.info(
+                    'Invoking process("%s") on %s',
+                    text,
+                    coordinator.agent_id,
+                )
+                result = await coordinator.process(text)
+                assert result == expected
+                logger.info('Received result: "%s"', result)
+
+            # Upon exit, the Manager context will instruct each agent to
+            # shutdown, closing their respective handles, and shutting down
+            # the executors.
 
     return 0
 

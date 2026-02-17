@@ -39,7 +39,6 @@ from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
-from academy.logging.config import LogConfig
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 from academy.socket import wait_connection
@@ -468,7 +467,7 @@ def spawn_http_exchange(
     host: str = '0.0.0.0',
     port: int = 5463,
     *,
-    log_config: LogConfig | None = None,
+    level: int | str = logging.WARNING,
     timeout: float | None = None,
 ) -> Generator[HttpExchangeFactory]:
     """Context manager that spawns an HTTP exchange in a subprocess.
@@ -487,13 +486,13 @@ def spawn_http_exchange(
     Args:
         host: Host the exchange should listen on.
         port: Port the exchange should listen on.
-        log_config: Logging configuration.
+        level: Logging level.
         timeout: Connection timeout when waiting for exchange to start.
 
     Returns:
         Exchange interface connected to the spawned exchange.
     """
-    config = ExchangeServingConfig(host=host, port=port, log_config=log_config)
+    config = ExchangeServingConfig(host=host, port=port, log_level=level)
 
     # Fork is not safe in multi-threaded context.
     context = multiprocessing.get_context('spawn')

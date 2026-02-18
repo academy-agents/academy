@@ -8,7 +8,7 @@ from academy.logging import config
 logger = logging.getLogger(__name__)
 
 
-class MultiLogConfig(config.LogConfig):
+class MultiLogging(config.LogConfig):
     """This captures a collection of other observability configs."""
 
     def __init__(
@@ -31,7 +31,7 @@ class MultiLogConfig(config.LogConfig):
 
     def __repr__(self) -> str:
         return (
-            '<MultiLogConfig ['
+            '<MultiLogging ['
             + ', '.join([repr(r) for r in self._configs])
             + '>'
         )

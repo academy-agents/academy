@@ -7,7 +7,7 @@ from academy.logging import config
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import JSONPoolLogging
-from academy.logging.configs.multi import MultiLogConfig
+from academy.logging.configs.multi import MultiLogging
 
 
 def recommended_dev_log_config() -> config.LogConfig:
@@ -17,7 +17,7 @@ def recommended_dev_log_config() -> config.LogConfig:
     and make debug-level logs for all Python logging into JSON formatted
     log files in ~/.academy/
     """
-    return MultiLogConfig(
+    return MultiLogging(
         [ConsoleLogging(level=logging.WARN), JSONPoolLogging()],
     )
 
@@ -53,6 +53,6 @@ def recommended_logging(
     # which would work orthogonally to specifying the logfile path
     # explicitly.
 
-    lc = configs[0] if len(configs) == 1 else MultiLogConfig(configs)
+    lc = configs[0] if len(configs) == 1 else MultiLogging(configs)
 
     return lc

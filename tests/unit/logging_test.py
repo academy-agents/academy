@@ -14,7 +14,7 @@ from academy.logging.config import LogConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
 from academy.logging.configs.jsonpool import JSONPoolLogging
-from academy.logging.configs.multi import MultiLogConfig
+from academy.logging.configs.multi import MultiLogging
 from academy.logging.helpers import JSONHandler
 from academy.logging.recommended import recommended_logging
 
@@ -178,13 +178,13 @@ def test_multi_config_repr() -> None:
     a = JSONPoolLogging()
     b = ConsoleLogging()
 
-    lc = MultiLogConfig([a, b])
+    lc = MultiLogging([a, b])
 
     assert repr(a) in repr(lc), (
-        'MultiLogConfig repr should include subconfig repr'
+        'MultiLogging repr should include subconfig repr'
     )
     assert repr(b) in repr(lc), (
-        'MultiLogConfig repr should include subconfig repr'
+        'MultiLogging repr should include subconfig repr'
     )
 
 

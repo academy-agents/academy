@@ -22,16 +22,13 @@ def recommended_dev_log_config() -> config.LogConfig:
     )
 
 
-def recommended_logging(  # noqa: PLR0913
+def recommended_logging(
     level: int | str = logging.INFO,
     *,
     logfile: str | pathlib.Path | None = None,
     logfile_level: int | str | None = None,
     color: bool = True,
     extra: int = False,
-    force: bool = False,
-    # TODO: what to do about force? its horrible and it broke
-    # something before in tests...
 ) -> config.LogConfig:
     """Initialize process global logger and return config for further use.
 

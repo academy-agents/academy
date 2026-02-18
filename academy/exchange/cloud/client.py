@@ -501,7 +501,7 @@ def spawn_http_exchange(
 
     logger.info('Starting exchange server...')
     wait_connection(host, port, timeout=timeout)
-    logger.info('Started exchange server!')
+    logger.info('Started exchange server')
 
     base_url = f'http://{host}:{port}'
     factory = HttpExchangeFactory(base_url)
@@ -521,5 +521,5 @@ def spawn_http_exchange(
             exchange_process.kill()
             exchange_process.join()
         else:
-            logger.info('Terminated exchange server!')
+            logger.info('Terminated exchange server')
         exchange_process.close()

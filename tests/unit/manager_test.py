@@ -22,8 +22,7 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.logging.configs.console import ConsoleLogging
-from academy.logging.configs.jsonpool import JSONPoolLogging
+from academy.logging.configs.file import FileLogging
 from academy.manager import Manager
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
@@ -351,36 +350,19 @@ async def test_executor_pass_kwargs(
 # pytest's caplog fixture to validate output. Set level to WARNING to avoid
 # adding more noise in stdout.
 @pytest.mark.asyncio
-async def test_worker_init_logging_no_logfile(
-    http_exchange_factory: HttpExchangeFactory,
-) -> None:
-    lc = ConsoleLogging(level='WARNING')
-    spawn_context = multiprocessing.get_context('spawn')
-    async with await Manager.from_exchange_factory(
-        http_exchange_factory,
-        executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
-    ) as manager:
-        agent = SleepAgent(TEST_SLEEP_INTERVAL)
-        handle = await manager.launch(
-            agent,
-            log_config=lc,
-        )
-        await handle.shutdown()
-        await manager.wait({handle})
-
-
-@pytest.mark.asyncio
 async def test_worker_init_logging_logfile(
     http_exchange_factory: HttpExchangeFactory,
     tmp_path: pathlib.Path,
 ) -> None:
-    lc = JSONPoolLogging()
+    filepath = tmp_path / 'test-worker-init-logging.log'
+
+    lc = FileLogging(logfile=filepath)
     spawn_context = multiprocessing.get_context('spawn')
+
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
         executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
     ) as manager:
-        _filepath = str(tmp_path / 'test-worker-init-logging.log')
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
@@ -388,9 +370,8 @@ async def test_worker_init_logging_logfile(
         )
         await handle.shutdown()
         await manager.wait({handle})
-    # TODO: assert the log file was at least created?
-    # we should see only the file pool log from the remote agent,
-    # not any log file locally, because lc was not initialized locally.
+
+    assert filepath.exists(), 'log file from manager should exist'
 
 
 @pytest.mark.asyncio

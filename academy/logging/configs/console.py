@@ -40,8 +40,6 @@ class ConsoleLogging(config.LogConfig):
         root_logger.addHandler(stdout_handler)
         root_logger.level = min(root_logger.level, stdout_handler.level)
 
-        # This needs to be after the configuration of the root logger because
-        # warnings get logged to a 'py.warnings' logger.
         logging.captureWarnings(True)
 
         logger.info(

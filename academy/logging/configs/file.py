@@ -52,9 +52,6 @@ class FileLogging(config.LogConfig):
         # if the user is asking for INFO logs, we should provide INFO logs.
         root_logger.level = min(root_logger.level, file_handler.level)
 
-        # This needs to be after the configuration of the root logger because
-        # warnings get logged to a 'py.warnings' logger.
-        # TODO: unclear about that ordering requirement?
         logging.captureWarnings(True)
 
         logger.info(

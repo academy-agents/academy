@@ -588,7 +588,7 @@ def _run(
             print=None,
             ssl_context=ssl_context,
         )
-        logger.info('Exchange closed!')
+        logger.info('Exchange closed')
 
 
 def _main(argv: Sequence[str] | None = None) -> int:

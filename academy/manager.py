@@ -31,6 +31,7 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
+from academy.logging import log_context
 from academy.logging.config import LogConfig
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
@@ -86,24 +87,9 @@ def _run_agent_on_worker(
     academy_debug_mode: bool = False,
     **kwargs: Any,
 ) -> None:
-    print(f'BENC: run agent on worker, with log config: {spec.log_config!r}')
-    if spec.log_config:
-        log_uninit = spec.log_config.init_logging()
-        assert callable(log_uninit), (
-            'TODO: remove this? '
-            'this is to help me debug my impl, '
-            f'log config={spec.log_config}, log_uninit={log_uninit}'
-        )
-    else:
-        log_uninit = None
-
-    set_academy_debug(academy_debug_mode)
-    asyncio.run(_run_agent_async(spec))
-
-    if log_uninit:
-        log_uninit()
-    else:
-        print('log not uninitialised because no uninitialiser')
+    with log_context(spec.log_config):
+        set_academy_debug(academy_debug_mode)
+        asyncio.run(_run_agent_async(spec))
 
 
 @dataclasses.dataclass

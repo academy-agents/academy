@@ -52,14 +52,6 @@ async def test_benc(http_exchange_factory, tmp_path):
 
     m_filepath = str(tmp_path / f'{uuid.uuid4()!s}.log')
 
-    # TODO: this init_logging should be undone at end of test -- otherwise
-    # it's going to stick around for the rest of the log run. which suggests
-    # that a log config could be a context manager. which is another argument
-    # for more management around a log config perhaps as a super class
-    # or some other way -- the superclass counter-argument is that
-    # configs should be serializable, so keeping them simple is a good
-    # thing to do. In which case, a log manager wrapper?
-
     with log_context(
         recommended_logging(logfile=m_filepath, extra=2, level=logging.INFO),
     ):

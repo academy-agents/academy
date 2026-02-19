@@ -58,10 +58,7 @@ class JSONPoolLogging(config.LogConfig):
 
         root_logger = logging.getLogger()
         root_logger.addHandler(json_handler)
-        root_logger.setLevel(
-            logging.DEBUG,
-        )  # TODO: this is global ugh but see the `min`
-        # approach I did in file logger
+        root_logger.level = min(root_logger.level, json_handler.level)
 
         logger.info(
             'Configured JSONPoolLogging (pool uuid=%s, path=%s)',

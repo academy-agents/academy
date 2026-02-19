@@ -9,7 +9,7 @@ from concurrent.futures import ProcessPoolExecutor
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud.globus import GlobusExchangeFactory
-from academy.logging import recommended_dev_log_config
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 
@@ -38,7 +38,7 @@ async def test_full_globus_exchange_client() -> None:
     Globus Auth. However, we don't mock enough of the responses to
     run this as part of CI/CD integration testing.
     """
-    lc = recommended_dev_log_config()
+    lc = recommended_logging()
     lc.init_logging()
 
     factory = GlobusExchangeFactory(

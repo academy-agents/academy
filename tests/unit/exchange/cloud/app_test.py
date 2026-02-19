@@ -27,7 +27,7 @@ from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.config import PythonBackendConfig
 from academy.identifier import AgentId
 from academy.identifier import UserId
-from academy.logging import recommended_dev_log_config
+from academy.logging.recommended import recommended_logging
 from academy.message import Message
 from academy.message import PingRequest
 from academy.socket import open_port
@@ -82,7 +82,7 @@ async def test_server_run() -> None:
 
 @pytest.mark.asyncio
 async def test_server_run_with_logging() -> None:
-    lc = recommended_dev_log_config()
+    lc = recommended_logging()
 
     config = ExchangeServingConfig(
         host='127.0.0.1',

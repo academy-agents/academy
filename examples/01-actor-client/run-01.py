@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange import LocalExchangeFactory
-from academy.logging import recommended_dev_log_config
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 
@@ -26,7 +26,7 @@ class Counter(Agent):
 
 
 async def main() -> int:
-    lc = recommended_dev_log_config()
+    lc = recommended_logging()
     lc.init_logging()
 
     async with await Manager.from_exchange_factory(

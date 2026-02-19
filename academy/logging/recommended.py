@@ -6,20 +6,7 @@ import pathlib
 from academy.logging import config
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
-from academy.logging.configs.jsonpool import JSONPoolLogging
 from academy.logging.configs.multi import MultiLogging
-
-
-def recommended_dev_log_config() -> config.LogConfig:
-    """Returns a log configuration recommended for development use.
-
-    This will configure console logging for academy WARNINGs and worse,
-    and make debug-level logs for all Python logging into JSON formatted
-    log files in ~/.academy/
-    """
-    return MultiLogging(
-        [ConsoleLogging(level=logging.WARN), JSONPoolLogging()],
-    )
 
 
 def recommended_logging(

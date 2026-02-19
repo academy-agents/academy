@@ -8,6 +8,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange import LocalExchangeFactory
 from academy.handle import Handle
+from academy.logging import log_context
 from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
@@ -45,27 +46,30 @@ class Reverser(Agent):
 
 async def main() -> int:
     lc = recommended_logging()
-    lc.init_logging()
+    with log_context(lc):
+        async with await Manager.from_exchange_factory(
+            factory=LocalExchangeFactory(),
+            executors=ThreadPoolExecutor(),
+        ) as manager:
+            lowerer = await manager.launch(Lowerer, log_config=lc)
+            reverser = await manager.launch(Reverser, log_config=lc)
+            coordinator = await manager.launch(
+                Coordinator,
+                args=(lowerer, reverser),
+                log_config=lc,
+            )
 
-    async with await Manager.from_exchange_factory(
-        factory=LocalExchangeFactory(),
-        executors=ThreadPoolExecutor(),
-    ) as manager:
-        lowerer = await manager.launch(Lowerer, log_config=lc)
-        reverser = await manager.launch(Reverser, log_config=lc)
-        coordinator = await manager.launch(
-            Coordinator,
-            args=(lowerer, reverser),
-            log_config=lc,
-        )
+            text = 'DEADBEEF'
+            expected = 'feebdaed'
 
-        text = 'DEADBEEF'
-        expected = 'feebdaed'
-
-        logger.info('Invoking process("%s") on %s', text, coordinator.agent_id)
-        result = await coordinator.process(text)
-        assert result == expected
-        logger.info('Received result: "%s"', result)
+            logger.info(
+                'Invoking process("%s") on %s',
+                text,
+                coordinator.agent_id,
+            )
+            result = await coordinator.process(text)
+            assert result == expected
+            logger.info('Received result: "%s"', result)
 
     return 0
 

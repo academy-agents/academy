@@ -90,6 +90,16 @@ def _run_agent_on_worker(
     # TODO: do alongside-agents also have log configs?
     # (is it part of the enclosing environment (aka event loop) or part of
     # the agent?)
+    # one thing I'm concerned about is if you only do init
+    # logging around the "original" agent, what happens if
+    # that agent ends and we care about the other agents?
+    # Perhaps that means that logging should actually be
+    # done by default at the Manager level (for all agents)
+    # rather than at the agent level (although keeping
+    # per-agent logging here is probably harmless?)
+    # somehow around the event loop? but what does the
+    # lifetime in general of agents (ignoring logging)
+    # look like wrt event loops and the root agent ending?
     if spec.log_config:
         log_uninit = spec.log_config.init_logging()
         assert callable(log_uninit), (

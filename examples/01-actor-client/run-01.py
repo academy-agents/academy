@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange import LocalExchangeFactory
+from academy.logging import log_context
 from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
@@ -27,21 +28,20 @@ class Counter(Agent):
 
 async def main() -> int:
     lc = recommended_logging()
-    lc.init_logging()
+    with log_context(lc):
+        async with await Manager.from_exchange_factory(
+            factory=LocalExchangeFactory(),
+            executors=ThreadPoolExecutor(),
+        ) as manager:
+            agent_handle = await manager.launch(Counter, log_config=lc)
 
-    async with await Manager.from_exchange_factory(
-        factory=LocalExchangeFactory(),
-        executors=ThreadPoolExecutor(),
-    ) as manager:
-        agent_handle = await manager.launch(Counter, log_config=lc)
+            count = await agent_handle.get_count()
+            assert count == 0
 
-        count = await agent_handle.get_count()
-        assert count == 0
+            await agent_handle.increment()
 
-        await agent_handle.increment()
-
-        count = await agent_handle.get_count()
-        assert count == 1
+            count = await agent_handle.get_count()
+            assert count == 1
 
     return 0
 

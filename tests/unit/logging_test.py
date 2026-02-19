@@ -28,6 +28,14 @@ def test_console_logging(color: bool, extra: bool, capteesys) -> None:
         assert 'Test logging' in capteesys.readouterr().out
 
 
+def test_none_logging() -> None:
+    with log_context(None):
+        logger = logging.getLogger()
+        logger.info('Test logging')
+        # Nothing to assert about where this log message went...
+        # just testing that we can go into the log_context with no config
+
+
 def test_recommended_logging(capteesys, tmp_path) -> None:
     logfile = tmp_path / 'log'
     with log_context(recommended_logging(logfile=logfile)):

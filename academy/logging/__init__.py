@@ -43,8 +43,14 @@ initialized_log_contexts: dict[str, int] = {}
 
 
 @contextlib.contextmanager
-def log_context(c: LogConfig) -> Generator[None, None, None]:
+def log_context(c: LogConfig | None) -> Generator[None, None, None]:
     """Context manager for using an LogConfig."""
+    if c is None:
+        # let the context body happen without doing anything interesting,
+        # if the context is None.
+        yield
+        return
+
     logger.info(
         f'BENC: entering log_context context manager, with log config {c}',
     )

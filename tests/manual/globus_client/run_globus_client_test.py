@@ -9,6 +9,7 @@ from concurrent.futures import ProcessPoolExecutor
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud.globus import GlobusExchangeFactory
+from academy.logging import log_context
 from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
@@ -39,27 +40,25 @@ async def test_full_globus_exchange_client() -> None:
     run this as part of CI/CD integration testing.
     """
     lc = recommended_logging()
-    lc.init_logging()
+    with log_context(lc):
+        factory = GlobusExchangeFactory(
+            project_id=uuid.UUID(os.environ['ACADEMY_TEST_PROJECT_ID']),
+            client_params={'base_url': 'http://0.0.0.0:8700'},
+        )
+        mp_context = multiprocessing.get_context('spawn')
+        executor = ProcessPoolExecutor(
+            max_workers=1,
+            mp_context=mp_context,
+        )
 
-    factory = GlobusExchangeFactory(
-        project_id=uuid.UUID(os.environ['ACADEMY_TEST_PROJECT_ID']),
-        client_params={'base_url': 'http://0.0.0.0:8700'},
-    )
-    mp_context = multiprocessing.get_context('spawn')
-    executor = ProcessPoolExecutor(
-        max_workers=1,
-        initializer=lc.init_logging,
-        mp_context=mp_context,
-    )
-
-    async with await Manager.from_exchange_factory(
-        factory=factory,
-        executors=executor,
-    ) as manager:
-        echo = await manager.launch(Echo, log_config=lc)
-        text = 'DEADBEEF'
-        result = await echo.echo(text)
-        assert result == text
+        async with await Manager.from_exchange_factory(
+            factory=factory,
+            executors=executor,
+        ) as manager:
+            echo = await manager.launch(Echo, log_config=lc)
+            text = 'DEADBEEF'
+            result = await echo.echo(text)
+            assert result == text
 
 
 if __name__ == '__main__':

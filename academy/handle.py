@@ -245,6 +245,8 @@ class Handle(Generic[AgentT]):
             extra=invocation_extra
             | {
                 'academy.action_state': 'start',
+                'academy.action_args': args,
+                'academy.action_kwargs': kwargs,
             },
         )
         exchange = self.exchange
@@ -319,6 +321,7 @@ class Handle(Generic[AgentT]):
 
         assert future.done()
         assert future.exception() is None
+        result = future.result()
 
         logger.debug(
             'Successfully completed action %s with invocation id %s',
@@ -327,10 +330,11 @@ class Handle(Generic[AgentT]):
             extra=invocation_extra
             | {
                 'academy.action_state': 'success',
+                'academy.action_args': result,
             },
         )
 
-        return future.result()
+        return result
 
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.

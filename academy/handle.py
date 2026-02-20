@@ -232,6 +232,21 @@ class Handle(Generic[AgentT]):
                 (it self terminated or via another handle).
             Exception: Any exception raised by the action.
         """
+        invocation_id = uuid.uuid4()
+        invocation_extra = {
+            'academy.action': action,
+            'academy.action_invocation': invocation_id,
+        }
+
+        logger.debug(
+            'Invoking action %s with invocation id %s',
+            action,
+            invocation_id,
+            extra=invocation_extra
+            | {
+                'academy.action_state': 'start',
+            },
+        )
         exchange = self.exchange
         self._register_with_exchange(exchange)
 
@@ -246,15 +261,23 @@ class Handle(Generic[AgentT]):
         self._pending_response_futures[request.tag] = future
 
         try:
-            await self.exchange.send(request)
             logger.debug(
-                'Sent action request from %s to %s (action=%r)',
+                'Sending action request from %s to %s (action=%r)',
                 exchange.client_id,
                 self.agent_id,
                 action,
                 extra=request.log_extra()
+                | invocation_extra
+                | {'academy.action_state': 'sending'},
+            )
+            await self.exchange.send(request)
+            logger.debug(
+                'Waiting for result of action %s with invocation id %s',
+                action,
+                invocation_id,
+                extra=invocation_extra
                 | {
-                    'academy.action': action,
+                    'academy.action_state': 'waiting',
                 },
             )
             await future
@@ -265,10 +288,46 @@ class Handle(Generic[AgentT]):
                 label=self.handle_id,
                 body=CancelRequest(target_tag=request.tag),
             )
+            logger.debug(
+                'Cancelling action %s with invocation id %s',
+                action,
+                invocation_id,
+                extra=cancel_request.log_extra()
+                | invocation_extra
+                | {
+                    'academy.action_state': 'cancelled',
+                },
+            )
             cancel_future: asyncio.Future[None] = loop.create_future()
             self._pending_response_futures[cancel_request.tag] = cancel_future
             await self.exchange.send(cancel_request)
             raise
+        except Exception as e:
+            logger.debug(
+                'Completed action %s with invocation id %s with exception',
+                action,
+                invocation_id,
+                extra=invocation_extra
+                | {
+                    'academy.action_state': 'exception',
+                },
+                exc_info=e,
+            )
+
+            raise
+
+        assert future.done()
+        assert future.exception() is None
+
+        logger.debug(
+            'Successfully completed action %s with invocation id %s',
+            action,
+            invocation_id,
+            extra=invocation_extra
+            | {
+                'academy.action_state': 'success',
+            },
+        )
 
         return future.result()
 

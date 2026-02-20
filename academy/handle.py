@@ -254,6 +254,7 @@ class Handle(Generic[AgentT]):
             src=exchange.client_id,
             dest=self.agent_id,
             label=self.handle_id,
+            tag=invocation_id,
             body=ActionRequest(action=action, pargs=args, kargs=kwargs),
         )
         loop = asyncio.get_running_loop()

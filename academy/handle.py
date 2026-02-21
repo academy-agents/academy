@@ -247,6 +247,7 @@ class Handle(Generic[AgentT]):
                 'academy.action_state': 'start',
                 'academy.action_args': args,
                 'academy.action_kwargs': kwargs,
+                'academy.agent_id': self.agent_id,
             },
         )
         exchange = self.exchange
@@ -330,7 +331,8 @@ class Handle(Generic[AgentT]):
             extra=invocation_extra
             | {
                 'academy.action_state': 'success',
-                'academy.action_args': result,
+                'academy.result': result,
+                'academy.agent_id': self.agent_id
             },
         )
 

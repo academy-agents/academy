@@ -112,7 +112,7 @@ async def test_wrap_basic_transport_functionality(
             assert (type(new) is Proxy) == should_proxy(old)
             assert old == new
 
-        sent_response = ActionResponse(action='test', result='result')
+        sent_response = ActionResponse(result='result')
         sent_response_message = sent_request_message.create_response(
             sent_response,
         )

@@ -10,6 +10,10 @@ All future changes—including breaking changes and deprecations—will be docum
 
 Please refer to our [Version Policy](version-policy.md) for more details on when we make breaking changes.
 
+## Academy v0.4
+
+The `init_logging` helper function has been removed. Use new style distributed log configuration.
+
 ## Academy v0.3
 
 ### Handle types have been simplified

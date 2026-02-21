@@ -29,6 +29,9 @@ from collections.abc import Callable
 from collections.abc import Sequence
 from typing import Any
 
+from academy.logging import log_context
+from academy.logging.recommended import recommended_logging
+
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
 
@@ -62,7 +65,6 @@ from academy.exchange.cloud.config import BackendConfig
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.identifier import EntityId
-from academy.logging import init_logging
 from academy.message import Message
 
 logger = logging.getLogger(__name__)
@@ -552,32 +554,41 @@ def create_app(
 def _run(
     config: ExchangeServingConfig,
 ) -> None:
-    app = create_app(config.backend, config.auth)
-    init_logging(config.log_level, logfile=config.log_file)
-    logger = logging.getLogger('root')
-    logger.info(
-        'Exchange listening on %s:%s (ctrl-C to exit)',
-        config.host,
-        config.port,
-        extra={
-            'academy.host': config.host,
-            'academy.port': config.port,
-        },
+
+    log_config = recommended_logging(
+        logfile=config.log_file,
+        level=config.log_level,
     )
 
-    ssl_context: ssl.SSLContext | None = None
-    if config.certfile is not None:  # pragma: no cover
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.load_cert_chain(config.certfile, keyfile=config.keyfile)
+    with log_context(log_config):
+        app = create_app(config.backend, config.auth)
 
-    run_app(
-        app,
-        host=config.host,
-        port=config.port,
-        print=None,
-        ssl_context=ssl_context,
-    )
-    logger.info('Exchange closed')
+        logger.info(
+            'Exchange listening on %s:%s (ctrl-C to exit)',
+            config.host,
+            config.port,
+            extra={
+                'academy.host': config.host,
+                'academy.port': config.port,
+            },
+        )
+
+        ssl_context: ssl.SSLContext | None = None
+        if config.certfile is not None:  # pragma: no cover
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(
+                config.certfile,
+                keyfile=config.keyfile,
+            )
+
+        run_app(
+            app,
+            host=config.host,
+            port=config.port,
+            print=None,
+            ssl_context=ssl_context,
+        )
+        logger.info('Exchange closed')
 
 
 def _main(argv: Sequence[str] | None = None) -> int:

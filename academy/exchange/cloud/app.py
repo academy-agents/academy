@@ -456,7 +456,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             text='Incorrect permissions',
         )
     except TimeoutError:
-        logger.exception('Receive from mailbox {mailbox_id} timed-out.')
+        logger.exception(f'Receive from mailbox {mailbox_id} timed-out.')
         return Response(
             status=StatusCode.TIMEOUT.value,
             text='Request timeout',

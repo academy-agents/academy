@@ -332,7 +332,7 @@ class Handle(Generic[AgentT]):
             | {
                 'academy.action_state': 'success',
                 'academy.result': result,
-                'academy.agent_id': self.agent_id
+                'academy.agent_id': self.agent_id,
             },
         )
 

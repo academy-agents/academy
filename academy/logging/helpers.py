@@ -36,7 +36,7 @@ class _Formatter(logging.Formatter):
 
         if extra:
             extra_fmt = (
-                f'{self.green}[tid=%(os_thread)d pid=%(process)d]{self.reset} '
+                f'{self.green}[tid=%(os_thread)d pid=%(process)d] task=%(taskName)s {self.reset} '
             )
         else:
             extra_fmt = ''

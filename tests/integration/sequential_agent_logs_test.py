@@ -53,7 +53,7 @@ async def test_benc(http_exchange_factory, tmp_path):
     m_filepath = str(tmp_path / f'{uuid.uuid4()!s}.log')
 
     with log_context(
-        recommended_logging(logfile=m_filepath, extra=2, level=logging.INFO),
+        recommended_logging(logfile=m_filepath, extra=2, level=logging.DEBUG),
     ):
         async with await Manager.from_exchange_factory(
             http_exchange_factory,

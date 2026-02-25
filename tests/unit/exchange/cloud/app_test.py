@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import multiprocessing
 import pathlib
 import uuid
@@ -28,6 +27,7 @@ from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.config import PythonBackendConfig
 from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.logging.recommended import recommended_logging
 from academy.message import Message
 from academy.message import PingRequest
 from academy.socket import open_port
@@ -64,7 +64,6 @@ async def test_server_run() -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
     )
 
     context = multiprocessing.get_context('spawn')
@@ -81,13 +80,37 @@ async def test_server_run() -> None:
     assert process.exitcode == 0
 
 
+@pytest.mark.asyncio
+async def test_server_run_with_logging() -> None:
+    lc = recommended_logging()
+
+    config = ExchangeServingConfig(
+        host='127.0.0.1',
+        port=open_port(),
+        log_config=lc,
+    )
+
+    context = multiprocessing.get_context('spawn')
+    process = context.Process(target=_run, args=(config,))
+    process.start()
+
+    wait_connection(config.host, config.port, timeout=TEST_CONNECTION_TIMEOUT)
+    factory = HttpExchangeFactory(f'http://{config.host}:{config.port}')
+    client = await factory.create_user_client()
+    await client.close()
+
+    process.terminate()
+    process.join()
+    assert process.exitcode == 0
+    # TODO: some assertions about what appears in the logs, and where
+
+
 @pytest.mark.filterwarnings('ignore:Unverified HTTPS request is being made')
 @pytest.mark.asyncio
 async def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
     )
     config.certfile = ssl_context.certfile
     config.keyfile = ssl_context.keyfile

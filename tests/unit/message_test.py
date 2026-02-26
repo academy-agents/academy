@@ -32,6 +32,7 @@ def test_request_message(message_body: Any) -> None:
         src=AgentId.new(),
         dest=AgentId.new(),
         body=message_body,
+        tag=uuid.uuid4(),
     )
     assert isinstance(str(message), str)
     assert isinstance(repr(message), str)
@@ -54,7 +55,12 @@ def test_request_message(message_body: Any) -> None:
     ),
 )
 def test_response_message(message_body: Any) -> None:
-    header = Header(src=AgentId.new(), dest=AgentId.new(), kind='response')
+    header = Header(
+        src=AgentId.new(),
+        dest=AgentId.new(),
+        tag=uuid.uuid4(),
+        kind='response',
+    )
     message: Message[Any] = Message(header=header, body=message_body)
     assert isinstance(str(message), str)
     assert isinstance(repr(message), str)

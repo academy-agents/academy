@@ -445,13 +445,13 @@ async def test_handle_ignore_context_error(
         Handle(registration.agent_id, ignore_context=True)
 
 
-def assert_one_invocation_id(caplog) -> None:
+def assert_one_tag_id(caplog) -> None:
     ids = {
-        r.__dict__['academy.action_invocation']
+        r.__dict__['academy.action_tag']
         for r in caplog.records
-        if 'academy.action_invocation' in r.__dict__
+        if 'academy.action_tag' in r.__dict__
     }
-    assert len(ids) == 1, 'Log records should have a single invocation ID'
+    assert len(ids) == 1, 'Log records should have a single tag ID'
 
 
 def get_invocation_states(caplog) -> set[str]:
@@ -475,7 +475,7 @@ async def test_handle_logs_actions_success(
         with caplog.at_level(logging.DEBUG):
             await handle.action('add', 1)
 
-        assert_one_invocation_id(caplog)
+        assert_one_tag_id(caplog)
 
         assert get_invocation_states(caplog) == {
             'start',
@@ -501,7 +501,7 @@ async def test_handle_logs_actions_fails(
             with pytest.raises(RuntimeError):
                 await handle.action('fails')
 
-        assert_one_invocation_id(caplog)
+        assert_one_tag_id(caplog)
 
         assert get_invocation_states(caplog) == {
             'start',
@@ -526,7 +526,7 @@ async def test_handle_logs_actions_cancelled(
             with pytest.raises(asyncio.TimeoutError):
                 await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
 
-        assert_one_invocation_id(caplog)
+        assert_one_tag_id(caplog)
 
         # sending and waiting states might appear, or not, depending on
         # when the cancellation happens.

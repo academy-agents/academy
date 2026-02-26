@@ -6,7 +6,7 @@ from collections.abc import Coroutine
 from typing import Any
 
 from academy.debug import get_academy_debug
-from academy.logging import execute_and_log_traceback
+from academy.logging.helpers import execute_and_log_traceback
 
 logger = logging.getLogger(__name__)
 

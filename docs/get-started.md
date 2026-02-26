@@ -31,7 +31,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from academy.agent import Agent, action
 from academy.exchange import LocalExchangeFactory
-from academy.logging import init_logging
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 class ExampleAgent(Agent):  # (1)!
@@ -40,11 +40,11 @@ class ExampleAgent(Agent):  # (1)!
         return value * value
 
 async def main() -> None:
-    init_logging('INFO')
 
     async with await Manager.from_exchange_factory(  # (3)!
         factory=LocalExchangeFactory(),  # (4)!
         executors=ThreadPoolExecutor(),  # (5)!
+        log_config=recommended_logging(),
     ) as manager:
         agent_handle = await manager.launch(ExampleAgent())  # (6)!
 
@@ -143,15 +143,15 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from academy.agent import Agent, action
 from academy.exchange import LocalExchangeFactory
-from academy.logging import init_logging
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 async def main() -> None:
-    init_logging(logging.INFO)
 
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
+        log_config=recommended_logging(),
     ) as manager:
         lowerer = await manager.launch(Lowerer)
         reverser = await manager.launch(Reverser)

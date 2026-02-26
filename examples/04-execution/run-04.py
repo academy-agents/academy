@@ -9,7 +9,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.handle import Handle
-from academy.logging import init_logging
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 EXCHANGE_PORT = 5346
@@ -46,11 +46,10 @@ class Reverser(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
+
     mp_context = multiprocessing.get_context('spawn')
     executor = ProcessPoolExecutor(
         max_workers=3,
-        initializer=init_logging,
         mp_context=mp_context,
     )
 
@@ -59,6 +58,7 @@ async def main() -> int:
         # Agents are run by the manager in the processes of this
         # process pool executor.
         executors=executor,
+        log_config=recommended_logging(),
     ) as manager:
         # Launch each of the three agents types. The returned type is
         # a handle to that agent used to invoke actions.
@@ -80,8 +80,9 @@ async def main() -> int:
         assert result == expected
         logger.info('Received result: "%s"', result)
 
-        # Upon exit, the Manager context will instruct each agent to shutdown,
-        # closing their respective handles, and shutting down the executors.
+        # Upon exit, the Manager context will instruct each agent to
+        # shutdown, closing their respective handles, and shutting down
+        # the executors.
 
     return 0
 

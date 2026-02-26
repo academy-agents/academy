@@ -24,7 +24,7 @@ from academy.agent import Agent
 from academy.exchange.cloud.globus import GlobusExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.handle import Handle
-from academy.logging import init_logging
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,6 @@ class Coordinator(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
 
     project_id = uuid.UUID(os.environ['ACADEMY_TEST_PROJECT_ID'])
 
@@ -77,6 +76,7 @@ async def main() -> int:
 
     async with await Manager.from_exchange_factory(
         factory=factory,
+        log_config=recommended_logging(),
     ) as manager:
         regs: list[AgentRegistration[Any]] = await manager.register_agents(
             [

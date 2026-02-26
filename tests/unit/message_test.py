@@ -48,7 +48,7 @@ def test_request_message(message_body: Any) -> None:
 @pytest.mark.parametrize(
     'message_body',
     (
-        ActionResponse(action='foo', result=b'bar'),
+        ActionResponse(result=b'bar'),
         ErrorResponse(exception=Exception()),
         SuccessResponse(),
     ),
@@ -106,7 +106,7 @@ def test_action_request_lazy_deserialize() -> None:
 
 
 def test_action_response_lazy_deserialize() -> None:
-    response = ActionResponse(action='foo', result={'foo': 'bar'})
+    response = ActionResponse(result={'foo': 'bar'})
 
     json = response.model_dump_json()
     reconstructed = ActionResponse.model_validate_json(json)

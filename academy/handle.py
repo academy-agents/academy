@@ -232,16 +232,16 @@ class Handle(Generic[AgentT]):
                 (it self terminated or via another handle).
             Exception: Any exception raised by the action.
         """
-        invocation_id = uuid.uuid4()
+        tag_id = uuid.uuid4()
         invocation_extra = {
             'academy.action': action,
-            'academy.action_invocation': invocation_id,
+            'academy.action_tag': tag_id,
         }
 
         logger.debug(
-            'Invoking action %s with invocation id %s',
+            'Invoking action %s with tag id %s',
             action,
-            invocation_id,
+            tag_id,
             extra=invocation_extra
             | {
                 'academy.action_state': 'start',
@@ -254,6 +254,7 @@ class Handle(Generic[AgentT]):
             src=exchange.client_id,
             dest=self.agent_id,
             label=self.handle_id,
+            tag=tag_id,
             body=ActionRequest(action=action, pargs=args, kargs=kwargs),
         )
         loop = asyncio.get_running_loop()
@@ -272,9 +273,9 @@ class Handle(Generic[AgentT]):
             )
             await self.exchange.send(request)
             logger.debug(
-                'Waiting for result of action %s with invocation id %s',
+                'Waiting for result of action %s with tag id %s',
                 action,
-                invocation_id,
+                tag_id,
                 extra=invocation_extra
                 | {
                     'academy.action_state': 'waiting',
@@ -289,9 +290,9 @@ class Handle(Generic[AgentT]):
                 body=CancelRequest(target_tag=request.tag),
             )
             logger.debug(
-                'Cancelling action %s with invocation id %s',
+                'Cancelling action %s with tag id %s',
                 action,
-                invocation_id,
+                tag_id,
                 extra=cancel_request.log_extra()
                 | invocation_extra
                 | {
@@ -304,9 +305,9 @@ class Handle(Generic[AgentT]):
             raise
         except Exception as e:
             logger.debug(
-                'Completed action %s with invocation id %s with exception',
+                'Completed action %s with tag id %s with exception',
                 action,
-                invocation_id,
+                tag_id,
                 extra=invocation_extra
                 | {
                     'academy.action_state': 'exception',
@@ -320,9 +321,9 @@ class Handle(Generic[AgentT]):
         assert future.exception() is None
 
         logger.debug(
-            'Successfully completed action %s with invocation id %s',
+            'Successfully completed action %s with tag id %s',
             action,
-            invocation_id,
+            tag_id,
             extra=invocation_extra
             | {
                 'academy.action_state': 'success',

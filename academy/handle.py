@@ -245,6 +245,9 @@ class Handle(Generic[AgentT]):
             extra=invocation_extra
             | {
                 'academy.action_state': 'start',
+                'academy.action_args': args,
+                'academy.action_kwargs': kwargs,
+                'academy.agent_id': self.agent_id,
             },
         )
         exchange = self.exchange
@@ -254,6 +257,7 @@ class Handle(Generic[AgentT]):
             src=exchange.client_id,
             dest=self.agent_id,
             label=self.handle_id,
+            tag=invocation_id,
             body=ActionRequest(action=action, pargs=args, kargs=kwargs),
         )
         loop = asyncio.get_running_loop()
@@ -318,6 +322,7 @@ class Handle(Generic[AgentT]):
 
         assert future.done()
         assert future.exception() is None
+        result = future.result()
 
         logger.debug(
             'Successfully completed action %s with invocation id %s',
@@ -326,10 +331,12 @@ class Handle(Generic[AgentT]):
             extra=invocation_extra
             | {
                 'academy.action_state': 'success',
+                'academy.result': result,
+                'academy.agent_id': self.agent_id,
             },
         )
 
-        return future.result()
+        return result
 
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.

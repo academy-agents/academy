@@ -98,7 +98,7 @@ class RedisBackendConfig(BaseModel):
             self.port,
             message_size_limit_kb=self.message_size_limit_kb,
             kwargs=self.kwargs,
-            mailbox_expiration_s=int(self.mailbox_expiration_d * 24 * 2600),
+            mailbox_expiration_s=int(self.mailbox_expiration_d * 24 * 3600),
             gravestone_expiration_s=int(
                 self.gravestone_expiration_d * 24 * 3600,
             ),

@@ -235,7 +235,6 @@ class Header(BaseModel):
     src: EntityId = Field(description='Message source ID.')
     dest: EntityId = Field(description='Message destination ID.')
     tag: uuid.UUID = Field(
-        default_factory=uuid.uuid4,
         description='Unique message tag used to match requests and responses.',
     )
     label: uuid.UUID | None = Field(
@@ -332,6 +331,7 @@ class Message(BaseModel, Generic[BodyT]):
         body: BodyT,
         *,
         label: uuid.UUID | None = None,
+        tag: uuid.UUID | None = None,
     ) -> Message[BodyT]:
         """Create a new message with the specified header and body.
 
@@ -340,6 +340,7 @@ class Message(BaseModel, Generic[BodyT]):
             dest: Destination entity ID.
             body: Message body.
             label: Optional label for disambiguation.
+            tag: Optional tag for relating responses to requests.
 
         Returns:
             A new message instance.
@@ -350,7 +351,11 @@ class Message(BaseModel, Generic[BodyT]):
             kind = 'response'
         else:
             raise AssertionError('Unreachable.')
-        header = Header(src=src, dest=dest, label=label, kind=kind)
+
+        if tag is None:
+            tag = uuid.uuid4()
+
+        header = Header(src=src, dest=dest, label=label, kind=kind, tag=tag)
         request: Message[BodyT] = Message(header=header, body=body)
         return request
 

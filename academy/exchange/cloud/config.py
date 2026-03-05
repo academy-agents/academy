@@ -122,6 +122,8 @@ class ExchangeServingConfig(BaseModel):
         log_level: Verbosity of logs.
     """
 
+    model_config = ConfigDict(extra='forbid')
+
     host: str = 'localhost'
     port: int = 8700
     certfile: str | None = None

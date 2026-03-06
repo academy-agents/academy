@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import pickle
+import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest import mock
@@ -35,6 +36,11 @@ from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
 from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP_INTERVAL
+
+if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+    pass
+else:  # pragma: <3.11 cover
+    pass
 
 
 @pytest.mark.asyncio
@@ -535,3 +541,23 @@ async def test_handle_logs_actions_cancelled(
         )
 
         await handle.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_handle_covariance(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    class SubAgent(EmptyAgent): ...
+
+    def test_func(h: Handle[EmptyAgent]):
+        return True
+
+    registration = await exchange_client.register_agent(EmptyAgent)
+    handle = Handle(registration.agent_id)
+
+    registration_2 = await exchange_client.register_agent(SubAgent)
+    sub_handle = Handle(registration_2.agent_id)
+
+    # Only useful for my type checking
+    assert test_func(handle)
+    assert test_func(sub_handle)

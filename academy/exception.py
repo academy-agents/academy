@@ -101,7 +101,7 @@ class MessageTooLargeError(ExchangeError):
 
     If encountering this error, consider using the
     [`ProxyStoreExchangeTransport`][academy.exchange.ProxyStoreExchangeTransport]
-    class an way to by-pass the exchange for large data.
+    class an way to bypass the exchange for large data.
     """
 
     def __init__(self, size: int, limit: int) -> None:

@@ -3,10 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import pathlib
-import sys
 import threading
-from asyncio import Future
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +36,8 @@ class _Formatter(logging.Formatter):
 
         if extra:
             extra_fmt = (
-                f'{self.green}[tid=%(os_thread)d pid=%(process)d]{self.reset} '
+                f'{self.green}[tid=%(os_thread)d pid=%(process)d '
+                f'task=%(taskName)s] {self.reset} '
             )
         else:
             extra_fmt = ''
@@ -91,82 +89,6 @@ def _os_thread_filter(
     return record
 
 
-def init_logging(  # noqa: PLR0913
-    level: int | str = logging.INFO,
-    *,
-    logfile: str | pathlib.Path | None = None,
-    logfile_level: int | str | None = None,
-    color: bool = True,
-    extra: int = False,
-    force: bool = False,
-) -> logging.Logger:
-    """Initialize global logger.
-
-    Args:
-        level: Minimum logging level.
-        logfile: Configure a file handler for this path.
-        logfile_level: Minimum logging level for the file handler. Defaults
-            to that of `level`.
-        color: Use colorful logging for stdout.
-        extra: Include extra info in log messages, such as thread ID and
-            process ID. This is helpful for debugging. True or 1 adds some
-            extra info. 2 adds on observability-style logging of key-value
-            metadata, and adds a second logfile formatted as JSON.
-        force: Remove any existing handlers attached to the root
-            handler. This option is useful to silencing the third-party
-            package logging. Note: should not be set when running inside
-            pytest.
-
-    Returns:
-        The root logger.
-    """
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setFormatter(_Formatter(color=color, extra=extra))
-    stdout_handler.setLevel(level)
-    if extra:
-        stdout_handler.addFilter(_os_thread_filter)
-    handlers: list[logging.Handler] = [stdout_handler]
-
-    if logfile is not None:
-        logfile_level = level if logfile_level is None else logfile_level
-        path = pathlib.Path(logfile)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        human_handler = logging.FileHandler(path)
-        human_handler.setFormatter(_Formatter(color=False, extra=extra))
-        human_handler.setLevel(logfile_level)
-        if extra:
-            human_handler.addFilter(_os_thread_filter)
-        handlers.append(human_handler)
-
-        if extra > 1:
-            json_handler = JSONHandler(path.with_suffix('.jsonlog'))
-            json_handler.setLevel(logfile_level)
-            handlers.append(json_handler)
-
-    logging.basicConfig(
-        datefmt='%Y-%m-%d %H:%M:%S',
-        level=logging.NOTSET,
-        handlers=handlers,
-        force=force,
-    )
-
-    # This needs to be after the configuration of the root logger because
-    # warnings get logged to a 'py.warnings' logger.
-    logging.captureWarnings(True)
-
-    logger = logging.getLogger()
-    logger.info(
-        'Configured logger (stdout-level=%s, logfile=%s, logfile-level=%s)',
-        logging.getLevelName(level) if isinstance(level, int) else level,
-        logfile,
-        logging.getLevelName(logfile_level)
-        if isinstance(logfile_level, int)
-        else logfile_level,
-    )
-
-    return logger
-
-
 class JSONHandler(logging.Handler):
     """A LogHandler which outputs records as JSON objects, one per line."""
 
@@ -193,23 +115,3 @@ class JSONHandler(logging.Handler):
         json.dump(d, fp=self.f)
         print('', file=self.f)
         self.f.flush()
-
-
-async def execute_and_log_traceback(
-    fut: Future[Any],
-) -> Any:
-    """Await a future and log any exception..
-
-    Warning:
-        For developers. Other functions rely on the first await call to be on
-        the wrapped future to that task cancellation can be properly caught
-        in the wrapped task.
-
-    Catches any exceptions raised by the coroutine, logs the traceback,
-    and re-raises the exception.
-    """
-    try:
-        return await fut
-    except Exception:
-        logger.exception('Background task raised an exception.')
-        raise

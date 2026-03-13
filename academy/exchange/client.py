@@ -350,13 +350,16 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         async with self._close_lock:
             if self._closed:
                 return
+            # Stop listening for incoming messages.
+            await self._stop_listener_task()
 
+            # Delete mailbox
             await self._transport.terminate(self.client_id)
             logger.info(
                 f'Terminated mailbox for {self.client_id}',
                 extra={'academy.mailbox_id': self.client_id},
             )
-            await self._stop_listener_task()
+
             await self._transport.close()
             self._closed = True
             logger.info(

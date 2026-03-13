@@ -59,10 +59,11 @@ async def test_send_to_mailbox_direct(
             )
             for _ in range(3):
                 await transport1.send(message)
-                response = await transport2.recv(
+                async for response in transport2.listen(
                     timeout=TEST_CONNECTION_TIMEOUT,
-                )
-                assert response == message
+                ):
+                    assert response == message
+                    break
 
 
 @pytest.mark.asyncio
@@ -82,9 +83,12 @@ async def test_send_to_mailbox_indirect(
             await transport1.send(message)
 
     async with await factory._create_transport(mailbox_id=aid) as mailbox:
-        for _ in range(messages):
-            received = await mailbox.recv(timeout=TEST_CONNECTION_TIMEOUT)
+        count = 0
+        async for received in mailbox.listen(timeout=TEST_CONNECTION_TIMEOUT):
             assert received == message
+            count += 1
+            if count == messages:
+                break
 
 
 @pytest.mark.asyncio
@@ -130,8 +134,11 @@ async def test_send_to_mailbox_bad_cached_address(
                 body=PingRequest(),
             )
             await transport1.send(message)
-            received = await transport2.recv(timeout=TEST_CONNECTION_TIMEOUT)
-            assert received == message
+            async for received in transport2.listen(
+                timeout=TEST_CONNECTION_TIMEOUT,
+            ):
+                assert received == message
+                break
 
         # Address of mailbox is now in the exchanges cache but
         # the mailbox is no longer listening on that address.
@@ -150,8 +157,11 @@ async def test_send_to_mailbox_bad_cached_address(
             # This send will try the cached address, fail, catch the error,
             # and retry via redis.
             await transport1.send(message)
-            received = await transport2.recv(timeout=TEST_CONNECTION_TIMEOUT)
-            assert received == message
+            async for received in transport2.listen(
+                timeout=TEST_CONNECTION_TIMEOUT,
+            ):
+                assert received == message
+                break
 
 
 def test_uuid_encoding() -> None:

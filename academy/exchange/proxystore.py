@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import functools
 import textwrap
+from collections.abc import AsyncGenerator
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Mapping
@@ -139,22 +140,25 @@ class ProxyStoreExchangeTransport(
             resolve_async=self.resolve_async,
         )
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
-        message = await self.transport.recv(timeout)
-        body = message.get_body()
-        if self.resolve_async and isinstance(body, ActionRequest):
-            args = body.get_args()
-            kwargs = body.get_kwargs()
-            for arg in (*args, *kwargs.values()):
-                if type(arg) is Proxy:
-                    resolve_async(arg)
-        elif (
-            self.resolve_async
-            and isinstance(body, ActionResponse)
-            and type(body.get_result()) is Proxy
-        ):
-            resolve_async(body.get_result())
-        return message
+    async def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+        async for message in self.transport.listen(timeout):
+            body = message.get_body()
+            if self.resolve_async and isinstance(body, ActionRequest):
+                args = body.get_args()
+                kwargs = body.get_kwargs()
+                for arg in (*args, *kwargs.values()):
+                    if type(arg) is Proxy:
+                        resolve_async(arg)
+            elif (
+                self.resolve_async
+                and isinstance(body, ActionResponse)
+                and type(body.get_result()) is Proxy
+            ):
+                resolve_async(body.get_result())
+            yield message
 
     async def register_agent(
         self,

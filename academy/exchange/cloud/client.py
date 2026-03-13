@@ -9,6 +9,7 @@ import multiprocessing
 import sys
 import time
 import uuid
+from collections.abc import AsyncGenerator
 from collections.abc import Generator
 from typing import Any
 from typing import Generic
@@ -174,7 +175,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ssl_verify=self._info.ssl_verify,
         )
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
+    async def _recv(self, timeout: float | None = None) -> Message[Any]:
         start_time = time.time()
         current_time = time.time()
         while timeout is None or current_time - start_time < timeout:
@@ -213,6 +214,13 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             )
 
         return Message.model_validate_json(message_raw)
+
+    async def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+        while True:
+            yield await self._recv(timeout)
 
     async def register_agent(
         self,

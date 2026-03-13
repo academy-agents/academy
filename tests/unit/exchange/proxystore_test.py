@@ -78,7 +78,9 @@ async def test_wrap_basic_transport_functionality(
 
         ping = Message.create(src=src, dest=dest, body=PingRequest())
         await wrapped_transport1.send(ping)
-        assert await wrapped_transport2.recv() == ping
+        async for message in wrapped_transport2.listen():
+            assert message == ping
+            break
 
         sent_request = ActionRequest(
             action='test',
@@ -92,8 +94,9 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport1.send(sent_request_message)
 
-        recv_request_message = await wrapped_transport2.recv()
-        recv_request = recv_request_message.get_body()
+        async for recv_request_message in wrapped_transport2.listen():
+            recv_request = recv_request_message.get_body()
+            break
         assert isinstance(recv_request, ActionRequest)
         assert sent_request_message.tag == recv_request_message.tag
 
@@ -118,8 +121,9 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport2.send(sent_response_message)
 
-        recv_response_message = await wrapped_transport1.recv()
-        recv_response = recv_response_message.get_body()
+        async for recv_response_message in wrapped_transport1.listen():
+            recv_response = recv_response_message.get_body()
+            break
         assert isinstance(recv_response, ActionResponse)
         assert sent_response_message.tag == recv_response_message.tag
         assert (type(recv_response.get_result()) is Proxy) == should_proxy(

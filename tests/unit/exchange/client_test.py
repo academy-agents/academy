@@ -227,10 +227,11 @@ async def test_client_reply_error_on_request(
                 body=PingRequest(),
             )
             await agent_client.send(message)
-            response = await agent_client._transport.recv()
-            body = response.get_body()
-            assert isinstance(body, ErrorResponse)
-            assert isinstance(body.get_exception(), TypeError)
+            async for response in agent_client._transport.listen():
+                body = response.get_body()
+                assert isinstance(body, ErrorResponse)
+                assert isinstance(body.get_exception(), TypeError)
+                break
 
 
 def test_client_background_error(

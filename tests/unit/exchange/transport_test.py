@@ -88,7 +88,9 @@ async def test_transport_send_recv(
             body=PingRequest(),
         )
         await transport.send(message)
-        assert await transport.recv() == message
+        async for response in transport.listen():
+            assert response == message
+            break
 
 
 @pytest.mark.asyncio
@@ -128,7 +130,8 @@ async def test_transport_recv_mailbox_closed(
 ) -> None:
     await transport.terminate(transport.mailbox_id)
     with pytest.raises(MailboxTerminatedError):
-        await transport.recv()
+        async for _ in transport.listen(timeout=TEST_SLEEP_INTERVAL):
+            ...
 
 
 @pytest.mark.asyncio
@@ -136,7 +139,8 @@ async def test_transport_recv_timeout(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     with pytest.raises(TimeoutError):
-        await transport.recv(timeout=TEST_SLEEP_INTERVAL)
+        async for _ in transport.listen(timeout=TEST_SLEEP_INTERVAL):
+            ...
 
 
 @pytest.mark.asyncio
@@ -179,15 +183,19 @@ async def test_transport_terminate_reply_pending_requests(
 
             # Check that transport1 gets a response to its request that
             # was terminated.
-            response = await transport1.recv()
-            body = response.get_body()
-            assert isinstance(body, ErrorResponse)
-            assert response.tag == message1.tag
-            assert isinstance(body.get_exception(), MailboxTerminatedError)
+            async for response in transport1.listen(
+                timeout=TEST_SLEEP_INTERVAL,
+            ):
+                body = response.get_body()
+                assert isinstance(body, ErrorResponse)
+                assert response.tag == message1.tag
+                assert isinstance(body.get_exception(), MailboxTerminatedError)
+                break
 
             # No other messages should have been received
             with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-                await transport1.recv(timeout=TEST_SLEEP_INTERVAL)
+                async for _ in transport1.listen(timeout=TEST_SLEEP_INTERVAL):
+                    ...
 
 
 @pytest.mark.asyncio

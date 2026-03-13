@@ -40,7 +40,8 @@ async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     factory = HttpExchangeFactory(url, request_timeout_s=TEST_SLEEP_INTERVAL)
     async with await factory._create_transport() as transport:
         with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-            await transport.recv(2 * TEST_SLEEP_INTERVAL)
+            async for _ in transport.listen(2 * TEST_SLEEP_INTERVAL):
+                ...
 
 
 @pytest.mark.asyncio

@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import enum
 import sys
+from collections.abc import AsyncGenerator
 from collections.abc import Iterable
 from types import TracebackType
 from typing import Any
@@ -119,8 +120,11 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """Get an exchange factory."""
         ...
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
-        """Receive the next message sent to the mailbox.
+    def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+        """Listen to the mailbox.
 
         This blocks until the next message is received, there is a timeout, or
         the mailbox is terminated.
@@ -189,7 +193,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         * All request messages in the mailbox will be replied to with a
           [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError].
         * All calls to
-          [`recv()`][academy.exchange.transport.ExchangeTransport.recv]
+          [`listen()`][academy.exchange.transport.ExchangeTransport.listen]
           will raise a
           [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError].
         * All attempts to

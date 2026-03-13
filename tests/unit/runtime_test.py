@@ -340,8 +340,11 @@ async def test_runtime_ping_message(
             body=PingRequest(),
         )
         await exchange_client.send(ping)
-        message = await exchange_client._transport.recv()
-        assert isinstance(message.get_body(), SuccessResponse)
+        async for message in exchange_client._transport.listen(
+            TEST_SLEEP_INTERVAL,
+        ):
+            assert isinstance(message.get_body(), SuccessResponse)
+            break
 
 
 @pytest.mark.asyncio
@@ -364,10 +367,11 @@ async def test_runtime_action_message(
             body=ActionRequest(action='add', pargs=(value,)),
         )
         await exchange_client.send(request)
-        message = await exchange_client._transport.recv()
-        body = message.get_body()
-        assert isinstance(body, ActionResponse)
-        assert body.get_result() is None
+        async for message in exchange_client._transport.listen():
+            body = message.get_body()
+            assert isinstance(body, ActionResponse)
+            assert body.get_result() is None
+            break
 
         request = Message.create(
             src=exchange_client.client_id,
@@ -375,10 +379,11 @@ async def test_runtime_action_message(
             body=ActionRequest(action='count'),
         )
         await exchange_client.send(request)
-        message = await exchange_client._transport.recv()
-        body = message.get_body()
-        assert isinstance(body, ActionResponse)
-        assert body.get_result() == value
+        async for message in exchange_client._transport.listen():
+            body = message.get_body()
+            assert isinstance(body, ActionResponse)
+            assert body.get_result() == value
+            break
 
 
 @pytest.mark.asyncio
@@ -409,8 +414,9 @@ async def test_runtime_cancel_action_message(
         await exchange_client.send(cancel_request)
 
         for _ in range(2):
-            message = await exchange_client._transport.recv()
-            body = message.get_body()
+            async for message in exchange_client._transport.listen():
+                body = message.get_body()
+                break
             if message.tag == request.tag:
                 assert isinstance(body, ErrorResponse)
                 assert isinstance(body.get_exception(), ActionCancelledError)
@@ -440,8 +446,9 @@ async def test_runtime_cancel_action_message_invalid(
         )
 
         await exchange_client.send(cancel_request)
-        message = await exchange_client._transport.recv()
-        body = message.get_body()
+        async for message in exchange_client._transport.listen():
+            body = message.get_body()
+            break
         assert isinstance(body, ErrorResponse)
         assert isinstance(body.get_exception(), ActionInvalidStateError)
 
@@ -487,8 +494,9 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     )
     await exchange_client.send(shutdown)
 
-    message = await exchange_client._transport.recv()
-    body = message.get_body()
+    async for message in exchange_client._transport.listen():
+        body = message.get_body()
+        break
     if cancel:
         assert isinstance(body, ErrorResponse)
         assert isinstance(body.get_exception(), ActionCancelledError)
@@ -518,8 +526,9 @@ async def test_runtime_action_message_error(
             body=ActionRequest(action='fails'),
         )
         await exchange_client.send(request)
-        message = await exchange_client._transport.recv()
-        body = message.get_body()
+        async for message in exchange_client._transport.listen():
+            body = message.get_body()
+            break
         assert isinstance(body, ErrorResponse)
         exception = body.get_exception()
         assert isinstance(exception, RuntimeError)
@@ -545,8 +554,9 @@ async def test_runtime_action_message_unknown(
             body=ActionRequest(action='null'),
         )
         await exchange_client.send(request)
-        message = await exchange_client._transport.recv()
-        body = message.get_body()
+        async for message in exchange_client._transport.listen():
+            body = message.get_body()
+            break
         assert isinstance(body, ErrorResponse)
         exception = body.get_exception()
         assert isinstance(exception, AttributeError)
@@ -597,8 +607,9 @@ async def test_runtime_delay_actions_and_loops_to_after_startup(
         exchange_factory=exchange_client.factory(),
         registration=registration,
     ):
-        message = await exchange_client._transport.recv()
-        body = message.get_body()
+        async for message in exchange_client._transport.listen():
+            body = message.get_body()
+            break
         assert isinstance(body, ActionResponse)
         assert body.get_result() is None
 

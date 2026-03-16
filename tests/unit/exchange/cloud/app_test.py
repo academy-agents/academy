@@ -225,6 +225,20 @@ async def test_recv_mailbox_validation_error(cli) -> None:
 
 
 @pytest.mark.asyncio
+async def test_listen_mailbox_validation_error(cli) -> None:
+    response = await cli.get('/mailbox/listen', json={'mailbox': 'foo'})
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert await response.text() == 'Missing or invalid mailbox ID'
+
+    response = await cli.get(
+        '/mailbox/listen',
+        json={'mailbox': UserId.new().model_dump_json()},
+    )
+    assert response.status == StatusCode.NOT_FOUND.value
+    assert await response.text() == 'Unknown mailbox ID'
+
+
+@pytest.mark.asyncio
 async def test_recv_timeout_error(cli) -> None:
     uid = UserId.new()
     response = await cli.post(
@@ -465,6 +479,20 @@ async def test_globus_auth_client_message(auth_client) -> None:
 
     response = await auth_client.get(
         '/message',
+        json={'mailbox': aid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_2'},
+    )
+    assert response.status == StatusCode.FORBIDDEN.value
+
+    response = await auth_client.get(
+        '/mailbox/listen',
+        json={'mailbox': aid.model_dump_json()},
+        headers={'Authorization': 'Bearer user_1'},
+    )
+    assert response.status == StatusCode.OKAY.value
+
+    response = await auth_client.get(
+        '/mailbox/listen',
         json={'mailbox': aid.model_dump_json()},
         headers={'Authorization': 'Bearer user_2'},
     )

@@ -15,6 +15,7 @@ from academy.message import ActionResponse
 from academy.message import Message
 from academy.message import PingRequest
 from testing.agents import EmptyAgent
+from testing.constant import TEST_SLEEP_INTERVAL
 
 try:
     from proxystore.connectors.local import LocalConnector
@@ -78,7 +79,7 @@ async def test_wrap_basic_transport_functionality(
 
         ping = Message.create(src=src, dest=dest, body=PingRequest())
         await wrapped_transport1.send(ping)
-        async for message in wrapped_transport2.listen():
+        async for message in wrapped_transport2.listen():  # pragma: no branch
             assert message == ping
             break
 
@@ -94,7 +95,9 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport1.send(sent_request_message)
 
-        async for recv_request_message in wrapped_transport2.listen():
+        async for (
+            recv_request_message
+        ) in wrapped_transport2.listen():  # pragma: no branch
             recv_request = recv_request_message.get_body()
             break
         assert isinstance(recv_request, ActionRequest)
@@ -121,7 +124,9 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport2.send(sent_response_message)
 
-        async for recv_response_message in wrapped_transport1.listen():
+        async for (
+            recv_response_message
+        ) in wrapped_transport1.listen():  # pragma: no branch
             recv_response = recv_response_message.get_body()
             break
         assert isinstance(recv_response, ActionResponse)
@@ -150,3 +155,20 @@ async def test_serialize_factory(
     dumped = pickle.dumps(wrapped_factory)
     reconstructed = pickle.loads(dumped)
     assert isinstance(reconstructed, ProxyStoreExchangeFactory)
+
+
+@pytest.mark.asyncio
+async def test_proxy_exchange_timeout(
+    store: Store[LocalConnector],
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    wrapped_factory = ProxyStoreExchangeFactory(
+        base=local_exchange_factory,
+        store=store,
+        should_proxy=ProxyAlways(),
+    )
+
+    async with await wrapped_factory._create_transport() as transport:
+        with pytest.raises(TimeoutError):
+            async for _ in transport.listen(timeout=TEST_SLEEP_INTERVAL):
+                ...

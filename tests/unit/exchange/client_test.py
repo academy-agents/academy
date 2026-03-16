@@ -227,7 +227,9 @@ async def test_client_reply_error_on_request(
                 body=PingRequest(),
             )
             await agent_client.send(message)
-            async for response in agent_client._transport.listen(
+            async for (
+                response
+            ) in agent_client._transport.listen(  # pragma: no branch
                 timeout=TEST_WAIT_TIMEOUT,
             ):
                 body = response.get_body()

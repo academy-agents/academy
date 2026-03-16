@@ -138,7 +138,7 @@ async def test_send_to_mailbox_bad_cached_address(
             await transport1.send(message)
             async for received in transport2.listen(
                 timeout=TEST_CONNECTION_TIMEOUT,
-            ):
+            ):  # pragma: no branch
                 assert received == message
                 break
 
@@ -161,7 +161,7 @@ async def test_send_to_mailbox_bad_cached_address(
             await transport1.send(message)
             async for received in transport2.listen(
                 timeout=TEST_CONNECTION_TIMEOUT,
-            ):
+            ):  # pragma: no branch
                 assert received == message
                 break
 

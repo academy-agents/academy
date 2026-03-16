@@ -342,7 +342,7 @@ async def test_runtime_ping_message(
         await exchange_client.send(ping)
         async for message in exchange_client._transport.listen(
             TEST_SLEEP_INTERVAL,
-        ):
+        ):  # pragma: no branch
             assert isinstance(message.get_body(), SuccessResponse)
             break
 
@@ -367,7 +367,9 @@ async def test_runtime_action_message(
             body=ActionRequest(action='add', pargs=(value,)),
         )
         await exchange_client.send(request)
-        async for message in exchange_client._transport.listen():
+        async for (
+            message
+        ) in exchange_client._transport.listen():  # pragma: no branch
             body = message.get_body()
             assert isinstance(body, ActionResponse)
             assert body.get_result() is None

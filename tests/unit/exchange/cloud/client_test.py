@@ -26,7 +26,7 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
-from testing.constant import TEST_SLEEP_INTERVAL
+from testing.constant import TEST_WAIT_TIMEOUT
 
 
 def test_factory_serialize(
@@ -41,10 +41,10 @@ def test_factory_serialize(
 async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
     url = f'http://{host}:{port}'
-    factory = HttpExchangeFactory(url, request_timeout_s=TEST_SLEEP_INTERVAL)
+    factory = HttpExchangeFactory(url, request_timeout_s=TEST_WAIT_TIMEOUT)
     async with await factory._create_transport() as transport:
         with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-            async for _ in transport.listen(2 * TEST_SLEEP_INTERVAL):
+            async for _ in transport.listen(2 * TEST_WAIT_TIMEOUT):
                 ...
 
 

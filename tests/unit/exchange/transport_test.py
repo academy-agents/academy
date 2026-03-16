@@ -195,7 +195,7 @@ async def test_transport_terminate_reply_pending_requests(
             # was terminated.
             async for response in transport1.listen(
                 timeout=TEST_WAIT_TIMEOUT,
-            ):
+            ):  # pragma: no branch
                 body = response.get_body()
                 assert isinstance(body, ErrorResponse)
                 assert response.tag == message1.tag

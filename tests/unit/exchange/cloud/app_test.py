@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import multiprocessing
 import pathlib
 import uuid
@@ -64,7 +63,6 @@ async def test_server_run() -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
     )
 
     context = multiprocessing.get_context('spawn')
@@ -87,7 +85,6 @@ async def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
     )
     config.certfile = ssl_context.certfile
     config.keyfile = ssl_context.keyfile

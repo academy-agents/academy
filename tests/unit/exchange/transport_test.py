@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import pickle
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -23,6 +24,7 @@ from academy.message import PingRequest
 from academy.message import SuccessResponse
 from testing.agents import EmptyAgent
 from testing.constant import TEST_SLEEP_INTERVAL
+from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
 
@@ -81,16 +83,24 @@ async def test_transport_status(
 async def test_transport_send_recv(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    for _ in range(3):
+    n = 3
+    messages: list[Message[Any]] = []
+    for _ in range(n):
         message = Message.create(
             src=transport.mailbox_id,
             dest=transport.mailbox_id,
             body=PingRequest(),
         )
         await transport.send(message)
-        async for response in transport.listen():
-            assert response == message
-            break
+        messages.append(message)
+
+    count = 0
+    with contextlib.suppress(TimeoutError):
+        async for response in transport.listen(timeout=TEST_WAIT_TIMEOUT):
+            assert response == messages[count], messages
+            count += 1
+
+    assert count == n
 
 
 @pytest.mark.asyncio

@@ -182,7 +182,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     async def parse(self, raw_lines: list[str]) -> Message[Any] | None:
         data = ''
         for line in raw_lines:
-            if line[0] == ':':  # pragma: no cover
+            if line[0] == ':':
                 logger.debug(f'Received comment from server: {line[1:]}')
                 continue
             fields = line.split(':', 1)
@@ -194,7 +194,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 self.retry_time_ms = int(field_value)
             elif field_name == 'data':
                 data += f'{field_value}\n'
-            else:
+            else:  # pragma: no cover
                 logger.warning(
                     'Received unexpected field in event stream '
                     f'{field_name}: {field_value}',
@@ -210,16 +210,18 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         timeout: float | None = None,
     ) -> AsyncGenerator[Message[Any]]:
 
-        prev_time = time.process_time()
+        prev_time = time.time()
         headers: dict[str, str] = {
             hdrs.ACCEPT: 'text/event-stream',
             hdrs.CACHE_CONTROL: 'no-cache',
         }
-        if self.last_event_id:
+        if self.last_event_id:  # pragma: no cover
+            # Right now we do not keep track of the last message we've seen
+            # because we don't store messages for retransmission.
             headers['Last-Event-Id'] = str(self.last_event_id)
 
         while True:
-            current_time = time.process_time()
+            current_time = time.time()
             internal_timeout = (
                 self._info.request_timeout_s
                 if timeout is None
@@ -234,7 +236,6 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     'mailbox': self.mailbox_id.model_dump_json(),
                     'timeout': internal_timeout,
                 },
-                timeout=aiohttp.ClientTimeout(internal_timeout),
                 headers=headers,
             )
             _raise_for_status(response, self.mailbox_id)
@@ -246,15 +247,15 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 if line == '':
                     message = await self.parse(current_message_lines)
                     current_message_lines = []
-                    if message is None:
+                    if message is None:  # pragma: no cover
                         continue
-                    prev_time = time.process_time()
+                    prev_time = time.time()
                     yield message
                     continue
 
                 current_message_lines.append(line)
 
-            current_time = time.process_time()
+            current_time = time.time()
             if timeout and current_time - prev_time > timeout:
                 raise TimeoutError()
             await asyncio.sleep(self.retry_time_ms / 1000)

@@ -61,7 +61,7 @@ async def test_send_to_mailbox_direct(
                 await transport1.send(message)
                 async for response in transport2.listen(
                     timeout=TEST_CONNECTION_TIMEOUT,
-                ):
+                ):  # pragma: no branch
                     assert response == message
                     break
 
@@ -84,7 +84,9 @@ async def test_send_to_mailbox_indirect(
 
     async with await factory._create_transport(mailbox_id=aid) as mailbox:
         count = 0
-        async for received in mailbox.listen(timeout=TEST_CONNECTION_TIMEOUT):
+        async for received in mailbox.listen(
+            timeout=TEST_CONNECTION_TIMEOUT,
+        ):  # pragma: no branch
             assert received == message
             count += 1
             if count == messages:

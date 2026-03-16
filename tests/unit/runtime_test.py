@@ -379,7 +379,9 @@ async def test_runtime_action_message(
             body=ActionRequest(action='count'),
         )
         await exchange_client.send(request)
-        async for message in exchange_client._transport.listen():
+        async for (
+            message
+        ) in exchange_client._transport.listen():  # pragma: no branch
             body = message.get_body()
             assert isinstance(body, ActionResponse)
             assert body.get_result() == value
@@ -414,7 +416,9 @@ async def test_runtime_cancel_action_message(
         await exchange_client.send(cancel_request)
 
         for _ in range(2):
-            async for message in exchange_client._transport.listen():
+            async for (
+                message
+            ) in exchange_client._transport.listen():  # pragma: no branch
                 body = message.get_body()
                 break
             if message.tag == request.tag:
@@ -446,7 +450,9 @@ async def test_runtime_cancel_action_message_invalid(
         )
 
         await exchange_client.send(cancel_request)
-        async for message in exchange_client._transport.listen():
+        async for (
+            message
+        ) in exchange_client._transport.listen():  # pragma: no branch
             body = message.get_body()
             break
         assert isinstance(body, ErrorResponse)
@@ -494,9 +500,12 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     )
     await exchange_client.send(shutdown)
 
-    async for message in exchange_client._transport.listen():
+    async for (
+        message
+    ) in exchange_client._transport.listen():  # pragma: no branch
         body = message.get_body()
         break
+
     if cancel:
         assert isinstance(body, ErrorResponse)
         assert isinstance(body.get_exception(), ActionCancelledError)
@@ -526,7 +535,9 @@ async def test_runtime_action_message_error(
             body=ActionRequest(action='fails'),
         )
         await exchange_client.send(request)
-        async for message in exchange_client._transport.listen():
+        async for (
+            message
+        ) in exchange_client._transport.listen():  # pragma: no branch
             body = message.get_body()
             break
         assert isinstance(body, ErrorResponse)
@@ -554,7 +565,9 @@ async def test_runtime_action_message_unknown(
             body=ActionRequest(action='null'),
         )
         await exchange_client.send(request)
-        async for message in exchange_client._transport.listen():
+        async for (
+            message
+        ) in exchange_client._transport.listen():  # pragma: no branch
             body = message.get_body()
             break
         assert isinstance(body, ErrorResponse)
@@ -607,7 +620,9 @@ async def test_runtime_delay_actions_and_loops_to_after_startup(
         exchange_factory=exchange_client.factory(),
         registration=registration,
     ):
-        async for message in exchange_client._transport.listen():
+        async for (
+            message
+        ) in exchange_client._transport.listen():  # pragma: no branch
             body = message.get_body()
             break
         assert isinstance(body, ActionResponse)

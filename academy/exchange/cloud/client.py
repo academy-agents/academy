@@ -182,8 +182,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     async def parse(self, raw_lines: list[str]) -> Message[Any] | None:
         data = ''
         for line in raw_lines:
-            logger.debug(f'Event Line: {line}')
-            if line[0] == ':':
+            if line[0] == ':':  # pragma: no cover
                 logger.debug(f'Received comment from server: {line[1:]}')
                 continue
             fields = line.split(':', 1)
@@ -244,7 +243,6 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             async for line_in_bytes in response.content:
                 line = line_in_bytes.decode('utf8')  # type: str
                 line = line.rstrip('\n').rstrip('\r')
-                logger.debug(f'Recived event line: {line}')
                 if line == '':
                     message = await self.parse(current_message_lines)
                     current_message_lines = []

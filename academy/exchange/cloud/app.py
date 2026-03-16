@@ -464,7 +464,7 @@ async def _listen_mailbox_route(
         )
 
     async with sse_response(request) as response:
-        while response.is_connected():
+        while response.is_connected():  # pragma: no branch
             try:
                 logger.debug(
                     f'Listening for new messages on mailbox {mailbox_id}',

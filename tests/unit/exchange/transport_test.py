@@ -140,7 +140,7 @@ async def test_transport_recv_mailbox_closed(
 ) -> None:
     await transport.terminate(transport.mailbox_id)
     with pytest.raises(MailboxTerminatedError):
-        async for _ in transport.listen(timeout=TEST_SLEEP_INTERVAL):
+        async for _ in transport.listen(timeout=TEST_WAIT_TIMEOUT):
             ...
 
 
@@ -194,7 +194,7 @@ async def test_transport_terminate_reply_pending_requests(
             # Check that transport1 gets a response to its request that
             # was terminated.
             async for response in transport1.listen(
-                timeout=TEST_SLEEP_INTERVAL,
+                timeout=TEST_WAIT_TIMEOUT,
             ):
                 body = response.get_body()
                 assert isinstance(body, ErrorResponse)
@@ -204,7 +204,7 @@ async def test_transport_terminate_reply_pending_requests(
 
             # No other messages should have been received
             with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-                async for _ in transport1.listen(timeout=TEST_SLEEP_INTERVAL):
+                async for _ in transport1.listen(timeout=TEST_WAIT_TIMEOUT):
                     ...
 
 

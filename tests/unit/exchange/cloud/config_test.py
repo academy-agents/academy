@@ -36,7 +36,7 @@ def test_redis_backend_config_message_size() -> None:
 
 
 def test_read_from_config_file_empty(tmp_path: pathlib.Path) -> None:
-    data = '[serving]'
+    data = ''
 
     filepath = tmp_path / 'relay.toml'
     with open(filepath, 'w') as f:

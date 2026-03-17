@@ -235,7 +235,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             response = request.create_response(ErrorResponse(exception=e))
         else:
             response = request.create_response(
-                ActionResponse(action=body.action, result=result),
+                ActionResponse(result=result),
             )
         finally:
             # Shield sending the result from being cancelled so the requester

@@ -133,7 +133,6 @@ class ActionResponse(BaseModel):
         This can have non-trivial time and space overheads for large results.
     """
 
-    action: str = Field(description='Name of the requested action.')
     result: SkipValidation[Any] = Field(
         description='Result of the action, if successful.',
     )

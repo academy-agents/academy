@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import pickle
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -83,24 +82,17 @@ async def test_transport_status(
 async def test_transport_send_recv(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
-    n = 3
-    messages: list[Message[Any]] = []
-    for _ in range(n):
+    listener = transport.listen(timeout=TEST_WAIT_TIMEOUT)
+    for _ in range(3):
         message = Message.create(
             src=transport.mailbox_id,
             dest=transport.mailbox_id,
             body=PingRequest(),
         )
         await transport.send(message)
-        messages.append(message)
 
-    count = 0
-    with contextlib.suppress(TimeoutError):
-        async for response in transport.listen(timeout=TEST_WAIT_TIMEOUT):
-            assert response == messages[count], messages
-            count += 1
-
-    assert count == n
+        response = await anext(listener)
+        assert response == message
 
 
 @pytest.mark.asyncio
@@ -140,8 +132,7 @@ async def test_transport_recv_mailbox_closed(
 ) -> None:
     await transport.terminate(transport.mailbox_id)
     with pytest.raises(MailboxTerminatedError):
-        async for _ in transport.listen(timeout=TEST_WAIT_TIMEOUT):
-            ...
+        await anext(transport.listen(timeout=TEST_WAIT_TIMEOUT))
 
 
 @pytest.mark.asyncio
@@ -149,8 +140,7 @@ async def test_transport_recv_timeout(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     with pytest.raises(TimeoutError):
-        async for _ in transport.listen(timeout=TEST_SLEEP_INTERVAL):
-            ...
+        await anext(transport.listen(timeout=TEST_SLEEP_INTERVAL))
 
 
 @pytest.mark.asyncio
@@ -193,19 +183,15 @@ async def test_transport_terminate_reply_pending_requests(
 
             # Check that transport1 gets a response to its request that
             # was terminated.
-            async for response in transport1.listen(
-                timeout=TEST_WAIT_TIMEOUT,
-            ):  # pragma: no branch
-                body = response.get_body()
-                assert isinstance(body, ErrorResponse)
-                assert response.tag == message1.tag
-                assert isinstance(body.get_exception(), MailboxTerminatedError)
-                break
-
+            listener = transport1.listen(TEST_WAIT_TIMEOUT)
+            response = await anext(listener)
+            body = response.get_body()
+            assert isinstance(body, ErrorResponse)
+            assert response.tag == message1.tag
+            assert isinstance(body.get_exception(), MailboxTerminatedError)
             # No other messages should have been received
             with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-                async for _ in transport1.listen(timeout=TEST_WAIT_TIMEOUT):
-                    ...
+                await anext(listener)
 
 
 @pytest.mark.asyncio

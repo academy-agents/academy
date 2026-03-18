@@ -65,6 +65,7 @@ async def test_wrap_basic_transport_functionality(
     )
 
     async with await wrapped_factory._create_transport() as wrapped_transport1:
+        listener1 = wrapped_transport1.listen()
         new_factory = wrapped_transport1.factory()
         assert isinstance(new_factory, ProxyStoreExchangeFactory)
 
@@ -76,12 +77,12 @@ async def test_wrap_basic_transport_functionality(
             mailbox_id=dest,
         )
         assert wrapped_transport2.mailbox_id == dest
+        listener2 = wrapped_transport2.listen()
 
         ping = Message.create(src=src, dest=dest, body=PingRequest())
         await wrapped_transport1.send(ping)
-        async for message in wrapped_transport2.listen():  # pragma: no branch
-            assert message == ping
-            break
+        message = await anext(listener2)
+        assert message == ping
 
         sent_request = ActionRequest(
             action='test',
@@ -95,11 +96,8 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport1.send(sent_request_message)
 
-        async for (
-            recv_request_message
-        ) in wrapped_transport2.listen():  # pragma: no branch
-            recv_request = recv_request_message.get_body()
-            break
+        recv_request_message = await anext(listener2)
+        recv_request = recv_request_message.get_body()
         assert isinstance(recv_request, ActionRequest)
         assert sent_request_message.tag == recv_request_message.tag
 
@@ -124,11 +122,8 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport2.send(sent_response_message)
 
-        async for (
-            recv_response_message
-        ) in wrapped_transport1.listen():  # pragma: no branch
-            recv_response = recv_response_message.get_body()
-            break
+        recv_response_message = await anext(listener1)
+        recv_response = recv_response_message.get_body()
         assert isinstance(recv_response, ActionResponse)
         assert sent_response_message.tag == recv_response_message.tag
         assert (type(recv_response.get_result()) is Proxy) == should_proxy(
@@ -170,5 +165,4 @@ async def test_proxy_exchange_timeout(
 
     async with await wrapped_factory._create_transport() as transport:
         with pytest.raises(TimeoutError):
-            async for _ in transport.listen(timeout=TEST_SLEEP_INTERVAL):
-                ...
+            await anext(transport.listen(timeout=TEST_SLEEP_INTERVAL))

@@ -52,6 +52,7 @@ async def test_send_to_mailbox_direct(
     factory = hybrid_exchange_factory
     async with await factory._create_transport() as transport1:
         async with await factory._create_transport() as transport2:
+            listener = transport2.listen(timeout=TEST_CONNECTION_TIMEOUT)
             message = Message.create(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
@@ -59,11 +60,8 @@ async def test_send_to_mailbox_direct(
             )
             for _ in range(3):
                 await transport1.send(message)
-                async for response in transport2.listen(
-                    timeout=TEST_CONNECTION_TIMEOUT,
-                ):  # pragma: no branch
-                    assert response == message
-                    break
+                response = await anext(listener)
+                assert response == message
 
 
 @pytest.mark.asyncio
@@ -83,14 +81,10 @@ async def test_send_to_mailbox_indirect(
             await transport1.send(message)
 
     async with await factory._create_transport(mailbox_id=aid) as mailbox:
-        count = 0
-        async for received in mailbox.listen(
-            timeout=TEST_CONNECTION_TIMEOUT,
-        ):  # pragma: no branch
+        listener = mailbox.listen(timeout=TEST_CONNECTION_TIMEOUT)
+        for _ in range(messages):
+            received = await anext(listener)
             assert received == message
-            count += 1
-            if count == messages:
-                break
 
 
 @pytest.mark.asyncio
@@ -130,17 +124,15 @@ async def test_send_to_mailbox_bad_cached_address(
         async with await factory1._create_transport(
             mailbox_id=aid,
         ) as transport2:
+            listener = transport2.listen(timeout=TEST_CONNECTION_TIMEOUT)
             message = Message.create(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
                 body=PingRequest(),
             )
             await transport1.send(message)
-            async for received in transport2.listen(
-                timeout=TEST_CONNECTION_TIMEOUT,
-            ):  # pragma: no branch
-                assert received == message
-                break
+            received = await anext(listener)
+            assert received == message
 
         # Address of mailbox is now in the exchanges cache but
         # the mailbox is no longer listening on that address.
@@ -156,14 +148,12 @@ async def test_send_to_mailbox_bad_cached_address(
         async with await factory2._create_transport(
             mailbox_id=aid,
         ) as transport2:
+            listener = transport2.listen(timeout=TEST_CONNECTION_TIMEOUT)
             # This send will try the cached address, fail, catch the error,
             # and retry via redis.
             await transport1.send(message)
-            async for received in transport2.listen(
-                timeout=TEST_CONNECTION_TIMEOUT,
-            ):  # pragma: no branch
-                assert received == message
-                break
+            received = await anext(listener)
+            assert received == message
 
 
 def test_uuid_encoding() -> None:

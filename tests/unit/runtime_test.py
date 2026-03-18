@@ -328,6 +328,7 @@ async def test_runtime_ping_message(
     registration = await exchange_client.register_agent(EmptyAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
 
     async with Runtime(
         EmptyAgent(),
@@ -340,11 +341,8 @@ async def test_runtime_ping_message(
             body=PingRequest(),
         )
         await exchange_client.send(ping)
-        async for message in exchange_client._transport.listen(
-            TEST_SLEEP_INTERVAL,
-        ):  # pragma: no branch
-            assert isinstance(message.get_body(), SuccessResponse)
-            break
+        message = await anext(listener)
+        assert isinstance(message.get_body(), SuccessResponse)
 
 
 @pytest.mark.asyncio
@@ -354,6 +352,7 @@ async def test_runtime_action_message(
     registration = await exchange_client.register_agent(CounterAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
 
     async with Runtime(
         CounterAgent(),
@@ -367,13 +366,11 @@ async def test_runtime_action_message(
             body=ActionRequest(action='add', pargs=(value,)),
         )
         await exchange_client.send(request)
-        async for (
-            message
-        ) in exchange_client._transport.listen():  # pragma: no branch
-            body = message.get_body()
-            assert isinstance(body, ActionResponse)
-            assert body.get_result() is None
-            break
+        message = await anext(listener)
+
+        body = message.get_body()
+        assert isinstance(body, ActionResponse)
+        assert body.get_result() is None
 
         request = Message.create(
             src=exchange_client.client_id,
@@ -381,13 +378,10 @@ async def test_runtime_action_message(
             body=ActionRequest(action='count'),
         )
         await exchange_client.send(request)
-        async for (
-            message
-        ) in exchange_client._transport.listen():  # pragma: no branch
-            body = message.get_body()
-            assert isinstance(body, ActionResponse)
-            assert body.get_result() == value
-            break
+        message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ActionResponse)
+        assert body.get_result() == value
 
 
 @pytest.mark.asyncio
@@ -397,6 +391,7 @@ async def test_runtime_cancel_action_message(
     registration = await exchange_client.register_agent(SleepAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
 
     async with Runtime(
         SleepAgent(),
@@ -418,11 +413,8 @@ async def test_runtime_cancel_action_message(
         await exchange_client.send(cancel_request)
 
         for _ in range(2):
-            async for (
-                message
-            ) in exchange_client._transport.listen():  # pragma: no branch
-                body = message.get_body()
-                break
+            message = await anext(listener)
+            body = message.get_body()
             if message.tag == request.tag:
                 assert isinstance(body, ErrorResponse)
                 assert isinstance(body.get_exception(), ActionCancelledError)
@@ -439,7 +431,7 @@ async def test_runtime_cancel_action_message_invalid(
     registration = await exchange_client.register_agent(SleepAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
-
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
     async with Runtime(
         SleepAgent(),
         exchange_factory=exchange_client.factory(),
@@ -452,11 +444,8 @@ async def test_runtime_cancel_action_message_invalid(
         )
 
         await exchange_client.send(cancel_request)
-        async for (
-            message
-        ) in exchange_client._transport.listen():  # pragma: no branch
-            body = message.get_body()
-            break
+        message = await anext(listener)
+        body = message.get_body()
         assert isinstance(body, ErrorResponse)
         assert isinstance(body.get_exception(), ActionInvalidStateError)
 
@@ -475,6 +464,7 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     registration = await exchange_client.register_agent(ErrorAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen()
 
     runtime = Runtime(
         NoReturnAgent(),
@@ -502,12 +492,8 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     )
     await exchange_client.send(shutdown)
 
-    async for (
-        message
-    ) in exchange_client._transport.listen():  # pragma: no branch
-        body = message.get_body()
-        break
-
+    message = await anext(listener)
+    body = message.get_body()
     if cancel:
         assert isinstance(body, ErrorResponse)
         assert isinstance(body.get_exception(), ActionCancelledError)
@@ -525,6 +511,7 @@ async def test_runtime_action_message_error(
     registration = await exchange_client.register_agent(ErrorAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
 
     async with Runtime(
         ErrorAgent(),
@@ -537,11 +524,8 @@ async def test_runtime_action_message_error(
             body=ActionRequest(action='fails'),
         )
         await exchange_client.send(request)
-        async for (
-            message
-        ) in exchange_client._transport.listen():  # pragma: no branch
-            body = message.get_body()
-            break
+        message = await anext(listener)
+        body = message.get_body()
         assert isinstance(body, ErrorResponse)
         exception = body.get_exception()
         assert isinstance(exception, RuntimeError)
@@ -555,7 +539,7 @@ async def test_runtime_action_message_unknown(
     registration = await exchange_client.register_agent(EmptyAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
-
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
     async with Runtime(
         EmptyAgent(),
         exchange_factory=exchange_client.factory(),
@@ -567,11 +551,8 @@ async def test_runtime_action_message_unknown(
             body=ActionRequest(action='null'),
         )
         await exchange_client.send(request)
-        async for (
-            message
-        ) in exchange_client._transport.listen():  # pragma: no branch
-            body = message.get_body()
-            break
+        message = await anext(listener)
+        body = message.get_body()
         assert isinstance(body, ErrorResponse)
         exception = body.get_exception()
         assert isinstance(exception, AttributeError)
@@ -607,6 +588,7 @@ async def test_runtime_delay_actions_and_loops_to_after_startup(
     registration = await exchange_client.register_agent(ExampleAgent)
     # Cancel listener so test can intercept agent responses
     await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
 
     # Send action request before starting agent so its immediately
     # available when message listener task starts
@@ -622,11 +604,8 @@ async def test_runtime_delay_actions_and_loops_to_after_startup(
         exchange_factory=exchange_client.factory(),
         registration=registration,
     ):
-        async for (
-            message
-        ) in exchange_client._transport.listen():  # pragma: no branch
-            body = message.get_body()
-            break
+        message = await anext(listener)
+        body = message.get_body()
         assert isinstance(body, ActionResponse)
         assert body.get_result() is None
 

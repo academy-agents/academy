@@ -146,7 +146,7 @@ class ProxyStoreExchangeTransport(
     ) -> AsyncGenerator[Message[Any]]:
         async for message in self.transport.listen(
             timeout,
-        ):  # pragma: <3.14 cover
+        ):  # pragma: 3.14 no branch
             body = message.get_body()
             if self.resolve_async and isinstance(body, ActionRequest):
                 args = body.get_args()

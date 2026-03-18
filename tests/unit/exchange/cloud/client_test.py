@@ -44,8 +44,7 @@ async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     factory = HttpExchangeFactory(url, request_timeout_s=TEST_WAIT_TIMEOUT)
     async with await factory._create_transport() as transport:
         with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-            async for _ in transport.listen(2 * TEST_WAIT_TIMEOUT):
-                ...
+            await anext(transport.listen(2 * TEST_WAIT_TIMEOUT))
 
 
 @pytest.mark.asyncio
@@ -169,8 +168,8 @@ async def test_sse_event_parse(
     async with await http_exchange_factory._create_transport() as transport:
         parsed = await transport.parse(event)
         assert parsed == message
-        assert transport.last_event_id == 0
-        assert transport.retry_time_ms == 3000  # noqa: PLR2004
+        assert transport._last_event_id == 0
+        assert transport._retry_time_ms == 3000  # noqa: PLR2004
 
 
 async def test_sse_event_parse_comment(
@@ -181,3 +180,65 @@ async def test_sse_event_parse_comment(
     async with await http_exchange_factory._create_transport() as transport:
         parsed = await transport.parse(event)
         assert parsed is None
+
+
+async def test_sse_event_parse_unexpected_field(
+    http_exchange_factory: HttpExchangeFactory,
+    caplog,
+) -> None:
+    uid = UserId.new()
+    aid: AgentId[Any] = AgentId.new()
+    message = Message.create(
+        src=uid,
+        dest=aid,
+        body=PingRequest(),
+    )
+
+    event = [
+        'bad: field',
+        f'data: {message.model_dump_json()}',
+    ]
+
+    async with await http_exchange_factory._create_transport() as transport:
+        with caplog.at_level(logging.WARNING):
+            parsed = await transport.parse(event)
+            assert parsed == message
+        assert 'unexpected field in event stream' in caplog.text
+
+
+async def test_listen_receive_event(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    uid = UserId.new()
+    aid: AgentId[Any] = AgentId.new()
+    message = Message.create(
+        src=uid,
+        dest=aid,
+        body=PingRequest(),
+    )
+
+    event_stream: list[bytes] = []
+    for _ in range(3):
+        event_stream.extend(
+            [
+                f'data: {message.model_dump_json()}'.encode(),
+                b'',
+                b': ping',
+                b'',
+            ],
+        )
+
+    mock_response = mock.MagicMock()
+    mock_response.content.__aiter__.return_value = event_stream
+
+    async with await http_exchange_factory._create_transport() as transport:
+        with mock.patch.object(
+            transport._session,
+            'get',
+            new=mock.AsyncMock(),
+        ) as mock_get:
+            mock_get.return_value = mock_response
+            listener = transport.listen(timeout=TEST_WAIT_TIMEOUT)
+            for _ in range(3):
+                received = await anext(listener)
+                assert received == message

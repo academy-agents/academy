@@ -463,12 +463,10 @@ async def _listen_mailbox_route(
             text='Mailbox was closed',
         )
 
+    logger.debug(f'Listening for new messages on mailbox {mailbox_id}')
     async with sse_response(request) as response:
         while response.is_connected():  # pragma: no branch
             try:
-                logger.debug(
-                    f'Listening for new messages on mailbox {mailbox_id}',
-                )
                 message = await manager.get(
                     client,
                     mailbox_id,

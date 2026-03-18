@@ -88,8 +88,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._mailbox_id = mailbox_id
         self._session = session
         self._info = connection_info
-        self.retry_time_ms: float = 1000
-        self.last_event_id: int | None = None
+        self._retry_time_ms: float = 1000
+        self._last_event_id: int | None = None
 
         base_url = self._info.url
         self._mailbox_url = f'{base_url}/mailbox'
@@ -189,12 +189,12 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             field_name = fields[0]
             field_value = fields[1].lstrip(' ') if len(fields) > 1 else ''
             if field_name == 'id':
-                self.last_event_id = int(field_value)
+                self._last_event_id = int(field_value)
             elif field_name == 'retry':
-                self.retry_time_ms = int(field_value)
+                self._retry_time_ms = int(field_value)
             elif field_name == 'data':
                 data += f'{field_value}\n'
-            else:  # pragma: no cover
+            else:
                 logger.warning(
                     'Received unexpected field in event stream '
                     f'{field_name}: {field_value}',
@@ -215,10 +215,10 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             hdrs.ACCEPT: 'text/event-stream',
             hdrs.CACHE_CONTROL: 'no-cache',
         }
-        if self.last_event_id:  # pragma: no cover
+        if self._last_event_id:  # pragma: no cover
             # Right now we do not keep track of the last message we've seen
             # because we don't store messages for retransmission.
-            headers['Last-Event-Id'] = str(self.last_event_id)
+            headers['Last-Event-Id'] = str(self._last_event_id)
 
         while True:
             current_time = time.time()
@@ -247,7 +247,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 if line == '':
                     message = await self.parse(current_message_lines)
                     current_message_lines = []
-                    if message is None:  # pragma: no cover
+                    if message is None:
                         continue
                     prev_time = time.time()
                     yield message
@@ -258,7 +258,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             current_time = time.time()
             if timeout and current_time - prev_time > timeout:
                 raise TimeoutError()
-            await asyncio.sleep(self.retry_time_ms / 1000)
+            await asyncio.sleep(self._retry_time_ms / 1000)
 
     async def register_agent(
         self,

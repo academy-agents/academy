@@ -5,6 +5,7 @@ import asyncio
 import dataclasses
 import logging
 import sys
+from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
@@ -134,7 +135,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def factory(self) -> LocalExchangeFactory:
         return LocalExchangeFactory(_state=self._state)
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
+    async def _recv(self, timeout: float | None = None) -> Message[Any]:
         queue = self._state.queues[self.mailbox_id]
         try:
             return await asyncio.wait_for(queue.get(), timeout=timeout)
@@ -145,6 +146,13 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ) from None
         except QueueShutDown:
             raise MailboxTerminatedError(self.mailbox_id) from None
+
+    async def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+        while True:
+            yield await self._recv(timeout)
 
     async def register_agent(
         self,

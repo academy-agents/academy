@@ -15,6 +15,7 @@ from academy.message import ActionResponse
 from academy.message import Message
 from academy.message import PingRequest
 from testing.agents import EmptyAgent
+from testing.constant import TEST_SLEEP_INTERVAL
 
 try:
     from proxystore.connectors.local import LocalConnector
@@ -64,6 +65,7 @@ async def test_wrap_basic_transport_functionality(
     )
 
     async with await wrapped_factory._create_transport() as wrapped_transport1:
+        listener1 = wrapped_transport1.listen()
         new_factory = wrapped_transport1.factory()
         assert isinstance(new_factory, ProxyStoreExchangeFactory)
 
@@ -75,10 +77,12 @@ async def test_wrap_basic_transport_functionality(
             mailbox_id=dest,
         )
         assert wrapped_transport2.mailbox_id == dest
+        listener2 = wrapped_transport2.listen()
 
         ping = Message.create(src=src, dest=dest, body=PingRequest())
         await wrapped_transport1.send(ping)
-        assert await wrapped_transport2.recv() == ping
+        message = await anext(listener2)
+        assert message == ping
 
         sent_request = ActionRequest(
             action='test',
@@ -92,7 +96,7 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport1.send(sent_request_message)
 
-        recv_request_message = await wrapped_transport2.recv()
+        recv_request_message = await anext(listener2)
         recv_request = recv_request_message.get_body()
         assert isinstance(recv_request, ActionRequest)
         assert sent_request_message.tag == recv_request_message.tag
@@ -118,7 +122,7 @@ async def test_wrap_basic_transport_functionality(
         )
         await wrapped_transport2.send(sent_response_message)
 
-        recv_response_message = await wrapped_transport1.recv()
+        recv_response_message = await anext(listener1)
         recv_response = recv_response_message.get_body()
         assert isinstance(recv_response, ActionResponse)
         assert sent_response_message.tag == recv_response_message.tag
@@ -146,3 +150,19 @@ async def test_serialize_factory(
     dumped = pickle.dumps(wrapped_factory)
     reconstructed = pickle.loads(dumped)
     assert isinstance(reconstructed, ProxyStoreExchangeFactory)
+
+
+@pytest.mark.asyncio
+async def test_proxy_exchange_timeout(
+    store: Store[LocalConnector],
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    wrapped_factory = ProxyStoreExchangeFactory(
+        base=local_exchange_factory,
+        store=store,
+        should_proxy=ProxyAlways(),
+    )
+
+    async with await wrapped_factory._create_transport() as transport:
+        with pytest.raises(TimeoutError):
+            await anext(transport.listen(timeout=TEST_SLEEP_INTERVAL))

@@ -44,7 +44,7 @@ class MockRedis:
         for key in keys:
             key = self._encode(key)  # noqa: PLW2901
             if len(self.lists[key]) > 0:
-                item = self.lists[key].pop()
+                item = self.lists[key].pop(0)
                 self.events[key].clear()
             else:
                 try:
@@ -55,7 +55,7 @@ class MockRedis:
                 except asyncio.TimeoutError:
                     return None
                 else:
-                    item = self.lists[key].pop()
+                    item = self.lists[key].pop(0)
                     self.events[key].clear()
             result.extend([key, item])
         return result

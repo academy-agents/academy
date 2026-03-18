@@ -29,6 +29,8 @@ from collections.abc import Callable
 from collections.abc import Sequence
 from typing import Any
 
+from academy.exchange.transport import MailboxStatus
+
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
 
@@ -45,6 +47,8 @@ from aiohttp.web import middleware
 from aiohttp.web import Request
 from aiohttp.web import Response
 from aiohttp.web import run_app
+from aiohttp_sse import EventSourceResponse
+from aiohttp_sse import sse_response
 from pydantic import TypeAdapter
 from pydantic import ValidationError
 
@@ -402,6 +406,85 @@ async def _send_message_route(request: Request) -> Response:
         return Response(status=StatusCode.OKAY.value)
 
 
+async def _listen_mailbox_route(
+    request: Request,
+) -> EventSourceResponse | Response:
+    try:
+        data = await request.json()
+    except ConnectionResetError:  # pragma: no cover
+        # This happens when the client cancel's it's listener task, which is
+        # waiting on recv, because the client is shutting down and closing
+        # its connection. In this case, we don't need to do anything
+        # because the client disconnected itself. If we don't catch this
+        # error, aiohttp will just log an error message each time this happens.
+        return Response(status=StatusCode.NO_RESPONSE.value)
+
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+    except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    timeout = data.get('timeout', None)
+    client = get_client_info(request)
+
+    try:
+        status = await manager.check_mailbox(client, mailbox_id)
+    except ForbiddenError:
+        logger.exception(
+            f'Incorrect permissions to receive from mailbox {mailbox_id}',
+        )
+        return Response(
+            status=StatusCode.FORBIDDEN.value,
+            text='Incorrect permissions',
+        )
+
+    if status == MailboxStatus.MISSING:
+        logger.exception(f'Receive from unknown mailbox {mailbox_id}.')
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
+    elif status == MailboxStatus.TERMINATED:
+        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
+        return Response(
+            status=StatusCode.TERMINATED.value,
+            text='Mailbox was closed',
+        )
+
+    logger.debug(f'Listening for new messages on mailbox {mailbox_id}')
+    async with sse_response(request) as response:
+        while response.is_connected():  # pragma: no branch
+            try:
+                message = await manager.get(
+                    client,
+                    mailbox_id,
+                    timeout=timeout,
+                )
+                logger.debug(f'Message at mailbox {message.dest} retrieved.')
+                await response.send(message.model_dump_json())
+            except (MailboxTerminatedError, TimeoutError) as e:
+                # These messages are not necessarily a sign something is wrong
+                # If they were unexpected, the request will be retried and an
+                # informative error will be returned to the client. So here we
+                # can just log the response and end the event stream.
+                logger.info(f'Ending server side event stream for reason {e}.')
+                break
+
+    return response
+
+
 async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
     try:
         data = await request.json()
@@ -456,7 +539,8 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             text='Incorrect permissions',
         )
     except TimeoutError:
-        logger.exception(f'Receive from mailbox {mailbox_id} timed-out.')
+        # Timeouts are part of expected behavior so log warning, not error
+        logger.info(f'Receive from mailbox {mailbox_id} timed-out.')
         return Response(
             status=StatusCode.TIMEOUT.value,
             text='Request timeout',
@@ -545,6 +629,7 @@ def create_app(
     app.router.add_put('/message', _send_message_route)
     app.router.add_get('/message', _recv_message_route)
     app.router.add_get('/discover', _discover_route)
+    app.router.add_get('/mailbox/listen', _listen_mailbox_route)
 
     return app
 

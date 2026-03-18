@@ -6,6 +6,7 @@ import enum
 import logging
 import sys
 import uuid
+from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
 from typing import Any
 from typing import Generic
@@ -179,7 +180,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             **self._redis_info.kwargs,
         )
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
+    async def _recv(self, timeout: float | None = None) -> Message[Any]:
         _timeout = timeout if timeout is not None else 0
         status = await self._client.get(
             self._active_key(self.mailbox_id),
@@ -209,6 +210,13 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
             raise MailboxTerminatedError(self.mailbox_id)
         return Message.model_deserialize(raw[1])
+
+    async def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+        while True:
+            yield await self._recv(timeout)
 
     async def register_agent(
         self,

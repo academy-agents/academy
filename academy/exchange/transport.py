@@ -120,7 +120,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """Get an exchange factory."""
         ...
 
-    def listen(
+    async def listen(
         self,
         timeout: float | None = None,
     ) -> AsyncGenerator[Message[Any]]:
@@ -139,7 +139,9 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
             ExchangeError: Error returned by the exchange.
             TimeoutError: If a `timeout` was specified and exceeded.
         """
-        ...
+        # This fake yield is necessary for mypy to correctly infer the type
+        # of the function.
+        yield None  # type: ignore
 
     async def register_agent(
         self,

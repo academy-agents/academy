@@ -29,8 +29,6 @@ from collections.abc import Callable
 from collections.abc import Sequence
 from typing import Any
 
-from academy.exchange.transport import MailboxStatus
-
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
 
@@ -65,6 +63,7 @@ from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import BackendConfig
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.transport import MailboxStatus
 from academy.identifier import EntityId
 from academy.logging import init_logging
 from academy.message import Message

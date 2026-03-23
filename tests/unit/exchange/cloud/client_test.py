@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 import uuid
+from typing import Any
 from unittest import mock
 
 import aiohttp
@@ -19,10 +20,13 @@ from academy.exchange.cloud.authenticate import NullAuthenticator
 from academy.exchange.cloud.client import _raise_for_status
 from academy.exchange.cloud.client import spawn_http_exchange
 from academy.exchange.cloud.client_info import ClientInfo
+from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.message import Message
+from academy.message import PingRequest
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
-from testing.constant import TEST_SLEEP_INTERVAL
+from testing.constant import TEST_WAIT_TIMEOUT
 
 
 def test_factory_serialize(
@@ -37,10 +41,10 @@ def test_factory_serialize(
 async def test_recv_timeout(http_exchange_server: tuple[str, int]) -> None:
     host, port = http_exchange_server
     url = f'http://{host}:{port}'
-    factory = HttpExchangeFactory(url, request_timeout_s=TEST_SLEEP_INTERVAL)
+    factory = HttpExchangeFactory(url, request_timeout_s=TEST_WAIT_TIMEOUT)
     async with await factory._create_transport() as transport:
         with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-            await transport.recv(2 * TEST_SLEEP_INTERVAL)
+            await anext(transport.listen(2 * TEST_WAIT_TIMEOUT))
 
 
 @pytest.mark.asyncio
@@ -143,3 +147,98 @@ async def test_spawn_http_exchange() -> None:
     ) as factory:
         async with await factory._create_transport() as transport:
             assert isinstance(transport, HttpExchangeTransport)
+
+
+async def test_sse_event_parse(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    uid = UserId.new()
+    aid: AgentId[Any] = AgentId.new()
+    message = Message.create(
+        src=uid,
+        dest=aid,
+        body=PingRequest(),
+    )
+
+    event = [
+        'retry: 3000',
+        'id: 0',
+        f'data: {message.model_dump_json()}',
+    ]
+    async with await http_exchange_factory._create_transport() as transport:
+        parsed = await transport.parse(event)
+        assert parsed == message
+        assert transport._last_event_id == 0
+        assert transport._retry_time_ms == 3000  # noqa: PLR2004
+
+
+async def test_sse_event_parse_comment(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+
+    event = [': ping']
+    async with await http_exchange_factory._create_transport() as transport:
+        parsed = await transport.parse(event)
+        assert parsed is None
+
+
+async def test_sse_event_parse_unexpected_field(
+    http_exchange_factory: HttpExchangeFactory,
+    caplog,
+) -> None:
+    uid = UserId.new()
+    aid: AgentId[Any] = AgentId.new()
+    message = Message.create(
+        src=uid,
+        dest=aid,
+        body=PingRequest(),
+    )
+
+    event = [
+        'bad: field',
+        f'data: {message.model_dump_json()}',
+    ]
+
+    async with await http_exchange_factory._create_transport() as transport:
+        with caplog.at_level(logging.WARNING):
+            parsed = await transport.parse(event)
+            assert parsed == message
+        assert 'unexpected field in event stream' in caplog.text
+
+
+async def test_listen_receive_event(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    uid = UserId.new()
+    aid: AgentId[Any] = AgentId.new()
+    message = Message.create(
+        src=uid,
+        dest=aid,
+        body=PingRequest(),
+    )
+
+    event_stream: list[bytes] = []
+    for _ in range(3):
+        event_stream.extend(
+            [
+                f'data: {message.model_dump_json()}'.encode(),
+                b'',
+                b': ping',
+                b'',
+            ],
+        )
+
+    mock_response = mock.MagicMock()
+    mock_response.content.__aiter__.return_value = event_stream
+
+    async with await http_exchange_factory._create_transport() as transport:
+        with mock.patch.object(
+            transport._session,
+            'get',
+            new=mock.AsyncMock(),
+        ) as mock_get:
+            mock_get.return_value = mock_response
+            listener = transport.listen(timeout=TEST_WAIT_TIMEOUT)
+            for _ in range(3):
+                received = await anext(listener)
+                assert received == message

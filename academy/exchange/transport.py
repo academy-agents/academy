@@ -141,7 +141,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         # This fake yield is necessary for mypy to correctly infer the type
         # of the function.
-        yield None  # type: ignore
+        yield None  # type: ignore # pragma: no cover
 
     async def register_agent(
         self,

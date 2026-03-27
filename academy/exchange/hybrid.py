@@ -238,12 +238,16 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
-        fqp = f'{agent.__module__}.{agent.__name__}'
+        if isinstance(agent, str):
+            fqp = agent
+        else:
+            fqp = f'{agent.__module__}.{agent.__name__}'
+
         async for key in self._redis_client.scan_iter(
             f'{self._namespace}:agent:*',
         ):  # pragma: no branch

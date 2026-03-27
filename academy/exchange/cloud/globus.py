@@ -88,11 +88,14 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
 
     def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> GlobusHTTPResponse:
-        agent_str = f'{agent.__module__}.{agent.__name__}'
+        if isinstance(agent, str):
+            agent_str = agent
+        else:
+            agent_str = f'{agent.__module__}.{agent.__name__}'
         return self.request(
             'GET',
             self._discover_url,
@@ -359,7 +362,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         allow_subclasses: bool,
     ) -> GlobusHTTPResponse:
         return self.exchange_client.discover(
@@ -369,7 +372,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:

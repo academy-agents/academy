@@ -114,8 +114,9 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """Discover peer agents with a given agent.
 
         Args:
-            agent: Agent type of interest or qualified class name string (e.
-            g. 'mypackage.MyAgent')
+            agent: Agent type of interest or qualified class name string
+                (e.g. 'mypackage.MyAgent')
+
             allow_subclasses: Return agents implementing subclasses of the
                 agent.
 

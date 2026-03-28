@@ -104,8 +104,9 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
             of all agents registered to the exchange.
 
         Args:
-            agent: Agent type of interest or qualified class name string (e.g.
-            'mypackage.MyAgent')
+            agent: Agent type of interest or qualified class name string
+                (e.g.'mypackage.MyAgent')
+
             allow_subclasses: Return agents implementing subclasses of the
                 agent.
 

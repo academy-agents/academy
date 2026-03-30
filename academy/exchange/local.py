@@ -117,16 +117,21 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
         for aid, type_ in self._state.agents.items():
-            if agent is type_ or (
+            if isinstance(agent, str):
+                mro = type_._agent_mro()
+                if agent == mro[0] or (allow_subclasses and agent in mro):
+                    found.append(aid)
+            elif agent is type_ or (
                 allow_subclasses and issubclass(type_, agent)
             ):
                 found.append(aid)
+
         alive = tuple(
             aid for aid in found if not self._state.queues[aid].is_shutdown
         )

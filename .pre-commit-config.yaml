@@ -31,8 +31,8 @@ repos:
         additional_dependencies:
           - aiohttp
           - culsans
-          - globus-sdk>=3.46.0,<4
-          - proxystore>=0.8.0
+          - globus-sdk>=4,<5
+          - proxystore>=1.0.0
           - pydantic>=2,<3
           - redis
           - "tomli ; python_version<'3.11'"

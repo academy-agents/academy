@@ -3,9 +3,9 @@ from __future__ import annotations
 import typing as t
 import uuid
 
-from globus_sdk._testing.models import RegisteredResponse
-from globus_sdk._testing.models import ResponseSet
-from globus_sdk._testing.registry import register_response_set
+from globus_sdk.testing.models import RegisteredResponse
+from globus_sdk.testing.models import ResponseSet
+from globus_sdk.testing.registry import register_response_set
 from responses.matchers import json_params_matcher
 
 from testing.constant import TEST_PROJECT_ID

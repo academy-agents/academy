@@ -12,8 +12,8 @@ import pytest_asyncio
 import responses
 from aiohttp.web import AppRunner
 from aiohttp.web import TCPSite
-from globus_sdk._testing import load_response
-from globus_sdk._testing import load_response_set
+from globus_sdk.testing import load_response
+from globus_sdk.testing import load_response_set
 
 from academy.exchange import ExchangeFactory
 from academy.exchange import HttpExchangeFactory

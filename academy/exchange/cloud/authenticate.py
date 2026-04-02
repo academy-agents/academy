@@ -220,7 +220,7 @@ class GlobusAuthenticator:
         group_scope = GroupsScopes.view_my_groups_and_memberships
         dependent_tokens = self.auth_client.oauth2_get_dependent_tokens(
             token,
-            scope=group_scope,
+            scope=str(group_scope),
         )
         return dependent_tokens
 
@@ -238,7 +238,7 @@ class GlobusAuthenticator:
         group_info: list[str] = []
         try:
             groups_dep_token = dependent_tokens.by_scopes[
-                GroupsScopes.view_my_groups_and_memberships
+                str(GroupsScopes.view_my_groups_and_memberships)
             ]
         except KeyError:
             logger.warning(

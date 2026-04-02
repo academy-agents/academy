@@ -28,28 +28,6 @@ This Python script implements a multi-agent system for monitoring disease survei
 ### Notification Agent
 - Receives notification details and prints them (placeholder for actual notification system).
 
-## Requirements
-
-- Python 3.12+
-- Dependencies:
-  - `asyncio`
-  - `requests`
-  - `pandas`
-  - `langchain-openai`
-  - Academy agents framework (`academy`)
-
-## Installation
-
-1. Ensure you have Python 3.12 or higher installed.
-2. Install the required packages:
-   ```
-   pip install requests pandas langchain-openai
-   ```
-3. Install the Academy agents framework (assuming it's available via pip or from the project):
-   ```
-   pip install academy-agents
-   ```
-
 ## Configuration
 
 Before running the script, you need to set your OpenAI API key:

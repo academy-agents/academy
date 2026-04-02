@@ -93,7 +93,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
@@ -104,7 +104,9 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
             of all agents registered to the exchange.
 
         Args:
-            agent: Agent type of interest.
+            agent: Agent type of interest or qualified class name string
+                (e.g.'mypackage.MyAgent')
+
             allow_subclasses: Return agents implementing subclasses of the
                 agent.
 

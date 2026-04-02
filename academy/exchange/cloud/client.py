@@ -153,11 +153,16 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
-        agent_str = f'{agent.__module__}.{agent.__name__}'
+
+        if isinstance(agent, str):
+            agent_str = agent
+        else:
+            agent_str = f'{agent.__module__}.{agent.__name__}'
+
         async with self._session.get(
             self._discover_url,
             json={

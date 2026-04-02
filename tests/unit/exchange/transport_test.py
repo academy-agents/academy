@@ -220,6 +220,9 @@ async def test_transport_discover(
     did = (await transport.register_agent(C)).agent_id
     await transport.terminate(did)
 
+    astr = 'tests.unit.exchange.transport_test.A'
+    bstr = 'tests.unit.exchange.transport_test.B'
+
     found = await transport.discover(A)
     assert len(found) == 0
     found = await transport.discover(B, allow_subclasses=False)
@@ -227,6 +230,16 @@ async def test_transport_discover(
     found = await transport.discover(B, allow_subclasses=True)
     assert found == (bid, cid)
 
+    found = await transport.discover(astr)
+    assert len(found) == 0
+    found = await transport.discover(bstr, allow_subclasses=False)
+    assert found == (bid,)
+    found = await transport.discover(bstr, allow_subclasses=True)
+    assert found == (bid, cid)
+
     aid = (await transport.register_agent(A)).agent_id
     found = await transport.discover(Agent)
+    assert set(found) == {bid, cid, aid}
+
+    found = await transport.discover('academy.agent.Agent')
     assert set(found) == {bid, cid, aid}

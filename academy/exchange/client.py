@@ -107,14 +107,16 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         """Discover peer agents with a given agent.
 
         Args:
-            agent: Agent type of interest.
+            agent: Agent type of interest or qualified class name string
+                (e.g. 'mypackage.MyAgent')
+
             allow_subclasses: Return agents implementing subclasses of the
                 agent.
 

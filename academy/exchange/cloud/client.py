@@ -34,6 +34,7 @@ from academy.exception import UnauthorizedError
 from academy.exchange.cloud.app import _run
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.login import get_auth_headers
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
@@ -543,7 +544,11 @@ def spawn_http_exchange(
     Returns:
         Exchange interface connected to the spawned exchange.
     """
-    config = ExchangeServingConfig(host=host, port=port, log_level=level)
+    config = ExchangeServingConfig(
+        host=host,
+        port=port,
+        logger=LogConfig(level=level),
+    )
 
     # Fork is not safe in multi-threaded context.
     context = multiprocessing.get_context('spawn')

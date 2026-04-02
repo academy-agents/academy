@@ -65,7 +65,6 @@ from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import EntityId
-from academy.logging import init_logging
 from academy.message import Message
 
 logger = logging.getLogger(__name__)
@@ -636,8 +635,8 @@ def create_app(
 def _run(
     config: ExchangeServingConfig,
 ) -> None:
+    config.logger.init_logger()
     app = create_app(config.backend, config.auth)
-    init_logging(config.log_level, logfile=config.log_file)
     logger = logging.getLogger('root')
     logger.info(
         'Exchange listening on %s:%s (ctrl-C to exit)',

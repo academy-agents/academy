@@ -1,4 +1,4 @@
-# CEPi Agent System
+# CEPI Agent System
 
 ## Overview
 

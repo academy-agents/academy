@@ -369,8 +369,7 @@ def test_agent_on_startup_sync_error() -> None:
     ):
 
         class _TestAgent(Agent):
-            def agent_on_startup(self):
-                return super().agent_on_startup()
+            def agent_on_startup(self) -> None: ...  # type: ignore[override]
 
 
 def test_agent_on_shutdown_sync_error() -> None:
@@ -380,8 +379,7 @@ def test_agent_on_shutdown_sync_error() -> None:
     ):
 
         class _TestAgent(Agent):
-            def agent_on_shutdown(self):
-                return super().agent_on_shutdown()
+            def agent_on_shutdown(self) -> None: ...  # type: ignore[override]
 
 
 @pytest.mark.asyncio

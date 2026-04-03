@@ -227,7 +227,9 @@ async def test_client_reply_error_on_request(
                 body=PingRequest(),
             )
             await agent_client.send(message)
-            response = await agent_client._transport.recv()
+            response = await anext(
+                agent_client._transport.listen(timeout=TEST_WAIT_TIMEOUT),
+            )
             body = response.get_body()
             assert isinstance(body, ErrorResponse)
             assert isinstance(body.get_exception(), TypeError)

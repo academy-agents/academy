@@ -23,6 +23,7 @@ from academy.message import PingRequest
 from academy.message import SuccessResponse
 from testing.agents import EmptyAgent
 from testing.constant import TEST_SLEEP_INTERVAL
+from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
 
@@ -81,6 +82,7 @@ async def test_transport_status(
 async def test_transport_send_recv(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
+    listener = transport.listen(timeout=TEST_WAIT_TIMEOUT)
     for _ in range(3):
         message = Message.create(
             src=transport.mailbox_id,
@@ -88,7 +90,9 @@ async def test_transport_send_recv(
             body=PingRequest(),
         )
         await transport.send(message)
-        assert await transport.recv() == message
+
+        response = await anext(listener)
+        assert response == message
 
 
 @pytest.mark.asyncio
@@ -128,7 +132,7 @@ async def test_transport_recv_mailbox_closed(
 ) -> None:
     await transport.terminate(transport.mailbox_id)
     with pytest.raises(MailboxTerminatedError):
-        await transport.recv()
+        await anext(transport.listen(timeout=TEST_WAIT_TIMEOUT))
 
 
 @pytest.mark.asyncio
@@ -136,7 +140,7 @@ async def test_transport_recv_timeout(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     with pytest.raises(TimeoutError):
-        await transport.recv(timeout=TEST_SLEEP_INTERVAL)
+        await anext(transport.listen(timeout=TEST_SLEEP_INTERVAL))
 
 
 @pytest.mark.asyncio
@@ -179,15 +183,15 @@ async def test_transport_terminate_reply_pending_requests(
 
             # Check that transport1 gets a response to its request that
             # was terminated.
-            response = await transport1.recv()
+            listener = transport1.listen(TEST_WAIT_TIMEOUT)
+            response = await anext(listener)
             body = response.get_body()
             assert isinstance(body, ErrorResponse)
             assert response.tag == message1.tag
             assert isinstance(body.get_exception(), MailboxTerminatedError)
-
             # No other messages should have been received
             with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-                await transport1.recv(timeout=TEST_SLEEP_INTERVAL)
+                await anext(listener)
 
 
 @pytest.mark.asyncio
@@ -216,6 +220,9 @@ async def test_transport_discover(
     did = (await transport.register_agent(C)).agent_id
     await transport.terminate(did)
 
+    astr = 'tests.unit.exchange.transport_test.A'
+    bstr = 'tests.unit.exchange.transport_test.B'
+
     found = await transport.discover(A)
     assert len(found) == 0
     found = await transport.discover(B, allow_subclasses=False)
@@ -223,6 +230,16 @@ async def test_transport_discover(
     found = await transport.discover(B, allow_subclasses=True)
     assert found == (bid, cid)
 
+    found = await transport.discover(astr)
+    assert len(found) == 0
+    found = await transport.discover(bstr, allow_subclasses=False)
+    assert found == (bid,)
+    found = await transport.discover(bstr, allow_subclasses=True)
+    assert found == (bid, cid)
+
     aid = (await transport.register_agent(A)).agent_id
     found = await transport.discover(Agent)
+    assert set(found) == {bid, cid, aid}
+
+    found = await transport.discover('academy.agent.Agent')
     assert set(found) == {bid, cid, aid}

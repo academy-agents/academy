@@ -9,6 +9,7 @@ import multiprocessing
 import sys
 import time
 import uuid
+from collections.abc import AsyncGenerator
 from collections.abc import Generator
 from typing import Any
 from typing import Generic
@@ -24,6 +25,7 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 import aiohttp
+from aiohttp import hdrs
 
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
@@ -32,6 +34,7 @@ from academy.exception import UnauthorizedError
 from academy.exchange.cloud.app import _run
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.login import get_auth_headers
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
@@ -86,11 +89,14 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._mailbox_id = mailbox_id
         self._session = session
         self._info = connection_info
+        self._retry_time_ms: float = 1000
+        self._last_event_id: int | None = None
 
         base_url = self._info.url
         self._mailbox_url = f'{base_url}/mailbox'
         self._message_url = f'{base_url}/message'
         self._discover_url = f'{base_url}/discover'
+        self._listen_url = f'{base_url}/mailbox/listen'
 
     @classmethod
     async def new(
@@ -148,11 +154,16 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
-        agent_str = f'{agent.__module__}.{agent.__name__}'
+
+        if isinstance(agent, str):
+            agent_str = agent
+        else:
+            agent_str = f'{agent.__module__}.{agent.__name__}'
+
         async with self._session.get(
             self._discover_url,
             json={
@@ -174,45 +185,86 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ssl_verify=self._info.ssl_verify,
         )
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
-        start_time = time.time()
-        current_time = time.time()
-        while timeout is None or current_time - start_time < timeout:
+    async def parse(self, raw_lines: list[str]) -> Message[Any] | None:
+        data = ''
+        for line in raw_lines:
+            if line[0] == ':':
+                logger.debug(f'Received comment from server: {line[1:]}')
+                continue
+            fields = line.split(':', 1)
+            field_name = fields[0]
+            field_value = fields[1].lstrip(' ') if len(fields) > 1 else ''
+            if field_name == 'id':
+                self._last_event_id = int(field_value)
+            elif field_name == 'retry':
+                self._retry_time_ms = int(field_value)
+            elif field_name == 'data':
+                data += f'{field_value}\n'
+            else:
+                logger.warning(
+                    'Received unexpected field in event stream '
+                    f'{field_name}: {field_value}',
+                )
+        if data == '':
+            # This happens when the server sends a ping message to keep the
+            #  stream alive
+            return None
+        return Message.model_validate_json(data)
+
+    async def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+
+        prev_time = time.time()
+        headers: dict[str, str] = {
+            hdrs.ACCEPT: 'text/event-stream',
+            hdrs.CACHE_CONTROL: 'no-cache',
+        }
+        if self._last_event_id:  # pragma: no cover
+            # Right now we do not keep track of the last message we've seen
+            # because we don't store messages for retransmission.
+            headers['Last-Event-Id'] = str(self._last_event_id)
+
+        while True:
+            current_time = time.time()
             internal_timeout = (
                 self._info.request_timeout_s
                 if timeout is None
                 else min(
-                    (start_time + timeout) - current_time,
+                    (prev_time + timeout) - current_time,
                     self._info.request_timeout_s,
                 )
             )
-            try:
-                async with self._session.get(
-                    self._message_url,
-                    json={
-                        'mailbox': self.mailbox_id.model_dump_json(),
-                        'timeout': internal_timeout,
-                    },
-                    timeout=aiohttp.ClientTimeout(internal_timeout),
-                ) as response:
-                    _raise_for_status(response, self.mailbox_id)
-                    message_raw = (await response.json()).get('message')
-                    break
-            except asyncio.TimeoutError:
-                logger.debug(
-                    f'Failed to receive response in {internal_timeout} '
-                    'seconds.',
-                )
-                pass
+            response = await self._session.get(
+                self._listen_url,
+                json={
+                    'mailbox': self.mailbox_id.model_dump_json(),
+                    'timeout': internal_timeout,
+                },
+                headers=headers,
+            )
+            _raise_for_status(response, self.mailbox_id)
+
+            current_message_lines: list[str] = []
+            async for line_in_bytes in response.content:
+                line = line_in_bytes.decode('utf8')  # type: str
+                line = line.rstrip('\n').rstrip('\r')
+                if line == '':
+                    message = await self.parse(current_message_lines)
+                    current_message_lines = []
+                    if message is None:
+                        continue
+                    prev_time = time.time()
+                    yield message
+                    continue
+
+                current_message_lines.append(line)
 
             current_time = time.time()
-
-        else:
-            raise TimeoutError(
-                f'Failed to receive response in {timeout} seconds.',
-            )
-
-        return Message.model_validate_json(message_raw)
+            if timeout and current_time - prev_time > timeout:
+                raise TimeoutError()
+            await asyncio.sleep(self._retry_time_ms / 1000)
 
     async def register_agent(
         self,
@@ -492,7 +544,11 @@ def spawn_http_exchange(
     Returns:
         Exchange interface connected to the spawned exchange.
     """
-    config = ExchangeServingConfig(host=host, port=port, log_level=level)
+    config = ExchangeServingConfig(
+        host=host,
+        port=port,
+        logger=LogConfig(level=level),
+    )
 
     # Fork is not safe in multi-threaded context.
     context = multiprocessing.get_context('spawn')

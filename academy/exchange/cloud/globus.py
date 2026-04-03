@@ -8,6 +8,7 @@ import logging
 import sys
 import threading
 import uuid
+from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from datetime import timedelta
@@ -87,11 +88,14 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
 
     def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> GlobusHTTPResponse:
-        agent_str = f'{agent.__module__}.{agent.__name__}'
+        if isinstance(agent, str):
+            agent_str = agent
+        else:
+            agent_str = f'{agent.__module__}.{agent.__name__}'
         return self.request(
             'GET',
             self._discover_url,
@@ -358,7 +362,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         allow_subclasses: bool,
     ) -> GlobusHTTPResponse:
         return self.exchange_client.discover(
@@ -368,7 +372,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
@@ -387,10 +391,10 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def factory(self) -> GlobusExchangeFactory:
         return GlobusExchangeFactory(self.project, self.client_params)
 
-    def _recv(self, timeout: float | None) -> GlobusHTTPResponse:
+    def _recv_sync(self, timeout: float | None) -> GlobusHTTPResponse:
         return self.exchange_client.recv(self.mailbox_id, timeout)
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
+    async def _recv(self, timeout: float | None = None) -> Message[Any]:
         loop = asyncio.get_running_loop()
         try:
             try:
@@ -401,7 +405,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 response = await asyncio.wait_for(
                     loop.run_in_executor(
                         self.executor,
-                        self._recv,
+                        self._recv_sync,
                         timeout,
                     ),
                     timeout,
@@ -427,6 +431,13 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ) from e
 
         return Message.model_validate_json(message_raw)
+
+    async def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+        while True:
+            yield await self._recv(timeout)
 
     def _create_registration(
         self,

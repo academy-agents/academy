@@ -52,6 +52,7 @@ async def test_send_to_mailbox_direct(
     factory = hybrid_exchange_factory
     async with await factory._create_transport() as transport1:
         async with await factory._create_transport() as transport2:
+            listener = transport2.listen(timeout=TEST_CONNECTION_TIMEOUT)
             message = Message.create(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
@@ -59,9 +60,7 @@ async def test_send_to_mailbox_direct(
             )
             for _ in range(3):
                 await transport1.send(message)
-                response = await transport2.recv(
-                    timeout=TEST_CONNECTION_TIMEOUT,
-                )
+                response = await anext(listener)
                 assert response == message
 
 
@@ -82,8 +81,9 @@ async def test_send_to_mailbox_indirect(
             await transport1.send(message)
 
     async with await factory._create_transport(mailbox_id=aid) as mailbox:
+        listener = mailbox.listen(timeout=TEST_CONNECTION_TIMEOUT)
         for _ in range(messages):
-            received = await mailbox.recv(timeout=TEST_CONNECTION_TIMEOUT)
+            received = await anext(listener)
             assert received == message
 
 
@@ -124,13 +124,14 @@ async def test_send_to_mailbox_bad_cached_address(
         async with await factory1._create_transport(
             mailbox_id=aid,
         ) as transport2:
+            listener = transport2.listen(timeout=TEST_CONNECTION_TIMEOUT)
             message = Message.create(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
                 body=PingRequest(),
             )
             await transport1.send(message)
-            received = await transport2.recv(timeout=TEST_CONNECTION_TIMEOUT)
+            received = await anext(listener)
             assert received == message
 
         # Address of mailbox is now in the exchanges cache but
@@ -147,10 +148,11 @@ async def test_send_to_mailbox_bad_cached_address(
         async with await factory2._create_transport(
             mailbox_id=aid,
         ) as transport2:
+            listener = transport2.listen(timeout=TEST_CONNECTION_TIMEOUT)
             # This send will try the cached address, fail, catch the error,
             # and retry via redis.
             await transport1.send(message)
-            received = await transport2.recv(timeout=TEST_CONNECTION_TIMEOUT)
+            received = await anext(listener)
             assert received == message
 
 

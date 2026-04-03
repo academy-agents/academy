@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import pathlib
 
 import pytest
@@ -9,8 +10,40 @@ from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.config import PythonBackendConfig
 from academy.exchange.cloud.config import RedisBackendConfig
+
+
+# Like the logging tests, these are for coverage to make
+# sure the code is functional.
+def test_log_config_default() -> None:
+    config = LogConfig()
+    config.init_logger()
+
+    logger = logging.getLogger()
+    logger.info('Test logging')
+
+
+def test_log_config_file(tmp_path: pathlib.Path) -> None:
+    filepath = tmp_path / 'log.txt'
+    config = LogConfig(logfile=str(filepath))
+    config.init_logger()
+
+    logger = logging.getLogger()
+    logger.info('Test logging')
+
+
+def test_log_config_file_rotation(tmp_path: pathlib.Path) -> None:
+    filepath = tmp_path / 'log.txt'
+    config = LogConfig(
+        logfile=str(filepath),
+        rotate=True,
+    )
+    config.init_logger()
+
+    logger = logging.getLogger()
+    logger.info('Test logging')
 
 
 def test_auth_config_default() -> None:

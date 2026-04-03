@@ -107,14 +107,16 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         """Discover peer agents with a given agent.
 
         Args:
-            agent: Agent type of interest.
+            agent: Agent type of interest or qualified class name string
+                (e.g. 'mypackage.MyAgent')
+
             allow_subclasses: Return agents implementing subclasses of the
                 agent.
 
@@ -205,7 +207,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         await self._transport.terminate(uid)
 
     async def _listen_for_messages(self) -> None:
-        # Transport recv does not necessarily wait on io and neither
+        # Transport listen does not necessarily wait on io and neither
         # does _handle_message. If we are persistently receiving messages,
         # this means the event loop might always be occupied by this task.
         # In python >= 3.12, we use the eager task factory to avoid this.
@@ -215,22 +217,22 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             loop = asyncio.get_event_loop()
             loop.set_task_factory(asyncio.eager_task_factory)
 
-        while True:
-            try:
-                message = await self._transport.recv()
-            except (asyncio.CancelledError, MailboxTerminatedError):
-                break
-            logger.debug(
-                'Received %s from %s for %s',
-                type(message.body).__name__,
-                message.src,
-                self.client_id,
-                extra=message.log_extra(),
-            )
-            await self._handle_message(message)
+        with contextlib.suppress(
+            asyncio.CancelledError,
+            MailboxTerminatedError,
+        ):
+            async for message in self._transport.listen():
+                logger.debug(
+                    'Received %s from %s for %s',
+                    type(message.body).__name__,
+                    message.src,
+                    self.client_id,
+                    extra=message.log_extra(),
+                )
+                await self._handle_message(message)
 
-            if sys.version_info < (3, 12):  # pragma: <3.12 cover
-                await asyncio.sleep(0)
+                if sys.version_info < (3, 12):  # pragma: <3.12 cover
+                    await asyncio.sleep(0)
 
     @abc.abstractmethod
     async def _handle_message(self, message: Message[Any]) -> None: ...
@@ -350,13 +352,16 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         async with self._close_lock:
             if self._closed:
                 return
+            # Stop listening for incoming messages.
+            await self._stop_listener_task()
 
+            # Delete mailbox
             await self._transport.terminate(self.client_id)
             logger.info(
                 f'Terminated mailbox for {self.client_id}',
                 extra={'academy.mailbox_id': self.client_id},
             )
-            await self._stop_listener_task()
+
             await self._transport.close()
             self._closed = True
             logger.info(
@@ -397,4 +402,8 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
             self._listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._listener_task
+            logger.info(
+                f'Stop listening on mailbox {self.client_id}',
+                extra={'academy.mailbox_id': self.client_id},
+            )
             self._listener_task = None

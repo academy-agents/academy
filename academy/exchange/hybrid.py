@@ -8,6 +8,7 @@ import dataclasses
 import logging
 import sys
 import uuid
+from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
 from collections.abc import Iterable
 from typing import Any
@@ -237,12 +238,16 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         found: list[AgentId[Any]] = []
-        fqp = f'{agent.__module__}.{agent.__name__}'
+        if isinstance(agent, str):
+            fqp = agent
+        else:
+            fqp = f'{agent.__module__}.{agent.__name__}'
+
         async for key in self._redis_client.scan_iter(
             f'{self._namespace}:agent:*',
         ):  # pragma: no branch
@@ -273,7 +278,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             namespace=self._namespace,
         )
 
-    async def recv(self, timeout: float | None = None) -> Message[Any]:
+    async def _recv(self, timeout: float | None = None) -> Message[Any]:
         try:
             return await asyncio.wait_for(
                 self._messages.get(),
@@ -286,6 +291,13 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ) from None
         except QueueShutDown:
             raise MailboxTerminatedError(self.mailbox_id) from None
+
+    async def listen(
+        self,
+        timeout: float | None = None,
+    ) -> AsyncGenerator[Message[Any]]:
+        while True:
+            yield await self._recv(timeout)
 
     async def register_agent(
         self,

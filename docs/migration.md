@@ -10,6 +10,20 @@ All future changes—including breaking changes and deprecations—will be docum
 
 Please refer to our [Version Policy](version-policy.md) for more details on when we make breaking changes.
 
+## Academy v0.4
+
+## Globus SDK version has been updated
+
+If your project depends on both Globus SDK and Academy, you will need to use matching versions. To upgrade to Academy v0.4, we now need globus-sdk>=4.0.  See the migration guide for the [globus-sdk](https://globus-sdk-python.readthedocs.io/en/stable/upgrading.html).
+
+## The HttpExchangeFactory points to a hosted default
+
+When you instantiate the `HttpExchangeFactory` with no arguments, it points to `https://exchange.academy-agents.org`, a free hosted http exchange authenticated with Globus. The previous behavior is the same if you continue to pass the address of the exchange (i.e. `localhost` or your own url).
+
+## ExchangeClient.recv is now ExchangeClient.listen
+
+We've changed to an event driven model to listening for messages on the exchange. If you were using `await client.recv` to fetch messages from the exchange, you now should use `async for message in client.listen(): ...`, or to fetch individual messages: `listener = client.listen(); message = await anext(listener)`. If you were only receiving messages through the `manager` or through agents (i.e. actions, shutdown, ping), this change will not be visible.
+
 ## Academy v0.3
 
 ### Handle types have been simplified

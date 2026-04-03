@@ -88,7 +88,7 @@ async def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=LogConfig(level=logging.ERROR),
+        logger=LogConfig(level=logging.ERROR),
     )
     config.certfile = ssl_context.certfile
     config.keyfile = ssl_context.keyfile

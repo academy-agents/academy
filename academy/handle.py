@@ -28,10 +28,14 @@ from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 
 if TYPE_CHECKING:
+    from academy.agent import Agent
     from academy.agent import AgentT
     from academy.exchange import ExchangeClient
+
+    AgentT_co = TypeVar('AgentT_co', bound=Agent, covariant=True)
 else:
     # Agent is only used in the bounding of the AgentT TypeVar.
+    AgentT_co = TypeVar('AgentT_co', covariant=True)
     AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
@@ -45,7 +49,7 @@ exchange_context: ContextVar[ExchangeClient[Any]] = ContextVar(
 )
 
 
-class Handle(Generic[AgentT]):
+class Handle(Generic[AgentT_co]):
     """Handle to a remote agent.
 
     Internally, handles use an
@@ -82,7 +86,7 @@ class Handle(Generic[AgentT]):
 
     def __init__(
         self,
-        agent_id: AgentId[AgentT],
+        agent_id: AgentId[AgentT_co],
         *,
         exchange: ExchangeClient[Any] | None = None,
         ignore_context: bool = False,

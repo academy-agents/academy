@@ -28,7 +28,7 @@ def register_new_exchange():
         auth_params=GlobusAuthorizationParameters(prompt='login'),
     )
     auth_client = AuthClient(app=app)
-    userinfo = auth_client.oauth2_userinfo()
+    userinfo = auth_client.userinfo()
     identity_id = userinfo['sub']
     email = userinfo['email']
 

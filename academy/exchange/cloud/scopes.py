@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 
-from globus_sdk.scopes import ScopeBuilder
+from globus_sdk.scopes import Scope
+from globus_sdk.scopes import StaticScopeCollection
 
 ACADEMY_EXCHANGE_CLIENT_ID_ENV_NAME = 'ACADEMY_EXCHANGE_CLIENT_ID'
 DEFAULT_EXCHANGE_CLIENT_ID = 'ca1e2fbf-4e73-40a6-b2ab-c9458e5fcf99'
@@ -42,8 +43,11 @@ def get_academy_exchange_scope_id() -> str:
         return DEFAULT_EXCHANGE_SCOPE_ID
 
 
-AcademyExchangeScopes = ScopeBuilder(
-    # "Academy Exchange Server" application client ID
-    get_academy_exchange_client_id(),
-    known_url_scopes=['academy_exchange'],
-)
+class _AcademyExchangeScopes(StaticScopeCollection):
+    resource_server = get_academy_exchange_client_id()
+    academy_exchange = Scope(
+        f'https://auth.globus.org/scopes/{resource_server}/academy_exchange',
+    )
+
+
+AcademyExchangeScopes = _AcademyExchangeScopes()

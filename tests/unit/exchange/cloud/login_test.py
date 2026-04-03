@@ -11,7 +11,7 @@ import pytest
 from globus_sdk.globus_app import ClientApp
 from globus_sdk.globus_app import GlobusAppConfig
 from globus_sdk.globus_app import UserApp
-from globus_sdk.tokenstorage import MemoryTokenStorage
+from globus_sdk.token_storage import MemoryTokenStorage
 
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_SECRET_ENV_NAME

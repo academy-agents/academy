@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 import responses
-from globus_sdk._testing import load_response
+from globus_sdk.testing import load_response
 
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.globus import AcademyGlobusClient

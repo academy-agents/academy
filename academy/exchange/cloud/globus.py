@@ -34,6 +34,7 @@ from globus_sdk.authorizers import GlobusAuthorizer
 from globus_sdk.exc import GlobusAPIError
 from globus_sdk.gare import GlobusAuthorizationParameters
 from globus_sdk.scopes import AuthScopes
+from globus_sdk.transport.requests import RequestsTransport
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -238,6 +239,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._local_data.exchange_client = AcademyGlobusClient(
                 app=self._app,
                 authorizer=self._authorizer,
+                transport=RequestsTransport(http_timeout=-1),
                 **self.client_params,
             )
             return self._local_data.exchange_client

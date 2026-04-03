@@ -6,6 +6,7 @@ import abc
 import logging
 import pathlib
 import sys
+from logging.handlers import TimedRotatingFileHandler
 from typing import Any
 from typing import BinaryIO
 from typing import Literal
@@ -24,6 +25,7 @@ from pydantic import Field
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
+from academy.logging import _Formatter
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     import tomllib
@@ -32,6 +34,83 @@ else:  # pragma: <3.11 cover
 
 
 BaseModelT = TypeVar('BaseModelT', bound=BaseModel)
+
+
+class LogConfig(BaseModel):
+    """Log config for exchange server.
+
+    Attributes:
+        level: Console log verbosity.
+        logfile: Base file name to write to.
+        logfile_level: Verbosity of logs in file.
+        rotate: Weather to rotate logs or not.
+        rotation_interval_days: How often in days to rotate logs.
+        backup_count: How many previous log files to keep
+    """
+
+    model_config = ConfigDict(extra='forbid')
+    level: int | str = logging.WARNING
+    logfile: str | None = None
+    logfile_level: int | str = logging.INFO
+    rotate: bool = False
+    rotation_interval_days: int = Field(default=1, gt=0)
+    backup_count: int = Field(default=7, gt=0)
+
+    def init_logger(self) -> logging.Logger:
+        """Initialize logger from this configuration."""
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setFormatter(_Formatter())
+        stdout_handler.setLevel(self.level)
+        handlers: list[logging.Handler] = [stdout_handler]
+
+        if self.logfile is not None:
+            logfile_level = (
+                self.level
+                if self.logfile_level is None
+                else self.logfile_level
+            )
+            path = pathlib.Path(self.logfile)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            file_handler: logging.Handler
+            if self.rotate:
+                file_handler = TimedRotatingFileHandler(
+                    path,
+                    when='d',
+                    interval=self.rotation_interval_days,
+                    backupCount=self.backup_count,
+                )
+            else:
+                file_handler = logging.FileHandler(path)
+
+            file_handler.setFormatter(_Formatter(color=False))
+            file_handler.setLevel(logfile_level)
+            handlers.append(file_handler)
+
+        logging.basicConfig(
+            datefmt='%Y-%m-%d %H:%M:%S',
+            level=logging.NOTSET,
+            handlers=handlers,
+        )
+
+        # This needs to be after the configuration of the root logger because
+        # warnings get logged to a 'py.warnings' logger.
+        logging.captureWarnings(True)
+
+        logger = logging.getLogger()
+        logger.info(
+            (
+                'Configured logger (stdout-level=%s, '
+                'logfile=%s, logfile-level=%s)'
+            ),
+            logging.getLevelName(self.level)
+            if isinstance(self.level, int)
+            else self.level,
+            self.logfile,
+            logging.getLevelName(self.logfile_level)
+            if isinstance(self.logfile_level, int)
+            else self.logfile_level,
+        )
+        return logger
 
 
 class ExchangeAuthConfig(BaseModel):
@@ -128,8 +207,7 @@ class ExchangeServingConfig(BaseModel):
     keyfile: str | None = None
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
-    log_file: str | None = None
-    log_level: int | str = logging.INFO
+    logger: LogConfig = Field(default_factory=LogConfig)
 
     @classmethod
     def from_toml(cls, filepath: str | pathlib.Path) -> Self:

@@ -25,6 +25,7 @@ from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.config import PythonBackendConfig
 from academy.identifier import AgentId
 from academy.identifier import UserId
@@ -64,7 +65,7 @@ async def test_server_run() -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
+        logger=LogConfig(level=logging.ERROR),
     )
 
     context = multiprocessing.get_context('spawn')
@@ -87,7 +88,7 @@ async def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
+        log_level=LogConfig(level=logging.ERROR),
     )
     config.certfile = ssl_context.certfile
     config.keyfile = ssl_context.keyfile

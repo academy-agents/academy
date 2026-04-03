@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#academy-v03" class="md-skip">
+        <a href="#academy-v04" class="md-skip">
           Skip to content
         </a>
       
@@ -606,6 +606,42 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#academy-v04" class="md-nav__link">
+    <span class="md-ellipsis">
+      Academy v0.4
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#globus-sdk-version-has-been-updated" class="md-nav__link">
+    <span class="md-ellipsis">
+      Globus SDK version has been updated
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-httpexchangefactory-points-to-a-hosted-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      The HttpExchangeFactory points to a hosted default
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exchangeclientrecv-is-now-exchangeclientlisten" class="md-nav__link">
+    <span class="md-ellipsis">
+      ExchangeClient.recv is now ExchangeClient.listen
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#academy-v03" class="md-nav__link">
@@ -2042,6 +2078,42 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#academy-v04" class="md-nav__link">
+    <span class="md-ellipsis">
+      Academy v0.4
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#globus-sdk-version-has-been-updated" class="md-nav__link">
+    <span class="md-ellipsis">
+      Globus SDK version has been updated
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-httpexchangefactory-points-to-a-hosted-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      The HttpExchangeFactory points to a hosted default
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exchangeclientrecv-is-now-exchangeclientlisten" class="md-nav__link">
+    <span class="md-ellipsis">
+      ExchangeClient.recv is now ExchangeClient.listen
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#academy-v03" class="md-nav__link">
     <span class="md-ellipsis">
       Academy v0.3
@@ -2183,6 +2255,13 @@
 After v1.0, this guide will be retired.
 All future changes—including breaking changes and deprecations—will be documented in the project changelog.</p>
 <p>Please refer to our <a href="../version-policy/">Version Policy</a> for more details on when we make breaking changes.</p>
+<h2 id="academy-v04">Academy v0.4<a class="headerlink" href="#academy-v04" title="Permanent link">&para;</a></h2>
+<h2 id="globus-sdk-version-has-been-updated">Globus SDK version has been updated<a class="headerlink" href="#globus-sdk-version-has-been-updated" title="Permanent link">&para;</a></h2>
+<p>If your project depends on both Globus SDK and Academy, you will need to use matching versions. To upgrade to Academy v0.4, we now need globus-sdk&gt;=4.0.  See the migration guide for the <a href="https://globus-sdk-python.readthedocs.io/en/stable/upgrading.html">globus-sdk</a>.</p>
+<h2 id="the-httpexchangefactory-points-to-a-hosted-default">The HttpExchangeFactory points to a hosted default<a class="headerlink" href="#the-httpexchangefactory-points-to-a-hosted-default" title="Permanent link">&para;</a></h2>
+<p>When you instantiate the <code>HttpExchangeFactory</code> with no arguments, it points to <code>https://exchange.academy-agents.org</code>, a free hosted http exchange authenticated with Globus. The previous behavior is the same if you continue to pass the address of the exchange (i.e. <code>localhost</code> or your own url).</p>
+<h2 id="exchangeclientrecv-is-now-exchangeclientlisten">ExchangeClient.recv is now ExchangeClient.listen<a class="headerlink" href="#exchangeclientrecv-is-now-exchangeclientlisten" title="Permanent link">&para;</a></h2>
+<p>We've changed to an event driven model to listening for messages on the exchange. If you were using <code>await client.recv</code> to fetch messages from the exchange, you now should use <code>async for message in client.listen(): ...</code>, or to fetch individual messages: <code>listener = client.listen(); message = await anext(listener)</code>. If you were only receiving messages through the <code>manager</code> or through agents (i.e. actions, shutdown, ping), this change will not be visible.</p>
 <h2 id="academy-v03">Academy v0.3<a class="headerlink" href="#academy-v03" title="Permanent link">&para;</a></h2>
 <h3 id="handle-types-have-been-simplified">Handle types have been simplified<a class="headerlink" href="#handle-types-have-been-simplified" title="Permanent link">&para;</a></h3>
 <p>The <code>Handle</code> protocol and <code>UnboundRemoteHandle</code> types have been removed.

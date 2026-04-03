@@ -71,17 +71,14 @@ async def main() -> int:
 
         text = 'DEADBEEF'
         expected = 'feebdaed'
-
-        for _ in range(2):
-            logger.info(
-                'Invoking process("%s") on %s',
-                text,
-                coordinator.agent_id,
-            )
-            result = await coordinator.process(text)
-            assert result == expected
-            logger.info('Received result: "%s"', result)
-            await asyncio.sleep(60)
+        logger.info(
+            'Invoking process("%s") on %s',
+            text,
+            coordinator.agent_id,
+        )
+        result = await coordinator.process(text)
+        assert result == expected
+        logger.info('Received result: "%s"', result)
 
         # Upon exit, the Manager context will instruct each agent to shutdown,
         # closing their respective handles, and shutting down the executors.

@@ -451,7 +451,10 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         if additional_headers is None:
             additional_headers = {}
 
-        if url == DEFAULT_EXCHANGE_URL:
+        if (
+            url == DEFAULT_EXCHANGE_URL
+            and 'Authorization' not in additional_headers
+        ):
             auth_method = 'globus'
 
         additional_headers |= get_auth_headers(auth_method)

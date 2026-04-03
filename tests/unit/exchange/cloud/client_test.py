@@ -65,7 +65,30 @@ def test_default_exchange():
         'academy.exchange.cloud.client.get_auth_headers',
     ) as get_auth_headers:
         HttpExchangeFactory()
-        get_auth_headers.assert_called_with('globus')
+        get_auth_headers.assert_called_once_with('globus')
+
+
+def test_default_exchange_from_transport():
+    uid = UserId.new()
+    with mock.patch(
+        'academy.exchange.cloud.client.get_auth_headers',
+    ) as get_auth_headers:
+        get_auth_headers.return_value = {'Authorization': '<token>'}
+        factory = HttpExchangeFactory()
+        transport = HttpExchangeTransport(
+            uid,
+            mock.Mock(),
+            factory._info,
+        )
+        get_auth_headers.assert_called_once_with('globus')
+
+    with mock.patch(
+        'academy.exchange.cloud.client.get_auth_headers',
+    ) as get_auth_headers:
+        # Check recreating the factory does not cause reauthentication
+        recreated_factory = transport.factory()
+        get_auth_headers.assert_called_once_with(None)
+        assert recreated_factory._info == factory._info
 
 
 def test_raise_for_status_error_conversion() -> None:

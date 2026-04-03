@@ -481,6 +481,8 @@ async def test_handle_logs_actions_success(
             'start',
             'sending',
             'waiting',
+            'execute_start',
+            'execute_success',
             'success',
         }, 'Log records should show successful-path states'
 
@@ -507,6 +509,8 @@ async def test_handle_logs_actions_fails(
             'start',
             'sending',
             'waiting',
+            'execute_start',
+            'execute_exception',
             'exception',
         }, 'Log records should show failure-path states'
 

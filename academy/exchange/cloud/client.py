@@ -54,6 +54,8 @@ else:
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_EXCHANGE_URL = 'https://exchange.academy-agents.org'
+
 
 class _HttpConnectionInfo(NamedTuple):
     url: str
@@ -440,7 +442,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
 
     def __init__(
         self,
-        url: str = 'https://exchange.academy-agents.org',
+        url: str = DEFAULT_EXCHANGE_URL,
         auth_method: Literal['globus'] | None = None,
         additional_headers: dict[str, str] | None = None,
         request_timeout_s: float = 60,
@@ -448,6 +450,10 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
     ) -> None:
         if additional_headers is None:
             additional_headers = {}
+
+        if url == DEFAULT_EXCHANGE_URL:
+            auth_method = 'globus'
+
         additional_headers |= get_auth_headers(auth_method)
 
         self._info = _HttpConnectionInfo(

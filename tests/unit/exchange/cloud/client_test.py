@@ -60,6 +60,14 @@ async def test_additional_headers(
         assert 'Authorization' in transport._session.headers
 
 
+def test_default_exchange():
+    with mock.patch(
+        'academy.exchange.cloud.client.get_auth_headers',
+    ) as get_auth_headers:
+        HttpExchangeFactory()
+        get_auth_headers.assert_called_with('globus')
+
+
 def test_raise_for_status_error_conversion() -> None:
     class _MockResponse(aiohttp.ClientResponse):
         def __init__(self, status: int) -> None:

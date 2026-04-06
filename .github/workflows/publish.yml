@@ -1,3 +1,53 @@
+# Release process (read carefully):
+#
+#   1. Choose the next semver version number (e.g., 1.3.2) with optional
+#      release candidate segments. See: https://peps.python.org/pep-0440/
+#
+#   2. Open and merge any PRs required for documentation updates
+#      (e.g., migration guides for version bumps with breaking changes).
+#      Documentation changes must be made *before* running this publish
+#      workflow for the changes to be included in the tagged version of
+#      the docs site.
+#
+#   3. Tag the target commit on main for the release. Note that
+#      setuptools_scm requires the version tag is prepended with "v".
+#      This command creates a signed tag (recommended) using your GPG key.
+#
+#      export VERSION=v1.3.2
+#      git tag -s $VERSION <SHORT_COMMIT_HASH> -m "Academy $VERSION"
+#      git push origin $VERSION
+#
+#   4. Create a new release on GitHub corresponding to the tag. Releases
+#      will trigger this publish workflow that will publish the package
+#      to PyPI and push a new version of the docs.
+#
+#      * Go to https://github.com/academy-agents/academy/releases
+#      * Click "Draft a new release"
+#      * Select the tag you created
+#
+#      Official releases:
+#
+#        * Select the previous tag as the previous *official* release. For
+#          example, use v0.4.0 as the previous release tag and NOT v0.4.0rc1.
+#          This is necessary for generating the diff link on the release
+#          correctly
+#        * Click "Generate release notes"
+#        * Add an "Upgrade Steps" section at the top (see previous releases
+#          for examples)
+#        * Review the generated notes and edit as needed. PRs are organized
+#          by tag, but some PRs will be missing tags and need to be moved
+#          from the "Other Changes" section to the correct section
+#        * Select "Set as the latest release"
+#        * Publish the release
+#
+#     Pre releases:
+#
+#        * Do NOT generate release notes. A description of "Development
+#          pre-release for <VERSION>" is sufficient
+#        * Leave the previous tag as "auto"
+#        * Select "Set as a pre-release"
+#        * Publish the release
+#
 name: publish
 
 on:
@@ -18,31 +68,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract package version from pyproject.toml
+      - name: Extract package version from tag
         run: |
-          echo "PACKAGE_VERSION=$(grep -Po '^version\s*=\s*\"\K.*?(?=\")' pyproject.toml)" >> $GITHUB_ENV
-          echo "Found version in pyproject.toml: ${{ env.PACKAGE_VERSION }}"
-
-      - name: Check package version is PEP440 compliant
-        # This is only a partial PEP440 match, it just checks the major, minor
-        # patch, but not any optional suffixes.
-        run: echo "${{ env.PACKAGE_VERSION }}" | grep -P "^\d+\.\d+\.\d+.*$"
-
-      - name: Check version matches release tag
-        run: |
-          if [ "${{ format('v{0}', env.PACKAGE_VERSION) }}" != "${{ github.event.release.tag_name }}" ]
-          then
-            echo "v\$\{PACKAGE_VERSION\} = v${{ env.PACKAGE_VERSION }} does not match tag name: ${{ github.event.release.tag_name }}"
-            exit 1
-          fi
-
-      - name: Check version matches release title
-        run: |
-          if [ "${{ format('Academy v{0}', env.PACKAGE_VERSION) }}" != "${{ github.event.release.name }}" ]
-          then
-            echo "Academy v\$\{PACKAGE_VERSION\} = Academy v${{ env.PACKAGE_VERSION }} does not match release title: ${{ github.event.release.name }}"
-            exit 1
-          fi
+          # Removes 'v' prefix from tag (e.g., v1.0.0 -> 1.0.0)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version from tag: $VERSION"
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v6

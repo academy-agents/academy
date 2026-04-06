@@ -6,7 +6,7 @@ site_description: Build and Deploy Stateful Agents across Federated Resources
 repo_name: academy-agents/academy
 repo_url: https://github.com/academy-agents/academy
 
-copyright: Copyright &copy; 2024—Present by <a target="_blank" href="https://gregpauloski.com">Greg Pauloski</a> and <a target="_blank" href="https://labs.globus.org">Globus Labs</a>
+copyright: Copyright &copy; 2024—Present by <a target="_blank" href="https://labs.globus.org">Globus Labs</a>
 
 theme:
   name: material

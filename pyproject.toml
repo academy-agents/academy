@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "academy-py"
-version = "0.4.0"
 authors = [{name = "Globus Labs"}]
 description = "Build and deploy stateful agents across federated resources."
+dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -207,3 +207,5 @@ convention = "google"
 [tool.setuptools.packages.find]
 exclude = ["tests*", "testing*"]
 namespaces = false
+
+[tool.setuptools_scm]

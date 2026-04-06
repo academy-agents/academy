@@ -1,23 +1,17 @@
 [build-system]
-requires = ["setuptools>=64.0", "setuptools_scm"]
+requires = ["setuptools>=77.0", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "academy-py"
-authors = [
-    {name = "Greg Pauloski", email = "jgpauloski@uchicago.edu"},
-    {name = "Globus Labs"},
-]
-maintainers = [
-    {name = "Greg Pauloski", email = "jgpauloski@uchicago.edu"},
-]
+authors = [{name = "Globus Labs"}]
 description = "Build and deploy stateful agents across federated resources."
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",

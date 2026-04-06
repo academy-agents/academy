@@ -140,6 +140,14 @@ async def _share_mailbox_route(request: Request) -> Response:
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
         )
+
+    logger.info(
+        f'Sharing mailbox {mailbox_id} with group {group_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.group_id': group_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -232,6 +240,14 @@ async def _remove_mailbox_shares_route(request: Request) -> Response:
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
         )
+
+    logger.info(
+        f'Unsharing mailbox {mailbox_id} with group {group_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.group_id': group_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -265,6 +281,15 @@ async def _create_mailbox_route(request: Request) -> Response:
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
+
+    logger.info(
+        f'Creating mailbox {mailbox_id} of type {agent}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.agent': agent,
+            'academy.client_id': client.client_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -296,6 +321,13 @@ async def _terminate_route(request: Request) -> Response:
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
+
+    logger.info(
+        f'Terminating mailbox {mailbox_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -400,8 +432,17 @@ async def _send_message_route(request: Request) -> Response:
             status=StatusCode.TOO_LARGE.value,
             text=f'Message of size {e.size} larger than limit {e.limit}.',
         )
-    else:
-        return Response(status=StatusCode.OKAY.value)
+
+    logger.info(
+        f'Placing message in mailbox {message.src} from {message.src}',
+        extra={
+            'academy.message.event': 'PUT',
+            'academy.message.src': message.src,
+            'academy.message.dest': message.dest,
+            'academy.message.size': sys.getsizeof(message.body),
+        },
+    )
+    return Response(status=StatusCode.OKAY.value)
 
 
 async def _listen_mailbox_route(
@@ -470,7 +511,17 @@ async def _listen_mailbox_route(
                     mailbox_id,
                     timeout=timeout,
                 )
-                logger.debug(f'Message at mailbox {message.dest} retrieved.')
+                logger.info(
+                    (
+                        f'Fetching message mailbox {message.dest} '
+                        f'from {message.src}',
+                    ),
+                    extra={
+                        'academy.message.event': 'GET',
+                        'academy.message.src': message.src,
+                        'academy.message.dest': message.dest,
+                    },
+                )
                 await response.send(message.model_dump_json())
             except (MailboxTerminatedError, TimeoutError) as e:
                 # These messages are not necessarily a sign something is wrong
@@ -543,8 +594,16 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             status=StatusCode.TIMEOUT.value,
             text='Request timeout',
         )
-    else:
-        return json_response({'message': message.model_dump_json()})
+
+    logger.info(
+        f'Fetching message mailbox {message.dest} from {message.src}',
+        extra={
+            'academy.message.event': 'GET',
+            'academy.message.src': message.src,
+            'academy.message.dest': message.dest,
+        },
+    )
+    return json_response({'message': message.model_dump_json()})
 
 
 def authenticate_factory(

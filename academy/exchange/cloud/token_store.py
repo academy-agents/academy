@@ -4,9 +4,9 @@ import pathlib
 import threading
 from collections.abc import Mapping
 
-from globus_sdk.tokenstorage import SQLiteTokenStorage
-from globus_sdk.tokenstorage import TokenStorage
-from globus_sdk.tokenstorage import TokenStorageData
+from globus_sdk.token_storage import SQLiteTokenStorage
+from globus_sdk.token_storage import TokenStorage
+from globus_sdk.token_storage import TokenStorageData
 
 
 class SafeSQLiteTokenStorage(TokenStorage):

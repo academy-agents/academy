@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import pickle
+import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest import mock
@@ -35,6 +36,11 @@ from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
 from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP_INTERVAL
+
+if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+    pass
+else:  # pragma: <3.11 cover
+    pass
 
 
 @pytest.mark.asyncio
@@ -445,13 +451,13 @@ async def test_handle_ignore_context_error(
         Handle(registration.agent_id, ignore_context=True)
 
 
-def assert_one_invocation_id(caplog) -> None:
+def assert_one_tag_id(caplog) -> None:
     ids = {
-        r.__dict__['academy.action_invocation']
+        r.__dict__['academy.action_tag']
         for r in caplog.records
-        if 'academy.action_invocation' in r.__dict__
+        if 'academy.action_tag' in r.__dict__
     }
-    assert len(ids) == 1, 'Log records should have a single invocation ID'
+    assert len(ids) == 1, 'Log records should have a single tag ID'
 
 
 def get_invocation_states(caplog) -> set[str]:
@@ -475,12 +481,14 @@ async def test_handle_logs_actions_success(
         with caplog.at_level(logging.DEBUG):
             await handle.action('add', 1)
 
-        assert_one_invocation_id(caplog)
+        assert_one_tag_id(caplog)
 
         assert get_invocation_states(caplog) == {
             'start',
             'sending',
             'waiting',
+            'execute_start',
+            'execute_success',
             'success',
         }, 'Log records should show successful-path states'
 
@@ -501,12 +509,14 @@ async def test_handle_logs_actions_fails(
             with pytest.raises(RuntimeError):
                 await handle.action('fails')
 
-        assert_one_invocation_id(caplog)
+        assert_one_tag_id(caplog)
 
         assert get_invocation_states(caplog) == {
             'start',
             'sending',
             'waiting',
+            'execute_start',
+            'execute_exception',
             'exception',
         }, 'Log records should show failure-path states'
 
@@ -526,7 +536,7 @@ async def test_handle_logs_actions_cancelled(
             with pytest.raises(asyncio.TimeoutError):
                 await asyncio.wait_for(handle.action('sleep', 0.1), 0.01)
 
-        assert_one_invocation_id(caplog)
+        assert_one_tag_id(caplog)
 
         # sending and waiting states might appear, or not, depending on
         # when the cancellation happens.
@@ -535,3 +545,23 @@ async def test_handle_logs_actions_cancelled(
         )
 
         await handle.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_handle_covariance(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    class SubAgent(EmptyAgent): ...
+
+    def test_func(h: Handle[EmptyAgent]):
+        return True
+
+    registration = await exchange_client.register_agent(EmptyAgent)
+    handle = Handle(registration.agent_id)
+
+    registration_2 = await exchange_client.register_agent(SubAgent)
+    sub_handle = Handle(registration_2.agent_id)
+
+    # Only useful for my type checking
+    assert test_func(handle)
+    assert test_func(sub_handle)

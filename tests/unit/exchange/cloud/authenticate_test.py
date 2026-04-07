@@ -37,7 +37,7 @@ def dependent_token_response() -> OAuthDependentTokenResponse:
     dependent_tokens = [
         {
             'access_token': 'ACCESS_TOKEN',
-            'scope': GroupsScopes.view_my_groups_and_memberships,
+            'scope': str(GroupsScopes.view_my_groups_and_memberships),
             'expires_in': 172800,
             'token_type': 'Bearer',
             'resource_server': 'groups.api.globus.org',
@@ -184,7 +184,7 @@ async def test_dependent_tokens(dependent_token_response) -> None:
             )
         )
         assert dep_tokens.by_scopes[
-            GroupsScopes.view_my_groups_and_memberships
+            str(GroupsScopes.view_my_groups_and_memberships)
         ]
 
 

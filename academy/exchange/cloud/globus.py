@@ -34,6 +34,7 @@ from globus_sdk.authorizers import GlobusAuthorizer
 from globus_sdk.exc import GlobusAPIError
 from globus_sdk.gare import GlobusAuthorizationParameters
 from globus_sdk.scopes import AuthScopes
+from globus_sdk.transport.requests import RequestsTransport
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -78,7 +79,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     base_url = 'https://exchange.academy-agents.org'
     scopes = AcademyExchangeScopes
     default_scope_requirements: ClassVar[list[Scope]] = [
-        Scope(AcademyExchangeScopes.academy_exchange),
+        AcademyExchangeScopes.academy_exchange,
     ]
     error_class = AcademyAPIError
 
@@ -238,7 +239,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._local_data.exchange_client = AcademyGlobusClient(
                 app=self._app,
                 authorizer=self._authorizer,
-                transport_params={'http_timeout': -1},
+                transport=RequestsTransport(http_timeout=-1),
                 **self.client_params,
             )
             return self._local_data.exchange_client
@@ -634,7 +635,7 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
                     auth_client.oauth2_get_dependent_tokens,
                     registration.token,
                     refresh_tokens=True,
-                    scope=AcademyExchangeScopes.academy_exchange,
+                    scope=str(AcademyExchangeScopes.academy_exchange),
                 ),
             )
 

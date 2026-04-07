@@ -436,7 +436,7 @@ async def _send_message_route(request: Request) -> Response:
     logger.info(
         (
             f'Placing message {message.tag} in mailbox '
-            f'{message.src} from {message.dest}'
+            f'{message.dest} from {message.src}'
         ),
         extra={
             'academy.message.event': 'PUT',

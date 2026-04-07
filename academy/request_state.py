@@ -26,7 +26,7 @@ class RequestStatus(enum.Enum):
 class RequestState:
     """Tracks the lifecycle status of request messages."""
 
-    REQUEST_STATE_MAP: dict[uuid.UUID, RequestStatus] = {}
+    REQUEST_STATE_MAP: ClassVar[dict[uuid.UUID, RequestStatus]] = {}
 
     @classmethod
     def set_request_status(cls, tag: uuid.UUID, status: RequestStatus) -> None:

@@ -23,6 +23,7 @@ from pydantic import SkipValidation
 from pydantic import TypeAdapter
 
 from academy.identifier import EntityId
+from academy.exchange.request_state import RequestState, RequestStatus
 
 DEFAULT_FROZEN_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
@@ -352,6 +353,8 @@ class Message(BaseModel, Generic[BodyT]):
             raise AssertionError('Unreachable.')
         header = Header(src=src, dest=dest, label=label, kind=kind)
         request: Message[BodyT] = Message(header=header, body=body)
+        if kind == 'request':
+            RequestState.set_request_status(request.tag, RequestStatus.CREATED)
         return request
 
     def create_response(self, body: ResponseT) -> Message[ResponseT]:

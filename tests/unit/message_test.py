@@ -16,6 +16,7 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
+from academy.exchange.request_state import RequestState, RequestStatus
 
 
 @pytest.mark.parametrize(
@@ -43,6 +44,28 @@ def test_request_message(message_body: Any) -> None:
     pickled = message.model_serialize()
     recreated = Message.model_deserialize(pickled)
     assert message == recreated
+
+
+def test_request_message_sets_created_state() -> None:
+    RequestState.REQUEST_STATE_MAP.clear()
+    message = Message.create(
+        src=AgentId.new(),
+        dest=AgentId.new(),
+        body=ActionRequest(action='foo', pargs=(b'bar',)),
+    )
+    assert RequestState.get_request_status(message.tag) == RequestStatus.CREATED
+
+
+def test_response_creation_does_not_complete_request_state() -> None:
+    RequestState.REQUEST_STATE_MAP.clear()
+    request = Message.create(
+        src=AgentId.new(),
+        dest=AgentId.new(),
+        body=ActionRequest(action='foo', pargs=(b'bar',)),
+    )
+    response = request.create_response(SuccessResponse())
+    assert response.is_response()
+    assert RequestState.get_request_status(request.tag) == RequestStatus.CREATED
 
 
 @pytest.mark.parametrize(

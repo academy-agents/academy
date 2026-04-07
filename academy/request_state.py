@@ -8,10 +8,10 @@ Tracks the processing status of requests through the exchange system:
 
 from __future__ import annotations
 
-from typing import ClassVar
 import enum
 import logging
 import uuid
+from typing import ClassVar
 
 logger = logging.getLogger(__name__)
 

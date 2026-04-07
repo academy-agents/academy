@@ -86,6 +86,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     _mailbox_url = '/mailbox'
     _message_url = '/message'
     _discover_url = '/discover'
+    _heartbeat_url = '/mailbox/heartbeat'
 
     def discover(
         self,
@@ -161,6 +162,13 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
         return self.request(
             'DELETE',
             self._mailbox_url,
+            data={'mailbox': uid.model_dump_json()},
+        )
+
+    def get_heartbeat(self, uid: EntityId) -> GlobusHTTPResponse:
+        return self.request(
+            'GET',
+            self._heartbeat_url,
             data={'mailbox': uid.model_dump_json()},
         )
 
@@ -581,6 +589,21 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._terminate,
             uid,
         )
+
+    def _get_heartbeat(self, uid: EntityId) -> float | None:
+        response = self.exchange_client.get_heartbeat(uid)
+        return response.get('heartbeat')
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            self._get_heartbeat,
+            uid,
+        )
+
+    async def update_heartbeat(self) -> None:
+        pass  # Server tracks this automatically via listen/send
 
 
 class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):

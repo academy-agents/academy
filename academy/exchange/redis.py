@@ -5,6 +5,7 @@ import dataclasses
 import enum
 import logging
 import sys
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
@@ -85,6 +86,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _queue_key(self, uid: EntityId) -> str:
         return f'queue:{uid.uid}'
+
+    def _heartbeat_key(self, uid: EntityId) -> str:
+        return f'heartbeat:{uid.uid}'
 
     @classmethod
     async def new(
@@ -280,6 +284,21 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if raw != _CLOSE_SENTINEL
         ]
         await _respond_pending_requests_on_terminate(messages, self)
+
+    async def update_heartbeat(self) -> None:
+
+        await self._client.set(
+            self._heartbeat_key(self._mailbox_id),
+            time.time(),
+        )
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        heartbeat_time = await self._client.get(self._heartbeat_key(uid))
+
+        if heartbeat_time is None:
+            return None
+
+        return float(heartbeat_time.decode())
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

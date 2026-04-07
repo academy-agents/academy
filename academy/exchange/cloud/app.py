@@ -265,7 +265,33 @@ async def _terminate_route(request: Request) -> Response:
     return Response(status=StatusCode.OKAY.value)
 
 
+<<<<<<< HEAD
 @exception_to_response('discover')
+=======
+async def _get_heartbeat_route(request: Request) -> Response:
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+    except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    heartbeat = await manager.heartbeat_status(mailbox_id)
+    return json_response({'heartbeat': heartbeat})
+
+
+>>>>>>> f4f0916 (finished all transport layer heartbeat functionality)
 async def _discover_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -316,6 +342,7 @@ async def _send_message_route(request: Request) -> Response:
             'academy.message_tag': message.tag,
         },
     )
+    await manager.update_heartbeat(message.src)
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -367,6 +394,7 @@ async def _listen_mailbox_route(
                     mailbox_id,
                     timeout=timeout,
                 )
+<<<<<<< HEAD
                 logger.info(
                     (
                         f'Fetched message {message.tag} from '
@@ -379,6 +407,10 @@ async def _listen_mailbox_route(
                         'academy.message_tag': message.tag,
                     },
                 )
+=======
+                logger.debug(f'Message at mailbox {message.dest} retrieved.')
+                await manager.update_heartbeat(mailbox_id)
+>>>>>>> f4f0916 (finished all transport layer heartbeat functionality)
                 await response.send(message.model_dump_json())
             except (MailboxTerminatedError, TimeoutError) as e:
                 # These messages are not necessarily a sign something is wrong
@@ -522,6 +554,7 @@ def create_app(
     app.router.add_get('/message', _recv_message_route)
     app.router.add_get('/discover', _discover_route)
     app.router.add_get('/mailbox/listen', _listen_mailbox_route)
+    app.router.add_get('/mailbox/heartbeat', _get_heartbeat_route)
 
     return app
 

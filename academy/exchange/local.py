@@ -5,6 +5,7 @@ import asyncio
 import dataclasses
 import logging
 import sys
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
@@ -57,6 +58,7 @@ class _LocalExchangeState(NoPickleMixin):
         self.queues: dict[EntityId, AsyncQueue[Message[Any]]] = {}
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
+        self.last_active: dict[EntityId, float] = {}
 
 
 @dataclasses.dataclass
@@ -206,6 +208,15 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             queue.shutdown(immediate=True)
             if isinstance(uid, AgentId):
                 self._state.agents.pop(uid, None)
+
+    async def update_heartbeat(self) -> None:
+        self._state.last_active[self.mailbox_id] = time.time()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        if self._state.last_active[uid] is None:
+            return None
+        else:
+            return self._state.last_active[uid]
 
 
 class LocalExchangeFactory(

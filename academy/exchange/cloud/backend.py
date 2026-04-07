@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 import sys
+import time
 import uuid
 from typing import Any
 from typing import Protocol
@@ -228,6 +229,25 @@ class MailboxBackend(Protocol):
         """
         ...
 
+    async def update_heartbeat(self, uid: EntityId) -> None:
+        """Update the heartbeat timestamp for a mailbox.
+
+        Args:
+            uid: Mailbox id to check.
+        """
+        ...
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Get the last heartbeat timestamp of a mailbox.
+
+        Args:
+            uid: Mailbox id to check.
+
+        Returns:
+            Unix timestamp of the last heartbeat, or None if never recorded.
+        """
+        ...
+
 
 class PythonBackend:
     """Mailbox backend using in-memory python data structures.
@@ -247,6 +267,7 @@ class PythonBackend:
         self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
         self._locks: dict[EntityId, asyncio.Lock] = {}
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
+        self.last_acive: dict[EntityId, float] = {}
 
     def _has_permissions(self, client: ClientInfo, uid: EntityId) -> bool:
         """Check if a user has permission to share mailbox.
@@ -381,6 +402,17 @@ class PythonBackend:
                         await self.put(client, response)
 
             mailbox.shutdown(immediate=True)
+
+    async def update_heartbeat(self, uid: EntityId) -> None:
+        """Update the heartbeat timestamp for a mailbox."""
+        self.last_acive[uid] = time.time()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Get the last heartbeat timestamp for a mailbox."""
+        if self.last_acive[uid] is None:
+            return None
+
+        return self.last_acive[uid]
 
     async def discover(
         self,
@@ -665,6 +697,9 @@ class RedisBackend:
     def _share_key(self, uid: EntityId) -> str:
         return f'share:{uid.uid}'
 
+    def _heartbeat_key(self, uid: EntityId) -> str:
+        return f'heartbeat:{uid.uid}'
+
     async def _has_permissions(
         self,
         client: ClientInfo,
@@ -840,6 +875,19 @@ class RedisBackend:
                 response = message.create_response(body)
                 with contextlib.suppress(Exception):
                     await self.put(client, response)
+
+    async def update_heartbeat(self, uid: EntityId) -> None:
+        """Update the heartbeat timestamp for a mailbox."""
+        await self._client.set(self._heartbeat_key(uid), time.time())
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Get the last heartbeat timestamp for a mailbox."""
+        heartbeat_time = await self._client.get(self._heartbeat_key(uid))
+
+        if heartbeat_time is None:
+            return None
+
+        return float(heartbeat_time.decode())
 
     async def discover(
         self,

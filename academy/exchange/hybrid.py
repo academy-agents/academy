@@ -7,6 +7,7 @@ import contextlib
 import dataclasses
 import logging
 import sys
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
@@ -136,6 +137,9 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _queue_key(self, uid: EntityId) -> str:
         return f'{self._namespace}:queue:{uuid_to_base32(uid.uid)}'
+
+    def _heartbeat_key(self, uid: EntityId) -> str:
+        return f'{self._namespace}:heartbeat:{uuid_to_base32(uid.uid)}'
 
     @classmethod
     async def new(  # noqa: PLR0913
@@ -414,6 +418,21 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         if isinstance(uid, AgentId):
             await self._redis_client.delete(self._agent_key(uid))
+
+    async def update_heartbeat(self) -> None:
+
+        await self._redis_client.set(
+            self._heartbeat_key(self._mailbox_id),
+            time.time(),
+        )
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        heartbeat_time = await self._redis_client.get(self._heartbeat_key(uid))
+
+        if heartbeat_time is None:
+            return None
+
+        return float(heartbeat_time.decode())
 
     async def _get_message_from_redis(self) -> None:
         # Block indefinitely with timeout=0

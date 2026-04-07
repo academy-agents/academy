@@ -434,12 +434,16 @@ async def _send_message_route(request: Request) -> Response:
         )
 
     logger.info(
-        f'Placing message in mailbox {message.src} from {message.src}',
+        (
+            f'Placing message {message.tag} in mailbox '
+            f'{message.src} from {message.src}'
+        ),
         extra={
             'academy.message.event': 'PUT',
             'academy.message.src': message.src,
             'academy.message.dest': message.dest,
             'academy.message.size': sys.getsizeof(message.body),
+            'academy.message.tag': message.tag,
         },
     )
     return Response(status=StatusCode.OKAY.value)
@@ -513,13 +517,14 @@ async def _listen_mailbox_route(
                 )
                 logger.info(
                     (
-                        f'Fetching message mailbox {message.dest} '
-                        f'from {message.src}',
+                        f'Fetched message {message.tag} from '
+                        f'mailbox {message.dest}',
                     ),
                     extra={
                         'academy.message.event': 'GET',
                         'academy.message.src': message.src,
                         'academy.message.dest': message.dest,
+                        'academy.message.tag': message.tag,
                     },
                 )
                 await response.send(message.model_dump_json())
@@ -596,11 +601,12 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         )
 
     logger.info(
-        f'Fetching message mailbox {message.dest} from {message.src}',
+        (f'Fetched message {message.tag} from mailbox {message.dest}',),
         extra={
             'academy.message.event': 'GET',
             'academy.message.src': message.src,
             'academy.message.dest': message.dest,
+            'academy.message.tag': message.tag,
         },
     )
     return json_response({'message': message.model_dump_json()})

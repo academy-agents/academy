@@ -23,7 +23,8 @@ from pydantic import SkipValidation
 from pydantic import TypeAdapter
 
 from academy.identifier import EntityId
-from academy.exchange.request_state import RequestState, RequestStatus
+from academy.request_state import RequestState
+from academy.request_state import RequestStatus
 
 DEFAULT_FROZEN_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,

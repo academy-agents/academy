@@ -16,10 +16,10 @@ from academy.exchange.proxystore import ProxyStoreExchangeFactory
 from academy.exchange.proxystore import ProxyStoreExchangeTransport
 from academy.exchange.redis import RedisExchangeFactory
 from academy.exchange.redis import RedisExchangeTransport
-from academy.exchange.request_state import RequestState
-from academy.exchange.request_state import RequestStatus
 from academy.exchange.transport import ExchangeTransport
 from academy.exchange.transport import MailboxStatus
+from academy.request_state import RequestState
+from academy.request_state import RequestStatus
 
 __all__ = [
     'AgentExchangeClient',

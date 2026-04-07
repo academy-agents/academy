@@ -25,7 +25,8 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.message import Request
 from academy.message import SuccessResponse
-from academy.exchange.request_state import RequestState,RequestStatus
+from academy.request_state import RequestState
+from academy.request_state import RequestStatus
 from testing.agents import EmptyAgent
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
@@ -138,9 +139,15 @@ async def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
                 dest=agent_client.client_id,
                 body=PingRequest(),
             )
-            assert RequestState.get_request_status(message.tag) == RequestStatus.CREATED
+            assert (
+                RequestState.get_request_status(message.tag)
+                == RequestStatus.CREATED
+            )
             await user_client.send(message)
-            assert RequestState.get_request_status(message.tag) == RequestStatus.INFLIGHT
+            assert (
+                RequestState.get_request_status(message.tag)
+                == RequestStatus.INFLIGHT
+            )
 
             await asyncio.wait_for(received.wait(), timeout=TEST_WAIT_TIMEOUT)
 
@@ -161,7 +168,10 @@ async def test_request_status_completes_on_response_reception(
             dest=AgentId.new(),
             body=PingRequest(),
         )
-        assert RequestState.get_request_status(request.tag) == RequestStatus.CREATED
+        assert (
+            RequestState.get_request_status(request.tag)
+            == RequestStatus.CREATED
+        )
         RequestState.set_request_status(request.tag, RequestStatus.INFLIGHT)
 
         response = request.create_response(SuccessResponse())
@@ -176,7 +186,10 @@ async def test_request_status_completes_on_response_reception(
         ):
             await user_client._listen_for_messages()
 
-        assert RequestState.get_request_status(request.tag) == RequestStatus.COMPLETED
+        assert (
+            RequestState.get_request_status(request.tag)
+            == RequestStatus.COMPLETED
+        )
 
 
 @pytest.mark.asyncio

@@ -436,7 +436,7 @@ async def _send_message_route(request: Request) -> Response:
     logger.info(
         (
             f'Placing message {message.tag} in mailbox '
-            f'{message.src} from {message.src}'
+            f'{message.src} from {message.dest}'
         ),
         extra={
             'academy.message.event': 'PUT',
@@ -601,7 +601,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         )
 
     logger.info(
-        (f'Fetched message {message.tag} from mailbox {message.dest}',),
+        f'Fetched message {message.tag} from mailbox {message.dest}',
         extra={
             'academy.message.event': 'GET',
             'academy.message.src': message.src,

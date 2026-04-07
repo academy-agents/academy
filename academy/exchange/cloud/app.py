@@ -494,13 +494,13 @@ async def _listen_mailbox_route(
         )
 
     if status == MailboxStatus.MISSING:
-        logger.exception(f'Receive from unknown mailbox {mailbox_id}.')
+        logger.exception(f'Listening on unknown mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.NOT_FOUND.value,
             text='Unknown mailbox ID',
         )
     elif status == MailboxStatus.TERMINATED:
-        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
+        logger.exception(f'Listening on terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',

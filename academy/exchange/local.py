@@ -46,9 +46,11 @@ logger = logging.getLogger(__name__)
 class _LocalExchangeState(NoPickleMixin):
     """Local process message exchange.
 
-    LocalExchange is a special case of an exchange where the mailboxes
-    of the exchange live in process memory. This class stores the state
-    of the exchange.
+    LocalExchange is an exchange where the mailboxes of the exchange live
+    in a single process's memory and is only accessible to clients and
+    agents running in that process.
+
+    This class stores the state of the exchange.
     """
 
     def __init__(self) -> None:
@@ -59,7 +61,7 @@ class _LocalExchangeState(NoPickleMixin):
 
 @dataclasses.dataclass
 class LocalAgentRegistration(Generic[AgentT]):
-    """Agent registration for thread exchanges."""
+    """Agent registration for local exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
@@ -212,8 +214,8 @@ class LocalExchangeFactory(
 ):
     """Local exchange client factory.
 
-    A thread exchange can be used to pass messages between agents running
-    in separate threads of a single process.
+    A local exchange can be used to pass messages between agents running
+    in a single process.
     """
 
     def __init__(

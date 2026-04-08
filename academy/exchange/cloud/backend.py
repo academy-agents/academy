@@ -1055,9 +1055,7 @@ class RedisBackend:
                     'academy.status': RequestStatus.INFLIGHT,
                 },
             )
-        elif message.is_response() and await self._client.exists(
-            self._request_key(message.tag),
-        ):
+        elif message.is_response() and message.tag in self._requests:
             self._requests[message.tag].status = RequestStatus.COMPLETED
             await self._client.set(
                 self._request_key(message.tag),

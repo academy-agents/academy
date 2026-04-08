@@ -443,7 +443,7 @@ async def _send_message_route(request: Request) -> Response:
             'academy.message.src': message.src,
             'academy.message.dest': message.dest,
             'academy.message.size': sys.getsizeof(message.body),
-            'academy.message.tag': message.tag,
+            'academy.message_tag': message.tag,
         },
     )
     return Response(status=StatusCode.OKAY.value)
@@ -518,13 +518,13 @@ async def _listen_mailbox_route(
                 logger.info(
                     (
                         f'Fetched message {message.tag} from '
-                        f'mailbox {message.dest}',
+                        f'mailbox {message.dest}'
                     ),
                     extra={
                         'academy.message.event': 'GET',
                         'academy.message.src': message.src,
                         'academy.message.dest': message.dest,
-                        'academy.message.tag': message.tag,
+                        'academy.message_tag': message.tag,
                     },
                 )
                 await response.send(message.model_dump_json())
@@ -606,7 +606,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             'academy.message.event': 'GET',
             'academy.message.src': message.src,
             'academy.message.dest': message.dest,
-            'academy.message.tag': message.tag,
+            'academy.message_tag': message.tag,
         },
     )
     return json_response({'message': message.model_dump_json()})

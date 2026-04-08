@@ -23,14 +23,11 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId
-from academy.identifier import UserId
 from academy.manager import Manager
 from academy.message import ActionRequest
 from academy.message import CancelRequest
-from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import Request
-from academy.message import ShutdownRequest
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
@@ -202,38 +199,21 @@ async def test_client_handle_ping_timeout(
         await handle.ping(timeout=TEST_SLEEP_INTERVAL)
 
 
-@pytest.mark.asyncio
 async def test_client_handle_shutdown_ignore_already_terminated() -> None:
     handle: Handle[EmptyAgent] = Handle(AgentId.new())
-
-    request = Message.create(
-        src=UserId.new(),
-        dest=handle.agent_id,
-        body=ShutdownRequest(),
-    )
-    handle._shutdown_requests.add(request.tag)
-    response = request.create_response(
-        ErrorResponse(exception=AgentTerminatedError(handle.agent_id)),
-    )
-    await handle._process_response(response)
+    future: asyncio.Future[None] = asyncio.Future()
+    future.set_exception(AgentTerminatedError(handle.agent_id))
+    handle._shutdown_callback(future)
 
 
 @pytest.mark.asyncio
 async def test_client_handle_shutdown_log_error_response(caplog) -> None:
     handle: Handle[EmptyAgent] = Handle(AgentId.new())
-
-    request = Message.create(
-        src=AgentId.new(),
-        dest=handle.agent_id,
-        body=ShutdownRequest(),
-    )
-    handle._shutdown_requests.add(request.tag)
-    response = request.create_response(
-        ErrorResponse(exception=AgentTerminatedError(AgentId.new())),
-    )
+    future: asyncio.Future[None] = asyncio.Future()
+    future.set_exception(AgentTerminatedError(AgentId.new()))
 
     with caplog.at_level(logging.ERROR):
-        await handle._process_response(response)
+        handle._shutdown_callback(future)
     assert f'Failure requesting shutdown for {handle.agent_id}' in caplog.text
 
 

@@ -523,7 +523,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             text='Unknown mailbox ID',
         )
     except MailboxTerminatedError:
-        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
+        logger.error(f'Receive from terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',

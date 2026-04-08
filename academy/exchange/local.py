@@ -5,6 +5,7 @@ import asyncio
 import dataclasses
 import logging
 import sys
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
@@ -32,6 +33,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
+from academy.request_state import RequestStatus
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
@@ -55,6 +57,16 @@ class _LocalExchangeState(NoPickleMixin):
         self.queues: dict[EntityId, AsyncQueue[Message[Any]]] = {}
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
+        self.requests: dict[uuid.UUID, RequestInfo] = {}
+
+
+@dataclasses.dataclass
+class RequestInfo:
+    """Stored request metadata for the local exchange."""
+
+    src: EntityId
+    dest: EntityId
+    status: RequestStatus
 
 
 @dataclasses.dataclass
@@ -170,6 +182,42 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         queue = self._state.queues.get(message.dest, None)
         if queue is None:
             raise BadEntityIdError(message.dest)
+
+        if message.is_request():
+            self._state.requests[message.tag] = RequestInfo(
+                src=message.src,
+                dest=message.dest,
+                status=RequestStatus.INFLIGHT,
+            )
+            logger.info(
+                'Request status set: tag=%s src=%s dest=%s status=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                RequestStatus.INFLIGHT,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                    'academy.status': RequestStatus.INFLIGHT,
+                },
+            )
+        elif message.is_response() and message.tag in self._state.requests:
+            self._state.requests[message.tag].status = RequestStatus.COMPLETED
+            logger.info(
+                'Request status updated: tag=%s src=%s dest=%s status=%s',
+                message.tag,
+                self._state.requests[message.tag].src,
+                self._state.requests[message.tag].dest,
+                RequestStatus.COMPLETED,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': self._state.requests[message.tag].src,
+                    'academy.dest': self._state.requests[message.tag].dest,
+                    'academy.status': RequestStatus.COMPLETED,
+                },
+            )
+
         async with self._state.locks[message.dest]:
             try:
                 await queue.put(message)

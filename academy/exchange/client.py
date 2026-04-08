@@ -33,8 +33,6 @@ from academy.identifier import UserId
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import RequestT_co
-from academy.request_state import RequestState
-from academy.request_state import RequestStatus
 from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
@@ -176,11 +174,6 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             BadEntityIdError: If a mailbox for `message.dest` does not exist.
             MailboxTerminatedError: If the mailbox was closed.
         """
-        if message.is_request():
-            RequestState.set_request_status(
-                message.tag,
-                RequestStatus.INFLIGHT,
-            )
         await self._transport.send(message)
         logger.debug(
             'Sent %s to %s',
@@ -234,15 +227,6 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                     self.client_id,
                     extra=message.log_extra(),
                 )
-                if (
-                    message.is_response()
-                    and RequestState.get_request_status(message.tag)
-                    is RequestStatus.INFLIGHT
-                ):
-                    RequestState.set_request_status(
-                        message.tag,
-                        RequestStatus.COMPLETED,
-                    )
                 await self._handle_message(message)
 
                 if sys.version_info < (3, 12):  # pragma: <3.12 cover

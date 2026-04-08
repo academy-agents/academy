@@ -18,8 +18,6 @@ from academy.exchange.redis import RedisExchangeFactory
 from academy.exchange.redis import RedisExchangeTransport
 from academy.exchange.transport import ExchangeTransport
 from academy.exchange.transport import MailboxStatus
-from academy.request_state import RequestState
-from academy.request_state import RequestStatus
 
 __all__ = [
     'AgentExchangeClient',
@@ -39,7 +37,5 @@ __all__ = [
     'ProxyStoreExchangeTransport',
     'RedisExchangeFactory',
     'RedisExchangeTransport',
-    'RequestState',
-    'RequestStatus',
     'UserExchangeClient',
 ]

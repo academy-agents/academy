@@ -25,8 +25,6 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.message import Request
 from academy.message import SuccessResponse
-from academy.request_state import RequestState
-from academy.request_state import RequestStatus
 from testing.agents import EmptyAgent
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
@@ -139,57 +137,12 @@ async def test_client_to_agent_message(factory: ExchangeFactory[Any]) -> None:
                 dest=agent_client.client_id,
                 body=PingRequest(),
             )
-            assert (
-                RequestState.get_request_status(message.tag)
-                == RequestStatus.CREATED
-            )
             await user_client.send(message)
-            assert (
-                RequestState.get_request_status(message.tag)
-                == RequestStatus.INFLIGHT
-            )
 
             await asyncio.wait_for(received.wait(), timeout=TEST_WAIT_TIMEOUT)
 
             await user_client.terminate(registration.agent_id)
             await task
-
-
-@pytest.mark.asyncio
-async def test_request_status_completes_on_response_reception(
-    factory: ExchangeFactory[Any],
-) -> None:
-    async with await factory.create_user_client(
-        start_listener=False,
-    ) as user_client:
-        RequestState.REQUEST_STATE_MAP.clear()
-        request = Message.create(
-            src=user_client.client_id,
-            dest=AgentId.new(),
-            body=PingRequest(),
-        )
-        assert (
-            RequestState.get_request_status(request.tag)
-            == RequestStatus.CREATED
-        )
-        RequestState.set_request_status(request.tag, RequestStatus.INFLIGHT)
-
-        response = request.create_response(SuccessResponse())
-
-        async def fake_listen(timeout: float | None = None):
-            yield response
-
-        with mock.patch.object(
-            user_client._transport,
-            'listen',
-            side_effect=fake_listen,
-        ):
-            await user_client._listen_for_messages()
-
-        assert (
-            RequestState.get_request_status(request.tag)
-            == RequestStatus.COMPLETED
-        )
 
 
 @pytest.mark.asyncio

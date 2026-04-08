@@ -31,6 +31,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
+from academy.request_state import RequestStatus
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
@@ -56,6 +57,15 @@ class _MailboxState(enum.Enum):
 
 
 @dataclasses.dataclass
+class RequestInfo:
+    """Stored request metadata for the local exchange."""
+
+    src: EntityId
+    dest: EntityId
+    status: RequestStatus
+
+
+@dataclasses.dataclass
 class RedisAgentRegistration(Generic[AgentT]):
     """Agent registration for redis exchanges."""
 
@@ -76,6 +86,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._mailbox_id = mailbox_id
         self._client = redis_client
         self._redis_info = redis_info
+        self._requests: dict[uuid.UUID, RequestInfo] = {}
 
     def _active_key(self, uid: EntityId) -> str:
         return f'active:{uid.uid}'
@@ -85,6 +96,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _queue_key(self, uid: EntityId) -> str:
         return f'queue:{uid.uid}'
+
+    def _request_key(self, tag: uuid.UUID) -> str:
+        return f'request:{tag}'
 
     @classmethod
     async def new(
@@ -242,6 +256,41 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         elif status.decode() == _MailboxState.INACTIVE.value:
             raise MailboxTerminatedError(message.dest)
         else:
+            if message.is_request():
+                self._requests[message.tag] = RequestInfo(
+                    src=message.src,
+                    dest=message.dest,
+                    status=RequestStatus.INFLIGHT,
+                )
+                logger.info(
+                    'Request status set: tag=%s src=%s dest=%s status=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    RequestStatus.INFLIGHT,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                        'academy.status': RequestStatus.INFLIGHT,
+                    },
+                )
+            elif message.is_response() and message.tag in self._requests:
+                self._requests[message.tag].status = RequestStatus.COMPLETED
+                logger.info(
+                    'Request status updated: tag=%s src=%s dest=%s status=%s',
+                    message.tag,
+                    self._requests[message.tag].src,
+                    self._requests[message.tag].dest,
+                    RequestStatus.COMPLETED,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': self._requests[message.tag].src,
+                        'academy.dest': self._requests[message.tag].dest,
+                        'academy.status': RequestStatus.COMPLETED,
+                    },
+                )
+
             await self._client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),
                 message.model_serialize(),

@@ -23,6 +23,7 @@ from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
+from academy.request_state import RequestStatus
 
 BACKEND_TYPES = (PythonBackend, RedisBackend)
 
@@ -478,3 +479,87 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
         await backend.get(client, uid, timeout=0.01)
 
     await backend.terminate(client, uid)
+
+
+@pytest.mark.asyncio
+async def test_python_backend_request_tracking_inflight() -> None:
+    """Test that request status is set to INFLIGHT when putting a request."""
+    backend = PythonBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    # Send a request
+    message = Message.create(src=uid, dest=uid, body=PingRequest())
+    await backend.put(client, message)
+
+    # Verify request is tracked with INFLIGHT status
+    assert message.tag in backend._requests
+    assert backend._requests[message.tag].status == RequestStatus.INFLIGHT
+    assert backend._requests[message.tag].src == uid
+    assert backend._requests[message.tag].dest == uid
+
+
+@pytest.mark.asyncio
+async def test_python_backend_request_tracking_completed() -> None:
+    """Test response updates request status to COMPLETED."""
+    backend = PythonBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    # Send a request first
+    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
+    await backend.put(client, request_msg)
+
+    # Verify request is INFLIGHT
+    assert backend._requests[request_msg.tag].status == RequestStatus.INFLIGHT
+
+    # Send a response
+    response_msg = request_msg.create_response(SuccessResponse())
+    await backend.put(client, response_msg)
+
+    # Verify request status is updated to COMPLETED
+    assert backend._requests[request_msg.tag].status == RequestStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+async def test_redis_backend_request_tracking_inflight(mock_redis) -> None:
+    """Test that request status is set to INFLIGHT when putting a request."""
+    backend = RedisBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    # Send a request
+    message = Message.create(src=uid, dest=uid, body=PingRequest())
+    await backend.put(client, message)
+
+    # Verify request is tracked with INFLIGHT status
+    assert message.tag in backend._requests
+    assert backend._requests[message.tag].status == RequestStatus.INFLIGHT
+    assert backend._requests[message.tag].src == uid
+    assert backend._requests[message.tag].dest == uid
+
+
+@pytest.mark.asyncio
+async def test_redis_backend_request_tracking_completed(mock_redis) -> None:
+    """Test response updates request status to COMPLETED."""
+    backend = RedisBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    # Send a request first
+    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
+    await backend.put(client, request_msg)
+
+    # Verify request is INFLIGHT
+    assert backend._requests[request_msg.tag].status == RequestStatus.INFLIGHT
+
+    # Send a response
+    response_msg = request_msg.create_response(SuccessResponse())
+    await backend.put(client, response_msg)
+
+    # Verify request status is updated to COMPLETED
+    assert backend._requests[request_msg.tag].status == RequestStatus.COMPLETED

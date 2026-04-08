@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import dataclasses
 import logging
 import sys
 import uuid
@@ -36,10 +37,20 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ErrorResponse
 from academy.message import Message
+from academy.request_state import RequestStatus
 
 logger = logging.getLogger(__name__)
 
 KB_TO_BYTES = 1024
+
+
+@dataclasses.dataclass
+class RequestInfo:
+    """Stored request metadata for the cloud exchange."""
+
+    src: EntityId
+    dest: EntityId
+    status: RequestStatus
 
 
 class MailboxBackend(Protocol):
@@ -246,6 +257,7 @@ class PythonBackend:
         self._terminated: set[EntityId] = set()
         self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
         self._locks: dict[EntityId, asyncio.Lock] = {}
+        self._requests: dict[uuid.UUID, RequestInfo] = {}
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
 
     def _has_permissions(self, client: ClientInfo, uid: EntityId) -> bool:
@@ -484,6 +496,42 @@ class PythonBackend:
                 self.message_size_limit,
             )
 
+        # TODO: see if it's better placed just before queue.put
+        if message.is_request():
+            self._requests[message.tag] = RequestInfo(
+                src=message.src,
+                dest=message.dest,
+                status=RequestStatus.INFLIGHT,
+            )
+            logger.info(
+                'Request status set: tag=%s src=%s dest=%s status=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                RequestStatus.INFLIGHT,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                    'academy.status': RequestStatus.INFLIGHT,
+                },
+            )
+        elif message.is_response() and message.tag in self._requests:
+            self._requests[message.tag].status = RequestStatus.COMPLETED
+            logger.info(
+                'Request status updated: tag=%s src=%s dest=%s status=%s',
+                message.tag,
+                self._requests[message.tag].src,
+                self._requests[message.tag].dest,
+                RequestStatus.COMPLETED,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': self._requests[message.tag].src,
+                    'academy.dest': self._requests[message.tag].dest,
+                    'academy.status': RequestStatus.COMPLETED,
+                },
+            )
+
         try:
             queue = self._mailboxes[message.dest]
         except KeyError as e:
@@ -661,6 +709,7 @@ class RedisBackend:
         )
         self.mailbox_expiration_s = mailbox_expiration_s
         self.gravestone_expiration_s = gravestone_expiration_s
+        self._requests: dict[uuid.UUID, RequestInfo] = {}
 
     def _owner_key(self, uid: EntityId) -> str:
         return f'owner:{uid.uid}'
@@ -676,6 +725,9 @@ class RedisBackend:
 
     def _share_key(self, uid: EntityId) -> str:
         return f'share:{uid.uid}'
+
+    def _request_key(self, tag: uuid.UUID) -> str:
+        return f'request:{tag}'
 
     async def _has_permissions(
         self,
@@ -978,6 +1030,49 @@ class RedisBackend:
             raise MessageTooLargeError(
                 len(serialized),
                 self.message_size_limit,
+            )
+
+        if message.is_request():
+            self._requests[message.tag] = RequestInfo(
+                src=message.src,
+                dest=message.dest,
+                status=RequestStatus.INFLIGHT,
+            )
+            await self._client.set(
+                self._request_key(message.tag),
+                RequestStatus.INFLIGHT.value,
+            )
+            logger.info(
+                'Request status set: tag=%s src=%s dest=%s status=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                RequestStatus.INFLIGHT,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                    'academy.status': RequestStatus.INFLIGHT,
+                },
+            )
+        elif message.is_response() and message.tag in self._requests:
+            self._requests[message.tag].status = RequestStatus.COMPLETED
+            await self._client.set(
+                self._request_key(message.tag),
+                RequestStatus.COMPLETED.value,
+            )
+            logger.info(
+                'Request status updated: tag=%s src=%s dest=%s status=%s',
+                message.tag,
+                self._requests[message.tag].src,
+                self._requests[message.tag].dest,
+                RequestStatus.COMPLETED,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': self._requests[message.tag].src,
+                    'academy.dest': self._requests[message.tag].dest,
+                    'academy.status': RequestStatus.COMPLETED,
+                },
             )
 
         await self._client.rpush(  # type: ignore[misc]

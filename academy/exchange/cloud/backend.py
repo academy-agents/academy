@@ -725,7 +725,7 @@ class RedisBackend:
 
     def _share_key(self, uid: EntityId) -> str:
         return f'share:{uid.uid}'
-    
+
     def _request_key(self, tag: uuid.UUID) -> str:
         return f'request:{tag}'
 
@@ -1056,7 +1056,7 @@ class RedisBackend:
                 },
             )
         elif message.is_response() and await self._client.exists(
-            self._request_key(message.tag)
+            self._request_key(message.tag),
         ):
             self._requests[message.tag].status = RequestStatus.COMPLETED
             await self._client.set(

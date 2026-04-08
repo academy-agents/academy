@@ -280,7 +280,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     },
                 )
             elif message.is_response() and await self._client.exists(
-                self._request_key(message.tag)
+                self._request_key(message.tag),
             ):
                 self._requests[message.tag].status = RequestStatus.COMPLETED
                 await self._client.set(

@@ -262,6 +262,10 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     dest=message.dest,
                     status=RequestStatus.INFLIGHT,
                 )
+                await self._client.set(
+                    self._request_key(message.tag),
+                    RequestStatus.INFLIGHT.value,
+                )
                 logger.info(
                     'Request status set: tag=%s src=%s dest=%s status=%s',
                     message.tag,
@@ -275,8 +279,14 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                         'academy.status': RequestStatus.INFLIGHT,
                     },
                 )
-            elif message.is_response() and message.tag in self._requests:
+            elif message.is_response() and await self._client.exists(
+                self._request_key(message.tag)
+            ):
                 self._requests[message.tag].status = RequestStatus.COMPLETED
+                await self._client.set(
+                    self._request_key(message.tag),
+                    RequestStatus.COMPLETED.value,
+                )
                 logger.info(
                     'Request status updated: tag=%s src=%s dest=%s status=%s',
                     message.tag,

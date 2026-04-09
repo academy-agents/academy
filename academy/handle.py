@@ -388,6 +388,8 @@ class Handle(Generic[AgentT_co]):
     async def shutdown(self, *, terminate: bool | None = None) -> None:
         """Instruct the agent to shutdown.
 
+        This is non-blocking and will only send the message.
+
         Args:
             terminate: Override the termination behavior of the agent defined
                 in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].

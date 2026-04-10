@@ -221,7 +221,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         ...
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
-        """Gets the last heartbeat timestamp for a specific mailbox.
+        """Gets time since latest active timestamp for a specific mailbox.
 
         Args:
             uid: Entity identifier of the mailbox to check.

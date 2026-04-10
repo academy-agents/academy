@@ -237,6 +237,23 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """
         await self._transport.terminate(uid)
 
+    async def update_heartbeat(self) -> None:
+        """Update the heartbeat timestamp for this transport's mailbox."""
+        await self._transport.update_heartbeat()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Gets time since latest active timestamp for a specific mailbox.
+
+        Args:
+            uid: Entity identifier of the mailbox to check.
+
+        Returns:
+            Unix timestamp of the last heartbeat, or None if no heartbeat
+            retrieved.
+
+        """
+        return await self._transport.heartbeat_status(uid)
+
     async def _listen_for_messages(self) -> None:
         # Transport listen does not necessarily wait on io and neither
         # does _handle_message. If we are persistently receiving messages,

@@ -399,7 +399,6 @@ async def _send_message_route(request: Request) -> Response:
     client = get_client_info(request)
     try:
         await manager.put(client, message)
-        await manager.update_heartbeat(message.src)
     except BadEntityIdError:
         logger.exception(f'Destination mailbox {message.dest} does not exist.')
         return Response(
@@ -425,6 +424,7 @@ async def _send_message_route(request: Request) -> Response:
             text=f'Message of size {e.size} larger than limit {e.limit}.',
         )
     else:
+        await manager.update_heartbeat(message.src)
         return Response(status=StatusCode.OKAY.value)
 
 
@@ -569,6 +569,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             text='Request timeout',
         )
     else:
+        await manager.update_heartbeat(mailbox_id)
         return json_response({'message': message.model_dump_json()})
 
 

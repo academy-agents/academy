@@ -419,7 +419,7 @@ class PythonBackend:
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         """Get the last heartbeat timestamp for a mailbox."""
-        if self.last_active[uid] is None:
+        if self.last_active.get(uid) is None:
             return None
 
         return time.time() - self.last_active[uid]
@@ -890,7 +890,7 @@ class RedisBackend:
 
     async def update_heartbeat(self, uid: EntityId) -> None:
         """Update the heartbeat timestamp for a mailbox."""
-        await self._client.set(self._heartbeat_key(uid), time.time())
+        await self._client.set(self._heartbeat_key(uid), str(time.time()))
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         """Get the last heartbeat timestamp for a mailbox."""

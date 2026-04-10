@@ -289,7 +289,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         await self._client.set(
             self._heartbeat_key(self._mailbox_id),
-            time.time(),
+            str(time.time()),
         )
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:

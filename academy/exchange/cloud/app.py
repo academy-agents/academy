@@ -265,9 +265,7 @@ async def _terminate_route(request: Request) -> Response:
     return Response(status=StatusCode.OKAY.value)
 
 
-<<<<<<< HEAD
 @exception_to_response('discover')
-=======
 async def _get_heartbeat_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -291,7 +289,6 @@ async def _get_heartbeat_route(request: Request) -> Response:
     return json_response({'heartbeat': heartbeat})
 
 
->>>>>>> f4f0916 (finished all transport layer heartbeat functionality)
 async def _discover_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -389,12 +386,12 @@ async def _listen_mailbox_route(
     async with sse_response(request) as response:
         while response.is_connected():  # pragma: no branch
             try:
+                await manager.update_heartbeat(mailbox_id)
                 message = await manager.get(
                     client,
                     mailbox_id,
                     timeout=timeout,
                 )
-<<<<<<< HEAD
                 logger.info(
                     (
                         f'Fetched message {message.tag} from '
@@ -407,10 +404,6 @@ async def _listen_mailbox_route(
                         'academy.message_tag': message.tag,
                     },
                 )
-=======
-                logger.debug(f'Message at mailbox {message.dest} retrieved.')
-                await manager.update_heartbeat(mailbox_id)
->>>>>>> f4f0916 (finished all transport layer heartbeat functionality)
                 await response.send(message.model_dump_json())
             except (MailboxTerminatedError, TimeoutError) as e:
                 # These messages are not necessarily a sign something is wrong
@@ -446,6 +439,7 @@ async def _recv_message_route(request: Request) -> Response:
 
     client = get_client_info(request)
     try:
+        await manager.update_heartbeat(mailbox_id)
         message = await manager.get(client, mailbox_id, timeout=timeout)
     except MailboxTerminatedError:
         # We catch this exception separate from above and log it at a lower

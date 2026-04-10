@@ -267,7 +267,7 @@ class PythonBackend:
         self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
         self._locks: dict[EntityId, asyncio.Lock] = {}
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
-        self.last_acive: dict[EntityId, float] = {}
+        self.last_active: dict[EntityId, float] = {}
 
     def _has_permissions(self, client: ClientInfo, uid: EntityId) -> bool:
         """Check if a user has permission to share mailbox.
@@ -405,14 +405,14 @@ class PythonBackend:
 
     async def update_heartbeat(self, uid: EntityId) -> None:
         """Update the heartbeat timestamp for a mailbox."""
-        self.last_acive[uid] = time.time()
+        self.last_active[uid] = time.time()
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         """Get the last heartbeat timestamp for a mailbox."""
-        if self.last_acive[uid] is None:
+        if self.last_active[uid] is None:
             return None
 
-        return self.last_acive[uid]
+        return time.time() - self.last_active[uid]
 
     async def discover(
         self,

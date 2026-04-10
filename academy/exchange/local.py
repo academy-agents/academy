@@ -216,7 +216,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if self._state.last_active[uid] is None:
             return None
         else:
-            return self._state.last_active[uid]
+            return time.time() - self._state.last_active[uid]
 
 
 class LocalExchangeFactory(

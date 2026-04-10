@@ -298,7 +298,15 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if heartbeat_time is None:
             return None
 
-        return float(heartbeat_time.decode())
+        # Returns in the form [seconds since epoch, microseconds]
+        current_time = await self._client.time()
+
+        current_seconds = current_time[0]
+        current_microseconds = current_time[1] / 1000000
+
+        now = current_seconds + current_microseconds
+
+        return now - float(heartbeat_time.decode())
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

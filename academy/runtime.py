@@ -93,6 +93,7 @@ class RuntimeConfig:
     shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
     terminate_on_success: bool = True
+    heartbeat_interval: int = 60
 
 
 class Runtime(Generic[AgentT], NoPickleMixin):
@@ -165,6 +166,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             ae.AgentExchangeClient[AgentT, ExchangeTransportT] | None
         ) = None
         self._exchange_listener_task: asyncio.Task[None] | None = None
+        self._heartbeat_task: asyncio.Task[None] | None = None
         self.exchange_context_token: (
             contextvars.Token[ae.ExchangeClient[Any]] | None
         ) = None
@@ -496,6 +498,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             name=f'exchange-listener-{self.agent_id}',
         )
 
+        self._heartbeat_task = spawn_guarded_background_task(
+            self._heartbeat_loop(),
+            name=f'heartbeat-loop-{self.agent_id}',
+        )
+
         for name, method in self._loops.items():
             # This guard handles errors in the `_execute_loop` function
             # not in the user's loop.
@@ -530,6 +537,14 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         terminate_for_success = self.config.terminate_on_success and expected
         terminate_for_error = self.config.terminate_on_error and not expected
         return terminate_for_success or terminate_for_error
+
+    async def _stop_task(self, task: asyncio.Task[None] | None) -> None:
+        # Helper function to reduce complexity of _shutdown block
+
+        if task is not None:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
     async def _shutdown(self) -> None:
         logger.debug(
@@ -567,6 +582,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             self._exchange_listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._exchange_listener_task
+
+        await self._stop_task(self._heartbeat_task)
 
         # Wait for running actions to complete
         for task in tuple(self._action_tasks.values()):
@@ -651,3 +668,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             raise TimeoutError(
                 f'Agent shutdown was not signalled within {timeout} seconds.',
             ) from None
+
+    async def _heartbeat_loop(self) -> None:
+        while (
+            not self._shutdown_event.is_set()
+            and self._exchange_client is not None
+        ):
+            await self._exchange_client.update_heartbeat()
+            await asyncio.sleep(self.config.heartbeat_interval)

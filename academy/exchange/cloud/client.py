@@ -554,7 +554,8 @@ def spawn_http_exchange(
     Warning:
         The exclusion of authentication and ssl configuration is
         intentional. This method should only be used for temporary exchanges
-        in trusted environments (i.e. the login node of a cluster).
+        in trusted environments (such as a fully firewalled individual
+        workstation with no other user access).
 
     Args:
         host: Host the exchange should listen on.

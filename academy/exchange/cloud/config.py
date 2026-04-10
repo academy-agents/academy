@@ -26,6 +26,7 @@ from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
 from academy.logging import _Formatter
+from academy.logging import _os_thread_filter
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     import tomllib
@@ -82,7 +83,8 @@ class LogConfig(BaseModel):
             else:
                 file_handler = logging.FileHandler(path)
 
-            file_handler.setFormatter(_Formatter(color=False))
+            file_handler.addFilter(_os_thread_filter)
+            file_handler.setFormatter(_Formatter(color=False, extra=2))
             file_handler.setLevel(logfile_level)
             handlers.append(file_handler)
 

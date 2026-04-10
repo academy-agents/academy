@@ -140,6 +140,14 @@ async def _share_mailbox_route(request: Request) -> Response:
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
         )
+
+    logger.info(
+        f'Sharing mailbox {mailbox_id} with group {group_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.group_id': group_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -232,6 +240,14 @@ async def _remove_mailbox_shares_route(request: Request) -> Response:
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
         )
+
+    logger.info(
+        f'Unsharing mailbox {mailbox_id} with group {group_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.group_id': group_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -265,6 +281,15 @@ async def _create_mailbox_route(request: Request) -> Response:
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
+
+    logger.info(
+        f'Creating mailbox {mailbox_id} of type {agent}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.agent': agent,
+            'academy.client_id': client.client_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -296,6 +321,13 @@ async def _terminate_route(request: Request) -> Response:
             status=StatusCode.FORBIDDEN.value,
             text='Incorrect permissions',
         )
+
+    logger.info(
+        f'Terminating mailbox {mailbox_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -425,6 +457,19 @@ async def _send_message_route(request: Request) -> Response:
         )
     else:
         await manager.update_heartbeat(message.src)
+        logger.info(
+            (
+                f'Placing message {message.tag} in mailbox '
+                f'{message.dest} from {message.src}'
+            ),
+            extra={
+                'academy.message.event': 'PUT',
+                'academy.message.src': message.src,
+                'academy.message.dest': message.dest,
+                'academy.message.size': sys.getsizeof(message.body),
+                'academy.message_tag': message.tag,
+            },
+        )
         return Response(status=StatusCode.OKAY.value)
 
 
@@ -473,13 +518,13 @@ async def _listen_mailbox_route(
         )
 
     if status == MailboxStatus.MISSING:
-        logger.exception(f'Receive from unknown mailbox {mailbox_id}.')
+        logger.exception(f'Listening on unknown mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.NOT_FOUND.value,
             text='Unknown mailbox ID',
         )
     elif status == MailboxStatus.TERMINATED:
-        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
+        logger.exception(f'Listening on terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
@@ -496,6 +541,18 @@ async def _listen_mailbox_route(
                 )
                 logger.debug(f'Message at mailbox {message.dest} retrieved.')
                 await manager.update_heartbeat(mailbox_id)
+                logger.info(
+                    (
+                        f'Fetched message {message.tag} from '
+                        f'mailbox {message.dest}'
+                    ),
+                    extra={
+                        'academy.message.event': 'GET',
+                        'academy.message.src': message.src,
+                        'academy.message.dest': message.dest,
+                        'academy.message_tag': message.tag,
+                    },
+                )
                 await response.send(message.model_dump_json())
             except (MailboxTerminatedError, TimeoutError) as e:
                 # These messages are not necessarily a sign something is wrong
@@ -548,7 +605,7 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             text='Unknown mailbox ID',
         )
     except MailboxTerminatedError:
-        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
+        logger.error(f'Receive from terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
@@ -570,6 +627,15 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
         )
     else:
         await manager.update_heartbeat(mailbox_id)
+        logger.info(
+            f'Fetched message {message.tag} from mailbox {message.dest}',
+            extra={
+                'academy.message.event': 'GET',
+                'academy.message.src': message.src,
+                'academy.message.dest': message.dest,
+                'academy.message_tag': message.tag,
+            },
+        )
         return json_response({'message': message.model_dump_json()})
 
 

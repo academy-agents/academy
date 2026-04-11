@@ -16,6 +16,8 @@ from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
 from academy.exchange.client import ExchangeClient
+from academy.exchange.cloud.client import HttpExchangeTransport
+from academy.exchange.cloud.globus import GlobusExchangeTransport
 from academy.exchange.local import LocalExchangeFactory
 from academy.handle import Handle
 from academy.identifier import AgentId
@@ -271,3 +273,30 @@ def test_client_background_error(
     set_academy_debug()
     with pytest.raises(SystemExit):
         asyncio.run(run())
+
+
+async def test_client_heartbeat_status(
+    client: UserExchangeClient[Any],
+) -> None:
+    heartbeat = await client.heartbeat_status(client.client_id)
+    assert heartbeat is None
+
+    if isinstance(
+        client._transport,
+        (HttpExchangeTransport, GlobusExchangeTransport),
+    ):
+        registration = await client.register_agent(EmptyAgent)
+        aid = registration.agent_id
+
+        message = Message.create(
+            src=client.client_id,
+            dest=aid,
+            body=PingRequest(),
+        )
+        await client.send(message)
+    else:
+        await client._transport.update_heartbeat()
+
+    heartbeat = await client.heartbeat_status(client.client_id)
+    assert heartbeat is not None
+    assert heartbeat < 1.0

@@ -366,6 +366,11 @@ class PythonBackend:
             self._locks[uid] = asyncio.Lock()
             if agent is not None and isinstance(uid, AgentId):
                 self._agents[uid] = agent
+            logger.info(
+                'Created mailbox for %s',
+                uid,
+                extra={'academy.mailbox_id': uid},
+            )
 
     async def terminate(self, client: ClientInfo, uid: EntityId) -> None:
         """Close a mailbox.
@@ -402,6 +407,11 @@ class PythonBackend:
                         await self.put(client, response)
 
             mailbox.shutdown(immediate=True)
+            logger.info(
+                'Closed mailbox for %s',
+                uid,
+                extra={'academy.mailbox_id': uid},
+            )
 
     async def update_heartbeat(self, uid: EntityId) -> None:
         """Update the heartbeat timestamp for a mailbox."""
@@ -554,6 +564,7 @@ class PythonBackend:
             self._shares[uid] = set()
 
         self._shares[uid].add(group_uid)
+        logger.info('Mailbox %s shared with group %s', uid, group_uid)
 
     async def get_mailbox_shares(
         self,
@@ -627,6 +638,7 @@ class PythonBackend:
             )
 
         self._shares[uid].discard(group_uid)
+        logger.info('Group %s removed from mailbox %s', group_uid, uid)
 
 
 async def _drain_queue(queue: AsyncQueue[Message[Any]]) -> list[Message[Any]]:

@@ -478,3 +478,22 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
         await backend.get(client, uid, timeout=0.01)
 
     await backend.terminate(client, uid)
+
+
+async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
+    uid = UserId.new()
+    client = ClientInfo(str(uid), set())
+
+    heartbeat = await backend.heartbeat_status(uid)
+    assert heartbeat is None
+
+    await backend.create_mailbox(client, uid)
+
+    heartbeat = await backend.heartbeat_status(uid)
+    assert heartbeat is None
+
+    await backend.update_heartbeat(uid)
+
+    heartbeat = await backend.heartbeat_status(uid)
+    assert heartbeat is not None
+    assert heartbeat < 1.0

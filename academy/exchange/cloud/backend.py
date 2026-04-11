@@ -876,18 +876,39 @@ class RedisBackend:
                 with contextlib.suppress(Exception):
                     await self.put(client, response)
 
+    async def redis_current_time(self) -> float:
+        """Helper to transform Redis time structure to Unix float.
+
+        Returns:
+            Unix timestamp as a float
+
+        """
+        # Returns in the form [seconds since epoch, microseconds]
+        current_time = await self._client.time()
+
+        current_seconds = int(current_time[0])
+        current_microseconds = int(current_time[1]) / 1000000
+
+        now = current_seconds + current_microseconds
+
+        return now
+
     async def update_heartbeat(self, uid: EntityId) -> None:
         """Update the heartbeat timestamp for a mailbox."""
-        await self._client.set(self._heartbeat_key(uid), str(time.time()))
+        now = await self.redis_current_time()
+
+        await self._client.set(self._heartbeat_key(uid), str(now))
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
-        """Get the last heartbeat timestamp for a mailbox."""
+        """Get the time since last heartbeat timestamp for a mailbox."""
         heartbeat_time = await self._client.get(self._heartbeat_key(uid))
 
         if heartbeat_time is None:
             return None
 
-        return float(heartbeat_time.decode())
+        now = await self.redis_current_time()
+
+        return now - float(heartbeat_time.decode())
 
     async def discover(
         self,

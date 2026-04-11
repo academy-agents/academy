@@ -724,3 +724,9 @@ async def test_remove_share_bad_id(auth_client, group_id) -> None:
         headers={'Authorization': 'Bearer user_1'},
     )
     assert response.status == StatusCode.NOT_FOUND.value
+
+
+async def test_heartbeat_validation_error(cli) -> None:
+    response = await cli.get('/mailbox/heartbeat', json={'mailbox': 'foo'})
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert await response.text() == 'Missing or invalid mailbox ID'

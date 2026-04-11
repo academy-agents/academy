@@ -7,7 +7,6 @@ import contextlib
 import dataclasses
 import logging
 import sys
-import time
 import uuid
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
@@ -419,26 +418,40 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if isinstance(uid, AgentId):
             await self._redis_client.delete(self._agent_key(uid))
 
+    async def redis_current_time(self) -> float:
+        """Helper to transform Redis time structure to Unix float.
+
+        Returns:
+            Unix timestamp as a float
+
+        """
+        # Returns in the form [seconds since epoch, microseconds]
+        current_time = await self._redis_client.time()
+
+        current_seconds = int(current_time[0])
+        current_microseconds = int(current_time[1]) / 1000000
+
+        now = current_seconds + current_microseconds
+
+        return now
+
     async def update_heartbeat(self) -> None:
+
+        now = await self.redis_current_time()
 
         await self._redis_client.set(
             self._heartbeat_key(self._mailbox_id),
-            str(time.time()),
+            str(now),
         )
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
+
         heartbeat_time = await self._redis_client.get(self._heartbeat_key(uid))
 
         if heartbeat_time is None:
             return None
 
-        # Returns in the form [seconds since epoch, microseconds]
-        current_time = await self._redis_client.time()
-
-        current_seconds = current_time[0]
-        current_microseconds = current_time[1] / 1000000
-
-        now = current_seconds + current_microseconds
+        now = await self.redis_current_time()
 
         return now - float(heartbeat_time.decode())
 

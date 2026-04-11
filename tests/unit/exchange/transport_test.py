@@ -274,4 +274,4 @@ async def test_transport_heartbeat(
     await asyncio.sleep(TEST_HEARTBEAT_INTERVAL)
     heartbeat = await transport.heartbeat_status(transport.mailbox_id)
     assert heartbeat is not None
-    assert heartbeat > TEST_HEARTBEAT_INTERVAL
+    assert TEST_HEARTBEAT_INTERVAL + 1.0 > heartbeat > TEST_HEARTBEAT_INTERVAL

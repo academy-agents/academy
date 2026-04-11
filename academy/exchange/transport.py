@@ -227,7 +227,7 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
             uid: Entity identifier of the mailbox to check.
 
         Returns:
-            Unix timestamp of the last heartbeat, or None if no heartbeat
+            Time since last heartbeat, or None if no heartbeat
             retrieved.
 
         """

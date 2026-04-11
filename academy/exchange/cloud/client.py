@@ -99,6 +99,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._message_url = f'{base_url}/message'
         self._discover_url = f'{base_url}/discover'
         self._listen_url = f'{base_url}/mailbox/listen'
+        self._heartbeat_url = f'{base_url}/mailbox/heartbeat'
 
     @classmethod
     async def new(
@@ -307,6 +308,17 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             json={'mailbox': uid.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id, uid)
+
+    async def update_heartbeat(self) -> None:
+        pass  # Server tracks this automatically via listen/send
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        async with self._session.get(
+            self._heartbeat_url,
+            json={'mailbox': uid.model_dump_json()},
+        ) as response:
+            _raise_for_status(response, self.mailbox_id, uid)
+            return (await response.json())['heartbeat']
 
 
 class HttpExchangeConsole:

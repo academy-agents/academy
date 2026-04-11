@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import fnmatch
 import logging
+import time as time_module
 from builtins import set as builtins_set
 from collections import defaultdict
 from collections.abc import AsyncGenerator
@@ -170,6 +171,16 @@ class MockRedis:
 
         for value in values:
             self.sets[key].discard(self._encode(value))
+
+    async def time(self) -> list[bytes]:
+        """Return current server time as [seconds, microseconds], consistent
+        with Redis's implementation"""
+
+        now = time_module.time()
+        seconds = int(now)
+        microseconds = int((now - seconds) * 1000000)
+
+        return [str(seconds).encode(), str(microseconds).encode()]
 
 
 @pytest.fixture

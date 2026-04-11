@@ -331,6 +331,29 @@ async def _terminate_route(request: Request) -> Response:
     return Response(status=StatusCode.OKAY.value)
 
 
+async def _get_heartbeat_route(request: Request) -> Response:
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+
+    try:
+        raw_mailbox_id = data['mailbox']
+        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+            raw_mailbox_id,
+        )
+    except (KeyError, ValidationError):
+        logger.warning(
+            'Invalid or missing mailbox id in request.',
+            exc_info=True,
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text='Missing or invalid mailbox ID',
+        )
+
+    heartbeat = await manager.heartbeat_status(mailbox_id)
+    return json_response({'heartbeat': heartbeat})
+
+
 async def _discover_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -432,21 +455,22 @@ async def _send_message_route(request: Request) -> Response:
             status=StatusCode.TOO_LARGE.value,
             text=f'Message of size {e.size} larger than limit {e.limit}.',
         )
-
-    logger.info(
-        (
-            f'Placing message {message.tag} in mailbox '
-            f'{message.dest} from {message.src}'
-        ),
-        extra={
-            'academy.message.event': 'PUT',
-            'academy.message.src': message.src,
-            'academy.message.dest': message.dest,
-            'academy.message.size': sys.getsizeof(message.body),
-            'academy.message_tag': message.tag,
-        },
-    )
-    return Response(status=StatusCode.OKAY.value)
+    else:
+        await manager.update_heartbeat(message.src)
+        logger.info(
+            (
+                f'Placing message {message.tag} in mailbox '
+                f'{message.dest} from {message.src}'
+            ),
+            extra={
+                'academy.message.event': 'PUT',
+                'academy.message.src': message.src,
+                'academy.message.dest': message.dest,
+                'academy.message.size': sys.getsizeof(message.body),
+                'academy.message_tag': message.tag,
+            },
+        )
+        return Response(status=StatusCode.OKAY.value)
 
 
 async def _listen_mailbox_route(
@@ -515,6 +539,8 @@ async def _listen_mailbox_route(
                     mailbox_id,
                     timeout=timeout,
                 )
+                logger.debug(f'Message at mailbox {message.dest} retrieved.')
+                await manager.update_heartbeat(mailbox_id)
                 logger.info(
                     (
                         f'Fetched message {message.tag} from '
@@ -599,17 +625,18 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             status=StatusCode.TIMEOUT.value,
             text='Request timeout',
         )
-
-    logger.info(
-        f'Fetched message {message.tag} from mailbox {message.dest}',
-        extra={
-            'academy.message.event': 'GET',
-            'academy.message.src': message.src,
-            'academy.message.dest': message.dest,
-            'academy.message_tag': message.tag,
-        },
-    )
-    return json_response({'message': message.model_dump_json()})
+    else:
+        await manager.update_heartbeat(mailbox_id)
+        logger.info(
+            f'Fetched message {message.tag} from mailbox {message.dest}',
+            extra={
+                'academy.message.event': 'GET',
+                'academy.message.src': message.src,
+                'academy.message.dest': message.dest,
+                'academy.message_tag': message.tag,
+            },
+        )
+        return json_response({'message': message.model_dump_json()})
 
 
 def authenticate_factory(
@@ -693,6 +720,7 @@ def create_app(
     app.router.add_get('/message', _recv_message_route)
     app.router.add_get('/discover', _discover_route)
     app.router.add_get('/mailbox/listen', _listen_mailbox_route)
+    app.router.add_get('/mailbox/heartbeat', _get_heartbeat_route)
 
     return app
 

@@ -169,7 +169,7 @@ async def test_proxy_exchange_timeout(
 
 
 @pytest.mark.asyncio
-async def text_proxystore_heartbeat(
+async def test_proxystore_heartbeat(
     store: Store[LocalConnector],
     local_exchange_factory: LocalExchangeFactory,
 ) -> None:

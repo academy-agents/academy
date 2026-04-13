@@ -166,6 +166,21 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
 
 
 @dataclasses.dataclass
+class _PendingRegistration(Generic[AgentT]):
+    """Intermediate state for a registration awaiting token delegation.
+
+    Created during the prepare phase of batch registration. Contains
+    the Globus Auth client, credential, and scope but not yet the
+    delegated token (which requires user consent).
+    """
+
+    agent_id: AgentId[AgentT]
+    client_id: uuid.UUID
+    secret: str
+    scope: Scope
+
+
+@dataclasses.dataclass
 class GlobusAgentRegistration(Generic[AgentT]):
     """Agent registration for hosted globus exchange."""
 
@@ -440,10 +455,18 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         while True:
             yield await self._recv(timeout)
 
-    def _create_registration(
+    def _prepare_registration(
         self,
         aid: AgentId[AgentT],
-    ) -> GlobusAgentRegistration[AgentT]:
+    ) -> _PendingRegistration[AgentT]:
+        """Create Globus Auth client, credential, and scope for an agent.
+
+        This is phase 1 of registration. It creates all Globus Auth
+        entities and accumulates the scope requirement on the GlobusApp,
+        but does not trigger user consent. Call
+        :meth:`_finalize_registration` after all agents are prepared to
+        obtain delegated tokens with a single login.
+        """
         # Create new resource server (auth entity)
         logger.info('Creating new auth client')
         client_response = self.auth_client.create_client(
@@ -484,26 +507,59 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
         scope = Scope.parse(scope_response['scopes'][0]['scope_string'])
 
-        # Create delegated token
-        logger.info('Creating delegated token.')
-        assert self._app is not None  # Already true, but not caught by mypy
+        # Accumulate scope requirement (no consent triggered yet)
+        assert self._app is not None
         self._app.add_scope_requirements(
             {client_id: [scope]},
         )
-        authorizer = self._app.get_authorizer(client_id)
+
+        return _PendingRegistration(
+            agent_id=aid,
+            client_id=client_id,
+            secret=secret,
+            scope=scope,
+        )
+
+    def _finalize_registration(
+        self,
+        pending: _PendingRegistration[AgentT],
+    ) -> GlobusAgentRegistration[AgentT]:
+        """Obtain delegated token for a previously prepared agent.
+
+        This is phase 2 of registration. The GlobusApp must already
+        have valid tokens for the agent's scope (via a prior
+        ``login()`` call that covered all accumulated scopes).
+        """
+        logger.info('Creating delegated token.')
+        assert self._app is not None
+        authorizer = self._app.get_authorizer(str(pending.client_id))
         bearer = authorizer.get_authorization_header()
         if bearer is None:  # pragma: no cover
-            raise UnauthorizedError('Unable to get authorization headers.')
+            raise UnauthorizedError(
+                'Unable to get authorization headers.',
+            )
 
         auth_header_parts = bearer.split(' ')
         token = auth_header_parts[1]
 
         return GlobusAgentRegistration(
-            agent_id=aid,
-            client_id=client_id,
+            agent_id=pending.agent_id,
+            client_id=pending.client_id,
             token=token,
-            secret=secret,
+            secret=pending.secret,
         )
+
+    def _create_registration(
+        self,
+        aid: AgentId[AgentT],
+    ) -> GlobusAgentRegistration[AgentT]:
+        """Create a single agent registration (prepare + finalize).
+
+        Convenience method that runs both phases sequentially for a
+        single agent. Triggers a consent prompt for the new scope.
+        """
+        pending = self._prepare_registration(aid)
+        return self._finalize_registration(pending)
 
     def _create_mailbox(
         self,
@@ -539,6 +595,62 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self.child_clients.append(registration.client_id)
 
         return registration
+
+    async def register_agents(
+        self,
+        agents: list[tuple[type[AgentT], str | None]],
+    ) -> list[GlobusAgentRegistration[AgentT]]:
+        """Register multiple agents with a single auth prompt.
+
+        Args:
+            agents: List of (agent_type, name) pairs to register.
+
+        Returns:
+            List of agent registrations in order of input.
+        """
+        loop = asyncio.get_running_loop()
+
+        # first: create clients, credentials, scopes and
+        # add scope requirements without consent.
+        pending: list[tuple[_PendingRegistration[AgentT], type[AgentT]]] = []
+        for agent_type, name in agents:
+            aid: AgentId[AgentT] = AgentId.new(name=name)
+            p = await loop.run_in_executor(
+                self.executor,
+                self._prepare_registration,
+                aid,
+            )
+            pending.append((p, agent_type))
+
+        # Single login satisfies all accumulated scopes at once.
+        assert self._app is not None
+        if self._app.login_required():
+            await loop.run_in_executor(
+                self.executor,
+                self._app.login,
+            )
+
+        # Phase 2: extract delegated tokens (cache hits, no prompts).
+        registrations: list[GlobusAgentRegistration[AgentT]] = []
+        for p, agent_type in pending:
+            reg = await loop.run_in_executor(
+                self.executor,
+                self._finalize_registration,
+                p,
+            )
+
+            # Create mailbox on the exchange.
+            await loop.run_in_executor(
+                self.executor,
+                self._create_mailbox,
+                reg.agent_id,
+                agent_type,
+            )
+
+            self.child_clients.append(reg.client_id)
+            registrations.append(reg)
+
+        return registrations
 
     def _send(self, message: Message[Any]) -> None:
         self.exchange_client.send(message)

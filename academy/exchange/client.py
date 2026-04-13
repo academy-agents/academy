@@ -166,6 +166,37 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         )
         return registration
 
+    async def register_agents(
+        self,
+        agents: list[tuple[type[AgentT], str | None]],
+    ) -> list[AgentRegistration[AgentT]]:
+        """Register multiple agents, batching auth if supported.
+
+        Falls back to sequential :meth:`register_agent` calls when
+        the transport does not implement batch registration.
+
+        Args:
+            agents: List of (agent_type, name) pairs to register.
+
+        Returns:
+            List of agent registrations in input order.
+        """
+        batch_fn = getattr(self._transport, 'register_agents', None)
+        if batch_fn is not None:
+            registrations = await batch_fn(agents)
+        else:
+            registrations = [
+                await self.register_agent(agent, name=name)
+                for agent, name in agents
+            ]
+        for reg in registrations:
+            logger.info(
+                'Registered %s in exchange',
+                reg.agent_id,
+                extra={'academy.agent_id': reg.agent_id},
+            )
+        return registrations
+
     async def send(self, message: Message[Any]) -> None:
         """Send a message to a mailbox.
 

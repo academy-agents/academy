@@ -143,6 +143,25 @@ async def test_shutdown_bad_identifier(
 
 
 @pytest.mark.asyncio
+async def test_register_agents_and_launch(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    registrations = await manager.register_agents(
+        [(EmptyAgent, None), (IdentityAgent, None)],
+    )
+    assert len(registrations) == 2  # noqa: PLR2004
+    await manager.launch(
+        EmptyAgent(),
+        registration=registrations[0],
+    )
+    await manager.launch(
+        IdentityAgent(),
+        registration=registrations[1],
+    )
+    assert len(manager.running()) == 2  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
 async def test_duplicate_launched_agents_error(
     manager: Manager[LocalExchangeTransport],
 ) -> None:

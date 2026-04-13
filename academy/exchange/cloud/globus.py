@@ -624,7 +624,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         # Single login satisfies all accumulated scopes at once.
         assert self._app is not None
-        if self._app.login_required():
+        if self._app.login_required():  # pragma: no cover
             await loop.run_in_executor(
                 self.executor,
                 self._app.login,

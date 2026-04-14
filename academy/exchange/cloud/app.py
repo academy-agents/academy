@@ -60,10 +60,7 @@ from academy.exception import UnauthorizedError
 from academy.exchange.cloud.authenticate import Authenticator
 from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
-from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.client_info import ClientInfo
-from academy.exchange.cloud.config import BackendConfig
-from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import EntityId
@@ -87,6 +84,7 @@ class StatusCode(enum.Enum):
 
 
 MANAGER_KEY = AppKey('manager', MailboxBackend)
+TIMEOUT_KEY = AppKey('listen_timeout', int)
 
 
 def get_client_info(request: Request) -> ClientInfo:
@@ -331,7 +329,7 @@ async def _listen_mailbox_route(
     mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
         raw_mailbox_id,
     )
-    timeout = data.get('timeout', None)
+    timeout = data.get('timeout', request.app[TIMEOUT_KEY])
     client = get_client_info(request)
     status = await manager.check_mailbox(client, mailbox_id)
 
@@ -389,7 +387,7 @@ async def _recv_message_route(request: Request) -> Response:
     mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
         raw_mailbox_id,
     )
-    timeout = data.get('timeout', None)
+    timeout = data.get('timeout', request.app[TIMEOUT_KEY])
     client = get_client_info(request)
     try:
         message = await manager.get(client, mailbox_id, timeout=timeout)
@@ -476,22 +474,19 @@ def authenticate_factory(
 
 
 def create_app(
-    backend_config: BackendConfig | None = None,
-    auth_config: ExchangeAuthConfig | None = None,
+    config: ExchangeServingConfig | None = None,
 ) -> Application:
     """Create a new server application."""
-    if backend_config is not None:
-        backend = backend_config.get_backend()
-    else:
-        backend = PythonBackend()
+    if config is None:
+        config = ExchangeServingConfig()
 
-    middlewares = []
-    if auth_config is not None:
-        authenticator = get_authenticator(auth_config)
-        middlewares.append(authenticate_factory(authenticator))
+    backend = config.backend.get_backend()
+    authenticator = get_authenticator(config.auth)
+    middlewares = [authenticate_factory(authenticator)]
 
     app = Application(middlewares=middlewares)
     app[MANAGER_KEY] = backend
+    app[TIMEOUT_KEY] = config.listen_timeout
 
     app.router.add_post('/mailbox', _create_mailbox_route)
     app.router.add_post('/mailbox/share', _share_mailbox_route)
@@ -511,7 +506,7 @@ def _run(
     config: ExchangeServingConfig,
 ) -> None:
     config.logger.init_logger()
-    app = create_app(config.backend, config.auth)
+    app = create_app(config)
     logger = logging.getLogger('root')
     logger.info(
         'Exchange listening on %s:%s (ctrl-C to exit)',

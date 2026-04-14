@@ -24,7 +24,6 @@ from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
-from academy.exchange.cloud.config import PythonBackendConfig
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message
@@ -287,10 +286,8 @@ async def test_send_mailbox_message_too_large(cli) -> None:
 
 
 @pytest.mark.asyncio
-async def test_null_auth_client() -> None:
-    auth = ExchangeAuthConfig()
-    backend = PythonBackendConfig()
-    app = create_app(backend, auth)
+async def test_create_app_explicit_config() -> None:
+    app = create_app(ExchangeServingConfig())
     async with TestClient(TestServer(app)) as client:
         response = await client.get('/message', json={'mailbox': 'foo'})
         assert response.status == StatusCode.BAD_REQUEST.value
@@ -343,13 +340,11 @@ async def auth_client(
         else:
             raise ForbiddenError()
 
-    backend = PythonBackendConfig()
-
     with mock.patch(
         'academy.exchange.cloud.authenticate.GlobusAuthenticator.authenticate_user',
     ) as mock_user_auth:
         mock_user_auth.side_effect = authorize
-        app = create_app(backend, auth)
+        app = create_app(ExchangeServingConfig(auth=auth))
         async with TestClient(TestServer(app)) as client:
             yield client
 

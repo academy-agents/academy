@@ -209,6 +209,7 @@ class ExchangeServingConfig(BaseModel):
     port: int = 8700
     certfile: str | None = None
     keyfile: str | None = None
+    listen_timeout: int = 60
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
     logger: LogConfig = Field(default_factory=LogConfig)

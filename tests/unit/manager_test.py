@@ -5,6 +5,7 @@ import multiprocessing
 import pathlib
 import time
 from collections.abc import Callable
+from concurrent.futures import Executor
 from concurrent.futures import Future
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
@@ -23,7 +24,7 @@ from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.manager import Manager
-from testing.agents import EmptyAgent
+from academy.testing import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
 from testing.constant import TEST_CONNECTION_TIMEOUT
@@ -456,3 +457,27 @@ async def test_terminate_mailbox_on_launch_error(
 
     with pytest.raises(RuntimeError):
         await manager.close()
+
+
+@pytest.mark.parametrize(
+    'executor',
+    (None, ProcessPoolExecutor()),
+)
+async def test_launch_agent_detached(
+    http_exchange_factory: HttpExchangeFactory,
+    executor: Executor | None,
+):
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+        executors=executor,
+    ) as manager:
+        hdl = await manager.launch(
+            EmptyAgent,
+            detach=True,
+        )
+        await manager.wait([hdl])
+
+    async with await http_exchange_factory.create_user_client():
+        # Test agent is still active after manager shutdown
+        await hdl.ping(timeout=TEST_WAIT_TIMEOUT)
+        await hdl.shutdown()

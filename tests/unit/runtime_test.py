@@ -492,14 +492,17 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     )
     await exchange_client.send(shutdown)
 
-    message = await anext(listener)
-    body = message.get_body()
-    if cancel:
-        assert isinstance(body, ErrorResponse)
-        assert isinstance(body.get_exception(), ActionCancelledError)
-    else:
-        assert isinstance(body, ActionResponse)
-        assert body.get_result() is None
+    for _ in range(2):
+        message = await anext(listener)
+        body = message.get_body()
+        if message.tag == shutdown.tag:
+            assert isinstance(body, SuccessResponse)
+        elif cancel:
+            assert isinstance(body, ErrorResponse)
+            assert isinstance(body.get_exception(), ActionCancelledError)
+        else:
+            assert isinstance(body, ActionResponse)
+            assert body.get_result() is None
 
     await asyncio.wait_for(task, timeout=TEST_WAIT_TIMEOUT)
 

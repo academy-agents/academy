@@ -109,7 +109,6 @@ class Handle(Generic[AgentT_co]):
             uuid.UUID,
             asyncio.Future[Any],
         ] = {}
-        self._shutdown_requests: set[uuid.UUID] = set()
 
         if self._exchange is not None:
             self._register_with_exchange(self._exchange)
@@ -167,33 +166,6 @@ class Handle(Generic[AgentT_co]):
         return remote_method_call
 
     async def _process_response(self, response: Message[ResponseT]) -> None:
-        # Check if this is an error response for a shutdown request as those
-        # are handled differently than other requests types (action, ping)
-        # which always expect a response.
-        if response.tag in self._shutdown_requests:
-            self._shutdown_requests.remove(response.tag)
-            body = response.get_body()
-            assert isinstance(body, ErrorResponse)
-            exception = body.get_exception()
-            # The only ok error to be ignored is if the agent we intended to
-            # shutdown was already shutdown.
-            if (
-                not isinstance(exception, AgentTerminatedError)
-                or exception.uid != self.agent_id
-            ):
-                logger.error(
-                    'Failure requesting shutdown for %s: %s (type: %s)',
-                    self.agent_id,
-                    exception,
-                    type(exception),
-                    extra={
-                        'academy.agent_id': self.agent_id,
-                        'academy.exception': exception,
-                        'academy.exception_type': type(exception),
-                    },
-                )
-            return
-
         future = self._pending_response_futures.pop(response.tag)
 
         if not future.cancelled():
@@ -395,11 +367,34 @@ class Handle(Generic[AgentT_co]):
         )
         return elapsed
 
+    def _shutdown_callback(self, future: asyncio.Future[Any]) -> None:
+        if future.exception() is None:
+            return
+
+        exception = future.exception()
+        # The only ok error to be ignored is if the agent we intended to
+        # shutdown was already shutdown.
+        if (
+            not isinstance(exception, AgentTerminatedError)
+            or exception.uid != self.agent_id
+        ):
+            logger.error(
+                'Failure requesting shutdown for %s: %s (type: %s)',
+                self.agent_id,
+                exception,
+                type(exception),
+                extra={
+                    'academy.agent_id': self.agent_id,
+                    'academy.exception': exception,
+                    'academy.exception_type': type(exception),
+                },
+            )
+        return
+
     async def shutdown(self, *, terminate: bool | None = None) -> None:
         """Instruct the agent to shutdown.
 
-        This is non-blocking and will only send the request. Any unexpected
-        error responses sent by the exchange will be logged.
+        This is non-blocking and will only send the message.
 
         Args:
             terminate: Override the termination behavior of the agent defined
@@ -419,14 +414,20 @@ class Handle(Generic[AgentT_co]):
             label=self.handle_id,
             body=ShutdownRequest(terminate=terminate),
         )
-        self._shutdown_requests.add(request.tag)
+
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[None] = loop.create_future()
+        self._pending_response_futures[request.tag] = future
         await self.exchange.send(request)
+
         logger.debug(
             'Sent shutdown request from %s to %s',
             exchange.client_id,
             self.agent_id,
             extra=request.log_extra(),
         )
+
+        future.add_done_callback(self._shutdown_callback)
 
 
 class ProxyHandle(Handle[AgentT]):

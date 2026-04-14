@@ -200,7 +200,7 @@ async def test_check_mailbox_validation_error(cli) -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_mailbox_validation_error(cli) -> None:
+async def test_send_mailbox_mailbox_validation_error(cli) -> None:
     response = await cli.put('/message', json={'message': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
     assert 'Missing or invalid field' in (await response.text())
@@ -212,6 +212,22 @@ async def test_recv_mailbox_validation_error(cli) -> None:
     assert response.status == StatusCode.BAD_REQUEST.value
     assert 'Missing or invalid field' in (await response.text())
 
+
+@pytest.mark.asyncio
+async def test_recv_mailbox_timeout_validation_error(cli) -> None:
+    response = await cli.get(
+        '/message',
+        json={
+            'mailbox': UserId.new().model_dump_json(),
+            'timeout': ExchangeServingConfig().listen_timeout_s + 1,
+        },
+    )
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert 'Invalid timeout' in (await response.text())
+
+
+@pytest.mark.asyncio
+async def test_recv_mailbox_unkown_error(cli) -> None:
     response = await cli.get(
         '/message',
         json={'mailbox': UserId.new().model_dump_json()},
@@ -226,6 +242,22 @@ async def test_listen_mailbox_validation_error(cli) -> None:
     assert response.status == StatusCode.BAD_REQUEST.value
     assert 'Missing or invalid field' in (await response.text())
 
+
+@pytest.mark.asyncio
+async def test_listen_mailbox_timeout_validation_error(cli) -> None:
+    response = await cli.get(
+        '/mailbox/listen',
+        json={
+            'mailbox': UserId.new().model_dump_json(),
+            'timeout': ExchangeServingConfig().listen_timeout_s + 1,
+        },
+    )
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert 'Invalid timeout' in (await response.text())
+
+
+@pytest.mark.asyncio
+async def test_listen_mailbox_unkown_error(cli) -> None:
     response = await cli.get(
         '/mailbox/listen',
         json={'mailbox': UserId.new().model_dump_json()},

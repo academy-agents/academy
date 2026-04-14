@@ -330,6 +330,18 @@ async def _listen_mailbox_route(
         raw_mailbox_id,
     )
     timeout = data.get('timeout', request.app[TIMEOUT_KEY])
+    if timeout <= 0 or timeout > request.app[TIMEOUT_KEY]:
+        logger.warning(
+            f'Invalid timeout in listen request: {timeout}.',
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text=(
+                'Invalid timeout (must be less than '
+                f'{request.app[TIMEOUT_KEY]} and greater than 0)'
+            ),
+        )
+
     client = get_client_info(request)
     status = await manager.check_mailbox(client, mailbox_id)
 
@@ -388,6 +400,18 @@ async def _recv_message_route(request: Request) -> Response:
         raw_mailbox_id,
     )
     timeout = data.get('timeout', request.app[TIMEOUT_KEY])
+    if timeout <= 0 or timeout > request.app[TIMEOUT_KEY]:
+        logger.warning(
+            f'Invalid timeout in listen request: {timeout}.',
+        )
+        return Response(
+            status=StatusCode.BAD_REQUEST.value,
+            text=(
+                'Invalid timeout (must be less than '
+                f'{request.app[TIMEOUT_KEY]} and greater than 0)'
+            ),
+        )
+
     client = get_client_info(request)
     try:
         message = await manager.get(client, mailbox_id, timeout=timeout)
@@ -486,7 +510,7 @@ def create_app(
 
     app = Application(middlewares=middlewares)
     app[MANAGER_KEY] = backend
-    app[TIMEOUT_KEY] = config.listen_timeout
+    app[TIMEOUT_KEY] = config.listen_timeout_s
 
     app.router.add_post('/mailbox', _create_mailbox_route)
     app.router.add_post('/mailbox/share', _share_mailbox_route)

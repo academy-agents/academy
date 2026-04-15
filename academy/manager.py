@@ -4,6 +4,8 @@ import asyncio
 import contextlib
 import dataclasses
 import logging
+import pickle
+import subprocess
 import sys
 import warnings
 from collections.abc import Iterable
@@ -57,6 +59,7 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     init_logging: bool = False
     loglevel: int | str = logging.INFO
     logfile: str | None = None
+    detached: bool = False
 
 
 async def _run_agent_async(
@@ -101,12 +104,36 @@ def _run_agent_on_worker(
     asyncio.run(_run_agent_async(spec))
 
 
+def _run_agent_detached(
+    spec: _RunSpec[AgentT, ExchangeTransportT],
+    academy_debug_mode: bool = False,
+    **kwargs: Any,
+) -> int:
+    args = [
+        sys.executable,
+        '-m',
+        'academy.remote',
+    ]
+    if academy_debug_mode:
+        args.append('--debug')
+    proc = subprocess.Popen(
+        args,
+        stdin=subprocess.PIPE,
+        start_new_session=True,
+    )
+    assert proc.stdin is not None  # Necessary for mypy
+    pickle.dump(spec, proc.stdin)
+    proc.stdin.close()
+    return proc.pid
+
+
 @dataclasses.dataclass
 class _ACB(Generic[AgentT]):
     # Agent Control Block
     agent_id: AgentId[AgentT]
     executor: str
     task: asyncio.Task[None]
+    detached: bool = False
 
 
 class Manager(Generic[ExchangeTransportT], NoPickleMixin):
@@ -276,7 +303,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._closed.set()  # Stop from launching retries
 
         for acb in self._acbs.values():
-            if not acb.task.done():
+            if not acb.task.done() and not acb.detached:
                 handle = self.get_handle(acb.agent_id)
                 with contextlib.suppress(AgentTerminatedError):
                     await handle.shutdown()
@@ -345,7 +372,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._default_executor = name
         return self
 
-    async def _run_agent(
+    async def _run_agent(  # noqa: C901
         self,
         executor: Executor | None,
         spec: _RunSpec[AgentT, ExchangeTransportT],
@@ -385,7 +412,22 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             )
 
             try:
-                if executor is not None:
+                if spec.detached and executor is not None:
+                    await asyncio.wrap_future(
+                        executor.submit(
+                            _run_agent_detached,  # type: ignore[arg-type]
+                            spec,
+                            **spec.submit_kwargs,
+                        ),
+                        loop=loop,
+                    )
+                elif spec.detached and executor is None:
+                    await loop.run_in_executor(
+                        None,
+                        _run_agent_detached,
+                        spec,
+                    )
+                elif executor is not None:
                     await asyncio.wrap_future(
                         executor.submit(
                             _run_agent_on_worker,  # type: ignore[arg-type]
@@ -404,23 +446,18 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 )
                 raise
             except Exception:
+                logger.exception(
+                    'Received exception from %s, retries remaining: %d',
+                    agent_id,
+                    retries,
+                    extra={'academy.agent_id': agent_id},
+                )
                 if retries == 0:
-                    logger.exception(
-                        'Received exception from %s',
-                        agent_id,
-                        extra={'academy.agent_id': agent_id},
-                    )
                     if spec.config.terminate_on_error:
                         await self.exchange_client.terminate(
                             spec.registration.agent_id,
                         )
                     raise
-                else:
-                    logger.exception(
-                        'Restarting %s due to exception',
-                        agent_id,
-                        extra={'academy.agent_id': agent_id},
-                    )
             else:
                 logger.debug(
                     'Completed %s task',
@@ -443,6 +480,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         init_logging: bool = False,
         loglevel: int | str = logging.INFO,
         logfile: str | None = None,
+        detach: bool = False,
     ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 
@@ -465,6 +503,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             init_logging: Initialize logging before running agent.
             loglevel: Level of logging.
             logfile: Location to write logs.
+            detach: Run the agent in a separate process detached from the
+                life of the manager. (Manager only catches and retries errors
+                while spawning the agent process. Once the agent is detached,
+                the manager is no longer responsible for the agent.)
 
         Returns:
             Handle (client bound) used to interact with the agent.
@@ -510,6 +552,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             init_logging=init_logging,
             loglevel=loglevel,
             logfile=logfile,
+            detached=detach,
         )
 
         task = asyncio.create_task(

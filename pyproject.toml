@@ -25,6 +25,7 @@ dependencies = [
     "culsans",
     "globus_sdk>=4,<5",
     "pydantic>=2,<3",
+    "python-daemon>=3.1.2",
     "redis",
     "tomli ; python_version<'3.11'",
     "typing-extensions>=4.3.0 ; python_version<'3.11'",
@@ -200,6 +201,7 @@ required-imports = ["from __future__ import annotations"]
 "*/*_test.py" = ["D10"]
 "examples/*" = ["D"]
 "testing/*" = ["D"]
+"academy/testing.py" = ["D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

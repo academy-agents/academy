@@ -276,10 +276,10 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     Args:
         mailbox_id: Identifier of the mailbox on the exchange. If there is
             not an id provided, the exchange will create a new client mailbox.
-        project_id: Globus Identifier of project to create agents under.
+        connection_info: Project id, client parameters and other information
+            about the connection to the service.
         app: For user authorization through token retrieval.
         authorizer: For service authorization through token retrieval.
-        client_params: Additional parameters for globus client.
     """
 
     def __init__(

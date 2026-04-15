@@ -155,7 +155,7 @@ def exception_to_response(request_name: str) -> Callable[..., Any]:
                 # This happens when the client cancels it's task, and
                 # closes its connection. In this case, we don't
                 # need to do anything because the client disconnected
-                # itself. error, If we don't catch this aiohttp will
+                # itself. If we don't catch this aiohttp will
                 # just log an error message each time this happens.
                 return Response(status=StatusCode.NO_RESPONSE.value)
 

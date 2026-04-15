@@ -372,6 +372,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 lambda _: self._action_tasks.pop(request.tag),
             )
         elif isinstance(body, ShutdownRequest):
+            response = request.create_response(SuccessResponse())
+            # We need to block here, because if we send this async,
+            # the exchange could be closed before the message is sent
+            await self._send_response(response)
             self.signal_shutdown(expected=True, terminate=body.terminate)
         else:
             raise AssertionError('Unreachable.')

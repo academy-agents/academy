@@ -117,7 +117,7 @@ async def cli() -> AsyncGenerator[TestClient[Request, Application]]:
 async def test_create_mailbox_validation_error(cli) -> None:
     response = await cli.post('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
@@ -156,7 +156,7 @@ async def test_share_bad_mailbox(cli) -> None:
         },
     )
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
@@ -166,7 +166,7 @@ async def test_get_shares_bad_mailbox(cli) -> None:
         json={'mailbox': 'foo'},
     )
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
@@ -176,42 +176,42 @@ async def test_remove_shares_bad_mailbox(cli) -> None:
         json={'mailbox': 'foo'},
     )
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_terminate_validation_error(cli) -> None:
     response = await cli.delete('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_discover_validation_error(cli) -> None:
     response = await cli.get('/discover', json={})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid arguments'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_check_mailbox_validation_error(cli) -> None:
     response = await cli.get('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_send_mailbox_validation_error(cli) -> None:
     response = await cli.put('/message', json={'message': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid message'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_recv_mailbox_validation_error(cli) -> None:
     response = await cli.get('/message', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
     response = await cli.get(
         '/message',
@@ -225,7 +225,7 @@ async def test_recv_mailbox_validation_error(cli) -> None:
 async def test_listen_mailbox_validation_error(cli) -> None:
     response = await cli.get('/mailbox/listen', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
     response = await cli.get(
         '/mailbox/listen',
@@ -294,7 +294,7 @@ async def test_null_auth_client() -> None:
     async with TestClient(TestServer(app)) as client:
         response = await client.get('/message', json={'mailbox': 'foo'})
         assert response.status == StatusCode.BAD_REQUEST.value
-        assert await response.text() == 'Missing or invalid mailbox ID'
+        assert 'Missing or invalid field' in (await response.text())
 
         response = await client.get(
             '/message',

@@ -7,6 +7,7 @@ import functools
 import logging
 import sys
 import threading
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
@@ -15,6 +16,7 @@ from datetime import timedelta
 from typing import Any
 from typing import ClassVar
 from typing import Generic
+from typing import NamedTuple
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -59,6 +61,12 @@ else:
     AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
+
+
+class _AcademyConnectionInfo(NamedTuple):
+    project_id: uuid.UUID
+    client_params: dict[str, Any] | None = None
+    request_timeout_s: float = 60
 
 
 class AcademyAPIError(GlobusAPIError):
@@ -217,25 +225,25 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     Args:
         mailbox_id: Identifier of the mailbox on the exchange. If there is
             not an id provided, the exchange will create a new client mailbox.
-        project_id: Globus Identifier of project to create agents under.
+        connection_info: Project id, client parameters and other information
+            about the connection to the service.
         app: For user authorization through token retrieval.
         authorizer: For service authorization through token retrieval.
-        client_params: Additional parameters for globus client.
     """
 
     def __init__(
         self,
         mailbox_id: EntityId,
         *,
-        project_id: uuid.UUID,
+        connection_info: _AcademyConnectionInfo,
         app: GlobusApp | None = None,
         authorizer: GlobusAuthorizer | None = None,
-        client_params: dict[str, Any] | None = None,
     ) -> None:
         self._mailbox_id = mailbox_id
-        self.project = project_id
+        self.project = connection_info.project_id
         self.child_clients: list[uuid.UUID] = []
-        self.client_params = client_params or {}
+        self.client_params = connection_info.client_params or {}
+        self.request_timeout_s = connection_info.request_timeout_s
 
         self.login_time = datetime.min
         self._app = app
@@ -312,20 +320,20 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self.exchange_client.register_client(self.mailbox_id)
 
     @classmethod
-    async def new(  # noqa: PLR0913
+    async def new(
         cls,
         *,
-        project_id: uuid.UUID,
+        connection_info: _AcademyConnectionInfo,
         app: GlobusApp | None = None,
         authorizer: GlobusAuthorizer | None = None,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
-        client_params: dict[str, Any] | None = None,
     ) -> Self:
         """Instantiate a new transport.
 
         Args:
-            project_id: Globus Identifier of project to create agents under.
+            connection_info: Project id, client parameters and other
+                information about the connection to the service.
             app: For user authorization through token retrieval
             authorizer: For service authorization through token retrieval
             mailbox_id: Bind the transport to the specific mailbox. If `None`,
@@ -333,7 +341,6 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 bound to that mailbox.
             name: Display name of the registered entity if `mailbox_id` is
                 `None`.
-            client_params: Additional parameters for globus client.
 
         Returns:
             An instantiated transport bound to a specific mailbox.
@@ -344,10 +351,9 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             mailbox_id = UserId.new(name=name)
             client = cls(
                 mailbox_id,
-                project_id=project_id,
+                connection_info=connection_info,
                 app=app,
                 authorizer=authorizer,
-                client_params=client_params,
             )
             await loop.run_in_executor(
                 client.executor,
@@ -362,10 +368,9 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         return cls(
             mailbox_id,
-            project_id=project_id,
+            connection_info=connection_info,
             app=app,
             authorizer=authorizer,
-            client_params=client_params,
         )
 
     @property
@@ -415,10 +420,20 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return self.exchange_client.recv(self.mailbox_id, timeout)
 
     async def _recv(self, timeout: float | None = None) -> Message[Any]:
+        start_time = time.time()
+        current_time = time.time()
         loop = asyncio.get_running_loop()
-        try:
+        while timeout is None or current_time - start_time < timeout:
+            internal_timeout = (
+                self.request_timeout_s
+                if timeout is None
+                else min(
+                    (start_time + timeout) - current_time,
+                    self.request_timeout_s,
+                )
+            )
             try:
-                logger.info(
+                logger.debug(
                     f'Receiving message for mailbox {self.mailbox_id}',
                     extra={'academy.mailbox_id': self.mailbox_id},
                 )
@@ -431,24 +446,33 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     timeout,
                 )
                 message_raw = response['message']
-                logger.info(
+                logger.debug(
                     f'Received message of length {len(message_raw)}',
                     extra={'academy.message_length': len(message_raw)},
                 )
+                break
             except AcademyAPIError as e:
                 if e.http_status == StatusCode.TERMINATED.value:
                     raise MailboxTerminatedError(self.mailbox_id) from e
                 elif (
                     e.http_status == StatusCode.TIMEOUT.value
                 ):  # pragma: no cover
-                    raise TimeoutError() from e
-                raise e  # pragma: no cover
-        except asyncio.TimeoutError as e:
-            # In older versions of Python, ayncio.TimeoutError and TimeoutError
-            # are different types.
+                    logger.debug(
+                        f'Failed to receive response in {internal_timeout} '
+                        'seconds.',
+                    )
+                    pass
+            except asyncio.TimeoutError:
+                logger.debug(
+                    f'Failed to receive response in {internal_timeout} '
+                    'seconds.',
+                )
+                pass
+            current_time = time.time()
+        else:
             raise TimeoutError(
                 f'Failed to receive response in {timeout} seconds.',
-            ) from e
+            )
 
         return Message.model_validate_json(message_raw)
 
@@ -741,15 +765,21 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
         project_id: Project to create new clients under. Must be able
             to authenticate as a administrator.
         client_params: Additional parameters for globus client.
+        request_timeout_s: Maximum length of receive/listen requests to
+            the exchange.
     """
 
     def __init__(
         self,
         project_id: uuid.UUID,
         client_params: dict[str, Any] | None = None,
+        request_timeout_s: float = 60,
     ) -> None:
-        self.project = project_id
-        self.client_params = client_params
+        self.info = _AcademyConnectionInfo(
+            project_id=project_id,
+            client_params=client_params,
+            request_timeout_s=request_timeout_s,
+        )
 
     async def _create_transport(
         self,
@@ -769,8 +799,7 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
                 app=app,
                 mailbox_id=mailbox_id,
                 name=name,
-                project_id=self.project,
-                client_params=self.client_params,
+                connection_info=self.info,
             )
         else:
             logger.info('Initializing auth client for new agent.')
@@ -803,6 +832,5 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
                 authorizer=authorizer,
                 mailbox_id=mailbox_id,
                 name=name,
-                project_id=self.project,
-                client_params=self.client_params,
+                connection_info=self.info,
             )

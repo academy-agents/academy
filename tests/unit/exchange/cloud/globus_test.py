@@ -12,6 +12,7 @@ import responses
 from globus_sdk.testing import load_response
 
 from academy.exchange.cloud.app import StatusCode
+from academy.exchange.cloud.globus import _AcademyConnectionInfo
 from academy.exchange.cloud.globus import _PendingRegistration
 from academy.exchange.cloud.globus import AcademyGlobusClient
 from academy.exchange.cloud.globus import GlobusAgentRegistration
@@ -99,7 +100,7 @@ async def test_register_agents_single_login() -> None:
 
     transport = GlobusExchangeTransport(
         UserId.new(),
-        project_id=uuid.uuid4(),
+        connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
         app=mock_app,
     )
 
@@ -164,7 +165,7 @@ def test_auth_client_new_thread_skips_login() -> None:
 
     transport = GlobusExchangeTransport(
         UserId.new(),
-        project_id=uuid.uuid4(),
+        connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
         app=mock_app,
     )
     # Simulate a prior login having already completed.

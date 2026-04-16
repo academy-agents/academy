@@ -573,6 +573,27 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """
         return await self.exchange_client.register_agent(agent, name=name)
 
+    async def register_agents(
+        self,
+        agents: list[tuple[type[AgentT], str | None]],
+    ) -> list[AgentRegistration[AgentT]]:
+        """Register multiple agents, batching auth when possible.
+
+        For transports that support batch registration (e.g. Globus),
+        all auth consent is consolidated into a single prompt. For
+        other transports this falls back to sequential registration.
+
+        Use the returned registrations with
+        :meth:`launch(registration=...) <launch>`.
+
+        Args:
+            agents: List of (agent_type, name) pairs to register.
+
+        Returns:
+            List of registrations in the same order as the input.
+        """
+        return await self.exchange_client.register_agents(agents)
+
     def running(self) -> set[AgentId[Any]]:
         """Get a set of IDs of all running agents.
 

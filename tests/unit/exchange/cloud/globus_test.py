@@ -22,6 +22,7 @@ from academy.identifier import UserId
 from academy.message import Message
 from academy.message import PingRequest
 from testing.agents import EmptyAgent
+from testing.constant import TEST_WAIT_TIMEOUT
 
 
 @pytest.fixture(autouse=True)
@@ -47,7 +48,7 @@ def test_globus_client_discover(academy_client: AcademyGlobusClient):
 
 def test_globus_client_recv(academy_client: AcademyGlobusClient):
     load_response(AcademyGlobusClient.recv)
-    response = academy_client.recv(UserId.new())
+    response = academy_client.recv(UserId.new(), TEST_WAIT_TIMEOUT)
     assert response.http_status == StatusCode.OKAY.value
     assert 'message' in response.data
 

@@ -117,7 +117,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     def recv(
         self,
         mailbox_id: EntityId,
-        timeout: float | None = None,
+        timeout: float,
     ) -> GlobusHTTPResponse:
         return self.request(
             'GET',
@@ -416,7 +416,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def factory(self) -> GlobusExchangeFactory:
         return GlobusExchangeFactory(self.project, self.client_params)
 
-    def _recv_sync(self, timeout: float | None) -> GlobusHTTPResponse:
+    def _recv_sync(self, timeout: float) -> GlobusHTTPResponse:
         return self.exchange_client.recv(self.mailbox_id, timeout)
 
     async def _recv(self, timeout: float | None = None) -> Message[Any]:
@@ -441,7 +441,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     loop.run_in_executor(
                         self.executor,
                         self._recv_sync,
-                        timeout,
+                        internal_timeout,
                     ),
                     timeout,
                 )

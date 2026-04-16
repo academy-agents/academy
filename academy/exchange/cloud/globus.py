@@ -459,8 +459,11 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 elif (
                     e.http_status == StatusCode.TIMEOUT.value
                 ):  # pragma: no cover
-                    raise TimeoutError() from e
-                raise e  # pragma: no cover
+                    logger.debug(
+                        f'Failed to receive response in {internal_timeout} '
+                        'seconds.',
+                    )
+                    pass
             except asyncio.TimeoutError:
                 logger.debug(
                     f'Failed to receive response in {internal_timeout} '

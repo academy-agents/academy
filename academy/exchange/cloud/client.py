@@ -238,6 +238,9 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     self._info.request_timeout_s,
                 )
             )
+            if internal_timeout <= 0:
+                raise TimeoutError()
+
             response = await self._session.get(
                 self._listen_url,
                 json={

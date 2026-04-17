@@ -198,9 +198,10 @@ class ExchangeServingConfig(BaseModel):
         certfile: Certificate file (PEM format) use to enable TLS.
         keyfile: Private key file. If not specified, the key will be
             taken from the certfile.
+        listen_timeout_s: Default timeout on listen and recv requests.
         auth: Authentication configuration.
-        log_file: Location to write logs.
-        log_level: Verbosity of logs.
+        backend: Configured store for mailboxes.
+        logger: Log configuration.
     """
 
     model_config = ConfigDict(extra='forbid')
@@ -209,6 +210,7 @@ class ExchangeServingConfig(BaseModel):
     port: int = 8700
     certfile: str | None = None
     keyfile: str | None = None
+    listen_timeout_s: int = 60
     auth: ExchangeAuthConfig = Field(default_factory=ExchangeAuthConfig)
     backend: BackendConfigT = Field(default_factory=PythonBackendConfig)
     logger: LogConfig = Field(default_factory=LogConfig)

@@ -10,6 +10,25 @@ All future changes—including breaking changes and deprecations—will be docum
 
 Please refer to our [Version Policy](version-policy.md) for more details on when we make breaking changes.
 
+## Academy v0.5
+
+This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)
+
+The once-per-process `init_logging` helper function has been removed. Instead pass log configs when creating managers.
+
+
+```python
+  from academy.logging.helpers import recommended_logging, log_context
+  with Manager.from_exchange_factory(..., log_config=recommended_logging()):
+    ...
+```
+
+This will initialize logging for the lifetime of the manager, and use the configuration for agents launched through that manager, even when they are remote.
+
+Multiple log contexts can be active in a process at any one time - for example, a coordinating process and multiple agents in the same process might each want to initialize their own logging. In previous versions of academy, init_logging would either only initialize based on the first call, or would forget previous configurations. In the new logging system, all configurations will see all log lines in a process, which is still a conflict but results in more, rather than less, logging.
+
+Academy comes with three ways of configuring logging: to the console, to a log file, and to a shared home directory JSON logfile store. Developers can implement new logging configurations by subclassing the LogConfig class.
+
 ## Academy v0.4
 
 ## Globus SDK version has been updated

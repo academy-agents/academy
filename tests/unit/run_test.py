@@ -30,7 +30,7 @@ async def client(
 
 async def test_run_agent_stdin(client: ExchangeClient[Any]):
     agent_spec = await client.register_agent(SleepAgent)
-    with mock.patch('academy.remote._run_agent_on_worker'):
+    with mock.patch('academy.run._run_agent_on_worker'):
         with mock.patch.object(
             sys.stdin.buffer,
             'read',
@@ -45,5 +45,5 @@ async def test_run_agent_file(client: ExchangeClient[Any], tmp_path):
     with file.open('wb') as fp:
         pickle.dump(agent_spec, fp)
 
-    with mock.patch('academy.remote._run_agent_on_worker'):
+    with mock.patch('academy.run._run_agent_on_worker'):
         assert _main(['--spec', str(tmp_path / 'agent_spec.pkl')]) == 0

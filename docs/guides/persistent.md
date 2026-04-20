@@ -7,7 +7,7 @@ Academy allows you to build agents as "micro-services" for scientific workflows 
     This page is still under construction, more details and examples to come!
 
 ## Running an Agent Without a Manager
-The most common (and recommended) way to run agentic applications with Academy is to use the [`Manager`](academy.manager.Manager) class. However, the manager class explicitly ties the lifetime of your agents to the lifetime of your manager.
+The most common (and recommended) way to run agentic applications with Academy is to use the [`Manager`][academy.manager.Manager] class. However, the manager class explicitly ties the lifetime of your agents to the lifetime of your manager.
 
 To create an agent without using a `manager`, we first need to create a persistent mailbox for the agent. We can use the `exchange_client.register_agent` functionality. Note, for persistent agents you must use a `ExchangeFactory` that lives outside of process memory, so the `RedisExchangeFactory`, `HybridExchangeFactory` or `HttpExchangeFactory`. We then save the `registration` with the arguments we are going to need to start the agent to a file using `pickle`.
 
@@ -33,7 +33,7 @@ async def main():
             pickle.dump(spec, fp)
 ```
 
-Once we have created the registration and the spec, we can launch the agent as a separate script.
+Once we have created the registration and the spec, we can launch the agent as a separate [script][academy.run].
 ```
 python -m academy.run --spec <path to spec file>
 ```

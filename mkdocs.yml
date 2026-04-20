@@ -120,6 +120,7 @@ nav:
       - guides/tutorial.md
       - guides/hpc.md
       - guides/llm.md
+      - guides/persistent.md
   - API Reference:
       - Academy: api/
   - Publications:

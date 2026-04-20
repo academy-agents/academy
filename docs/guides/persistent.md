@@ -35,7 +35,7 @@ async def main():
 
 Once we have created the registration and the spec, we can launch the agent as a separate script.
 ```
-python -m academy.remote --spec <path to spec file>
+python -m academy.run --spec <path to spec file>
 ```
 
 ## Running an Agent with SystemD
@@ -56,7 +56,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=centos
-ExecStart=~/.venv/bin/python -m academy.remote --spec <path to spec>
+ExecStart=~/.venv/bin/python -m academy.run --spec <path to spec>
 ```
 
 Once you have created you unit file, you can start the service:

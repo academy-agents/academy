@@ -10,7 +10,7 @@ import pytest_asyncio
 
 from academy.exchange import ExchangeFactory
 from academy.exchange.client import ExchangeClient
-from academy.remote import _main
+from academy.run import _main
 from testing.agents import SleepAgent
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 

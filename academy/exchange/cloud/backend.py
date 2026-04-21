@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import dataclasses
+import json
 import logging
 import sys
 import uuid
@@ -32,25 +32,17 @@ from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
+from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.message import ErrorResponse
+from academy.identifier import UserId
 from academy.message import Message
-from academy.request_state import RequestStatus
+from academy.request_state import RequestInfo
 
 logger = logging.getLogger(__name__)
 
 KB_TO_BYTES = 1024
-
-
-@dataclasses.dataclass
-class RequestInfo:
-    """Stored request metadata for the cloud exchange."""
-
-    src: EntityId
-    dest: EntityId
-    status: RequestStatus
 
 
 class MailboxBackend(Protocol):
@@ -389,13 +381,20 @@ class PythonBackend:
 
         async with self._locks[uid]:
             messages = await _drain_queue(mailbox)
-            for message in messages:
-                if message.is_request():
-                    error = MailboxTerminatedError(uid)
-                    body = ErrorResponse(exception=error)
-                    response = message.create_response(body)
-                    with contextlib.suppress(Exception):
-                        await self.put(client, response)
+            adapter = BackendTransportAdapter(uid, self, client)
+            replied_tags_by_src = await _respond_pending_requests_on_terminate(
+                messages,
+                adapter,
+                self._requests,
+            )
+            logger.info(
+                'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+                uid,
+                extra={
+                    'academy.mailbox_id': uid,
+                    'academy.pending_request_tags_by_src': replied_tags_by_src,
+                },
+            )
 
             mailbox.shutdown(immediate=True)
             logger.info(
@@ -501,34 +500,43 @@ class PythonBackend:
             self._requests[message.tag] = RequestInfo(
                 src=message.src,
                 dest=message.dest,
-                status=RequestStatus.INFLIGHT,
             )
             logger.info(
-                'Request status set: tag=%s src=%s dest=%s status=%s',
+                'Tracking in-flight request: tag=%s src=%s dest=%s',
                 message.tag,
                 message.src,
                 message.dest,
-                RequestStatus.INFLIGHT,
                 extra={
                     'academy.message_tag': message.tag,
                     'academy.src': message.src,
                     'academy.dest': message.dest,
-                    'academy.status': RequestStatus.INFLIGHT,
                 },
             )
         elif message.is_response() and message.tag in self._requests:
-            self._requests[message.tag].status = RequestStatus.COMPLETED
+            request_info = self._requests.pop(message.tag)
             logger.info(
-                'Request status updated: tag=%s src=%s dest=%s status=%s',
+                'Response received for in-flight request: '
+                'tag=%s src=%s dest=%s',
                 message.tag,
-                self._requests[message.tag].src,
-                self._requests[message.tag].dest,
-                RequestStatus.COMPLETED,
+                request_info.src,
+                request_info.dest,
                 extra={
                     'academy.message_tag': message.tag,
-                    'academy.src': self._requests[message.tag].src,
-                    'academy.dest': self._requests[message.tag].dest,
-                    'academy.status': RequestStatus.COMPLETED,
+                    'academy.src': request_info.src,
+                    'academy.dest': request_info.dest,
+                },
+            )
+        elif message.is_response():
+            logger.warning(
+                'Response received without corresponding request: '
+                'tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
                 },
             )
 
@@ -676,6 +684,27 @@ _CLOSE_SENTINEL = b'<CLOSED>'
 _OWNER_SUFFIX = '_'
 
 
+class BackendTransportAdapter:
+    """Adapter to make a backend's put() compatible with ExchangeTransport."""
+
+    def __init__(
+        self,
+        mailbox_id: EntityId,
+        backend: PythonBackend | RedisBackend,
+        client: ClientInfo,
+    ) -> None:
+        self._mailbox_id = mailbox_id
+        self._backend = backend
+        self._client = client
+
+    @property
+    def mailbox_id(self) -> EntityId:
+        return self._mailbox_id
+
+    async def send(self, message: Message[Any]) -> None:
+        await self._backend.put(self._client, message)
+
+
 class RedisBackend:
     """Redis backend of mailboxes.
 
@@ -709,7 +738,6 @@ class RedisBackend:
         )
         self.mailbox_expiration_s = mailbox_expiration_s
         self.gravestone_expiration_s = gravestone_expiration_s
-        self._requests: dict[uuid.UUID, RequestInfo] = {}
 
     def _owner_key(self, uid: EntityId) -> str:
         return f'owner:{uid.uid}'
@@ -896,14 +924,45 @@ class RedisBackend:
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
-        for raw in pending:
-            message: Message[Any] = Message.model_deserialize(raw)
-            if message.is_request():
-                error = MailboxTerminatedError(uid)
-                body = ErrorResponse(exception=error)
-                response = message.create_response(body)
-                with contextlib.suppress(Exception):
-                    await self.put(client, response)
+        messages: list[Message[Any]] = [
+            Message.model_deserialize(raw) for raw in pending
+        ]
+        requests: dict[uuid.UUID, RequestInfo] = {}
+        async for key in self._client.scan_iter(
+            'request:*',
+        ):  # pragma: no branch
+            tag_str = key.decode().split(':', 1)[-1]
+            info_data = await self._client.get(key)
+            if info_data:
+                info_dict = json.loads(info_data)
+                src_data = info_dict['src']
+                dest_data = info_dict['dest']
+                if src_data.get('role') == 'agent':
+                    src = AgentId.model_validate(src_data)
+                else:
+                    src = UserId.model_validate(src_data)
+                if dest_data.get('role') == 'agent':
+                    dest = AgentId.model_validate(dest_data)
+                else:
+                    dest = UserId.model_validate(dest_data)
+                requests[uuid.UUID(tag_str)] = RequestInfo(
+                    src=src,
+                    dest=dest,
+                )
+        adapter = BackendTransportAdapter(uid, self, client)
+        replied_tags_by_src = await _respond_pending_requests_on_terminate(
+            messages,
+            adapter,
+            requests if requests else None,
+        )
+        logger.info(
+            'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+            uid,
+            extra={
+                'academy.mailbox_id': uid,
+                'academy.pending_request_tags_by_src': replied_tags_by_src,
+            },
+        )
 
     async def discover(
         self,
@@ -1033,45 +1092,55 @@ class RedisBackend:
             )
 
         if message.is_request():
-            self._requests[message.tag] = RequestInfo(
-                src=message.src,
-                dest=message.dest,
-                status=RequestStatus.INFLIGHT,
-            )
+            info_json = json.dumps({
+                'src': message.src.model_dump(mode='json'),
+                'dest': message.dest.model_dump(mode='json'),
+            })
             await self._client.set(
                 self._request_key(message.tag),
-                RequestStatus.INFLIGHT.value,
+                info_json,
             )
             logger.info(
-                'Request status set: tag=%s src=%s dest=%s status=%s',
+                'Tracking in-flight request: tag=%s src=%s dest=%s',
                 message.tag,
                 message.src,
                 message.dest,
-                RequestStatus.INFLIGHT,
                 extra={
                     'academy.message_tag': message.tag,
                     'academy.src': message.src,
                     'academy.dest': message.dest,
-                    'academy.status': RequestStatus.INFLIGHT,
                 },
             )
-        elif message.is_response() and message.tag in self._requests:
-            self._requests[message.tag].status = RequestStatus.COMPLETED
-            await self._client.set(
-                self._request_key(message.tag),
-                RequestStatus.COMPLETED.value,
-            )
-            logger.info(
-                'Request status updated: tag=%s src=%s dest=%s status=%s',
+        elif message.is_response() and await self._client.exists(
+            self._request_key(message.tag)
+        ):
+            info_data = await self._client.get(self._request_key(message.tag))
+            await self._client.delete(self._request_key(message.tag))
+            if info_data:
+                info_dict = json.loads(info_data)
+                logger.info(
+                    'Response received for in-flight request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    info_dict['src'],
+                    info_dict['dest'],
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': info_dict['src'],
+                        'academy.dest': info_dict['dest'],
+                    },
+                )
+        elif message.is_response():
+            logger.warning(
+                'Response received without corresponding request: '
+                'tag=%s src=%s dest=%s',
                 message.tag,
-                self._requests[message.tag].src,
-                self._requests[message.tag].dest,
-                RequestStatus.COMPLETED,
+                message.src,
+                message.dest,
                 extra={
                     'academy.message_tag': message.tag,
-                    'academy.src': self._requests[message.tag].src,
-                    'academy.dest': self._requests[message.tag].dest,
-                    'academy.status': RequestStatus.COMPLETED,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
                 },
             )
 

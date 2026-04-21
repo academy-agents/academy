@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import json
 import logging
 import sys
 import uuid
@@ -31,7 +32,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
-from academy.request_state import RequestStatus
+from academy.request_state import RequestInfo
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
@@ -57,15 +58,6 @@ class _MailboxState(enum.Enum):
 
 
 @dataclasses.dataclass
-class RequestInfo:
-    """Stored request metadata for the local exchange."""
-
-    src: EntityId
-    dest: EntityId
-    status: RequestStatus
-
-
-@dataclasses.dataclass
 class RedisAgentRegistration(Generic[AgentT]):
     """Agent registration for redis exchanges."""
 
@@ -86,7 +78,6 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._mailbox_id = mailbox_id
         self._client = redis_client
         self._redis_info = redis_info
-        self._requests: dict[uuid.UUID, RequestInfo] = {}
 
     def _active_key(self, uid: EntityId) -> str:
         return f'active:{uid.uid}'
@@ -257,45 +248,55 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             raise MailboxTerminatedError(message.dest)
         else:
             if message.is_request():
-                self._requests[message.tag] = RequestInfo(
-                    src=message.src,
-                    dest=message.dest,
-                    status=RequestStatus.INFLIGHT,
-                )
+                info_json = json.dumps({
+                    'src': message.src.model_dump(mode='json'),
+                    'dest': message.dest.model_dump(mode='json'),
+                })
                 await self._client.set(
                     self._request_key(message.tag),
-                    RequestStatus.INFLIGHT.value,
+                    info_json,
                 )
                 logger.info(
-                    'Request status set: tag=%s src=%s dest=%s status=%s',
+                    'Tracking in-flight request: tag=%s src=%s dest=%s',
                     message.tag,
                     message.src,
                     message.dest,
-                    RequestStatus.INFLIGHT,
                     extra={
                         'academy.message_tag': message.tag,
                         'academy.src': message.src,
                         'academy.dest': message.dest,
-                        'academy.status': RequestStatus.INFLIGHT,
                     },
                 )
-            elif message.is_response() and message.tag in self._requests:
-                self._requests[message.tag].status = RequestStatus.COMPLETED
-                await self._client.set(
-                    self._request_key(message.tag),
-                    RequestStatus.COMPLETED.value,
-                )
-                logger.info(
-                    'Request status updated: tag=%s src=%s dest=%s status=%s',
+            elif message.is_response() and await self._client.exists(
+                self._request_key(message.tag),
+            ):
+                info_data = await self._client.get(self._request_key(message.tag))
+                await self._client.delete(self._request_key(message.tag))
+                if info_data:
+                    info_dict = json.loads(info_data)
+                    logger.info(
+                        'Response received for in-flight request: '
+                        'tag=%s src=%s dest=%s',
+                        message.tag,
+                        info_dict['src'],
+                        info_dict['dest'],
+                        extra={
+                            'academy.message_tag': message.tag,
+                            'academy.src': info_dict['src'],
+                            'academy.dest': info_dict['dest'],
+                        },
+                    )
+            elif message.is_response():
+                logger.warning(
+                    'Response received without corresponding request: '
+                    'tag=%s src=%s dest=%s',
                     message.tag,
-                    self._requests[message.tag].src,
-                    self._requests[message.tag].dest,
-                    RequestStatus.COMPLETED,
+                    message.src,
+                    message.dest,
                     extra={
                         'academy.message_tag': message.tag,
-                        'academy.src': self._requests[message.tag].src,
-                        'academy.dest': self._requests[message.tag].dest,
-                        'academy.status': RequestStatus.COMPLETED,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
                     },
                 )
 
@@ -333,7 +334,41 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             for raw in pending
             if raw != _CLOSE_SENTINEL
         ]
-        await _respond_pending_requests_on_terminate(messages, self)
+        requests: dict[uuid.UUID, RequestInfo] = {}
+        async for key in self._client.scan_iter(
+            'request:*',
+        ):  # pragma: no branch
+            tag_str = key.decode().split(':', 1)[-1]
+            info_data = await self._client.get(key)
+            if info_data:
+                info_dict = json.loads(info_data)
+                src_data = info_dict['src']
+                dest_data = info_dict['dest']
+                if src_data.get('role') == 'agent':
+                    src = AgentId.model_validate(src_data)
+                else:
+                    src = UserId.model_validate(src_data)
+                if dest_data.get('role') == 'agent':
+                    dest = AgentId.model_validate(dest_data)
+                else:
+                    dest = UserId.model_validate(dest_data)
+                requests[uuid.UUID(tag_str)] = RequestInfo(
+                    src=src,
+                    dest=dest,
+                )
+        replied_tags_by_src = await _respond_pending_requests_on_terminate(
+            messages,
+            self,
+            requests if requests else None,
+        )
+        logger.info(
+            'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+            uid,
+            extra={
+                'academy.mailbox_id': uid,
+                'academy.pending_request_tags_by_src': replied_tags_by_src,
+            },
+        )
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

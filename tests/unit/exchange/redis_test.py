@@ -10,7 +10,6 @@ from academy.exchange.redis import RedisExchangeTransport
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
-from academy.request_state import RequestStatus
 
 
 def test_factory_serialize(
@@ -23,7 +22,8 @@ def test_factory_serialize(
 
 @pytest.mark.asyncio
 async def test_redis_exchange_request_tracking_inflight(mock_redis) -> None:
-    """Test that request status is set to INFLIGHT when sending a request."""
+    """Test that sending a request adds it to Redis."""
+    import json
     redis_info = _RedisConnectionInfo(
         hostname='localhost',
         port=0,
@@ -39,18 +39,20 @@ async def test_redis_exchange_request_tracking_inflight(mock_redis) -> None:
     )
     await transport1.send(message)
 
-    # Verify request is tracked with INFLIGHT status
-    assert message.tag in transport1._requests
-    assert transport1._requests[message.tag].status == RequestStatus.INFLIGHT
-    assert transport1._requests[message.tag].src == transport1.mailbox_id
-    assert transport1._requests[message.tag].dest == transport1.mailbox_id
+    # Verify request is tracked in Redis
+    request_key = f'request:{message.tag}'
+    info_data = await transport1._client.get(request_key)
+    assert info_data is not None
+    info_dict = json.loads(info_data)
+    assert info_dict['src'] == transport1.mailbox_id.model_dump(mode='json')
+    assert info_dict['dest'] == transport1.mailbox_id.model_dump(mode='json')
 
     await transport1.close()
 
 
 @pytest.mark.asyncio
 async def test_redis_exchange_request_tracking_completed(mock_redis) -> None:
-    """Test response updates request status to COMPLETED."""
+    """Test response removes the request from Redis."""
     redis_info = _RedisConnectionInfo(
         hostname='localhost',
         port=0,
@@ -66,18 +68,49 @@ async def test_redis_exchange_request_tracking_completed(mock_redis) -> None:
     )
     await transport1.send(request_msg)
 
-    # Verify request is INFLIGHT
-    assert (
-        transport1._requests[request_msg.tag].status == RequestStatus.INFLIGHT
-    )
+    # Verify request is in Redis
+    request_key = f'request:{request_msg.tag}'
+    info_data = await transport1._client.get(request_key)
+    assert info_data is not None
 
     # Send a response to itself
     response_msg = request_msg.create_response(SuccessResponse())
     await transport1.send(response_msg)
 
-    # Verify request status is updated to COMPLETED
-    assert (
-        transport1._requests[request_msg.tag].status == RequestStatus.COMPLETED
-    )
+    # Verify request is removed from Redis
+    info_data = await transport1._client.get(request_key)
+    assert info_data is None
 
     await transport1.close()
+
+
+@pytest.mark.asyncio
+async def test_redis_exchange_response_without_request(mock_redis) -> None:
+    """Test that response without prior request is handled gracefully."""
+    redis_info = _RedisConnectionInfo(
+        hostname='localhost',
+        port=0,
+        kwargs={},
+    )
+    transport = await RedisExchangeTransport.new(redis_info=redis_info)
+
+    # Create a response message with a tag that was never sent as a request
+    request_msg = Message.create(
+        src=transport.mailbox_id,
+        dest=transport.mailbox_id,
+        body=PingRequest(),
+    )
+    # Create a response but don't send the original request
+    response_msg = request_msg.create_response(SuccessResponse())
+
+    # Should not raise an error when sending a response without a request
+    await transport.send(response_msg)
+
+    # Verify the response was not tracked in Redis
+    request_key = f'request:{response_msg.tag}'
+    info_data = await transport._client.get(request_key)
+    assert info_data is None
+
+    await transport.close()
+
+    await transport.close()

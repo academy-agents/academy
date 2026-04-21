@@ -23,7 +23,6 @@ from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
-from academy.request_state import RequestStatus
 
 BACKEND_TYPES = (PythonBackend, RedisBackend)
 
@@ -483,7 +482,7 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
 
 @pytest.mark.asyncio
 async def test_python_backend_request_tracking_inflight() -> None:
-    """Test that request status is set to INFLIGHT when putting a request."""
+    """Test that putting a request adds it to the in-flight dict."""
     backend = PythonBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
     uid = UserId.new()
@@ -493,16 +492,15 @@ async def test_python_backend_request_tracking_inflight() -> None:
     message = Message.create(src=uid, dest=uid, body=PingRequest())
     await backend.put(client, message)
 
-    # Verify request is tracked with INFLIGHT status
+    # Verify request is tracked as in-flight
     assert message.tag in backend._requests
-    assert backend._requests[message.tag].status == RequestStatus.INFLIGHT
     assert backend._requests[message.tag].src == uid
     assert backend._requests[message.tag].dest == uid
 
 
 @pytest.mark.asyncio
 async def test_python_backend_request_tracking_completed() -> None:
-    """Test response updates request status to COMPLETED."""
+    """Test response removes the request from the in-flight dict."""
     backend = PythonBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
     uid = UserId.new()
@@ -512,20 +510,21 @@ async def test_python_backend_request_tracking_completed() -> None:
     request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
     await backend.put(client, request_msg)
 
-    # Verify request is INFLIGHT
-    assert backend._requests[request_msg.tag].status == RequestStatus.INFLIGHT
+    # Verify request is in-flight
+    assert request_msg.tag in backend._requests
 
     # Send a response
     response_msg = request_msg.create_response(SuccessResponse())
     await backend.put(client, response_msg)
 
-    # Verify request status is updated to COMPLETED
-    assert backend._requests[request_msg.tag].status == RequestStatus.COMPLETED
+    # Verify request is removed from in-flight dict
+    assert request_msg.tag not in backend._requests
 
 
 @pytest.mark.asyncio
 async def test_redis_backend_request_tracking_inflight(mock_redis) -> None:
-    """Test that request status is set to INFLIGHT when putting a request."""
+    """Test that putting a request adds it to Redis."""
+    import json
     backend = RedisBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
     uid = UserId.new()
@@ -535,16 +534,18 @@ async def test_redis_backend_request_tracking_inflight(mock_redis) -> None:
     message = Message.create(src=uid, dest=uid, body=PingRequest())
     await backend.put(client, message)
 
-    # Verify request is tracked with INFLIGHT status
-    assert message.tag in backend._requests
-    assert backend._requests[message.tag].status == RequestStatus.INFLIGHT
-    assert backend._requests[message.tag].src == uid
-    assert backend._requests[message.tag].dest == uid
+    # Verify request is tracked in Redis
+    request_key = f'request:{message.tag}'
+    info_data = await backend._client.get(request_key)
+    assert info_data is not None
+    info_dict = json.loads(info_data)
+    assert info_dict['src'] == str(uid)
+    assert info_dict['dest'] == str(uid)
 
 
 @pytest.mark.asyncio
 async def test_redis_backend_request_tracking_completed(mock_redis) -> None:
-    """Test response updates request status to COMPLETED."""
+    """Test response removes the request from Redis."""
     backend = RedisBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
     uid = UserId.new()
@@ -554,12 +555,59 @@ async def test_redis_backend_request_tracking_completed(mock_redis) -> None:
     request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
     await backend.put(client, request_msg)
 
-    # Verify request is INFLIGHT
-    assert backend._requests[request_msg.tag].status == RequestStatus.INFLIGHT
+    # Verify request is in Redis
+    request_key = f'request:{request_msg.tag}'
+    info_data = await backend._client.get(request_key)
+    assert info_data is not None
 
     # Send a response
     response_msg = request_msg.create_response(SuccessResponse())
     await backend.put(client, response_msg)
 
-    # Verify request status is updated to COMPLETED
-    assert backend._requests[request_msg.tag].status == RequestStatus.COMPLETED
+    # Verify request is removed from Redis
+    info_data = await backend._client.get(request_key)
+    assert info_data is None
+
+
+@pytest.mark.asyncio
+async def test_python_backend_response_without_request() -> None:
+    """Test that response without prior request is handled gracefully."""
+    backend = PythonBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    # Create a response message with a tag that was never sent as a request
+    # We'll use a fresh message object and just send it as a response
+    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
+    # Create a response but don't send the original request
+    response_msg = request_msg.create_response(SuccessResponse())
+
+    # Should not raise an error when putting a response without a request
+    await backend.put(client, response_msg)
+
+    # Verify the response was still queued but not tracked in requests
+    assert response_msg.tag not in backend._requests
+
+
+@pytest.mark.asyncio
+async def test_redis_backend_response_without_request(mock_redis) -> None:
+    """Test that response without prior request is handled gracefully."""
+    backend = RedisBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid = UserId.new()
+    await backend.create_mailbox(client, uid)
+
+    # Create a response message with a tag that was never sent as a request
+    # We'll use a fresh message object and just send it as a response
+    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
+    # Create a response but don't send the original request
+    response_msg = request_msg.create_response(SuccessResponse())
+
+    # Should not raise an error when putting a response without a request
+    await backend.put(client, response_msg)
+
+    # Verify the response was not tracked in Redis
+    request_key = f'request:{response_msg.tag}'
+    info_data = await backend._client.get(request_key)
+    assert info_data is None

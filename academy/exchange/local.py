@@ -33,7 +33,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
-from academy.request_state import RequestStatus
+from academy.request_state import RequestInfo
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
@@ -58,15 +58,6 @@ class _LocalExchangeState(NoPickleMixin):
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
         self.requests: dict[uuid.UUID, RequestInfo] = {}
-
-
-@dataclasses.dataclass
-class RequestInfo:
-    """Stored request metadata for the local exchange."""
-
-    src: EntityId
-    dest: EntityId
-    status: RequestStatus
 
 
 @dataclasses.dataclass
@@ -187,34 +178,43 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._state.requests[message.tag] = RequestInfo(
                 src=message.src,
                 dest=message.dest,
-                status=RequestStatus.INFLIGHT,
             )
             logger.info(
-                'Request status set: tag=%s src=%s dest=%s status=%s',
+                'Tracking in-flight request: tag=%s src=%s dest=%s',
                 message.tag,
                 message.src,
                 message.dest,
-                RequestStatus.INFLIGHT,
                 extra={
                     'academy.message_tag': message.tag,
                     'academy.src': message.src,
                     'academy.dest': message.dest,
-                    'academy.status': RequestStatus.INFLIGHT,
                 },
             )
         elif message.is_response() and message.tag in self._state.requests:
-            self._state.requests[message.tag].status = RequestStatus.COMPLETED
+            request_info = self._state.requests.pop(message.tag)
             logger.info(
-                'Request status updated: tag=%s src=%s dest=%s status=%s',
+                'Response received for in-flight request: '
+                'tag=%s src=%s dest=%s',
                 message.tag,
-                self._state.requests[message.tag].src,
-                self._state.requests[message.tag].dest,
-                RequestStatus.COMPLETED,
+                request_info.src,
+                request_info.dest,
                 extra={
                     'academy.message_tag': message.tag,
-                    'academy.src': self._state.requests[message.tag].src,
-                    'academy.dest': self._state.requests[message.tag].dest,
-                    'academy.status': RequestStatus.COMPLETED,
+                    'academy.src': request_info.src,
+                    'academy.dest': request_info.dest,
+                },
+            )
+        elif message.is_response():
+            logger.warning(
+                'Response received without corresponding request: '
+                'tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
                 },
             )
 
@@ -242,7 +242,19 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 return
 
             messages = await _drain_queue(queue)
-            await _respond_pending_requests_on_terminate(messages, self)
+            replied_tags_by_src = await _respond_pending_requests_on_terminate(
+                messages,
+                self,
+                self._state.requests,
+            )
+            logger.info(
+                'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+                uid,
+                extra={
+                    'academy.mailbox_id': uid,
+                    'academy.pending_request_tags_by_src': replied_tags_by_src,
+                },
+            )
 
             queue.shutdown(immediate=True)
             if isinstance(uid, AgentId):

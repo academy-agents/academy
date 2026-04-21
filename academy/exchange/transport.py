@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import enum
 import sys
+import uuid
 from collections.abc import AsyncGenerator
 from collections.abc import Iterable
 from types import TracebackType
@@ -21,7 +22,9 @@ from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ErrorResponse
+from academy.message import Header
 from academy.message import Message
+from academy.request_state import RequestInfo
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -249,15 +252,49 @@ class ExchangeTransportMixin:
 async def _respond_pending_requests_on_terminate(
     messages: Iterable[Message[Any]],
     transport: ExchangeTransport[Any],
-) -> None:
+    requests: dict[uuid.UUID, RequestInfo] | None = None,
+) -> dict[str, list[str]]:
     # Helper function used to parse all pending messages in a mailbox when
-    # it is terminated and reply to only request messages with a
+    # it is terminated and reply to all in-flight request messages with a
     # MailboxTerminatedError.
+    processed_tags: set[uuid.UUID] = set()
+    replied_tags_by_src: dict[str, list[str]] = {}
     for message in messages:
         if message.is_request():
+            processed_tags.add(message.tag)
             error = MailboxTerminatedError(transport.mailbox_id)
             response = message.create_response(ErrorResponse(exception=error))
             # If the requester's mailbox was also terminated then they
             # don't need to get a response.
             with contextlib.suppress(MailboxTerminatedError):
                 await transport.send(response)
+
+    # Also respond to any in-flight requests tracked in the requests dict
+    # that weren't found in the drained messages.
+    if requests is not None:
+        for tag, request_info in list(requests.items()):
+            if tag not in processed_tags:
+                replied_tags_by_src.setdefault(str(request_info.src), []).append(
+                    str(tag),
+                )
+                error = MailboxTerminatedError(transport.mailbox_id)
+                request_header = Header(
+                    tag=tag,
+                    src=request_info.src,
+                    dest=request_info.dest,
+                    kind='request',
+                )
+                request_message = Message(
+                    header=request_header,
+                    body=None,
+                )
+                response = request_message.create_response(
+                    ErrorResponse(exception=error),
+                )
+                with contextlib.suppress(MailboxTerminatedError):
+                    await transport.send(response)
+
+    return {
+        src: sorted(tags)
+        for src, tags in sorted(replied_tags_by_src.items())
+    }

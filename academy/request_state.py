@@ -1,12 +1,13 @@
-"""Request processing status enumeration."""
-
 from __future__ import annotations
 
-import enum
+import dataclasses
+
+from academy.identifier import EntityId
 
 
-class RequestStatus(enum.Enum):
-    """Request processing status."""
+@dataclasses.dataclass
+class RequestInfo:
+    """Metadata for an in-flight request."""
 
-    INFLIGHT = 'INFLIGHT'
-    COMPLETED = 'COMPLETED'
+    src: EntityId
+    dest: EntityId

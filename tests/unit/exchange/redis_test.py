@@ -112,5 +112,3 @@ async def test_redis_exchange_response_without_request(mock_redis) -> None:
     assert info_data is None
 
     await transport.close()
-
-    await transport.close()

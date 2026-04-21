@@ -248,7 +248,10 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 self._state.requests,
             )
             logger.info(
-                'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+                (
+                    'Replied to pending requests with '
+                    'MailboxTerminatedError for mailbox %s.'
+                ),
                 uid,
                 extra={
                     'academy.mailbox_id': uid,

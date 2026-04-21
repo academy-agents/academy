@@ -3,6 +3,7 @@ from __future__ import annotations
 import pickle
 from collections.abc import AsyncGenerator
 from typing import Any
+from typing import cast
 
 import pytest
 import pytest_asyncio
@@ -13,6 +14,7 @@ from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange.hybrid import HybridExchangeFactory
+from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId
@@ -21,10 +23,20 @@ from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
+from academy.request_state import RequestInfo
 from testing.agents import EmptyAgent
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
+
+
+class _TestTransport:
+    def __init__(self, mailbox_id: UserId) -> None:
+        self.mailbox_id = mailbox_id
+        self.sent: list[Message[Any]] = []
+
+    async def send(self, message: Message[Any]) -> None:
+        self.sent.append(message)
 
 
 @pytest_asyncio.fixture(params=EXCHANGE_FACTORY_TYPES)
@@ -192,6 +204,47 @@ async def test_transport_terminate_reply_pending_requests(
             # No other messages should have been received
             with pytest.raises(TimeoutError):  # pragma: <3.14 cover
                 await anext(listener)
+
+
+@pytest.mark.asyncio
+async def test_pending_requests_on_terminate_returns_inflight_tags() -> None:
+    transport = _TestTransport(UserId.new())
+    source_1 = UserId.new()
+    source_2 = UserId.new()
+
+    queued_request = Message.create(
+        src=source_1,
+        dest=transport.mailbox_id,
+        body=PingRequest(),
+    )
+    tracked_request = Message.create(
+        src=source_2,
+        dest=transport.mailbox_id,
+        body=PingRequest(),
+    )
+
+    replied_tags_by_src = await _respond_pending_requests_on_terminate(
+        [queued_request],
+        cast(ExchangeTransport[Any], transport),
+        {
+            tracked_request.tag: RequestInfo(
+                src=tracked_request.src,
+                dest=tracked_request.dest,
+            ),
+        },
+    )
+
+    assert replied_tags_by_src == {
+        str(source_2): [str(tracked_request.tag)],
+    }
+    assert [message.tag for message in transport.sent] == [
+        queued_request.tag,
+        tracked_request.tag,
+    ]
+    for message in transport.sent:
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), MailboxTerminatedError)
 
 
 @pytest.mark.asyncio

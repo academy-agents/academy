@@ -248,10 +248,12 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             raise MailboxTerminatedError(message.dest)
         else:
             if message.is_request():
-                info_json = json.dumps({
-                    'src': message.src.model_dump(mode='json'),
-                    'dest': message.dest.model_dump(mode='json'),
-                })
+                info_json = json.dumps(
+                    {
+                        'src': message.src.model_dump(mode='json'),
+                        'dest': message.dest.model_dump(mode='json'),
+                    },
+                )
                 await self._client.set(
                     self._request_key(message.tag),
                     info_json,
@@ -270,7 +272,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             elif message.is_response() and await self._client.exists(
                 self._request_key(message.tag),
             ):
-                info_data = await self._client.get(self._request_key(message.tag))
+                info_data = await self._client.get(
+                    self._request_key(message.tag),
+                )
                 await self._client.delete(self._request_key(message.tag))
                 if info_data:
                     info_dict = json.loads(info_data)
@@ -344,10 +348,12 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 info_dict = json.loads(info_data)
                 src_data = info_dict['src']
                 dest_data = info_dict['dest']
+                src: EntityId
                 if src_data.get('role') == 'agent':
                     src = AgentId.model_validate(src_data)
                 else:
                     src = UserId.model_validate(src_data)
+                dest: EntityId
                 if dest_data.get('role') == 'agent':
                     dest = AgentId.model_validate(dest_data)
                 else:
@@ -362,7 +368,10 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             requests if requests else None,
         )
         logger.info(
-            'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+            (
+                'Replied to pending requests with '
+                'MailboxTerminatedError for mailbox %s.'
+            ),
             uid,
             extra={
                 'academy.mailbox_id': uid,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pickle
 
 import pytest
@@ -23,7 +24,6 @@ def test_factory_serialize(
 @pytest.mark.asyncio
 async def test_redis_exchange_request_tracking_inflight(mock_redis) -> None:
     """Test that sending a request adds it to Redis."""
-    import json
     redis_info = _RedisConnectionInfo(
         hostname='localhost',
         port=0,

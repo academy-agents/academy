@@ -274,7 +274,10 @@ async def _respond_pending_requests_on_terminate(
     if requests is not None:
         for tag, request_info in list(requests.items()):
             if tag not in processed_tags:
-                replied_tags_by_src.setdefault(str(request_info.src), []).append(
+                replied_tags_by_src.setdefault(
+                    str(request_info.src),
+                    [],
+                ).append(
                     str(tag),
                 )
                 error = MailboxTerminatedError(transport.mailbox_id)
@@ -284,7 +287,7 @@ async def _respond_pending_requests_on_terminate(
                     dest=request_info.dest,
                     kind='request',
                 )
-                request_message = Message(
+                request_message: Message[Any] = Message(
                     header=request_header,
                     body=None,
                 )
@@ -295,6 +298,5 @@ async def _respond_pending_requests_on_terminate(
                     await transport.send(response)
 
     return {
-        src: sorted(tags)
-        for src, tags in sorted(replied_tags_by_src.items())
+        src: sorted(tags) for src, tags in sorted(replied_tags_by_src.items())
     }

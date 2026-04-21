@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -524,7 +525,6 @@ async def test_python_backend_request_tracking_completed() -> None:
 @pytest.mark.asyncio
 async def test_redis_backend_request_tracking_inflight(mock_redis) -> None:
     """Test that putting a request adds it to Redis."""
-    import json
     backend = RedisBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
     uid = UserId.new()

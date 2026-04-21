@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import dataclasses
 import json
 import logging
 import sys
 import uuid
 from typing import Any
+from typing import cast
 from typing import Protocol
 
 import redis
@@ -33,6 +33,7 @@ from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
 from academy.exchange.transport import _respond_pending_requests_on_terminate
+from academy.exchange.transport import ExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -384,11 +385,14 @@ class PythonBackend:
             adapter = BackendTransportAdapter(uid, self, client)
             replied_tags_by_src = await _respond_pending_requests_on_terminate(
                 messages,
-                adapter,
+                cast(ExchangeTransport[Any], adapter),
                 self._requests,
             )
             logger.info(
-                'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+                (
+                    'Replied to pending requests with '
+                    'MailboxTerminatedError for mailbox %s.'
+                ),
                 uid,
                 extra={
                     'academy.mailbox_id': uid,
@@ -699,9 +703,11 @@ class BackendTransportAdapter:
 
     @property
     def mailbox_id(self) -> EntityId:
+        """Mailbox identifier exposed to the terminate helper."""
         return self._mailbox_id
 
     async def send(self, message: Message[Any]) -> None:
+        """Forward a synthetic response through the backend put path."""
         await self._backend.put(self._client, message)
 
 
@@ -936,11 +942,13 @@ class RedisBackend:
             if info_data:
                 info_dict = json.loads(info_data)
                 src_data = info_dict['src']
+                src: EntityId
                 dest_data = info_dict['dest']
                 if src_data.get('role') == 'agent':
                     src = AgentId.model_validate(src_data)
                 else:
                     src = UserId.model_validate(src_data)
+                dest: EntityId
                 if dest_data.get('role') == 'agent':
                     dest = AgentId.model_validate(dest_data)
                 else:
@@ -952,11 +960,14 @@ class RedisBackend:
         adapter = BackendTransportAdapter(uid, self, client)
         replied_tags_by_src = await _respond_pending_requests_on_terminate(
             messages,
-            adapter,
+            cast(ExchangeTransport[Any], adapter),
             requests if requests else None,
         )
         logger.info(
-            'Replied to pending requests with MailboxTerminatedError for mailbox %s.',
+            (
+                'Replied to pending requests with '
+                'MailboxTerminatedError for mailbox %s.'
+            ),
             uid,
             extra={
                 'academy.mailbox_id': uid,
@@ -1092,10 +1103,12 @@ class RedisBackend:
             )
 
         if message.is_request():
-            info_json = json.dumps({
-                'src': message.src.model_dump(mode='json'),
-                'dest': message.dest.model_dump(mode='json'),
-            })
+            info_json = json.dumps(
+                {
+                    'src': message.src.model_dump(mode='json'),
+                    'dest': message.dest.model_dump(mode='json'),
+                },
+            )
             await self._client.set(
                 self._request_key(message.tag),
                 info_json,
@@ -1112,7 +1125,7 @@ class RedisBackend:
                 },
             )
         elif message.is_response() and await self._client.exists(
-            self._request_key(message.tag)
+            self._request_key(message.tag),
         ):
             info_data = await self._client.get(self._request_key(message.tag))
             await self._client.delete(self._request_key(message.tag))

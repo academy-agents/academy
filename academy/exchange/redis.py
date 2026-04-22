@@ -349,7 +349,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         requests: dict[uuid.UUID, RequestInfo] = {}
         async for key in self._client.scan_iter(
             'request:*',
-        ):
+        ):  # pragma: no branch
             tag_str = key.decode().split(':', 1)[-1]
             info_data = await self._client.get(key)
             if info_data:

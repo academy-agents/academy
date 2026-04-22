@@ -279,20 +279,19 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     self._request_key(message.tag),
                 )
                 await self._client.delete(self._request_key(message.tag))
-                if info_data:
-                    info_dict = json.loads(info_data)
-                    logger.info(
-                        'Response received for in-flight request: '
-                        'tag=%s src=%s dest=%s',
-                        message.tag,
-                        info_dict['src'],
-                        info_dict['dest'],
-                        extra={
-                            'academy.message_tag': message.tag,
-                            'academy.src': info_dict['src'],
-                            'academy.dest': info_dict['dest'],
-                        },
-                    )
+                info_dict = json.loads(info_data)
+                logger.info(
+                    'Response received for in-flight request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    info_dict['src'],
+                    info_dict['dest'],
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': info_dict['src'],
+                        'academy.dest': info_dict['dest'],
+                    },
+                )
             else:
                 logger.warning(
                     'Response received without corresponding request: '
@@ -344,7 +343,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         requests: dict[uuid.UUID, RequestInfo] = {}
         async for key in self._client.scan_iter(
             'request:*',
-        ):  # pragma: no branch
+        ):
             tag_str = key.decode().split(':', 1)[-1]
             info_data = await self._client.get(key)
             if info_data:

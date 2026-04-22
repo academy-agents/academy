@@ -352,14 +352,13 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         ):  # pragma: no branch
             tag_str = key.decode().split(':', 1)[-1]
             info_data = await self._client.get(key)
-            if info_data:
-                info_dict = json.loads(info_data)
-                info = RequestInfo(
-                    src=self._entity_id_from_dict(info_dict['src']),
-                    dest=self._entity_id_from_dict(info_dict['dest']),
-                )
-                if info.dest == uid:
-                    requests[uuid.UUID(tag_str)] = info
+            info_dict = json.loads(info_data)
+            info = RequestInfo(
+                src=self._entity_id_from_dict(info_dict['src']),
+                dest=self._entity_id_from_dict(info_dict['dest']),
+            )
+            if info.dest == uid:
+                requests[uuid.UUID(tag_str)] = info
 
         replied_tags_by_src = await _respond_pending_requests_on_terminate(
             messages,

@@ -147,3 +147,36 @@ async def test_redis_exchange_terminate_skips_other_mailbox_requests(
     assert info_data is not None
 
     await transport2.close()
+
+
+@pytest.mark.asyncio
+async def test_redis_exchange_terminate_replies_to_pending_requests(
+    mock_redis,
+) -> None:
+    """Terminate replies with MailboxTerminatedError to in-flight requests."""
+    redis_info = _RedisConnectionInfo(
+        hostname='localhost',
+        port=0,
+        kwargs={},
+    )
+    transport1 = await RedisExchangeTransport.new(redis_info=redis_info)
+    transport2 = await RedisExchangeTransport.new(redis_info=redis_info)
+
+    # transport1 sends a request destined for transport2
+    request_msg = Message.create(
+        src=transport1.mailbox_id,
+        dest=transport2.mailbox_id,
+        body=PingRequest(),
+    )
+    await transport1.send(request_msg)
+
+    # Terminate transport2 — loop should find request where dest == uid
+    # and reply with MailboxTerminatedError to transport1
+    await transport2.terminate(transport2.mailbox_id)
+
+    # The request key should have been cleaned up
+    request_key = f'request:{request_msg.tag}'
+    info_data = await transport1._client.get(request_key)
+    assert info_data is None
+
+    await transport1.close()

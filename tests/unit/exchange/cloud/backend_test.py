@@ -638,7 +638,7 @@ async def test_python_backend_terminate_skips_other_mailbox_requests() -> None:
 async def test_redis_backend_terminate_skips_other_mailbox_requests(
     mock_redis,
 ) -> None:
-    """Test terminate does not reply to requests for other mailboxes."""
+    """Terminate does not reply to requests for other mailboxes."""
     backend = RedisBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
     uid1 = UserId.new()
@@ -656,3 +656,28 @@ async def test_redis_backend_terminate_skips_other_mailbox_requests(
     request_key = f'request:{other_request.tag}'
     info_data = await backend._client.get(request_key)
     assert info_data is not None
+
+
+@pytest.mark.asyncio
+async def test_redis_backend_terminate_replies_to_pending_requests(
+    mock_redis,
+) -> None:
+    """Terminate replies with MailboxTerminatedError to in-flight requests."""
+    backend = RedisBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid1 = UserId.new()
+    uid2 = UserId.new()
+    await backend.create_mailbox(client, uid1)
+    await backend.create_mailbox(client, uid2)
+
+    # uid1 sends a request destined for uid2
+    request_msg = Message.create(src=uid1, dest=uid2, body=PingRequest())
+    await backend.put(client, request_msg)
+
+    # Terminate uid2 — loop should find request where dest == uid2
+    # and clean up the request key after replying
+    await backend.terminate(client, uid2)
+
+    request_key = f'request:{request_msg.tag}'
+    info_data = await backend._client.get(request_key)
+    assert info_data is None

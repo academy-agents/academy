@@ -320,6 +320,12 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         else:
             return MailboxStatus.ACTIVE
 
+    @staticmethod
+    def _entity_id_from_dict(data: dict[str, Any]) -> EntityId:
+        if data.get('role') == 'agent':
+            return AgentId.model_validate(data)
+        return UserId.model_validate(data)
+
     async def terminate(self, uid: EntityId) -> None:
         await self._client.set(
             self._active_key(uid),
@@ -348,21 +354,13 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             info_data = await self._client.get(key)
             if info_data:
                 info_dict = json.loads(info_data)
-                src_data = info_dict['src']
-                dest_data = info_dict['dest']
-                src: EntityId
-                if src_data.get('role') == 'agent':
-                    src = AgentId.model_validate(src_data)
-                else:
-                    src = UserId.model_validate(src_data)
-                dest: EntityId
-                if dest_data.get('role') == 'agent':
-                    dest = AgentId.model_validate(dest_data)
-                else:
-                    dest = UserId.model_validate(dest_data)
-                info = RequestInfo(src=src, dest=dest)
+                info = RequestInfo(
+                    src=self._entity_id_from_dict(info_dict['src']),
+                    dest=self._entity_id_from_dict(info_dict['dest']),
+                )
                 if info.dest == uid:
                     requests[uuid.UUID(tag_str)] = info
+
         replied_tags_by_src = await _respond_pending_requests_on_terminate(
             messages,
             self.send,

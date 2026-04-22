@@ -222,7 +222,7 @@ async def test_pending_requests_on_terminate_returns_inflight_tags(
 
             replied_tags_by_src = await _respond_pending_requests_on_terminate(
                 [queued_request],
-                transport2,
+                transport2.send,
                 {
                     tracked_request.tag: RequestInfo(
                         src=tracked_request.src,

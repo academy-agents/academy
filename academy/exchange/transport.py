@@ -5,6 +5,8 @@ import enum
 import sys
 import uuid
 from collections.abc import AsyncGenerator
+from collections.abc import Awaitable
+from collections.abc import Callable
 from collections.abc import Iterable
 from types import TracebackType
 from typing import Any
@@ -251,7 +253,7 @@ class ExchangeTransportMixin:
 
 async def _respond_pending_requests_on_terminate(
     messages: Iterable[Message[Any]],
-    transport: ExchangeTransport[Any],
+    send: Callable[[Message[Any]], Awaitable[None]],
     requests: dict[uuid.UUID, RequestInfo] | None = None,
 ) -> dict[str, list[str]]:
     # Helper function used to parse all pending messages in a mailbox when
@@ -262,12 +264,12 @@ async def _respond_pending_requests_on_terminate(
     for message in messages:
         if message.is_request():
             processed_tags.add(message.tag)
-            error = MailboxTerminatedError(transport.mailbox_id)
+            error = MailboxTerminatedError(message.dest)
             response = message.create_response(ErrorResponse(exception=error))
             # If the requester's mailbox was also terminated then they
             # don't need to get a response.
             with contextlib.suppress(MailboxTerminatedError):
-                await transport.send(response)
+                await send(response)
 
     # Also respond to any in-flight requests tracked in the requests dict
     # that weren't found in the drained messages.
@@ -280,7 +282,7 @@ async def _respond_pending_requests_on_terminate(
                 ).append(
                     str(tag),
                 )
-                error = MailboxTerminatedError(transport.mailbox_id)
+                error = MailboxTerminatedError(request_info.dest)
                 request_header = Header(
                     tag=tag,
                     src=request_info.src,
@@ -295,7 +297,7 @@ async def _respond_pending_requests_on_terminate(
                     ErrorResponse(exception=error),
                 )
                 with contextlib.suppress(MailboxTerminatedError):
-                    await transport.send(response)
+                    await send(response)
 
     return {
         src: sorted(tags) for src, tags in sorted(replied_tags_by_src.items())

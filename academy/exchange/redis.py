@@ -364,7 +364,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 )
         replied_tags_by_src = await _respond_pending_requests_on_terminate(
             messages,
-            self,
+            self.send,
             requests if requests else None,
         )
         logger.info(

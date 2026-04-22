@@ -244,7 +244,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             messages = await _drain_queue(queue)
             replied_tags_by_src = await _respond_pending_requests_on_terminate(
                 messages,
-                self,
+                self.send,
                 self._state.requests,
             )
             logger.info(

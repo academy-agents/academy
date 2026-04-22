@@ -406,7 +406,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             for raw in pending
             if raw != _CLOSE_SENTINEL
         ]
-        await _respond_pending_requests_on_terminate(messages, self)
+        await _respond_pending_requests_on_terminate(messages, self.send)
 
         if isinstance(uid, AgentId):
             await self._redis_client.delete(self._agent_key(uid))

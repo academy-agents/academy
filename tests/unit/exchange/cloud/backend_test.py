@@ -59,6 +59,7 @@ async def test_mailbox_backend_create_close(backend: MailboxBackend) -> None:
 
 @pytest.mark.asyncio
 async def test_mailbox_backend_send_recv(backend: MailboxBackend) -> None:
+    print('Testing send/recv...')
     user_id = ClientInfo(str(uuid.uuid4()), set())
     bad_user = ClientInfo(str(uuid.uuid4()), set())
     uid = UserId.new()
@@ -539,8 +540,8 @@ async def test_redis_backend_request_tracking_inflight(mock_redis) -> None:
     info_data = await backend._client.get(request_key)
     assert info_data is not None
     info_dict = json.loads(info_data)
-    assert info_dict['src'] == str(uid)
-    assert info_dict['dest'] == str(uid)
+    assert info_dict['src'] == uid.model_dump(mode='json')
+    assert info_dict['dest'] == uid.model_dump(mode='json')
 
 
 @pytest.mark.asyncio

@@ -6,7 +6,6 @@ import logging
 import sys
 import uuid
 from typing import Any
-from typing import cast
 from typing import Protocol
 
 import redis
@@ -33,7 +32,6 @@ from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
 from academy.exchange.transport import _respond_pending_requests_on_terminate
-from academy.exchange.transport import ExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -382,30 +380,36 @@ class PythonBackend:
 
         async with self._locks[uid]:
             messages = await _drain_queue(mailbox)
-            adapter = BackendTransportAdapter(uid, self, client)
-            replied_tags_by_src = await _respond_pending_requests_on_terminate(
-                messages,
-                cast(ExchangeTransport[Any], adapter),
-                self._requests,
-            )
-            logger.info(
-                (
-                    'Replied to pending requests with '
-                    'MailboxTerminatedError for mailbox %s.'
-                ),
-                uid,
-                extra={
-                    'academy.mailbox_id': uid,
-                    'academy.pending_request_tags_by_src': replied_tags_by_src,
-                },
-            )
-
+            # Snapshot only requests destined for this mailbox.
+            # The full _requests dict is shared across all mailboxes.
+            requests = {
+                tag: info
+                for tag, info in self._requests.items()
+                if info.dest == uid
+            }
             mailbox.shutdown(immediate=True)
-            logger.info(
-                'Closed mailbox for %s',
-                uid,
-                extra={'academy.mailbox_id': uid},
-            )
+
+        # Respond to pending requests OUTSIDE the lock to avoid deadlock:
+        # put() also acquires self._locks[dest], which could be uid itself.
+        async def send(message: Message[Any]) -> None:
+            await self.put(client, message)
+
+        replied_tags_by_src = await _respond_pending_requests_on_terminate(
+            messages,
+            send,
+            requests or None,
+        )
+        logger.info(
+            (
+                'Replied to pending requests with '
+                'MailboxTerminatedError for mailbox %s.'
+            ),
+            uid,
+            extra={
+                'academy.mailbox_id': uid,
+                'academy.pending_request_tags_by_src': replied_tags_by_src,
+            },
+        )
 
     async def discover(
         self,
@@ -688,29 +692,6 @@ _CLOSE_SENTINEL = b'<CLOSED>'
 _OWNER_SUFFIX = '_'
 
 
-class BackendTransportAdapter:
-    """Adapter to make a backend's put() compatible with ExchangeTransport."""
-
-    def __init__(
-        self,
-        mailbox_id: EntityId,
-        backend: PythonBackend | RedisBackend,
-        client: ClientInfo,
-    ) -> None:
-        self._mailbox_id = mailbox_id
-        self._backend = backend
-        self._client = client
-
-    @property
-    def mailbox_id(self) -> EntityId:
-        """Mailbox identifier exposed to the terminate helper."""
-        return self._mailbox_id
-
-    async def send(self, message: Message[Any]) -> None:
-        """Forward a synthetic response through the backend put path."""
-        await self._backend.put(self._client, message)
-
-
 class RedisBackend:
     """Redis backend of mailboxes.
 
@@ -934,6 +915,7 @@ class RedisBackend:
             Message.model_deserialize(raw) for raw in pending
         ]
         requests: dict[uuid.UUID, RequestInfo] = {}
+
         async for key in self._client.scan_iter(
             'request:*',
         ):  # pragma: no branch
@@ -942,8 +924,8 @@ class RedisBackend:
             if info_data:
                 info_dict = json.loads(info_data)
                 src_data = info_dict['src']
-                src: EntityId
                 dest_data = info_dict['dest']
+                src: EntityId
                 if src_data.get('role') == 'agent':
                     src = AgentId.model_validate(src_data)
                 else:
@@ -957,12 +939,16 @@ class RedisBackend:
                     src=src,
                     dest=dest,
                 )
-        adapter = BackendTransportAdapter(uid, self, client)
+
+        async def send(message: Message[Any]) -> None:
+            await self.put(client, message)
+
         replied_tags_by_src = await _respond_pending_requests_on_terminate(
             messages,
-            cast(ExchangeTransport[Any], adapter),
-            requests if requests else None,
+            send,
+            requests or None,
         )
+
         logger.info(
             (
                 'Replied to pending requests with '

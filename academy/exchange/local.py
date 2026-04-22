@@ -197,7 +197,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     'academy.dest': message.dest,
                 },
             )
-        elif message.is_response() and message.tag in self._state.requests:
+        elif message.tag in self._state.requests:
             request_info = self._state.requests.pop(message.tag)
             logger.info(
                 'Response received for in-flight request: '
@@ -211,7 +211,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     'academy.dest': request_info.dest,
                 },
             )
-        elif message.is_response():
+        else:
             logger.warning(
                 'Response received without corresponding request: '
                 'tag=%s src=%s dest=%s',

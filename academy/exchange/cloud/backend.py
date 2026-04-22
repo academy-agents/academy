@@ -496,7 +496,6 @@ class PythonBackend:
                 self.message_size_limit,
             )
 
-        # TODO: see if it's better placed just before queue.put
         if message.is_request():
             self._requests[message.tag] = RequestInfo(
                 src=message.src,
@@ -513,7 +512,7 @@ class PythonBackend:
                     'academy.dest': message.dest,
                 },
             )
-        elif message.is_response() and message.tag in self._requests:
+        elif message.tag in self._requests:
             request_info = self._requests.pop(message.tag)
             logger.info(
                 'Response received for in-flight request: '
@@ -527,7 +526,7 @@ class PythonBackend:
                     'academy.dest': request_info.dest,
                 },
             )
-        elif message.is_response():
+        else:
             logger.warning(
                 'Response received without corresponding request: '
                 'tag=%s src=%s dest=%s',
@@ -1097,10 +1096,12 @@ class RedisBackend:
                     'academy.dest': message.dest,
                 },
             )
-        elif message.is_response() and await self._client.exists(
+        elif await self._client.exists(
             self._request_key(message.tag),
         ):
-            info_data = await self._client.get(self._request_key(message.tag))
+            info_data = await self._client.get(
+                self._request_key(message.tag),
+            )
             await self._client.delete(self._request_key(message.tag))
             if info_data:
                 info_dict = json.loads(info_data)
@@ -1116,7 +1117,7 @@ class RedisBackend:
                         'academy.dest': info_dict['dest'],
                     },
                 )
-        elif message.is_response():
+        else:
             logger.warning(
                 'Response received without corresponding request: '
                 'tag=%s src=%s dest=%s',

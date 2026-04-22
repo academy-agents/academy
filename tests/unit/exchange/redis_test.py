@@ -103,6 +103,10 @@ async def test_redis_exchange_response_without_request(mock_redis) -> None:
     # Create a response but don't send the original request
     response_msg = request_msg.create_response(SuccessResponse())
 
+    await transport._client.delete(
+        transport._request_key(response_msg.tag),
+    )
+
     # Should not raise an error when sending a response without a request
     await transport.send(response_msg)
 

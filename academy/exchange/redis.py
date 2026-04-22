@@ -272,7 +272,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                         'academy.dest': message.dest,
                     },
                 )
-            elif message.is_response() and await self._client.exists(
+            elif await self._client.exists(
                 self._request_key(message.tag),
             ):
                 info_data = await self._client.get(
@@ -293,7 +293,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                             'academy.dest': info_dict['dest'],
                         },
                     )
-            elif message.is_response():
+            else:
                 logger.warning(
                     'Response received without corresponding request: '
                     'tag=%s src=%s dest=%s',

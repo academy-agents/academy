@@ -384,8 +384,6 @@ class PythonBackend:
             }
             mailbox.shutdown(immediate=True)
 
-        # Respond to pending requests OUTSIDE the lock to avoid deadlock:
-        # put() also acquires self._locks[dest], which could be uid itself.
         async def send(message: Message[Any]) -> None:
             await self.put(client, message)
 

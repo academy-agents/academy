@@ -692,6 +692,12 @@ _CLOSE_SENTINEL = b'<CLOSED>'
 _OWNER_SUFFIX = '_'
 
 
+def _entity_id_from_dict(data: dict[str, Any]) -> EntityId:
+    if data.get('role') == 'agent':
+        return AgentId.model_validate(data)
+    return UserId.model_validate(data)
+
+
 class RedisBackend:
     """Redis backend of mailboxes.
 
@@ -923,22 +929,12 @@ class RedisBackend:
             info_data = await self._client.get(key)
             if info_data:
                 info_dict = json.loads(info_data)
-                src_data = info_dict['src']
-                dest_data = info_dict['dest']
-                src: EntityId
-                if src_data.get('role') == 'agent':
-                    src = AgentId.model_validate(src_data)
-                else:
-                    src = UserId.model_validate(src_data)
-                dest: EntityId
-                if dest_data.get('role') == 'agent':
-                    dest = AgentId.model_validate(dest_data)
-                else:
-                    dest = UserId.model_validate(dest_data)
-                requests[uuid.UUID(tag_str)] = RequestInfo(
-                    src=src,
-                    dest=dest,
+                info = RequestInfo(
+                    src=_entity_id_from_dict(info_dict['src']),
+                    dest=_entity_id_from_dict(info_dict['dest']),
                 )
+                if info.dest == uid:
+                    requests[uuid.UUID(tag_str)] = info
 
         async def send(message: Message[Any]) -> None:
             await self.put(client, message)

@@ -242,26 +242,33 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 return
 
             messages = await _drain_queue(queue)
-            replied_tags_by_src = await _respond_pending_requests_on_terminate(
-                messages,
-                self.send,
-                self._state.requests,
-            )
-            logger.info(
-                (
-                    'Replied to pending requests with '
-                    'MailboxTerminatedError for mailbox %s.'
-                ),
-                uid,
-                extra={
-                    'academy.mailbox_id': uid,
-                    'academy.pending_request_tags_by_src': replied_tags_by_src,
-                },
-            )
-
+            requests = {
+                tag: info
+                for tag, info in self._state.requests.items()
+                if info.dest == uid
+            }
             queue.shutdown(immediate=True)
             if isinstance(uid, AgentId):
                 self._state.agents.pop(uid, None)
+
+        # Respond to pending requests OUTSIDE the lock to avoid deadlock:
+        # send() acquires self._state.locks[dest], which could be uid itself.
+        replied_tags_by_src = await _respond_pending_requests_on_terminate(
+            messages,
+            self.send,
+            requests or None,
+        )
+        logger.info(
+            (
+                'Replied to pending requests with '
+                'MailboxTerminatedError for mailbox %s.'
+            ),
+            uid,
+            extra={
+                'academy.mailbox_id': uid,
+                'academy.pending_request_tags_by_src': replied_tags_by_src,
+            },
+        )
 
 
 class LocalExchangeFactory(

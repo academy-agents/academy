@@ -358,14 +358,13 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     dest = AgentId.model_validate(dest_data)
                 else:
                     dest = UserId.model_validate(dest_data)
-                requests[uuid.UUID(tag_str)] = RequestInfo(
-                    src=src,
-                    dest=dest,
-                )
+                info = RequestInfo(src=src, dest=dest)
+                if info.dest == uid:
+                    requests[uuid.UUID(tag_str)] = info
         replied_tags_by_src = await _respond_pending_requests_on_terminate(
             messages,
             self.send,
-            requests if requests else None,
+            requests or None,
         )
         logger.info(
             (

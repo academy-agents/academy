@@ -612,3 +612,47 @@ async def test_redis_backend_response_without_request(mock_redis) -> None:
     request_key = f'request:{response_msg.tag}'
     info_data = await backend._client.get(request_key)
     assert info_data is None
+
+
+@pytest.mark.asyncio
+async def test_python_backend_terminate_skips_other_mailbox_requests() -> None:
+    """Test terminate does not reply to requests for other mailboxes."""
+    backend = PythonBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid1 = UserId.new()
+    uid2 = UserId.new()
+    await backend.create_mailbox(client, uid1)
+    await backend.create_mailbox(client, uid2)
+
+    # Put a request destined for uid2 (not uid1)
+    other_request = Message.create(src=uid1, dest=uid2, body=PingRequest())
+    await backend.put(client, other_request)
+
+    # Terminate uid1 — should not touch uid2's in-flight request
+    await backend.terminate(client, uid1)
+
+    assert other_request.tag in backend._requests
+
+
+@pytest.mark.asyncio
+async def test_redis_backend_terminate_skips_other_mailbox_requests(
+    mock_redis,
+) -> None:
+    """Test terminate does not reply to requests for other mailboxes."""
+    backend = RedisBackend()
+    client = ClientInfo(str(uuid.uuid4()), set())
+    uid1 = UserId.new()
+    uid2 = UserId.new()
+    await backend.create_mailbox(client, uid1)
+    await backend.create_mailbox(client, uid2)
+
+    # Put a request destined for uid2 (not uid1)
+    other_request = Message.create(src=uid1, dest=uid2, body=PingRequest())
+    await backend.put(client, other_request)
+
+    # Terminate uid1 — should not touch uid2's in-flight request
+    await backend.terminate(client, uid1)
+
+    request_key = f'request:{other_request.tag}'
+    info_data = await backend._client.get(request_key)
+    assert info_data is not None

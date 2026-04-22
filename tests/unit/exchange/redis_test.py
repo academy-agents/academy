@@ -112,3 +112,34 @@ async def test_redis_exchange_response_without_request(mock_redis) -> None:
     assert info_data is None
 
     await transport.close()
+
+
+@pytest.mark.asyncio
+async def test_redis_exchange_terminate_skips_other_mailbox_requests(
+    mock_redis,
+) -> None:
+    """Test terminate does not reply to requests for other mailboxes."""
+    redis_info = _RedisConnectionInfo(
+        hostname='localhost',
+        port=0,
+        kwargs={},
+    )
+    transport1 = await RedisExchangeTransport.new(redis_info=redis_info)
+    transport2 = await RedisExchangeTransport.new(redis_info=redis_info)
+
+    # Send a request destined for transport2 (not transport1)
+    other_request = Message.create(
+        src=transport1.mailbox_id,
+        dest=transport2.mailbox_id,
+        body=PingRequest(),
+    )
+    await transport1.send(other_request)
+
+    # Terminate transport1 — should not touch transport2's in-flight request
+    await transport1.terminate(transport1.mailbox_id)
+
+    request_key = f'request:{other_request.tag}'
+    info_data = await transport1._client.get(request_key)
+    assert info_data is not None
+
+    await transport2.close()

@@ -22,6 +22,7 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
+from academy.logging.configs.file import FileLogging
 from academy.manager import Manager
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
@@ -140,6 +141,25 @@ async def test_shutdown_bad_identifier(
     registration = await manager.register_agent(EmptyAgent)
     with pytest.raises(BadEntityIdError):
         await manager.shutdown(registration.agent_id)
+
+
+@pytest.mark.asyncio
+async def test_register_agents_and_launch(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    registrations = await manager.register_agents(
+        [(EmptyAgent, None), (IdentityAgent, None)],
+    )
+    assert len(registrations) == 2  # noqa: PLR2004
+    await manager.launch(
+        EmptyAgent(),
+        registration=registrations[0],
+    )
+    await manager.launch(
+        IdentityAgent(),
+        registration=registrations[1],
+    )
+    assert len(manager.running()) == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -346,34 +366,16 @@ async def test_executor_pass_kwargs(
 
 
 # Logging done in a subprocess is not captured by pytest so we cannot use
-# pytest's caplog fixture to validate output. Set level to WARNING to avoid
-# adding more noise in stdout.
-@pytest.mark.asyncio
-async def test_worker_init_logging_no_logfile(
-    http_exchange_factory: HttpExchangeFactory,
-) -> None:
-    spawn_context = multiprocessing.get_context('spawn')
-    async with await Manager.from_exchange_factory(
-        http_exchange_factory,
-        executors=ProcessPoolExecutor(max_workers=1, mp_context=spawn_context),
-    ) as manager:
-        agent = SleepAgent(TEST_SLEEP_INTERVAL)
-        handle = await manager.launch(
-            agent,
-            init_logging=True,
-            loglevel='WARNING',
-        )
-        await handle.shutdown()
-        await manager.wait({handle})
-
-
+# pytest's caplog fixture to validate output.
 @pytest.mark.asyncio
 async def test_worker_init_logging_logfile(
     http_exchange_factory: HttpExchangeFactory,
     tmp_path: pathlib.Path,
 ) -> None:
-    spawn_context = multiprocessing.get_context('spawn')
     filepath = tmp_path / 'test-worker-init-logging.log'
+
+    lc = FileLogging(logfile=filepath)
+    spawn_context = multiprocessing.get_context('spawn')
 
     async with await Manager.from_exchange_factory(
         http_exchange_factory,
@@ -382,26 +384,12 @@ async def test_worker_init_logging_logfile(
         agent = SleepAgent(TEST_SLEEP_INTERVAL)
         handle = await manager.launch(
             agent,
-            init_logging=True,
-            loglevel='WARNING',
-            logfile=str(filepath),
+            log_config=lc,
         )
         await handle.shutdown()
         await manager.wait({handle})
 
     assert filepath.exists(), 'log file from manager should exist'
-
-
-@pytest.mark.asyncio
-async def test_worker_init_logging_warn(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    agent = SleepAgent(TEST_SLEEP_INTERVAL)
-    with pytest.warns(UserWarning, match='init_logging'):
-        handle = await manager.launch(agent, init_logging=True)
-
-    await handle.shutdown()
-    await manager.wait({handle})
 
 
 @pytest.mark.asyncio

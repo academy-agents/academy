@@ -107,14 +107,16 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
         """Discover peer agents with a given agent.
 
         Args:
-            agent: Agent type of interest.
+            agent: Agent type of interest or qualified class name string
+                (e.g. 'mypackage.MyAgent')
+
             allow_subclasses: Return agents implementing subclasses of the
                 agent.
 
@@ -163,6 +165,37 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             extra={'academy.agent_id': registration.agent_id},
         )
         return registration
+
+    async def register_agents(
+        self,
+        agents: list[tuple[type[AgentT], str | None]],
+    ) -> list[AgentRegistration[AgentT]]:
+        """Register multiple agents, batching auth if supported.
+
+        Falls back to sequential :meth:`register_agent` calls when
+        the transport does not implement batch registration.
+
+        Args:
+            agents: List of (agent_type, name) pairs to register.
+
+        Returns:
+            List of agent registrations in input order.
+        """
+        batch_fn = getattr(self._transport, 'register_agents', None)
+        if batch_fn is not None:
+            registrations = await batch_fn(agents)
+        else:
+            registrations = [
+                await self.register_agent(agent, name=name)
+                for agent, name in agents
+            ]
+        for reg in registrations:
+            logger.info(
+                'Registered %s in exchange',
+                reg.agent_id,
+                extra={'academy.agent_id': reg.agent_id},
+            )
+        return registrations
 
     async def send(self, message: Message[Any]) -> None:
         """Send a message to a mailbox.

@@ -468,6 +468,16 @@ class Agent:
         This class cannot be instantiated directly and must be subclassed.
     """
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        for method_name in ('agent_on_startup', 'agent_on_shutdown'):
+            method = cls.__dict__.get(method_name)
+            if method is not None and not inspect.iscoroutinefunction(method):
+                raise TypeError(
+                    f'"{cls.__name__}.{method_name}" is not a coroutine. '
+                    'Did you forget an "async" in the method declaration?',
+                )
+
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:  # noqa: D102
         if cls is Agent:
             raise TypeError(

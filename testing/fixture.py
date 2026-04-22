@@ -12,8 +12,8 @@ import pytest_asyncio
 import responses
 from aiohttp.web import AppRunner
 from aiohttp.web import TCPSite
-from globus_sdk._testing import load_response
-from globus_sdk._testing import load_response_set
+from globus_sdk.testing import load_response
+from globus_sdk.testing import load_response_set
 
 from academy.exchange import ExchangeFactory
 from academy.exchange import HttpExchangeFactory
@@ -23,7 +23,6 @@ from academy.exchange import LocalExchangeTransport
 from academy.exchange import RedisExchangeFactory
 from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.app import create_app
-from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.globus import AcademyGlobusClient
 from academy.exchange.cloud.globus import GlobusExchangeFactory
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME
@@ -155,7 +154,7 @@ async def manager(
 @pytest_asyncio.fixture
 async def http_exchange_server() -> AsyncGenerator[tuple[str, int]]:
     host, port = 'localhost', open_port()
-    app = create_app(auth_config=ExchangeAuthConfig())
+    app = create_app()
 
     runner = AppRunner(app)
     await runner.setup()

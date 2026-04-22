@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import multiprocessing
 import pathlib
 import uuid
@@ -25,7 +24,6 @@ from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
-from academy.exchange.cloud.config import PythonBackendConfig
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message
@@ -64,7 +62,6 @@ async def test_server_run() -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
     )
 
     context = multiprocessing.get_context('spawn')
@@ -87,7 +84,6 @@ async def test_server_run_ssl(ssl_context: SSLContextFixture) -> None:
     config = ExchangeServingConfig(
         host='127.0.0.1',
         port=open_port(),
-        log_level=logging.ERROR,
     )
     config.certfile = ssl_context.certfile
     config.keyfile = ssl_context.keyfile
@@ -120,7 +116,7 @@ async def cli() -> AsyncGenerator[TestClient[Request, Application]]:
 async def test_create_mailbox_validation_error(cli) -> None:
     response = await cli.post('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
@@ -159,7 +155,7 @@ async def test_share_bad_mailbox(cli) -> None:
         },
     )
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
@@ -169,7 +165,7 @@ async def test_get_shares_bad_mailbox(cli) -> None:
         json={'mailbox': 'foo'},
     )
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
@@ -179,43 +175,59 @@ async def test_remove_shares_bad_mailbox(cli) -> None:
         json={'mailbox': 'foo'},
     )
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_terminate_validation_error(cli) -> None:
     response = await cli.delete('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_discover_validation_error(cli) -> None:
     response = await cli.get('/discover', json={})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid arguments'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_check_mailbox_validation_error(cli) -> None:
     response = await cli.get('/mailbox', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
-async def test_send_mailbox_validation_error(cli) -> None:
+async def test_send_mailbox_mailbox_validation_error(cli) -> None:
     response = await cli.put('/message', json={'message': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid message'
+    assert 'Missing or invalid field' in (await response.text())
 
 
 @pytest.mark.asyncio
 async def test_recv_mailbox_validation_error(cli) -> None:
     response = await cli.get('/message', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
+
+@pytest.mark.asyncio
+async def test_recv_mailbox_timeout_validation_error(cli) -> None:
+    response = await cli.get(
+        '/message',
+        json={
+            'mailbox': UserId.new().model_dump_json(),
+            'timeout': ExchangeServingConfig().listen_timeout_s + 1,
+        },
+    )
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert 'Invalid timeout' in (await response.text())
+
+
+@pytest.mark.asyncio
+async def test_recv_mailbox_unkown_error(cli) -> None:
     response = await cli.get(
         '/message',
         json={'mailbox': UserId.new().model_dump_json()},
@@ -228,8 +240,24 @@ async def test_recv_mailbox_validation_error(cli) -> None:
 async def test_listen_mailbox_validation_error(cli) -> None:
     response = await cli.get('/mailbox/listen', json={'mailbox': 'foo'})
     assert response.status == StatusCode.BAD_REQUEST.value
-    assert await response.text() == 'Missing or invalid mailbox ID'
+    assert 'Missing or invalid field' in (await response.text())
 
+
+@pytest.mark.asyncio
+async def test_listen_mailbox_timeout_validation_error(cli) -> None:
+    response = await cli.get(
+        '/mailbox/listen',
+        json={
+            'mailbox': UserId.new().model_dump_json(),
+            'timeout': ExchangeServingConfig().listen_timeout_s + 1,
+        },
+    )
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert 'Invalid timeout' in (await response.text())
+
+
+@pytest.mark.asyncio
+async def test_listen_mailbox_unkown_error(cli) -> None:
     response = await cli.get(
         '/mailbox/listen',
         json={'mailbox': UserId.new().model_dump_json()},
@@ -290,14 +318,12 @@ async def test_send_mailbox_message_too_large(cli) -> None:
 
 
 @pytest.mark.asyncio
-async def test_null_auth_client() -> None:
-    auth = ExchangeAuthConfig()
-    backend = PythonBackendConfig()
-    app = create_app(backend, auth)
+async def test_create_app_explicit_config() -> None:
+    app = create_app(ExchangeServingConfig())
     async with TestClient(TestServer(app)) as client:
         response = await client.get('/message', json={'mailbox': 'foo'})
         assert response.status == StatusCode.BAD_REQUEST.value
-        assert await response.text() == 'Missing or invalid mailbox ID'
+        assert 'Missing or invalid field' in (await response.text())
 
         response = await client.get(
             '/message',
@@ -346,13 +372,11 @@ async def auth_client(
         else:
             raise ForbiddenError()
 
-    backend = PythonBackendConfig()
-
     with mock.patch(
         'academy.exchange.cloud.authenticate.GlobusAuthenticator.authenticate_user',
     ) as mock_user_auth:
         mock_user_auth.side_effect = authorize
-        app = create_app(backend, auth)
+        app = create_app(ExchangeServingConfig(auth=auth))
         async with TestClient(TestServer(app)) as client:
             yield client
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from globus_sdk._testing.models import RegisteredResponse
-from globus_sdk._testing.models import ResponseSet
-from globus_sdk._testing.registry import register_response_set
+from globus_sdk.testing.models import RegisteredResponse
+from globus_sdk.testing.models import ResponseSet
+from globus_sdk.testing.registry import register_response_set
 from responses import matchers
 
 from academy.exchange.cloud.scopes import AcademyExchangeScopes

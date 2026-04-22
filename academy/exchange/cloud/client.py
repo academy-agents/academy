@@ -34,6 +34,7 @@ from academy.exception import UnauthorizedError
 from academy.exchange.cloud.app import _run
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.login import get_auth_headers
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
@@ -52,6 +53,8 @@ else:
     AgentT = TypeVar('AgentT')
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_EXCHANGE_URL = 'https://exchange.academy-agents.org'
 
 
 class _HttpConnectionInfo(NamedTuple):
@@ -153,11 +156,16 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
-        agent_str = f'{agent.__module__}.{agent.__name__}'
+
+        if isinstance(agent, str):
+            agent_str = agent
+        else:
+            agent_str = f'{agent.__module__}.{agent.__name__}'
+
         async with self._session.get(
             self._discover_url,
             json={
@@ -230,6 +238,9 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     self._info.request_timeout_s,
                 )
             )
+            if internal_timeout <= 0:
+                raise TimeoutError()
+
             response = await self._session.get(
                 self._listen_url,
                 json={
@@ -434,7 +445,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
 
     def __init__(
         self,
-        url: str = 'https://exchange.academy-agents.org',
+        url: str = DEFAULT_EXCHANGE_URL,
         auth_method: Literal['globus'] | None = None,
         additional_headers: dict[str, str] | None = None,
         request_timeout_s: float = 60,
@@ -442,6 +453,13 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
     ) -> None:
         if additional_headers is None:
             additional_headers = {}
+
+        if (
+            url == DEFAULT_EXCHANGE_URL
+            and 'Authorization' not in additional_headers
+        ):
+            auth_method = 'globus'
+
         additional_headers |= get_auth_headers(auth_method)
 
         self._info = _HttpConnectionInfo(
@@ -527,7 +545,8 @@ def spawn_http_exchange(
     Warning:
         The exclusion of authentication and ssl configuration is
         intentional. This method should only be used for temporary exchanges
-        in trusted environments (i.e. the login node of a cluster).
+        in trusted environments (such as a fully firewalled individual
+        workstation with no other user access).
 
     Args:
         host: Host the exchange should listen on.
@@ -538,7 +557,11 @@ def spawn_http_exchange(
     Returns:
         Exchange interface connected to the spawned exchange.
     """
-    config = ExchangeServingConfig(host=host, port=port, log_level=level)
+    config = ExchangeServingConfig(
+        host=host,
+        port=port,
+        logger=LogConfig(level=level),
+    )
 
     # Fork is not safe in multi-threaded context.
     context = multiprocessing.get_context('spawn')

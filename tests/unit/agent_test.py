@@ -362,6 +362,26 @@ def test_invalid_loop_signature() -> None:
         loop(BadAgent.loop)  # type: ignore[arg-type]
 
 
+def test_agent_on_startup_sync_error() -> None:
+    with pytest.raises(
+        TypeError,
+        match=r'"_TestAgent.agent_on_startup" is not a coroutine',
+    ):
+
+        class _TestAgent(Agent):
+            def agent_on_startup(self) -> None: ...  # type: ignore[override]
+
+
+def test_agent_on_shutdown_sync_error() -> None:
+    with pytest.raises(
+        TypeError,
+        match=r'"_TestAgent.agent_on_shutdown" is not a coroutine',
+    ):
+
+        class _TestAgent(Agent):
+            def agent_on_shutdown(self) -> None: ...  # type: ignore[override]
+
+
 @pytest.mark.asyncio
 async def test_agent_description() -> None:
     class TestAgent(Agent):

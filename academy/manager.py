@@ -9,7 +9,6 @@ import warnings
 from collections.abc import Iterable
 from collections.abc import MutableMapping
 from concurrent.futures import Executor
-from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -32,7 +31,8 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.logging import init_logging
+from academy.logging.configs.base import LogConfig
+from academy.logging.helpers import log_context
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import NoPickleMixin
@@ -54,9 +54,7 @@ class _RunSpec(Generic[AgentT, ExchangeTransportT]):
     agent_args: tuple[Any, ...]
     agent_kwargs: dict[str, Any]
     submit_kwargs: dict[str, Any]
-    init_logging: bool = False
-    loglevel: int | str = logging.INFO
-    logfile: str | None = None
+    log_config: LogConfig | None = None
 
 
 async def _run_agent_async(
@@ -89,16 +87,9 @@ def _run_agent_on_worker(
     academy_debug_mode: bool = False,
     **kwargs: Any,
 ) -> None:
-    if spec.init_logging:
-        if spec.logfile is not None:
-            logfile = spec.logfile.format(agent_id=spec.registration.agent_id)
-        else:
-            logfile = None
-
-        init_logging(level=spec.loglevel, logfile=logfile)
-
-    set_academy_debug(academy_debug_mode)
-    asyncio.run(_run_agent_async(spec))
+    with log_context(spec.log_config):
+        set_academy_debug(academy_debug_mode)
+        asyncio.run(_run_agent_async(spec))
 
 
 @dataclasses.dataclass
@@ -120,12 +111,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         This class can be used as a context manager. Upon exiting the context,
         running agents will be shutdown, any agent handles created by the
         manager will be closed, and the executors will be shutdown.
-
-    Tip:
-        When using
-        [`ProcessPoolExecutors`][concurrent.futures.ProcessPoolExecutor],
-        use the `initializer` argument to configure logging in the worker
-        processes that will execute agents.
 
     Note:
         The manager takes ownership of the exchange client and executors,
@@ -159,6 +144,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         default_executor: str = 'event_loop',
         max_retries: int = 0,
+        log_config: LogConfig | None = None,
     ) -> None:
         self._executors: dict[str, Executor | None] = {'event_loop': None}
         if isinstance(executors, Executor):
@@ -186,14 +172,17 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         self._handles: dict[AgentId[Any], Handle[Any]] = {}
         self._acbs: dict[AgentId[Any], _ACB[Any]] = {}
+        self._log_config = log_config
 
+    async def __aenter__(self) -> Self:
+        self._log_context = log_context(self._log_config)
+        # nicer syntax for nesting context managers?
+        self._log_context.__enter__()
         logger.info(
-            'Initialized manager (%s)',
+            'Entered manager context (%s)',
             self.user_id,
             extra={'academy.user_id': self.user_id},
         )
-
-    async def __aenter__(self) -> Self:
         self.exchange_context_token = exchange_context.set(
             self.exchange_client,
         )
@@ -207,6 +196,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     ) -> None:
         await self.close()
         exchange_context.reset(self.exchange_context_token)
+        self._log_context.__exit__(exc_type, exc_value, exc_traceback)
 
     def __repr__(self) -> str:
         executors_repr = ', '.join(
@@ -233,6 +223,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         *,
         default_executor: str = 'event_loop',
         max_retries: int = 0,
+        log_config: LogConfig | None = None,
     ) -> Self:
         """Instantiate a new exchange client and manager from a factory."""
         client = await factory.create_user_client()
@@ -241,6 +232,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             executors,
             default_executor=default_executor,
             max_retries=max_retries,
+            log_config=log_config,
         )
 
     @property
@@ -440,9 +432,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         submit_kwargs: dict[str, Any] | None = None,
         name: str | None = None,
         registration: AgentRegistration[AgentT] | None = None,
-        init_logging: bool = False,
-        loglevel: int | str = logging.INFO,
-        logfile: str | None = None,
+        log_config: LogConfig | None = None,
     ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 
@@ -462,9 +452,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             name: Readable name of the agent used when registering a new agent.
             registration: If `None`, a new agent will be registered with
                 the exchange.
-            init_logging: Initialize logging before running agent.
-            loglevel: Level of logging.
-            logfile: Location to write logs.
+            log_config: log configuration to use. If `None`, log configuration
+                will be inherited from the enclosing `Manager`.
 
         Returns:
             Handle (client bound) used to interact with the agent.
@@ -485,18 +474,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 f'{registration.agent_id} has already been executed.',
             )
 
-        if init_logging and (
-            executor_instance is None
-            or isinstance(executor_instance, ThreadPoolExecutor)
-        ):
-            warnings.warn(
-                f'`init_logging` was specified for agent '
-                f'{registration.agent_id} running in the same process as the '
-                f'Manager. `init_logging` should only be called once per '
-                f'process.',
-                stacklevel=2,
-            )
-
         agent_id = registration.agent_id
 
         spec = _RunSpec(
@@ -507,9 +484,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             agent_args=() if args is None else args,
             agent_kwargs={} if kwargs is None else kwargs,
             submit_kwargs={} if submit_kwargs is None else submit_kwargs,
-            init_logging=init_logging,
-            loglevel=loglevel,
-            logfile=logfile,
+            log_config=self._log_config if log_config is None else log_config,
         )
 
         task = asyncio.create_task(
@@ -572,6 +547,27 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
             [`launch()`][academy.manager.Manager.launch].
         """
         return await self.exchange_client.register_agent(agent, name=name)
+
+    async def register_agents(
+        self,
+        agents: list[tuple[type[AgentT], str | None]],
+    ) -> list[AgentRegistration[AgentT]]:
+        """Register multiple agents, batching auth when possible.
+
+        For transports that support batch registration (e.g. Globus),
+        all auth consent is consolidated into a single prompt. For
+        other transports this falls back to sequential registration.
+
+        Use the returned registrations with
+        :meth:`launch(registration=...) <launch>`.
+
+        Args:
+            agents: List of (agent_type, name) pairs to register.
+
+        Returns:
+            List of registrations in the same order as the input.
+        """
+        return await self.exchange_client.register_agents(agents)
 
     def running(self) -> set[AgentId[Any]]:
         """Get a set of IDs of all running agents.

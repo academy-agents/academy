@@ -94,6 +94,27 @@ async def test_create_agent_client_unregistered(
 
 
 @pytest.mark.asyncio
+async def test_register_agents(
+    client: UserExchangeClient[Any],
+) -> None:
+    registrations = await client.register_agents(
+        [(EmptyAgent, None), (EmptyAgent, 'named')],
+    )
+    assert len(registrations) == 2  # noqa: PLR2004
+    for reg in registrations:
+        status = await client._transport.status(reg.agent_id)
+        assert status == MailboxStatus.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_register_agents_empty(
+    client: UserExchangeClient[Any],
+) -> None:
+    registrations: list[Any] = await client.register_agents([])
+    assert registrations == []
+
+
+@pytest.mark.asyncio
 async def test_client_discover(client: UserExchangeClient[Any]) -> None:
     registration = await client.register_agent(EmptyAgent)
     assert await client.discover(EmptyAgent) == (registration.agent_id,)

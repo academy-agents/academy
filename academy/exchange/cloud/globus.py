@@ -7,6 +7,7 @@ import functools
 import logging
 import sys
 import threading
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
@@ -15,6 +16,7 @@ from datetime import timedelta
 from typing import Any
 from typing import ClassVar
 from typing import Generic
+from typing import NamedTuple
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -34,6 +36,7 @@ from globus_sdk.authorizers import GlobusAuthorizer
 from globus_sdk.exc import GlobusAPIError
 from globus_sdk.gare import GlobusAuthorizationParameters
 from globus_sdk.scopes import AuthScopes
+from globus_sdk.transport.requests import RequestsTransport
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -60,6 +63,12 @@ else:
 logger = logging.getLogger(__name__)
 
 
+class _AcademyConnectionInfo(NamedTuple):
+    project_id: uuid.UUID
+    client_params: dict[str, Any] | None = None
+    request_timeout_s: float = 60
+
+
 class AcademyAPIError(GlobusAPIError):
     """Error class to represent error responses from Academy."""
 
@@ -78,7 +87,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     base_url = 'https://exchange.academy-agents.org'
     scopes = AcademyExchangeScopes
     default_scope_requirements: ClassVar[list[Scope]] = [
-        Scope(AcademyExchangeScopes.academy_exchange),
+        AcademyExchangeScopes.academy_exchange,
     ]
     error_class = AcademyAPIError
 
@@ -88,11 +97,14 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
 
     def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> GlobusHTTPResponse:
-        agent_str = f'{agent.__module__}.{agent.__name__}'
+        if isinstance(agent, str):
+            agent_str = agent
+        else:
+            agent_str = f'{agent.__module__}.{agent.__name__}'
         return self.request(
             'GET',
             self._discover_url,
@@ -105,7 +117,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     def recv(
         self,
         mailbox_id: EntityId,
-        timeout: float | None = None,
+        timeout: float,
     ) -> GlobusHTTPResponse:
         return self.request(
             'GET',
@@ -162,6 +174,21 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
 
 
 @dataclasses.dataclass
+class _PendingRegistration(Generic[AgentT]):
+    """Intermediate state for a registration awaiting token delegation.
+
+    Created during the prepare phase of batch registration. Contains
+    the Globus Auth client, credential, and scope but not yet the
+    delegated token (which requires user consent).
+    """
+
+    agent_id: AgentId[AgentT]
+    client_id: uuid.UUID
+    secret: str
+    scope: Scope
+
+
+@dataclasses.dataclass
 class GlobusAgentRegistration(Generic[AgentT]):
     """Agent registration for hosted globus exchange."""
 
@@ -198,29 +225,30 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     Args:
         mailbox_id: Identifier of the mailbox on the exchange. If there is
             not an id provided, the exchange will create a new client mailbox.
-        project_id: Globus Identifier of project to create agents under.
+        connection_info: Project id, client parameters and other information
+            about the connection to the service.
         app: For user authorization through token retrieval.
         authorizer: For service authorization through token retrieval.
-        client_params: Additional parameters for globus client.
     """
 
     def __init__(
         self,
         mailbox_id: EntityId,
         *,
-        project_id: uuid.UUID,
+        connection_info: _AcademyConnectionInfo,
         app: GlobusApp | None = None,
         authorizer: GlobusAuthorizer | None = None,
-        client_params: dict[str, Any] | None = None,
     ) -> None:
         self._mailbox_id = mailbox_id
-        self.project = project_id
+        self.project = connection_info.project_id
         self.child_clients: list[uuid.UUID] = []
-        self.client_params = client_params or {}
+        self.client_params = connection_info.client_params or {}
+        self.request_timeout_s = connection_info.request_timeout_s
 
         self.login_time = datetime.min
         self._app = app
         self._authorizer = authorizer
+        self._auth_lock = threading.Lock()
         self._local_data = threading.local()
         self.executor = ThreadPoolExecutor(
             thread_name_prefix='exchange-globus-thread',
@@ -235,7 +263,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._local_data.exchange_client = AcademyGlobusClient(
                 app=self._app,
                 authorizer=self._authorizer,
-                transport_params={'http_timeout': -1},
+                transport=RequestsTransport(http_timeout=-1),
                 **self.client_params,
             )
             return self._local_data.exchange_client
@@ -243,43 +271,46 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     @property
     def auth_client(self) -> AuthClient:
         """A thread local copy of the Globus AuthClient."""
+        # Fast path: return cached thread-local client.
         if datetime.now() - self.login_time < timedelta(minutes=30):
-            login = False
             try:
                 return self._local_data.auth_client
-            except AttributeError:  # pragma: no cover
-                logger.debug('Auth client does not exist for thread.')
-                pass
+            except AttributeError:
+                logger.debug(
+                    'Auth client does not exist for thread.',
+                )
         else:
-            login = True
-            logger.debug('Auth client login timeout.')
+            # Login required — serialize to prevent duplicate
+            # interactive prompts from concurrent threads.
+            with self._auth_lock:
+                if datetime.now() - self.login_time >= timedelta(minutes=30):
+                    logger.debug('Auth client login timeout.')
+
+                    if self._app is None:
+                        raise NotImplementedError(
+                            'Launching child agents is'
+                            ' currently not implemented.',
+                        )
+
+                    self._app.add_scope_requirements(
+                        {
+                            AuthScopes.resource_server: [
+                                AuthScopes.manage_projects,
+                                AuthScopes.email,
+                                AuthScopes.profile,
+                            ],
+                        },
+                    )
+
+                    self._app.login(
+                        force=True,
+                        auth_params=GlobusAuthorizationParameters(
+                            prompt='login',
+                        ),
+                    )
+                    self.login_time = datetime.now()
 
         logger.info('Initializing auth client.')
-
-        if self._app is None:
-            raise NotImplementedError(
-                'Launching child agents is\
-                currently not implemented.',
-            )
-
-        self._app.add_scope_requirements(
-            {
-                AuthScopes.resource_server: [
-                    AuthScopes.manage_projects,
-                    AuthScopes.email,
-                    AuthScopes.profile,
-                ],
-            },
-        )
-
-        if login:  # pragma: no branch
-            self._app.login(
-                force=True,
-                auth_params=GlobusAuthorizationParameters(prompt='login'),
-            )
-
-        self.login_time = datetime.now()
-
         self._local_data.auth_client = AuthClient(
             app=self._app,
         )
@@ -289,20 +320,20 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self.exchange_client.register_client(self.mailbox_id)
 
     @classmethod
-    async def new(  # noqa: PLR0913
+    async def new(
         cls,
         *,
-        project_id: uuid.UUID,
+        connection_info: _AcademyConnectionInfo,
         app: GlobusApp | None = None,
         authorizer: GlobusAuthorizer | None = None,
         mailbox_id: EntityId | None = None,
         name: str | None = None,
-        client_params: dict[str, Any] | None = None,
     ) -> Self:
         """Instantiate a new transport.
 
         Args:
-            project_id: Globus Identifier of project to create agents under.
+            connection_info: Project id, client parameters and other
+                information about the connection to the service.
             app: For user authorization through token retrieval
             authorizer: For service authorization through token retrieval
             mailbox_id: Bind the transport to the specific mailbox. If `None`,
@@ -310,7 +341,6 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 bound to that mailbox.
             name: Display name of the registered entity if `mailbox_id` is
                 `None`.
-            client_params: Additional parameters for globus client.
 
         Returns:
             An instantiated transport bound to a specific mailbox.
@@ -321,10 +351,9 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             mailbox_id = UserId.new(name=name)
             client = cls(
                 mailbox_id,
-                project_id=project_id,
+                connection_info=connection_info,
                 app=app,
                 authorizer=authorizer,
-                client_params=client_params,
             )
             await loop.run_in_executor(
                 client.executor,
@@ -339,10 +368,9 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         return cls(
             mailbox_id,
-            project_id=project_id,
+            connection_info=connection_info,
             app=app,
             authorizer=authorizer,
-            client_params=client_params,
         )
 
     @property
@@ -359,7 +387,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         allow_subclasses: bool,
     ) -> GlobusHTTPResponse:
         return self.exchange_client.discover(
@@ -369,7 +397,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def discover(
         self,
-        agent: type[Agent],
+        agent: type[Agent] | str,
         *,
         allow_subclasses: bool = True,
     ) -> tuple[AgentId[Any], ...]:
@@ -388,14 +416,24 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def factory(self) -> GlobusExchangeFactory:
         return GlobusExchangeFactory(self.project, self.client_params)
 
-    def _recv_sync(self, timeout: float | None) -> GlobusHTTPResponse:
+    def _recv_sync(self, timeout: float) -> GlobusHTTPResponse:
         return self.exchange_client.recv(self.mailbox_id, timeout)
 
     async def _recv(self, timeout: float | None = None) -> Message[Any]:
+        start_time = time.time()
+        current_time = time.time()
         loop = asyncio.get_running_loop()
-        try:
+        while timeout is None or current_time - start_time < timeout:
+            internal_timeout = (
+                self.request_timeout_s
+                if timeout is None
+                else min(
+                    (start_time + timeout) - current_time,
+                    self.request_timeout_s,
+                )
+            )
             try:
-                logger.info(
+                logger.debug(
                     f'Receiving message for mailbox {self.mailbox_id}',
                     extra={'academy.mailbox_id': self.mailbox_id},
                 )
@@ -403,29 +441,38 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     loop.run_in_executor(
                         self.executor,
                         self._recv_sync,
-                        timeout,
+                        internal_timeout,
                     ),
                     timeout,
                 )
                 message_raw = response['message']
-                logger.info(
+                logger.debug(
                     f'Received message of length {len(message_raw)}',
                     extra={'academy.message_length': len(message_raw)},
                 )
+                break
             except AcademyAPIError as e:
                 if e.http_status == StatusCode.TERMINATED.value:
                     raise MailboxTerminatedError(self.mailbox_id) from e
                 elif (
                     e.http_status == StatusCode.TIMEOUT.value
                 ):  # pragma: no cover
-                    raise TimeoutError() from e
-                raise e  # pragma: no cover
-        except asyncio.TimeoutError as e:
-            # In older versions of Python, ayncio.TimeoutError and TimeoutError
-            # are different types.
+                    logger.debug(
+                        f'Failed to receive response in {internal_timeout} '
+                        'seconds.',
+                    )
+                    pass
+            except asyncio.TimeoutError:
+                logger.debug(
+                    f'Failed to receive response in {internal_timeout} '
+                    'seconds.',
+                )
+                pass
+            current_time = time.time()
+        else:
             raise TimeoutError(
                 f'Failed to receive response in {timeout} seconds.',
-            ) from e
+            )
 
         return Message.model_validate_json(message_raw)
 
@@ -436,10 +483,19 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         while True:
             yield await self._recv(timeout)
 
-    def _create_registration(
+    def _prepare_registration(
         self,
         aid: AgentId[AgentT],
-    ) -> GlobusAgentRegistration[AgentT]:
+    ) -> _PendingRegistration[AgentT]:
+        """Create Globus Auth client, credential, and scope for an agent.
+
+        This is phase 1 of registration. It creates all Globus Auth
+        entities but does **not** accumulate scope requirements or
+        trigger user consent. The caller is responsible for adding
+        the returned scope via
+        :meth:`GlobusApp.add_scope_requirements` and triggering
+        login before calling :meth:`_finalize_registration`.
+        """
         # Create new resource server (auth entity)
         logger.info('Creating new auth client')
         client_response = self.auth_client.create_client(
@@ -480,26 +536,57 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
         scope = Scope.parse(scope_response['scopes'][0]['scope_string'])
 
-        # Create delegated token
-        logger.info('Creating delegated token.')
-        assert self._app is not None  # Already true, but not caught by mypy
-        self._app.add_scope_requirements(
-            {client_id: [scope]},
+        return _PendingRegistration(
+            agent_id=aid,
+            client_id=client_id,
+            secret=secret,
+            scope=scope,
         )
-        authorizer = self._app.get_authorizer(client_id)
+
+    def _finalize_registration(
+        self,
+        pending: _PendingRegistration[AgentT],
+    ) -> GlobusAgentRegistration[AgentT]:
+        """Obtain delegated token for a previously prepared agent.
+
+        This is phase 2 of registration. The GlobusApp must already
+        have valid tokens for the agent's scope (via a prior
+        ``login()`` call that covered all accumulated scopes).
+        """
+        logger.info('Creating delegated token.')
+        assert self._app is not None
+        authorizer = self._app.get_authorizer(str(pending.client_id))
         bearer = authorizer.get_authorization_header()
         if bearer is None:  # pragma: no cover
-            raise UnauthorizedError('Unable to get authorization headers.')
+            raise UnauthorizedError(
+                'Unable to get authorization headers.',
+            )
 
         auth_header_parts = bearer.split(' ')
         token = auth_header_parts[1]
 
         return GlobusAgentRegistration(
-            agent_id=aid,
-            client_id=client_id,
+            agent_id=pending.agent_id,
+            client_id=pending.client_id,
             token=token,
-            secret=secret,
+            secret=pending.secret,
         )
+
+    def _create_registration(
+        self,
+        aid: AgentId[AgentT],
+    ) -> GlobusAgentRegistration[AgentT]:
+        """Create a single agent registration (prepare + finalize).
+
+        Convenience method that runs both phases sequentially for a
+        single agent. Triggers a consent prompt for the new scope.
+        """
+        pending = self._prepare_registration(aid)
+        assert self._app is not None
+        self._app.add_scope_requirements(
+            {str(pending.client_id): [pending.scope]},
+        )
+        return self._finalize_registration(pending)
 
     def _create_mailbox(
         self,
@@ -535,6 +622,98 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self.child_clients.append(registration.client_id)
 
         return registration
+
+    async def register_agents(
+        self,
+        agents: list[tuple[type[AgentT], str | None]],
+    ) -> list[GlobusAgentRegistration[AgentT]]:
+        """Register multiple agents with a single auth prompt.
+
+        Args:
+            agents: List of (agent_type, name) pairs to register.
+
+        Returns:
+            List of agent registrations in order of input.
+        """
+        loop = asyncio.get_running_loop()
+
+        # Phase 1: create auth entities concurrently.
+        # _prepare_registration no longer mutates shared GlobusApp
+        # state, and the auth_client property serializes interactive
+        # login via _auth_lock, so parallel dispatch is safe.
+        aids: list[AgentId[AgentT]] = [
+            AgentId.new(name=name) for _, name in agents
+        ]
+        prepared: list[_PendingRegistration[AgentT]] = list(
+            await asyncio.gather(
+                *(
+                    loop.run_in_executor(
+                        self.executor,
+                        self._prepare_registration,
+                        aid,
+                    )
+                    for aid in aids
+                ),
+            ),
+        )
+        pending = list(
+            zip(
+                prepared,
+                [at for at, _ in agents],
+                strict=True,
+            ),
+        )
+
+        # Accumulate scope requirements, then do a single login
+        # that satisfies all of them at once.
+        assert self._app is not None
+        for p, _ in pending:
+            self._app.add_scope_requirements(
+                {str(p.client_id): [p.scope]},
+            )
+
+        if self._app.login_required():
+            await loop.run_in_executor(
+                self.executor,
+                self._app.login,
+            )
+
+        # Phase 2: extract delegated tokens and create mailboxes.
+        # Safe to parallelize — no shared state mutation, and the
+        # app already holds valid tokens for all scopes.
+        regs: list[GlobusAgentRegistration[AgentT]] = list(
+            await asyncio.gather(
+                *(
+                    loop.run_in_executor(
+                        self.executor,
+                        self._finalize_registration,
+                        p,
+                    )
+                    for p, _ in pending
+                ),
+            ),
+        )
+
+        await asyncio.gather(
+            *(
+                loop.run_in_executor(
+                    self.executor,
+                    self._create_mailbox,
+                    reg.agent_id,
+                    agent_type,
+                )
+                for reg, (_, agent_type) in zip(
+                    regs,
+                    pending,
+                    strict=True,
+                )
+            ),
+        )
+
+        for reg in regs:
+            self.child_clients.append(reg.client_id)
+
+        return regs
 
     def _send(self, message: Message[Any]) -> None:
         self.exchange_client.send(message)
@@ -586,15 +765,21 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
         project_id: Project to create new clients under. Must be able
             to authenticate as a administrator.
         client_params: Additional parameters for globus client.
+        request_timeout_s: Maximum length of receive/listen requests to
+            the exchange.
     """
 
     def __init__(
         self,
         project_id: uuid.UUID,
         client_params: dict[str, Any] | None = None,
+        request_timeout_s: float = 60,
     ) -> None:
-        self.project = project_id
-        self.client_params = client_params
+        self.info = _AcademyConnectionInfo(
+            project_id=project_id,
+            client_params=client_params,
+            request_timeout_s=request_timeout_s,
+        )
 
     async def _create_transport(
         self,
@@ -614,8 +799,7 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
                 app=app,
                 mailbox_id=mailbox_id,
                 name=name,
-                project_id=self.project,
-                client_params=self.client_params,
+                connection_info=self.info,
             )
         else:
             logger.info('Initializing auth client for new agent.')
@@ -631,7 +815,7 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
                     auth_client.oauth2_get_dependent_tokens,
                     registration.token,
                     refresh_tokens=True,
-                    scope=AcademyExchangeScopes.academy_exchange,
+                    scope=str(AcademyExchangeScopes.academy_exchange),
                 ),
             )
 
@@ -648,6 +832,5 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
                 authorizer=authorizer,
                 mailbox_id=mailbox_id,
                 name=name,
-                project_id=self.project,
-                client_params=self.client_params,
+                connection_info=self.info,
             )

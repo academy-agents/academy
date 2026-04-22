@@ -218,6 +218,23 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     async def _execute_action(self, request: Message[ActionRequest]) -> None:
         body = request.get_body()
         response: Message[Response]
+
+        invocation_id = request.tag
+        invocation_extra = {
+            'academy.action': body.action,
+            'academy.action_tag': invocation_id,
+        }
+
+        logger.debug(
+            'Invoking action %s with invocation id %s',
+            body.action,
+            invocation_id,
+            extra=invocation_extra
+            | {
+                'academy.action_state': 'execute_start',
+            },
+        )
+
         try:
             # Do not run the method until the startup sequence has finished
             await self._started_event.wait()
@@ -227,15 +244,44 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 args=body.get_args(),
                 kwargs=body.get_kwargs(),
             )
+
         except asyncio.CancelledError:
             response = request.create_response(
                 ErrorResponse(exception=ActionCancelledError(body.action)),
             )
+            logger.debug(
+                'Cancelled action %s with invocation id %s',
+                body.action,
+                invocation_id,
+                extra=invocation_extra
+                | {
+                    'academy.action_state': 'execute_cancelled',
+                },
+            )
         except Exception as e:
             response = request.create_response(ErrorResponse(exception=e))
+            logger.debug(
+                'Action %s ended with exception, with invocation id %s',
+                body.action,
+                invocation_id,
+                extra=invocation_extra
+                | {
+                    'academy.action_state': 'execute_exception',
+                },
+                exc_info=e,
+            )
         else:
             response = request.create_response(
-                ActionResponse(action=body.action, result=result),
+                ActionResponse(result=result),
+            )
+            logger.debug(
+                'Completed action %s with invocation id %s',
+                body.action,
+                invocation_id,
+                extra=invocation_extra
+                | {
+                    'academy.action_state': 'execute_success',
+                },
             )
         finally:
             # Shield sending the result from being cancelled so the requester
@@ -326,6 +372,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 lambda _: self._action_tasks.pop(request.tag),
             )
         elif isinstance(body, ShutdownRequest):
+            response = request.create_response(SuccessResponse())
+            # We need to block here, because if we send this async,
+            # the exchange could be closed before the message is sent
+            await self._send_response(response)
             self.signal_shutdown(expected=True, terminate=body.terminate)
         else:
             raise AssertionError('Unreachable.')

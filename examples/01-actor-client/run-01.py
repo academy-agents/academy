@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from academy.agent import action
 from academy.agent import Agent
 from academy.exchange import LocalExchangeFactory
-from academy.logging import init_logging
+from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
 
@@ -27,11 +26,10 @@ class Counter(Agent):
 
 
 async def main() -> int:
-    init_logging(logging.INFO)
-
     async with await Manager.from_exchange_factory(
         factory=LocalExchangeFactory(),
         executors=ThreadPoolExecutor(),
+        log_config=recommended_logging(),
     ) as manager:
         agent_handle = await manager.launch(Counter)
 

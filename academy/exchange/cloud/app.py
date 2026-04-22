@@ -21,11 +21,13 @@ from __future__ import annotations
 
 import argparse
 import enum
+import functools
 import logging
 import ssl
 import sys
 from collections.abc import Awaitable
 from collections.abc import Callable
+from collections.abc import Coroutine
 from collections.abc import Sequence
 from typing import Any
 
@@ -58,14 +60,10 @@ from academy.exception import UnauthorizedError
 from academy.exchange.cloud.authenticate import Authenticator
 from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
-from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.client_info import ClientInfo
-from academy.exchange.cloud.config import BackendConfig
-from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import EntityId
-from academy.logging import init_logging
 from academy.message import Message
 
 logger = logging.getLogger(__name__)
@@ -86,6 +84,7 @@ class StatusCode(enum.Enum):
 
 
 MANAGER_KEY = AppKey('manager', MailboxBackend)
+TIMEOUT_KEY = AppKey('listen_timeout', int)
 
 
 def get_client_info(request: Request) -> ClientInfo:
@@ -99,364 +98,261 @@ def get_client_info(request: Request) -> ClientInfo:
     return client_info
 
 
+def exception_to_response(request_name: str) -> Callable[..., Any]:
+    """Convert exceptions to responses.
+
+    Args:
+        request_name: Request name for logging.
+    """
+
+    def decorator(
+        func: Callable[[Any], Coroutine[None, None, Response]],
+    ) -> Callable[[Any], Coroutine[None, None, Response]]:
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Response:  # noqa: PLR0911
+            try:
+                return await func(*args, **kwargs)
+            except (KeyError, ValidationError) as e:
+                logger.warning(
+                    f'Missing or invalid field in {request_name} request.',
+                )
+                return Response(
+                    status=StatusCode.BAD_REQUEST.value,
+                    text=f'Missing or invalid field: {e}',
+                )
+            except BadEntityIdError:
+                logger.exception(f'Unknown mailbox id in {request_name}')
+                return Response(
+                    status=StatusCode.NOT_FOUND.value,
+                    text='Unknown mailbox ID',
+                )
+            except ForbiddenError:
+                logger.exception(f'Incorrect permissions in {request_name}')
+                return Response(
+                    status=StatusCode.FORBIDDEN.value,
+                    text='Incorrect permissions',
+                )
+            except MailboxTerminatedError:
+                logger.exception(
+                    f'Mailbox in {request_name} request was terminated.',
+                )
+                return Response(
+                    status=StatusCode.TERMINATED.value,
+                    text='Mailbox was closed',
+                )
+            except MessageTooLargeError as e:
+                logger.exception('Message to mailbox too large.')
+                return Response(
+                    status=StatusCode.TOO_LARGE.value,
+                    text=(
+                        f'Message of size {e.size} larger than limit '
+                        f'{e.limit}.'
+                    ),
+                )
+            except ConnectionResetError:  # pragma: no cover
+                # This happens when the client cancels it's task, and
+                # closes its connection. In this case, we don't
+                # need to do anything because the client disconnected
+                # itself. If we don't catch this aiohttp will
+                # just log an error message each time this happens.
+                return Response(status=StatusCode.NO_RESPONSE.value)
+
+        return wrapper
+
+    return decorator
+
+
+@exception_to_response('share mailbox')
 async def _share_mailbox_route(request: Request) -> Response:
     """Share mailbox with a Globus Group."""
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-        group_id = data['group_id']
-
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Missing or invalid mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
-        )
-
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
+    group_id = data['group_id']
     client = get_client_info(request)
-    try:
-        await manager.share_mailbox(client, mailbox_id, group_id)
-    except BadEntityIdError:
-        logger.exception('Unknown mailbox id to share.')
-        return Response(
-            status=StatusCode.NOT_FOUND.value,
-            text='Unknown mailbox ID',
-        )
-    except ForbiddenError:
-        logger.exception('Incorrect permissions to share mailbox.')
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
-    except MailboxTerminatedError:
-        logger.exception(f'Mailbox {mailbox_id} was terminated.')
-        return Response(
-            status=StatusCode.TERMINATED.value,
-            text='Mailbox was closed',
-        )
+    await manager.share_mailbox(client, mailbox_id, group_id)
+    logger.info(
+        f'Sharing mailbox {mailbox_id} with group {group_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.group_id': group_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
+@exception_to_response('get shares')
 async def _get_mailbox_shares_route(request: Request) -> Response:
     """Share mailbox with a Globus Group."""
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Missing or invalid mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
-        )
-
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
     client = get_client_info(request)
-    try:
-        shares = await manager.get_mailbox_shares(client, mailbox_id)
-    except BadEntityIdError:
-        logger.exception('Unknown mailbox id to share.')
-        return Response(
-            status=StatusCode.NOT_FOUND.value,
-            text='Unknown mailbox ID',
-        )
-    except ForbiddenError:
-        logger.exception('Incorrect permissions to view mailbox groups.')
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
-    except MailboxTerminatedError:
-        logger.exception(f'Mailbox {mailbox_id} was terminated.')
-        return Response(
-            status=StatusCode.TERMINATED.value,
-            text='Mailbox was closed',
-        )
+    shares = await manager.get_mailbox_shares(client, mailbox_id)
     return json_response(
         {'group_ids': shares},
     )
 
 
+@exception_to_response('remove shares')
 async def _remove_mailbox_shares_route(request: Request) -> Response:
     """Stop sharing a mailbox with a Globus Group."""
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-        group_id = data['group_id']
-
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Missing or invalid mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
-        )
-
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
+    group_id = data['group_id']
     client = get_client_info(request)
-    try:
-        await manager.remove_mailbox_shares(client, mailbox_id, group_id)
-    except BadEntityIdError:
-        logger.exception(f'Unknown mailbox id {mailbox_id}.')
-        return Response(
-            status=StatusCode.NOT_FOUND.value,
-            text='Unknown mailbox ID',
-        )
-    except ForbiddenError:
-        logger.exception(
-            'Incorrect permissions to change mailbox permissions.',
-        )
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
-    except MailboxTerminatedError:
-        logger.exception(f'Mailbox {mailbox_id} was terminated.')
-        return Response(
-            status=StatusCode.TERMINATED.value,
-            text='Mailbox was closed',
-        )
+    await manager.remove_mailbox_shares(client, mailbox_id, group_id)
+    logger.info(
+        f'Unsharing mailbox {mailbox_id} with group {group_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.group_id': group_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
+@exception_to_response('create')
 async def _create_mailbox_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-        agent_raw = data.get('agent', None)
-        agent = agent_raw.split(',') if agent_raw is not None else None
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Invalid or missing mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
-        )
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
+    agent_raw = data.get('agent', None)
+    agent = agent_raw.split(',') if agent_raw is not None else None
 
     client = get_client_info(request)
-    try:
-        await manager.create_mailbox(client, mailbox_id, agent)
-    except ForbiddenError:
-        logger.exception('Incorrect permissions to create mailbox.')
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
+    await manager.create_mailbox(client, mailbox_id, agent)
+    logger.info(
+        f'Creating mailbox {mailbox_id} of type {agent}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+            'academy.agent': agent,
+            'academy.client_id': client.client_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
+@exception_to_response('terminate')
 async def _terminate_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Invalid or missing mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
-        )
-
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
     client = get_client_info(request)
-    try:
-        await manager.terminate(client, mailbox_id)
-    except ForbiddenError:
-        logger.exception('Incorrect permissions to terminate mailbox.')
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
+    await manager.terminate(client, mailbox_id)
+    logger.info(
+        f'Terminating mailbox {mailbox_id}',
+        extra={
+            'academy.mailbox_id': mailbox_id,
+        },
+    )
     return Response(status=StatusCode.OKAY.value)
 
 
+@exception_to_response('discover')
 async def _discover_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        agent = data['agent']
-        allow_subclasses = data['allow_subclasses']
-    except (KeyError, ValidationError):
-        logger.warning('Missing fields for discover request.', exc_info=True)
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid arguments',
-        )
-
+    agent = data['agent']
+    allow_subclasses = data['allow_subclasses']
     client = get_client_info(request)
     agent_ids = await manager.discover(
         client,
         agent,
         allow_subclasses,
     )
-
     return json_response(
         {'agent_ids': ','.join(str(aid.uid) for aid in agent_ids)},
     )
 
 
+@exception_to_response('status')
 async def _check_mailbox_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Invalid or missing mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
-        )
-
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
     client = get_client_info(request)
-    try:
-        status = await manager.check_mailbox(client, mailbox_id)
-    except ForbiddenError:
-        logger.exception('Incorrect permissions to view mailbox status.')
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
+    status = await manager.check_mailbox(client, mailbox_id)
     return json_response({'status': status.value})
 
 
+@exception_to_response('send')
 async def _send_message_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        raw_message = data.get('message')
-        message: Message[Any] = Message.model_validate_json(raw_message)
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Invalid or missing mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid message',
-        )
-
+    raw_message = data.get('message')
+    message: Message[Any] = Message.model_validate_json(raw_message)
     client = get_client_info(request)
-    try:
-        await manager.put(client, message)
-    except BadEntityIdError:
-        logger.exception(f'Destination mailbox {message.dest} does not exist.')
-        return Response(
-            status=StatusCode.NOT_FOUND.value,
-            text='Unknown mailbox ID',
-        )
-    except MailboxTerminatedError:
-        logger.exception(f'Destination mailbox {message.dest} terminated.')
-        return Response(
-            status=StatusCode.TERMINATED.value,
-            text='Mailbox was closed',
-        )
-    except ForbiddenError:
-        logger.exception('Invalid permissions to send message to mailbox.')
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
-    except MessageTooLargeError as e:
-        logger.exception(f'Message to mailbox {message.dest} too large.')
-        return Response(
-            status=StatusCode.TOO_LARGE.value,
-            text=f'Message of size {e.size} larger than limit {e.limit}.',
-        )
-    else:
-        return Response(status=StatusCode.OKAY.value)
+    await manager.put(client, message)
+    logger.info(
+        (
+            f'Placing message {message.tag} in mailbox '
+            f'{message.dest} from {message.src}'
+        ),
+        extra={
+            'academy.message.event': 'PUT',
+            'academy.message.src': message.src,
+            'academy.message.dest': message.dest,
+            'academy.message.size': sys.getsizeof(message.body),
+            'academy.message_tag': message.tag,
+        },
+    )
+    return Response(status=StatusCode.OKAY.value)
 
 
+@exception_to_response('listen')
 async def _listen_mailbox_route(
     request: Request,
 ) -> EventSourceResponse | Response:
-    try:
-        data = await request.json()
-    except ConnectionResetError:  # pragma: no cover
-        # This happens when the client cancel's it's listener task, which is
-        # waiting on recv, because the client is shutting down and closing
-        # its connection. In this case, we don't need to do anything
-        # because the client disconnected itself. If we don't catch this
-        # error, aiohttp will just log an error message each time this happens.
-        return Response(status=StatusCode.NO_RESPONSE.value)
-
+    data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-    except (KeyError, ValidationError):
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
+    timeout = data.get('timeout', request.app[TIMEOUT_KEY])
+    if timeout <= 0 or timeout > request.app[TIMEOUT_KEY]:
         logger.warning(
-            'Invalid or missing mailbox id in request.',
-            exc_info=True,
+            f'Invalid timeout in listen request: {timeout}.',
         )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
+            text=(
+                'Invalid timeout (must be less than '
+                f'{request.app[TIMEOUT_KEY]} and greater than 0)'
+            ),
         )
 
-    timeout = data.get('timeout', None)
     client = get_client_info(request)
-
-    try:
-        status = await manager.check_mailbox(client, mailbox_id)
-    except ForbiddenError:
-        logger.exception(
-            f'Incorrect permissions to receive from mailbox {mailbox_id}',
-        )
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
-        )
+    status = await manager.check_mailbox(client, mailbox_id)
 
     if status == MailboxStatus.MISSING:
-        logger.exception(f'Receive from unknown mailbox {mailbox_id}.')
+        logger.exception(f'Listening on unknown mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.NOT_FOUND.value,
             text='Unknown mailbox ID',
         )
     elif status == MailboxStatus.TERMINATED:
-        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
+        logger.exception(f'Listening on terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
@@ -471,7 +367,18 @@ async def _listen_mailbox_route(
                     mailbox_id,
                     timeout=timeout,
                 )
-                logger.debug(f'Message at mailbox {message.dest} retrieved.')
+                logger.info(
+                    (
+                        f'Fetched message {message.tag} from '
+                        f'mailbox {message.dest}'
+                    ),
+                    extra={
+                        'academy.message.event': 'GET',
+                        'academy.message.src': message.src,
+                        'academy.message.dest': message.dest,
+                        'academy.message_tag': message.tag,
+                    },
+                )
                 await response.send(message.model_dump_json())
             except (MailboxTerminatedError, TimeoutError) as e:
                 # These messages are not necessarily a sign something is wrong
@@ -484,58 +391,38 @@ async def _listen_mailbox_route(
     return response
 
 
-async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
-    try:
-        data = await request.json()
-    except ConnectionResetError:  # pragma: no cover
-        # This happens when the client cancel's it's listener task, which is
-        # waiting on recv, because the client is shutting down and closing
-        # its connection. In this case, we don't need to do anything
-        # because the client disconnected itself. If we don't catch this
-        # error, aiohttp will just log an error message each time this happens.
-        return Response(status=StatusCode.NO_RESPONSE.value)
-
+@exception_to_response('recv')
+async def _recv_message_route(request: Request) -> Response:
+    data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-    except (KeyError, ValidationError):
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
+    timeout = data.get('timeout', request.app[TIMEOUT_KEY])
+    if timeout <= 0 or timeout > request.app[TIMEOUT_KEY]:
         logger.warning(
-            'Invalid or missing mailbox id in request.',
-            exc_info=True,
+            f'Invalid timeout in listen request: {timeout}.',
         )
         return Response(
             status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
+            text=(
+                'Invalid timeout (must be less than '
+                f'{request.app[TIMEOUT_KEY]} and greater than 0)'
+            ),
         )
 
-    timeout = data.get('timeout', None)
-
+    client = get_client_info(request)
     try:
-        client = get_client_info(request)
         message = await manager.get(client, mailbox_id, timeout=timeout)
-    except BadEntityIdError:
-        logger.exception(f'Receive from unknown mailbox {mailbox_id}.')
-        return Response(
-            status=StatusCode.NOT_FOUND.value,
-            text='Unknown mailbox ID',
-        )
     except MailboxTerminatedError:
-        logger.exception(f'Receive from terminated mailbox {mailbox_id}.')
+        # We catch this exception separate from above and log it at a lower
+        # level because this happens on an expected (if old) code path and
+        # we do not want to flood the logs with error messages.
+        logger.info(f'Receive from terminated mailbox {mailbox_id}.')
         return Response(
             status=StatusCode.TERMINATED.value,
             text='Mailbox was closed',
-        )
-    except ForbiddenError:
-        logger.exception(
-            f'Incorrect permissions to receive from mailbox {mailbox_id}',
-        )
-        return Response(
-            status=StatusCode.FORBIDDEN.value,
-            text='Incorrect permissions',
         )
     except TimeoutError:
         # Timeouts are part of expected behavior so log warning, not error
@@ -544,8 +431,17 @@ async def _recv_message_route(request: Request) -> Response:  # noqa: PLR0911
             status=StatusCode.TIMEOUT.value,
             text='Request timeout',
         )
-    else:
-        return json_response({'message': message.model_dump_json()})
+
+    logger.info(
+        f'Fetched message {message.tag} from mailbox {message.dest}',
+        extra={
+            'academy.message.event': 'GET',
+            'academy.message.src': message.src,
+            'academy.message.dest': message.dest,
+            'academy.message_tag': message.tag,
+        },
+    )
+    return json_response({'message': message.model_dump_json()})
 
 
 def authenticate_factory(
@@ -602,22 +498,19 @@ def authenticate_factory(
 
 
 def create_app(
-    backend_config: BackendConfig | None = None,
-    auth_config: ExchangeAuthConfig | None = None,
+    config: ExchangeServingConfig | None = None,
 ) -> Application:
     """Create a new server application."""
-    if backend_config is not None:
-        backend = backend_config.get_backend()
-    else:
-        backend = PythonBackend()
+    if config is None:
+        config = ExchangeServingConfig()
 
-    middlewares = []
-    if auth_config is not None:
-        authenticator = get_authenticator(auth_config)
-        middlewares.append(authenticate_factory(authenticator))
+    backend = config.backend.get_backend()
+    authenticator = get_authenticator(config.auth)
+    middlewares = [authenticate_factory(authenticator)]
 
     app = Application(middlewares=middlewares)
     app[MANAGER_KEY] = backend
+    app[TIMEOUT_KEY] = config.listen_timeout_s
 
     app.router.add_post('/mailbox', _create_mailbox_route)
     app.router.add_post('/mailbox/share', _share_mailbox_route)
@@ -636,8 +529,8 @@ def create_app(
 def _run(
     config: ExchangeServingConfig,
 ) -> None:
-    app = create_app(config.backend, config.auth)
-    init_logging(config.log_level, logfile=config.log_file)
+    config.logger.init_logger()
+    app = create_app(config)
     logger = logging.getLogger('root')
     logger.info(
         'Exchange listening on %s:%s (ctrl-C to exit)',

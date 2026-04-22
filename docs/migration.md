@@ -10,6 +10,39 @@ All future changes—including breaking changes and deprecations—will be docum
 
 Please refer to our [Version Policy](version-policy.md) for more details on when we make breaking changes.
 
+## Academy v0.5
+
+This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)
+
+The once-per-process `init_logging` helper function has been removed. Instead pass log configs when creating managers.
+
+
+```python
+  from academy.logging.helpers import recommended_logging, log_context
+  with Manager.from_exchange_factory(..., log_config=recommended_logging()):
+    ...
+```
+
+This will initialize logging for the lifetime of the manager, and use the configuration for agents launched through that manager, even when they are remote.
+
+Multiple log contexts can be active in a process at any one time - for example, a coordinating process and multiple agents in the same process might each want to initialize their own logging. In previous versions of academy, init_logging would either only initialize based on the first call, or would forget previous configurations. In the new logging system, all configurations will see all log lines in a process, which is still a conflict but results in more, rather than less, logging.
+
+Academy comes with three ways of configuring logging: to the console, to a log file, and to a shared home directory JSON logfile store. Developers can implement new logging configurations by subclassing the LogConfig class.
+
+## Academy v0.4
+
+## Globus SDK version has been updated
+
+If your project depends on both Globus SDK and Academy, you will need to use matching versions. To upgrade to Academy v0.4, we now need globus-sdk>=4.0.  See the migration guide for the [globus-sdk](https://globus-sdk-python.readthedocs.io/en/stable/upgrading.html).
+
+## The HttpExchangeFactory points to a hosted default
+
+When you instantiate the `HttpExchangeFactory` with no arguments, it points to `https://exchange.academy-agents.org`, a free hosted http exchange authenticated with Globus. The previous behavior is the same if you continue to pass the address of the exchange (i.e. `localhost` or your own url).
+
+## ExchangeClient.recv is now ExchangeClient.listen
+
+We've changed to an event driven model to listening for messages on the exchange. If you were using `await client.recv` to fetch messages from the exchange, you now should use `async for message in client.listen(): ...`, or to fetch individual messages: `listener = client.listen(); message = await anext(listener)`. If you were only receiving messages through the `manager` or through agents (i.e. actions, shutdown, ping), this change will not be visible.
+
 ## Academy v0.3
 
 ### Handle types have been simplified

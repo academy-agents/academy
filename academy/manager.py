@@ -354,9 +354,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 retries -= 1
                 # Override this configuration for the case where the agent
                 # fails and we will be restarting it.
-                spec.config = dataclasses.replace(
-                    original_config,
-                    terminate_on_error=False,
+                spec.config = original_config.model_copy(
+                    update={'terminate_on_error': False},
                 )
             else:
                 # Otherwise, keep the original config.

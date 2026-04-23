@@ -16,12 +16,13 @@ from typing import Generic
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
-from academy.task import spawn_guarded_background_task
-
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
+
+from pydantic import BaseModel
+from pydantic import ConfigDict
 
 import academy.exchange as ae
 from academy.context import ActionContext
@@ -48,6 +49,7 @@ from academy.message import ResponseT_co
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.serialize import NoPickleMixin
+from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
     from academy.agent import AgentT
@@ -67,8 +69,7 @@ class _ShutdownState:
     terminate_override: bool | None = None
 
 
-@dataclasses.dataclass(frozen=True)
-class RuntimeConfig:
+class RuntimeConfig(BaseModel):
     """Agent runtime configuration.
 
     Attributes:
@@ -86,6 +87,8 @@ class RuntimeConfig:
         terminate_on_success: Terminate the agent by closing its mailbox
             permanently if the agent shuts down without an error.
     """
+
+    model_config = ConfigDict(extra='forbid')
 
     cancel_actions_on_shutdown: bool = True
     max_sync_concurrency: int | None = None

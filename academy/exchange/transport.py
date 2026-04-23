@@ -47,9 +47,11 @@ class AgentRegistration(Protocol[AgentT]):
     """Agent exchange registration information.
 
     Attributes:
+        exchange_type: The type of exchange this registration is for.
         agent_id: Unique agent identifier returned by the exchange.
     """
 
+    exchange_type: str
     agent_id: AgentId[AgentT]
 
 

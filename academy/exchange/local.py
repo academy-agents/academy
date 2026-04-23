@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import asyncio
-import dataclasses
 import logging
 import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
+from typing import Literal
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
@@ -21,6 +21,8 @@ from culsans import AsyncQueue
 from culsans import AsyncQueueEmpty as QueueEmpty
 from culsans import AsyncQueueShutDown as QueueShutDown
 from culsans import Queue
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -59,12 +61,13 @@ class _LocalExchangeState(NoPickleMixin):
         self.agents: dict[AgentId[Any], type[Agent]] = {}
 
 
-@dataclasses.dataclass
-class LocalAgentRegistration(Generic[AgentT]):
+class LocalAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for local exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['local'] = Field('local', repr=False)
 
 
 class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):

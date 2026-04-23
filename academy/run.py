@@ -20,7 +20,11 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 import tomli_w
-import tomllib
+
+if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+    import tomllib
+else:  # pragma: <3.11 cover
+    import tomli as tomllib  # type: ignore[import-not-found,unused-ignore]
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field

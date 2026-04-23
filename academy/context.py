@@ -6,7 +6,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
-from typing import TypeVar
 
 import academy.exchange as ae
 from academy.handle import Handle
@@ -17,7 +16,7 @@ from academy.identifier import UserId
 if TYPE_CHECKING:
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 
 class ActionContext:

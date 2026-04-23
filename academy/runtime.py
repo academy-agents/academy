@@ -54,7 +54,7 @@ from academy.task import spawn_guarded_background_task
 if TYPE_CHECKING:
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 

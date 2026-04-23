@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from academy.agent import AgentT
     from academy.exchange.factory import ExchangeFactory
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 
 class MailboxStatus(enum.Enum):

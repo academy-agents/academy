@@ -10,8 +10,14 @@ import sys
 import uuid
 from collections.abc import Sequence
 from typing import Any
+from typing import Generic
 from typing import Literal
-from typing import Self
+from typing import TYPE_CHECKING
+
+if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
+    from typing import Self
+else:  # pragma: <3.11 cover
+    from typing_extensions import Self
 
 import tomli_w
 import tomllib
@@ -37,6 +43,11 @@ from academy.logging.helpers import log_context
 from academy.logging.recommended import recommended_logging
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
+
+if TYPE_CHECKING:
+    from academy.agent import AgentT
+else:
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +117,7 @@ class AgentModel(BaseModel):
         return self
 
 
-class AgentProcessConfig(BaseModel):
+class AgentProcessConfig(BaseModel, Generic[AgentT]):
     """Config for running an agent as an independent process."""
 
     model_config = ConfigDict(extra='forbid')
@@ -117,10 +128,10 @@ class AgentProcessConfig(BaseModel):
         | GlobusExchangeModel
     ) = Field(discriminator='exchange_type')
     agent_registration: (
-        HttpAgentRegistration[Agent]
-        | HybridAgentRegistration[Agent]
-        | RedisAgentRegistration[Agent]
-        | GlobusAgentRegistration[Agent]
+        HttpAgentRegistration[AgentT]
+        | HybridAgentRegistration[AgentT]
+        | RedisAgentRegistration[AgentT]
+        | GlobusAgentRegistration[AgentT]
         | None
     ) = Field(None, validate_default=False, discriminator='exchange_type')
     agent: AgentModel
@@ -153,8 +164,9 @@ class AgentProcessConfig(BaseModel):
 
         raise AssertionError('Unreachable')
 
-    def get_agent(self) -> Agent:
+    def get_agent(self) -> AgentT:
         """Get the agent specified by the config."""
+        agent: AgentT
         if self.agent.pickle:
             with open(self.agent.pickle, 'rb') as fp:
                 agent = pickle.load(fp)
@@ -195,7 +207,7 @@ class AgentProcessConfig(BaseModel):
 
 
 async def _runtime_from_config(
-    config: AgentProcessConfig,
+    config: AgentProcessConfig[Any],
     config_file: str | pathlib.Path,
 ) -> Runtime[Any]:
     """Create a runtime from a config.
@@ -209,6 +221,7 @@ async def _runtime_from_config(
     exchange_factory = config.get_exchange()
     agent = config.get_agent()
 
+    agent_registration: AgentRegistration[Any]
     if config.agent_registration is None:
         logger.info(
             'No registration in config, creating new mailbox for agent.',
@@ -230,18 +243,19 @@ async def _runtime_from_config(
                 # mypy can't deduce these are the same type
                 config.agent_registration = agent_registration  # type: ignore[assignment]
                 config.to_toml(config_file)
+    else:
+        agent_registration = config.agent_registration  # type: ignore[assignment]
 
-    assert isinstance(config.agent_registration, AgentRegistration)
     return Runtime(
         agent,
         config=config.config,
         exchange_factory=exchange_factory,
-        registration=config.agent_registration,
+        registration=agent_registration,
     )
 
 
 async def _run_config(
-    config: AgentProcessConfig,
+    config: AgentProcessConfig[Any],
     config_file: str | pathlib.Path,
 ) -> int:
     """Build a runtime from a config, then run it.
@@ -278,7 +292,7 @@ def _main(argv: Sequence[str] | None = None) -> int:
     )
     argv = sys.argv[1:] if argv is None else argv
     args = parser.parse_args(argv)
-    config = AgentProcessConfig.load(args.config)
+    config: AgentProcessConfig[Any] = AgentProcessConfig.load(args.config)
 
     # TODO: This is temporary until we decide how to implement configurable
     # logging with a yaml file

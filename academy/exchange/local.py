@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 import asyncio
-import dataclasses
 import logging
 import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
+from typing import Literal
 from typing import TYPE_CHECKING
-from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -21,6 +20,8 @@ from culsans import AsyncQueue
 from culsans import AsyncQueueEmpty as QueueEmpty
 from culsans import AsyncQueueShutDown as QueueShutDown
 from culsans import Queue
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -38,7 +39,7 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +60,13 @@ class _LocalExchangeState(NoPickleMixin):
         self.agents: dict[AgentId[Any], type[Agent]] = {}
 
 
-@dataclasses.dataclass
-class LocalAgentRegistration(Generic[AgentT]):
+class LocalAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for local exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['local'] = Field('local', repr=False)
 
 
 class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):

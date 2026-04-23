@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from academy.agent import AgentT
     from academy.exchange.factory import ExchangeFactory
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 
 class MailboxStatus(enum.Enum):
@@ -47,9 +47,11 @@ class AgentRegistration(Protocol[AgentT]):
     """Agent exchange registration information.
 
     Attributes:
+        exchange_type: The type of exchange this registration is for.
         agent_id: Unique agent identifier returned by the exchange.
     """
 
+    exchange_type: str
     agent_id: AgentId[AgentT]
 
 

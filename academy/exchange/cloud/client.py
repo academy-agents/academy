@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import dataclasses
 import logging
 import multiprocessing
 import sys
@@ -26,6 +25,8 @@ else:  # pragma: <3.11 cover
 
 import aiohttp
 from aiohttp import hdrs
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
@@ -64,12 +65,13 @@ class _HttpConnectionInfo(NamedTuple):
     request_timeout_s: float = 60
 
 
-@dataclasses.dataclass
-class HttpAgentRegistration(Generic[AgentT]):
+class HttpAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for Http exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['http'] = Field('http', repr=False)
 
 
 class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):

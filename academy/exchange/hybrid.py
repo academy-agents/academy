@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
-import dataclasses
 import logging
 import sys
 import uuid
@@ -13,10 +12,9 @@ from collections.abc import Awaitable
 from collections.abc import Iterable
 from typing import Any
 from typing import Generic
+from typing import Literal
 from typing import TYPE_CHECKING
 from typing import TypeVar
-
-from academy.task import spawn_guarded_background_task
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -36,6 +34,8 @@ else:  # pragma: <3.13 cover
     from culsans import Queue
 
 import redis.asyncio
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -56,6 +56,7 @@ from academy.socket import open_port
 from academy.socket import SimpleSocketServer
 from academy.socket import SocketClosedError
 from academy.socket import SocketPool
+from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -72,12 +73,13 @@ _SERVER_ACK = b'<ACK>'
 _SOCKET_POLL_TIMEOUT_MS = 50
 
 
-@dataclasses.dataclass
-class HybridAgentRegistration(Generic[AgentT]):
+class HybridAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for hybrid exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['hybrid'] = Field('hybrid', repr=False)
 
 
 class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):

@@ -47,7 +47,7 @@ async def main():
         )
     )
 ```
-In the code, the [`RuntimeConfig`][academy.runtime.RuntimeConfig] as used to tell the agent not to delete the mailbox if it is manually shutdown, or if it catches an error. This allows the registration to be reused across agent restarts.
+In the code, the [`RuntimeConfig`][academy.runtime.RuntimeConfig] is used to tell the agent not to delete the mailbox if it is manually shutdown, or if it catches an error. This allows the registration to be reused across agent restarts.
 
 Once the `Runtime` is initialized we can start the agent.
 ```

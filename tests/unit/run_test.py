@@ -88,7 +88,9 @@ CONFIGS = (
 def test_config_get_exchange(
     config_dict: dict[str, Any],
 ):
-    config = AgentProcessConfig.model_validate(config_dict)
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.model_validate(
+        config_dict,
+    )
     exchange_factory = config.get_exchange()
     assert isinstance(exchange_factory, ExchangeFactory)
 
@@ -102,7 +104,7 @@ def test_agent_model_no_constructor_or_pickle():
 
 
 def test_config_get_agent():
-    config = AgentProcessConfig(
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig(
         exchange=HttpExchangeModel(),
         agent=AgentModel(
             constructor='testing.agents.SleepAgent',
@@ -113,7 +115,7 @@ def test_config_get_agent():
 
 
 def test_config_get_agent_with_params():
-    config = AgentProcessConfig(
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig(
         exchange=HttpExchangeModel(),
         agent=AgentModel(
             constructor='testing.agents.SleepAgent',
@@ -126,7 +128,7 @@ def test_config_get_agent_with_params():
 
 
 def test_config_get_agent_bad_path():
-    config = AgentProcessConfig(
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig(
         exchange=HttpExchangeModel(),
         agent=AgentModel(
             constructor='SleepAgent',
@@ -140,7 +142,7 @@ def test_config_get_agent_bad_path():
 
 
 def test_config_get_agent_incorrect_type():
-    config = AgentProcessConfig(
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig(
         exchange=HttpExchangeModel(),
         agent=AgentModel(
             constructor='time.time',
@@ -156,7 +158,7 @@ def test_config_get_agent_pickle(tmp_path: Path):
     with open(agent_file, 'wb') as fp:
         pickle.dump(agent, fp)
 
-    config = AgentProcessConfig(
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig(
         exchange=HttpExchangeModel(),
         agent=AgentModel(
             pickle=agent_file,
@@ -175,7 +177,7 @@ def test_config_get_agent_pickle_incorrect_type(tmp_path: Path):
     with open(agent_file, 'wb') as fp:
         pickle.dump(not_an_agent, fp)
 
-    config = AgentProcessConfig(
+    config: AgentProcessConfig[Any] = AgentProcessConfig(
         exchange=HttpExchangeModel(),
         agent=AgentModel(
             pickle=agent_file,
@@ -205,7 +207,9 @@ loop_sleep = 1
 
 
 def test_read_config_from_toml(config_file: Path):
-    config = AgentProcessConfig.load(config_file)
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.load(
+        config_file,
+    )
     exchange = config.get_exchange()
     assert isinstance(exchange, RedisExchangeFactory)
 
@@ -215,7 +219,7 @@ def test_read_config_from_toml(config_file: Path):
 
 
 def test_write_config_to_toml(tmp_path):
-    config = AgentProcessConfig(
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig(
         exchange=RedisExchangeModel(
             hostname='127.0.0.1',
             port='6789',
@@ -228,7 +232,9 @@ def test_write_config_to_toml(tmp_path):
     config_file = tmp_path / 'config.toml'
     config.to_toml(config_file)
 
-    config = AgentProcessConfig.load(config_file)
+    config = AgentProcessConfig.load(
+        config_file,
+    )
     exchange = config.get_exchange()
     assert isinstance(exchange, RedisExchangeFactory)
 
@@ -241,11 +247,15 @@ async def test_runtime_from_config_writes_registration_to_file(
     config_file: Path,
     mock_redis,
 ):
-    config = AgentProcessConfig.load(config_file)
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.load(
+        config_file,
+    )
     assert config.agent_registration is None
     runtime = await _runtime_from_config(config, config_file)
 
-    new_config = AgentProcessConfig.load(config_file)
+    new_config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.load(
+        config_file,
+    )
     assert new_config.agent_registration is not None
     assert new_config.agent_registration == runtime.registration
 
@@ -255,11 +265,15 @@ async def test_runtime_from_config_existing_registration(
     config_file: Path,
     mock_redis,
 ):
-    config = AgentProcessConfig.load(config_file)
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.load(
+        config_file,
+    )
     assert config.agent_registration is None
 
     await _runtime_from_config(config, config_file)
-    new_config = AgentProcessConfig.load(config_file)
+    new_config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.load(
+        config_file,
+    )
     assert new_config.agent_registration is not None
 
     runtime = await _runtime_from_config(config, config_file)
@@ -268,7 +282,9 @@ async def test_runtime_from_config_existing_registration(
 
 @pytest.mark.asyncio
 async def test_run_temporary_registration(config_file: Path, mock_redis):
-    config = AgentProcessConfig.load(config_file)
+    config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.load(
+        config_file,
+    )
     config.config = RuntimeConfig(
         terminate_on_error=True,
         terminate_on_success=True,
@@ -276,7 +292,9 @@ async def test_run_temporary_registration(config_file: Path, mock_redis):
     assert config.agent_registration is None
 
     await _runtime_from_config(config, config_file)
-    new_config = AgentProcessConfig.load(config_file)
+    new_config: AgentProcessConfig[SleepAgent] = AgentProcessConfig.load(
+        config_file,
+    )
     assert new_config.agent_registration is None
 
 

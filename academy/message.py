@@ -272,6 +272,27 @@ class Header(BaseModel):
             kind='response',
         )
 
+    @staticmethod
+    def list_serialize(headers: list[Header]) -> bytes:
+        """Serialize a list of headers to bytes using pickle."""
+        return pickle.dumps(headers)
+
+    @classmethod
+    def list_deserialize(cls, data: bytes) -> list[Header]:
+        """Deserialize a list of headers from bytes using pickle.
+
+        Raises:
+            TypeError: If the deserialized object is not a list of Headers.
+        """
+        obj = pickle.loads(data)
+        if not isinstance(obj, list) or not all(
+            isinstance(h, cls) for h in obj
+        ):
+            raise TypeError(
+                'Deserialized object is not a list of Header instances.',
+            )
+        return obj
+
 
 class Message(BaseModel, Generic[BodyT]):
     """A complete message with header and body.
@@ -438,27 +459,6 @@ class Message(BaseModel, Generic[BodyT]):
             The serialized message as bytes.
         """
         return pickle.dumps(self)
-
-    @staticmethod
-    def list_serialize(messages: list[Message[Any]]) -> bytes:
-        """Serialize a list of messages to bytes using pickle."""
-        return pickle.dumps(messages)
-
-    @classmethod
-    def list_deserialize(cls, data: bytes) -> list[Message[Any]]:
-        """Deserialize a list of messages from bytes using pickle.
-
-        Raises:
-            TypeError: If the deserialized object is not a list of Messages.
-        """
-        obj = pickle.loads(data)
-        if not isinstance(obj, list) or not all(
-            isinstance(m, cls) for m in obj
-        ):
-            raise TypeError(
-                'Deserialized object is not a list of Message instances.',
-            )
-        return obj
 
     def log_extra(self) -> dict[str, object]:
         """Returns extra info useful in logs about this Message."""

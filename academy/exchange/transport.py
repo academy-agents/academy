@@ -22,6 +22,7 @@ from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ErrorResponse
+from academy.message import Header
 from academy.message import Message
 
 if TYPE_CHECKING:
@@ -250,7 +251,7 @@ class ExchangeTransportMixin:
 
 
 async def _respond_pending_requests_on_terminate(
-    messages: list[Message[Any]],
+    messages: list[Header],
     send: Callable[[Message[Any]], Awaitable[None]],
     # requests: Iterable[Message[Any]] | None = None,
 ) -> None:
@@ -260,10 +261,14 @@ async def _respond_pending_requests_on_terminate(
     # processed_tags: set[uuid.UUID] = set()
     # replied_tags_by_src: dict[str, list[str]] = {}
     for message in messages:
-        if message.is_request():
+        if message.kind == 'request':
             # processed_tags.add(message.tag)
             error = MailboxTerminatedError(message.dest)
-            response = message.create_response(ErrorResponse(exception=error))
+            response_header = message.create_response_header()
+            response: Message[ErrorResponse] = Message(
+                header=response_header,
+                body=ErrorResponse(exception=error),
+            )
             # If the requester's mailbox was also terminated then they
             # don't need to get a response.
             with contextlib.suppress(MailboxTerminatedError):

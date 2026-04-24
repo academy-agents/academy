@@ -18,39 +18,12 @@ def test_factory_serialize_error(
 
 
 @pytest.mark.asyncio
-async def test_local_exchange_request_tracking_inflight(
+async def test_local_exchange_request_tracking(
     local_exchange_factory: LocalExchangeFactory,
 ) -> None:
-    factory = local_exchange_factory
-    transport1 = await factory._create_transport()
-    transport2 = await factory._create_transport()
-
-    # Send a request
-    request = Message.create(
-        src=transport1.mailbox_id,
-        dest=transport2.mailbox_id,
-        body=PingRequest(),
-    )
-    await transport1.send(request)
-
-    # Verify it's received
-    listener = transport2.listen(timeout=0.01)
-    received = await anext(listener)
-    assert received.tag == request.tag
-    assert received.src == transport1.mailbox_id
-    assert isinstance(received.get_body(), PingRequest)
-
-    await transport1.close()
-    await transport2.close()
-
-
-@pytest.mark.asyncio
-async def test_local_exchange_request_tracking_completed(
-    local_exchange_factory: LocalExchangeFactory,
-) -> None:
-    factory = local_exchange_factory
-    transport1 = await factory._create_transport()
-    transport2 = await factory._create_transport()
+    transport1 = await local_exchange_factory._create_transport()
+    transport2 = await local_exchange_factory._create_transport()
+    state = local_exchange_factory._state
 
     request = Message.create(
         src=transport1.mailbox_id,
@@ -58,18 +31,20 @@ async def test_local_exchange_request_tracking_completed(
         body=PingRequest(),
     )
     await transport1.send(request)
+    assert transport2.mailbox_id in state.requests
 
-    listener2 = transport2.listen(timeout=0.01)
-    received_request = await anext(listener2)
-    assert received_request.tag == request.tag
+    request_list = state.requests[transport2.mailbox_id]
+    tracked = next((m for m in request_list if m.tag == request.tag), None)
+    assert tracked is not None
+    assert tracked.src == transport1.mailbox_id
+    assert tracked.dest == transport2.mailbox_id
 
-    response = received_request.create_response(SuccessResponse())
+    response = request.create_response(SuccessResponse())
     await transport2.send(response)
 
-    listener1 = transport1.listen(timeout=0.01)
-    received_response = await anext(listener1)
-    assert received_response.tag == request.tag
-    assert isinstance(received_response.get_body(), SuccessResponse)
+    response_list = state.requests.get(transport1.mailbox_id, [])
+    still_tracked = any(m.tag == request.tag for m in response_list)
+    assert not still_tracked
 
     await transport1.close()
     await transport2.close()
@@ -79,10 +54,11 @@ async def test_local_exchange_request_tracking_completed(
 async def test_local_exchange_response_without_request(
     local_exchange_factory: LocalExchangeFactory,
 ) -> None:
-    factory = local_exchange_factory
-    transport1 = await factory._create_transport()
-    transport2 = await factory._create_transport()
+    transport1 = await local_exchange_factory._create_transport()
+    transport2 = await local_exchange_factory._create_transport()
+    state = local_exchange_factory._state
 
+    # Send a response without a corresponding request
     response = Message.create(
         src=transport1.mailbox_id,
         dest=transport2.mailbox_id,
@@ -90,10 +66,7 @@ async def test_local_exchange_response_without_request(
     )
     await transport1.send(response)
 
-    listener = transport2.listen(timeout=0.01)
-    received = await anext(listener)
-    assert received.tag == response.tag
-    assert isinstance(received.get_body(), SuccessResponse)
-
-    await transport1.close()
-    await transport2.close()
+    if transport2.mailbox_id in state.requests:
+        response_list = state.requests[transport2.mailbox_id]
+        still_tracked = any(m.tag == response.tag for m in response_list)
+        assert not still_tracked

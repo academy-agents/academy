@@ -30,6 +30,7 @@ from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+from academy.message import Header
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 
@@ -56,7 +57,7 @@ class _LocalExchangeState(NoPickleMixin):
         self.queues: dict[EntityId, AsyncQueue[Message[Any]]] = {}
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
-        self.requests: dict[EntityId, list[Message[Any]]] = {}
+        self.requests: dict[EntityId, list[Header]] = {}
 
 
 @dataclasses.dataclass
@@ -145,60 +146,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     async def _recv(self, timeout: float | None = None) -> Message[Any]:
         queue = self._state.queues[self.mailbox_id]
         try:
-            message = await asyncio.wait_for(queue.get(), timeout=timeout)
-
-            if message.is_request():
-                self._state.requests.setdefault(message.dest, []).append(
-                    message,
-                )
-                logger.debug(
-                    'Tracking in-flight request: tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
-            elif message.src in self._state.requests and any(
-                h.tag == message.tag for h in self._state.requests[message.src]
-            ):
-                messages_list = self._state.requests[message.src]
-                tracked = next(
-                    m for m in messages_list if m.tag == message.tag
-                )
-                messages_list.remove(tracked)
-                if not messages_list:
-                    del self._state.requests[message.src]
-                logger.debug(
-                    'Response received for in-flight request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    tracked.src,
-                    tracked.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': tracked.src,
-                        'academy.dest': tracked.dest,
-                    },
-                )
-            else:
-                logger.warning(
-                    'Response received without corresponding request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
-            return message
-
+            return await asyncio.wait_for(queue.get(), timeout=timeout)
         except asyncio.TimeoutError:
             raise TimeoutError(
                 f'Timeout waiting for next message for {self.mailbox_id} '
@@ -230,6 +178,56 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         queue = self._state.queues.get(message.dest, None)
         if queue is None:
             raise BadEntityIdError(message.dest)
+
+        if message.is_request():
+            self._state.requests.setdefault(message.dest, []).append(
+                message.header,
+            )
+            logger.debug(
+                'Tracking in-flight request: tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                },
+            )
+        elif message.src in self._state.requests and any(
+            h.tag == message.tag for h in self._state.requests[message.src]
+        ):
+            messages_list = self._state.requests[message.src]
+            tracked = next(m for m in messages_list if m.tag == message.tag)
+            messages_list.remove(tracked)
+            if not messages_list:
+                del self._state.requests[message.src]
+            logger.debug(
+                'Response received for in-flight request: '
+                'tag=%s src=%s dest=%s',
+                message.tag,
+                tracked.src,
+                tracked.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': tracked.src,
+                    'academy.dest': tracked.dest,
+                },
+            )
+        else:
+            logger.warning(
+                'Response received without corresponding request: '
+                'tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                },
+            )
+
         async with self._state.locks[message.dest]:
             try:
                 await queue.put(message)
@@ -253,7 +251,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if queue.is_shutdown:
                 return
 
-            pending_requests: list[Message[Any]] | None = None
+            pending_requests: list[Header] | None = None
             if isinstance(uid, AgentId):
                 self._state.agents.pop(uid, None)
             pending_requests = self._state.requests.pop(uid, None)

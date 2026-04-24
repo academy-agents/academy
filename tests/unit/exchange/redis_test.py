@@ -21,60 +21,30 @@ def test_factory_serialize(
 
 
 @pytest.mark.asyncio
-async def test_redis_exchange_request_tracking_inflight(mock_redis) -> None:
+async def test_redis_exchange_request_tracking(mock_redis) -> None:
     redis_info = _RedisConnectionInfo(
         hostname='localhost',
         port=0,
         kwargs={},
     )
+
     transport1 = await RedisExchangeTransport.new(redis_info=redis_info)
     transport2 = await RedisExchangeTransport.new(redis_info=redis_info)
 
-    message = Message.create(
+    request = Message.create(
         src=transport1.mailbox_id,
         dest=transport2.mailbox_id,
         body=PingRequest(),
     )
-    await transport1.send(message)
+    await transport1.send(request)
+    request_key = f'request:{request.dest.uid}'
+    request_data = await transport1._client.get(request_key)
+    assert request_data is not None
 
-    listener = transport2.listen(timeout=1.0)
-    received = await anext(listener)
-    assert received.tag == message.tag
-    assert isinstance(received.get_body(), PingRequest)
-
-    await transport1.close()
-    await transport2.close()
-
-
-@pytest.mark.asyncio
-async def test_redis_exchange_request_tracking_completed(mock_redis) -> None:
-    redis_info = _RedisConnectionInfo(
-        hostname='localhost',
-        port=0,
-        kwargs={},
-    )
-    transport1 = await RedisExchangeTransport.new(redis_info=redis_info)
-    transport2 = await RedisExchangeTransport.new(redis_info=redis_info)
-
-    request_msg = Message.create(
-        src=transport1.mailbox_id,
-        dest=transport2.mailbox_id,
-        body=PingRequest(),
-    )
-    await transport1.send(request_msg)
-
-    listener2 = transport2.listen(timeout=1.0)
-    received_request = await anext(listener2)
-    assert received_request.tag == request_msg.tag
-
-    response_msg = received_request.create_response(SuccessResponse())
-    await transport2.send(response_msg)
-
-    listener1 = transport1.listen(timeout=1.0)
-    received_response = await anext(listener1)
-    assert received_response.tag == request_msg.tag
-    assert isinstance(received_response.get_body(), SuccessResponse)
-
+    response = request.create_response(SuccessResponse())
+    await transport2.send(response)
+    response_list = await transport1._client.get(request_key)
+    assert response_list is None
     await transport1.close()
     await transport2.close()
 
@@ -89,7 +59,7 @@ async def test_redis_exchange_response_without_request(mock_redis) -> None:
     transport1 = await RedisExchangeTransport.new(redis_info=redis_info)
     transport2 = await RedisExchangeTransport.new(redis_info=redis_info)
 
-    # Create and send a response message (without a prior request)
+    # Send a response without a corresponding request
     response_msg = Message.create(
         src=transport1.mailbox_id,
         dest=transport2.mailbox_id,
@@ -97,10 +67,10 @@ async def test_redis_exchange_response_without_request(mock_redis) -> None:
     )
     await transport1.send(response_msg)
 
-    listener = transport2.listen(timeout=1.0)
-    received = await anext(listener)
-    assert received.tag == response_msg.tag
-    assert isinstance(received.get_body(), SuccessResponse)
+    # Response without request should not create any tracking entry
+    response_key = f'request:{response_msg.dest.uid}'
+    tracked = await transport1._client.get(response_key)
+    assert tracked is None
 
     await transport1.close()
     await transport2.close()

@@ -30,6 +30,7 @@ from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+from academy.message import Header
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 
@@ -216,93 +217,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
             raise MailboxTerminatedError(self.mailbox_id)
 
-        message: Message[Any] = Message.model_deserialize(raw[1])
-
-        if message.is_request():
-            existing = await self._client.get(
-                self._request_key(message.dest),
-            )
-            tracked: list[Message[Any]] = (
-                Message.list_deserialize(existing) if existing else []
-            )
-            tracked.append(message)
-            await self._client.set(
-                self._request_key(message.dest),
-                Message.list_serialize(tracked),
-            )
-            logger.debug(
-                'Tracking in-flight request: tag=%s src=%s dest=%s',
-                message.tag,
-                message.src,
-                message.dest,
-                extra={
-                    'academy.message_tag': message.tag,
-                    'academy.src': message.src,
-                    'academy.dest': message.dest,
-                },
-            )
-        elif await self._client.exists(
-            self._request_key(message.src),
-        ):
-            info_data = await self._client.get(
-                self._request_key(message.src),
-            )
-            tracked = Message.list_deserialize(info_data)
-            matching = next(
-                (m for m in tracked if m.tag == message.tag),
-                None,
-            )
-            if matching is not None:
-                tracked.remove(matching)
-                if tracked:
-                    await self._client.set(
-                        self._request_key(message.src),
-                        Message.list_serialize(tracked),
-                    )
-                else:
-                    await self._client.delete(
-                        self._request_key(message.src),
-                    )
-                logger.debug(
-                    'Response received for in-flight request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    matching.src,
-                    matching.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': matching.src,
-                        'academy.dest': matching.dest,
-                    },
-                )
-            else:
-                logger.warning(
-                    'Response received without corresponding request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
-        else:
-            logger.warning(
-                'Response received without corresponding request: '
-                'tag=%s src=%s dest=%s',
-                message.tag,
-                message.src,
-                message.dest,
-                extra={
-                    'academy.message_tag': message.tag,
-                    'academy.src': message.src,
-                    'academy.dest': message.dest,
-                },
-            )
-
-        return message
+        return Message.model_deserialize(raw[1])
 
     async def listen(
         self,
@@ -335,6 +250,90 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         elif status.decode() == _MailboxState.INACTIVE.value:
             raise MailboxTerminatedError(message.dest)
         else:
+            if message.is_request():
+                existing = await self._client.get(
+                    self._request_key(message.dest),
+                )
+                tracked: list[Header] = (
+                    Header.list_deserialize(existing) if existing else []
+                )
+                tracked.append(message.header)
+                await self._client.set(
+                    self._request_key(message.dest),
+                    Header.list_serialize(tracked),
+                )
+                logger.debug(
+                    'Tracking in-flight request: tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
+            elif await self._client.exists(
+                self._request_key(message.src),
+            ):
+                info_data = await self._client.get(
+                    self._request_key(message.src),
+                )
+                tracked = Header.list_deserialize(info_data)
+                matching = next(
+                    (m for m in tracked if m.tag == message.tag),
+                    None,
+                )
+                if matching is not None:
+                    tracked.remove(matching)
+                    if tracked:
+                        await self._client.set(
+                            self._request_key(message.src),
+                            Header.list_serialize(tracked),
+                        )
+                    else:
+                        await self._client.delete(
+                            self._request_key(message.src),
+                        )
+                    logger.debug(
+                        'Response received for in-flight request: '
+                        'tag=%s src=%s dest=%s',
+                        message.tag,
+                        matching.src,
+                        matching.dest,
+                        extra={
+                            'academy.message_tag': message.tag,
+                            'academy.src': matching.src,
+                            'academy.dest': matching.dest,
+                        },
+                    )
+                else:
+                    logger.warning(
+                        'Response received without corresponding request: '
+                        'tag=%s src=%s dest=%s',
+                        message.tag,
+                        message.src,
+                        message.dest,
+                        extra={
+                            'academy.message_tag': message.tag,
+                            'academy.src': message.src,
+                            'academy.dest': message.dest,
+                        },
+                    )
+            else:
+                logger.warning(
+                    'Response received without corresponding request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
+
             await self._client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),
                 message.model_serialize(),
@@ -363,13 +362,12 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
-        pending_requests: list[Message[Any]] | None = None
         key = self._request_key(uid)
         info_data = await self._client.get(key)
         if info_data is not None:
-            pending_requests = Message.list_deserialize(info_data)
+            pending_requests_msgs = Header.list_deserialize(info_data)
             await _respond_pending_requests_on_terminate(
-                pending_requests or [],
+                pending_requests_msgs,
                 self.send,
             )
         await self._client.delete(key)

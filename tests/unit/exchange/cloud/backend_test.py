@@ -128,7 +128,6 @@ async def test_mailbox_backend_mailbox_delete_agent(
     await backend.terminate(client, aid)
 
     message = await backend.get(client, uid, timeout=0.01)
-    print(message)
     assert isinstance(message.get_body(), ErrorResponse)
     assert isinstance(message.body.exception, MailboxTerminatedError)
 

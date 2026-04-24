@@ -254,7 +254,7 @@ async def _respond_pending_requests_on_terminate(
     messages: list[Header],
     send: Callable[[Message[Any]], Awaitable[None]],
 ) -> None:
-    for message in messages: 
+    for message in messages:
         error = MailboxTerminatedError(message.dest)
         response_header = message.create_response_header()
         response: Message[ErrorResponse] = Message(

@@ -577,7 +577,9 @@ async def test_mailbox_backend_multiple_requests_partial_response(
 
     if isinstance(backend, PythonBackend):
         assert receiver_uid in backend._requests
-        assert any(h.tag == request2.tag for h in backend._requests[receiver_uid])
+        assert any(
+            h.tag == request2.tag for h in backend._requests[receiver_uid]
+        )
     elif isinstance(backend, RedisBackend):
         request_key = f'request:{receiver_uid.uid}'
         data = await backend._client.get(request_key)
@@ -622,7 +624,9 @@ async def test_mailbox_backend_response_tag_mismatch(
     if isinstance(backend, PythonBackend):
         # request2 is still tracked (unmatched response didn't remove it)
         assert receiver_uid in backend._requests
-        assert any(h.tag == request2.tag for h in backend._requests[receiver_uid])
+        assert any(
+            h.tag == request2.tag for h in backend._requests[receiver_uid]
+        )
     elif isinstance(backend, RedisBackend):
         request_key = f'request:{receiver_uid.uid}'
         data = await backend._client.get(request_key)

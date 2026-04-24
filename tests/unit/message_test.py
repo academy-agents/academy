@@ -140,9 +140,9 @@ def test_error_response_lazy_deserialize() -> None:
 
 
 def test_header_list_deserialize_bad_type() -> None:
-    pickled = pickle.dumps('not-a-header-list')
+    pickled = pickle.dumps('string')
     with pytest.raises(
         TypeError,
-        match='Deserialized object is not a list of Header instances.',
+        match=r'Deserialized object is not a list of Header instances.',
     ):
         Header.list_deserialize(pickled)

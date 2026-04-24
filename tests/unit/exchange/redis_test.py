@@ -75,7 +75,6 @@ async def test_redis_exchange_multiple_requests_partial_response(
     await transport1.send(request1)
     await transport1.send(request2)
 
-    # Respond to only the first request — key should remain (request2 still tracked)
     response1 = request1.create_response(SuccessResponse())
     await transport2.send(response1)
 

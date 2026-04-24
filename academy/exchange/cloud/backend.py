@@ -407,11 +407,6 @@ class PythonBackend:
                         await self.put(client, response)
 
             mailbox.shutdown(immediate=True)
-            logger.info(
-                'Closed mailbox for %s',
-                uid,
-                extra={'academy.mailbox_id': uid},
-            )
 
     async def update_heartbeat(self, uid: EntityId) -> None:
         """Update the heartbeat timestamp for a mailbox."""
@@ -419,6 +414,9 @@ class PythonBackend:
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         """Get the last heartbeat timestamp for a mailbox."""
+        if uid not in self._mailboxes:
+            raise BadEntityIdError(uid)
+
         if self.last_active.get(uid) is None:
             return None
 
@@ -564,7 +562,6 @@ class PythonBackend:
             self._shares[uid] = set()
 
         self._shares[uid].add(group_uid)
-        logger.info('Mailbox %s shared with group %s', uid, group_uid)
 
     async def get_mailbox_shares(
         self,
@@ -888,7 +885,7 @@ class RedisBackend:
                 with contextlib.suppress(Exception):
                     await self.put(client, response)
 
-    async def redis_current_time(self) -> float:
+    async def _redis_current_time(self) -> float:
         """Helper to transform Redis time structure to Unix float.
 
         Returns:
@@ -907,18 +904,22 @@ class RedisBackend:
 
     async def update_heartbeat(self, uid: EntityId) -> None:
         """Update the heartbeat timestamp for a mailbox."""
-        now = await self.redis_current_time()
+        now = await self._redis_current_time()
 
         await self._client.set(self._heartbeat_key(uid), str(now))
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         """Get the time since last heartbeat timestamp for a mailbox."""
+        status = await self._client.get(self._active_key(uid))
+        if status is None:
+            raise BadEntityIdError(uid)
+
         heartbeat_time = await self._client.get(self._heartbeat_key(uid))
 
         if heartbeat_time is None:
             return None
 
-        now = await self.redis_current_time()
+        now = await self._redis_current_time()
 
         return now - float(heartbeat_time.decode())
 

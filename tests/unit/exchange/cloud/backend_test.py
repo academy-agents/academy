@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -480,20 +481,23 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
     await backend.terminate(client, uid)
 
 
+@pytest.mark.asyncio
 async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     uid = UserId.new()
     client = ClientInfo(str(uid), set())
 
-    heartbeat = await backend.heartbeat_status(uid)
-    assert heartbeat is None
+    with pytest.raises(BadEntityIdError):
+        await backend.heartbeat_status(uid)
 
     await backend.create_mailbox(client, uid)
 
     heartbeat = await backend.heartbeat_status(uid)
     assert heartbeat is None
 
+    start = time.time()
     await backend.update_heartbeat(uid)
 
     heartbeat = await backend.heartbeat_status(uid)
+    elapsed = time.time() - start
     assert heartbeat is not None
-    assert heartbeat < 1.0
+    assert heartbeat < elapsed

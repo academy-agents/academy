@@ -213,6 +213,9 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._state.last_active[self.mailbox_id] = time.time()
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
+        if uid not in self._state.queues:
+            raise BadEntityIdError(uid)
+
         if self._state.last_active.get(uid) is None:
             return None
         else:

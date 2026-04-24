@@ -5,7 +5,6 @@ import asyncio
 import dataclasses
 import logging
 import sys
-import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
@@ -19,7 +18,6 @@ else:  # pragma: <3.11 cover
 
 from aiologic import Lock
 from culsans import AsyncQueue
-from culsans import AsyncQueueEmpty as QueueEmpty
 from culsans import AsyncQueueShutDown as QueueShutDown
 from culsans import Queue
 
@@ -33,7 +31,6 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
-from academy.request_state import RequestInfo
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
@@ -59,7 +56,7 @@ class _LocalExchangeState(NoPickleMixin):
         self.queues: dict[EntityId, AsyncQueue[Message[Any]]] = {}
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
-        self.requests: dict[uuid.UUID, RequestInfo] = {}
+        self.requests: dict[EntityId, list[Message[Any]]] = {}
 
 
 @dataclasses.dataclass
@@ -148,7 +145,60 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     async def _recv(self, timeout: float | None = None) -> Message[Any]:
         queue = self._state.queues[self.mailbox_id]
         try:
-            return await asyncio.wait_for(queue.get(), timeout=timeout)
+            message = await asyncio.wait_for(queue.get(), timeout=timeout)
+
+            if message.is_request():
+                self._state.requests.setdefault(message.dest, []).append(
+                    message,
+                )
+                logger.debug(
+                    'Tracking in-flight request: tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
+            elif message.src in self._state.requests and any(
+                h.tag == message.tag for h in self._state.requests[message.src]
+            ):
+                messages_list = self._state.requests[message.src]
+                tracked = next(
+                    m for m in messages_list if m.tag == message.tag
+                )
+                messages_list.remove(tracked)
+                if not messages_list:
+                    del self._state.requests[message.src]
+                logger.debug(
+                    'Response received for in-flight request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    tracked.src,
+                    tracked.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': tracked.src,
+                        'academy.dest': tracked.dest,
+                    },
+                )
+            else:
+                logger.warning(
+                    'Response received without corresponding request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
+            return message
+
         except asyncio.TimeoutError:
             raise TimeoutError(
                 f'Timeout waiting for next message for {self.mailbox_id} '
@@ -180,51 +230,6 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         queue = self._state.queues.get(message.dest, None)
         if queue is None:
             raise BadEntityIdError(message.dest)
-
-        if message.is_request():
-            self._state.requests[message.tag] = RequestInfo(
-                src=message.src,
-                dest=message.dest,
-            )
-            logger.info(
-                'Tracking in-flight request: tag=%s src=%s dest=%s',
-                message.tag,
-                message.src,
-                message.dest,
-                extra={
-                    'academy.message_tag': message.tag,
-                    'academy.src': message.src,
-                    'academy.dest': message.dest,
-                },
-            )
-        elif message.tag in self._state.requests:
-            request_info = self._state.requests.pop(message.tag)
-            logger.info(
-                'Response received for in-flight request: '
-                'tag=%s src=%s dest=%s',
-                message.tag,
-                request_info.src,
-                request_info.dest,
-                extra={
-                    'academy.message_tag': message.tag,
-                    'academy.src': request_info.src,
-                    'academy.dest': request_info.dest,
-                },
-            )
-        else:
-            logger.warning(
-                'Response received without corresponding request: '
-                'tag=%s src=%s dest=%s',
-                message.tag,
-                message.src,
-                message.dest,
-                extra={
-                    'academy.message_tag': message.tag,
-                    'academy.src': message.src,
-                    'academy.dest': message.dest,
-                },
-            )
-
         async with self._state.locks[message.dest]:
             try:
                 await queue.put(message)
@@ -248,33 +253,15 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if queue.is_shutdown:
                 return
 
-            messages = await _drain_queue(queue)
-            requests = {
-                tag: info
-                for tag, info in self._state.requests.items()
-                if info.dest == uid
-            }
-            queue.shutdown(immediate=True)
+            pending_requests: list[Message[Any]] | None = None
             if isinstance(uid, AgentId):
                 self._state.agents.pop(uid, None)
+            pending_requests = self._state.requests.pop(uid, None)
+            queue.shutdown(immediate=True)
 
-        # Respond to pending requests OUTSIDE the lock to avoid deadlock:
-        # send() acquires self._state.locks[dest], which could be uid itself.
-        replied_tags_by_src = await _respond_pending_requests_on_terminate(
-            messages,
+        await _respond_pending_requests_on_terminate(
+            pending_requests or [],
             self.send,
-            requests or None,
-        )
-        logger.info(
-            (
-                'Replied to pending requests with '
-                'MailboxTerminatedError for mailbox %s.'
-            ),
-            uid,
-            extra={
-                'academy.mailbox_id': uid,
-                'academy.pending_request_tags_by_src': replied_tags_by_src,
-            },
         )
 
 
@@ -307,18 +294,3 @@ class LocalExchangeFactory(
             name=name,
             state=self._state,
         )
-
-
-async def _drain_queue(queue: AsyncQueue[Message[Any]]) -> list[Message[Any]]:
-    items: list[Message[Any]] = []
-
-    while True:
-        try:
-            item = queue.get_nowait()
-        except (QueueShutDown, QueueEmpty):
-            break
-        else:
-            items.append(item)
-            queue.task_done()
-
-    return items

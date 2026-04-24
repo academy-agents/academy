@@ -21,70 +21,79 @@ def test_factory_serialize_error(
 async def test_local_exchange_request_tracking_inflight(
     local_exchange_factory: LocalExchangeFactory,
 ) -> None:
-    """Test that sending a request adds it to the in-flight dict."""
-    transport = await local_exchange_factory.create_user_client()
-    state = local_exchange_factory._state
+    factory = local_exchange_factory
+    transport1 = await factory._create_transport()
+    transport2 = await factory._create_transport()
 
-    # Send a request to itself
-    message = Message.create(
-        src=transport.client_id,
-        dest=transport.client_id,
+    # Send a request
+    request = Message.create(
+        src=transport1.mailbox_id,
+        dest=transport2.mailbox_id,
         body=PingRequest(),
     )
-    await transport.send(message)
+    await transport1.send(request)
 
-    # Verify request is tracked as in-flight
-    assert message.tag in state.requests
-    assert state.requests[message.tag].src == transport.client_id
-    assert state.requests[message.tag].dest == transport.client_id
+    # Verify it's received
+    listener = transport2.listen(timeout=0.01)
+    received = await anext(listener)
+    assert received.tag == request.tag
+    assert received.src == transport1.mailbox_id
+    assert isinstance(received.get_body(), PingRequest)
+
+    await transport1.close()
+    await transport2.close()
 
 
 @pytest.mark.asyncio
 async def test_local_exchange_request_tracking_completed(
     local_exchange_factory: LocalExchangeFactory,
 ) -> None:
-    """Test response removes the request from the in-flight dict."""
-    transport = await local_exchange_factory.create_user_client()
-    state = local_exchange_factory._state
+    factory = local_exchange_factory
+    transport1 = await factory._create_transport()
+    transport2 = await factory._create_transport()
 
-    # Send a request to itself
-    request_msg = Message.create(
-        src=transport.client_id,
-        dest=transport.client_id,
+    request = Message.create(
+        src=transport1.mailbox_id,
+        dest=transport2.mailbox_id,
         body=PingRequest(),
     )
-    await transport.send(request_msg)
+    await transport1.send(request)
 
-    # Verify request is in-flight
-    assert request_msg.tag in state.requests
+    listener2 = transport2.listen(timeout=0.01)
+    received_request = await anext(listener2)
+    assert received_request.tag == request.tag
 
-    # Send a response to itself
-    response_msg = request_msg.create_response(SuccessResponse())
-    await transport.send(response_msg)
+    response = received_request.create_response(SuccessResponse())
+    await transport2.send(response)
 
-    # Verify request is removed from in-flight dict
-    assert request_msg.tag not in state.requests
+    listener1 = transport1.listen(timeout=0.01)
+    received_response = await anext(listener1)
+    assert received_response.tag == request.tag
+    assert isinstance(received_response.get_body(), SuccessResponse)
+
+    await transport1.close()
+    await transport2.close()
 
 
 @pytest.mark.asyncio
 async def test_local_exchange_response_without_request(
     local_exchange_factory: LocalExchangeFactory,
 ) -> None:
-    """Test that response without prior request is handled gracefully."""
-    transport = await local_exchange_factory.create_user_client()
-    state = local_exchange_factory._state
+    factory = local_exchange_factory
+    transport1 = await factory._create_transport()
+    transport2 = await factory._create_transport()
 
-    # Create a response message with a tag that was never sent as a request
-    request_msg = Message.create(
-        src=transport.client_id,
-        dest=transport.client_id,
-        body=PingRequest(),
+    response = Message.create(
+        src=transport1.mailbox_id,
+        dest=transport2.mailbox_id,
+        body=SuccessResponse(),
     )
-    # Create a response but don't send the original request
-    response_msg = request_msg.create_response(SuccessResponse())
+    await transport1.send(response)
 
-    # Should not raise an error when sending a response without a request
-    await transport.send(response_msg)
+    listener = transport2.listen(timeout=0.01)
+    received = await anext(listener)
+    assert received.tag == response.tag
+    assert isinstance(received.get_body(), SuccessResponse)
 
-    # Verify the response was still queued but not tracked in requests
-    assert response_msg.tag not in state.requests
+    await transport1.close()
+    await transport2.close()

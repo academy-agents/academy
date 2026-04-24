@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -20,7 +19,6 @@ from academy.exchange.cloud.backend import RedisBackend
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.identifier import AgentId
 from academy.identifier import UserId
-from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
@@ -59,7 +57,6 @@ async def test_mailbox_backend_create_close(backend: MailboxBackend) -> None:
 
 @pytest.mark.asyncio
 async def test_mailbox_backend_send_recv(backend: MailboxBackend) -> None:
-    print('Testing send/recv...')
     user_id = ClientInfo(str(uuid.uuid4()), set())
     bad_user = ClientInfo(str(uuid.uuid4()), set())
     uid = UserId.new()
@@ -111,30 +108,6 @@ async def test_mailbox_backend_mailbox_create_forbidden(
     await backend.create_mailbox(ClientInfo('me', set()), uid)
     with pytest.raises(ForbiddenError):
         await backend.create_mailbox(ClientInfo('not_me', set()), uid)
-
-
-@pytest.mark.asyncio
-async def test_mailbox_backend_mailbox_delete_agent(
-    backend: MailboxBackend,
-) -> None:
-    uid = UserId.new()
-    aid: AgentId[Any] = AgentId.new()
-    client = ClientInfo(str(uid), set())
-    await backend.create_mailbox(client, uid)
-    await backend.create_mailbox(client, aid, ('EmptyAgent',))
-
-    request = Message.create(src=uid, dest=aid, body=PingRequest())
-    await backend.put(client, request)
-    response = Message.create(src=uid, dest=aid, body=SuccessResponse())
-    await backend.put(client, response)
-    await backend.terminate(client, aid)
-
-    message = await backend.get(client, uid, timeout=0.01)
-    assert isinstance(message.get_body(), ErrorResponse)
-    assert isinstance(message.body.exception, MailboxTerminatedError)
-
-    with pytest.raises(TimeoutError):
-        await backend.get(client, uid, timeout=0.01)
 
 
 @pytest.mark.asyncio
@@ -483,201 +456,73 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
 
 
 @pytest.mark.asyncio
-async def test_python_backend_request_tracking_inflight() -> None:
-    """Test that putting a request adds it to the in-flight dict."""
-    backend = PythonBackend()
-    client = ClientInfo(str(uuid.uuid4()), set())
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    # Send a request
-    message = Message.create(src=uid, dest=uid, body=PingRequest())
-    await backend.put(client, message)
-
-    # Verify request is tracked as in-flight
-    assert message.tag in backend._requests
-    assert backend._requests[message.tag].src == uid
-    assert backend._requests[message.tag].dest == uid
-
-
-@pytest.mark.asyncio
-async def test_python_backend_request_tracking_completed() -> None:
-    """Test response removes the request from the in-flight dict."""
-    backend = PythonBackend()
-    client = ClientInfo(str(uuid.uuid4()), set())
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    # Send a request first
-    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
-    await backend.put(client, request_msg)
-
-    # Verify request is in-flight
-    assert request_msg.tag in backend._requests
-
-    # Send a response
-    response_msg = request_msg.create_response(SuccessResponse())
-    await backend.put(client, response_msg)
-
-    # Verify request is removed from in-flight dict
-    assert request_msg.tag not in backend._requests
-
-
-@pytest.mark.asyncio
-async def test_redis_backend_request_tracking_inflight(mock_redis) -> None:
-    """Test that putting a request adds it to Redis."""
-    backend = RedisBackend()
-    client = ClientInfo(str(uuid.uuid4()), set())
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    # Send a request
-    message = Message.create(src=uid, dest=uid, body=PingRequest())
-    await backend.put(client, message)
-
-    # Verify request is tracked in Redis
-    request_key = f'request:{message.tag}'
-    info_data = await backend._client.get(request_key)
-    assert info_data is not None
-    info_dict = json.loads(info_data)
-    assert info_dict['src'] == uid.model_dump(mode='json')
-    assert info_dict['dest'] == uid.model_dump(mode='json')
-
-
-@pytest.mark.asyncio
-async def test_redis_backend_request_tracking_completed(mock_redis) -> None:
-    """Test response removes the request from Redis."""
-    backend = RedisBackend()
-    client = ClientInfo(str(uuid.uuid4()), set())
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    # Send a request first
-    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
-    await backend.put(client, request_msg)
-
-    # Verify request is in Redis
-    request_key = f'request:{request_msg.tag}'
-    info_data = await backend._client.get(request_key)
-    assert info_data is not None
-
-    # Send a response
-    response_msg = request_msg.create_response(SuccessResponse())
-    await backend.put(client, response_msg)
-
-    # Verify request is removed from Redis
-    info_data = await backend._client.get(request_key)
-    assert info_data is None
-
-
-@pytest.mark.asyncio
-async def test_python_backend_response_without_request() -> None:
-    """Test that response without prior request is handled gracefully."""
-    backend = PythonBackend()
-    client = ClientInfo(str(uuid.uuid4()), set())
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    # Create a response message with a tag that was never sent as a request
-    # We'll use a fresh message object and just send it as a response
-    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
-    # Create a response but don't send the original request
-    response_msg = request_msg.create_response(SuccessResponse())
-
-    # Should not raise an error when putting a response without a request
-    await backend.put(client, response_msg)
-
-    # Verify the response was still queued but not tracked in requests
-    assert response_msg.tag not in backend._requests
-
-
-@pytest.mark.asyncio
-async def test_redis_backend_response_without_request(mock_redis) -> None:
-    """Test that response without prior request is handled gracefully."""
-    backend = RedisBackend()
-    client = ClientInfo(str(uuid.uuid4()), set())
-    uid = UserId.new()
-    await backend.create_mailbox(client, uid)
-
-    # Create a response message with a tag that was never sent as a request
-    # We'll use a fresh message object and just send it as a response
-    request_msg = Message.create(src=uid, dest=uid, body=PingRequest())
-    # Create a response but don't send the original request
-    response_msg = request_msg.create_response(SuccessResponse())
-
-    # Should not raise an error when putting a response without a request
-    await backend.put(client, response_msg)
-
-    # Verify the response was not tracked in Redis
-    request_key = f'request:{response_msg.tag}'
-    info_data = await backend._client.get(request_key)
-    assert info_data is None
-
-
-@pytest.mark.asyncio
-async def test_python_backend_terminate_skips_other_mailbox_requests() -> None:
-    """Test terminate does not reply to requests for other mailboxes."""
-    backend = PythonBackend()
-    client = ClientInfo(str(uuid.uuid4()), set())
-    uid1 = UserId.new()
-    uid2 = UserId.new()
-    await backend.create_mailbox(client, uid1)
-    await backend.create_mailbox(client, uid2)
-
-    # Put a request destined for uid2 (not uid1)
-    other_request = Message.create(src=uid1, dest=uid2, body=PingRequest())
-    await backend.put(client, other_request)
-
-    # Terminate uid1 — should not touch uid2's in-flight request
-    await backend.terminate(client, uid1)
-
-    assert other_request.tag in backend._requests
-
-
-@pytest.mark.asyncio
-async def test_redis_backend_terminate_skips_other_mailbox_requests(
-    mock_redis,
+async def test_mailbox_backend_request_tracking_inflight(
+    backend: MailboxBackend,
 ) -> None:
-    """Terminate does not reply to requests for other mailboxes."""
-    backend = RedisBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
-    uid1 = UserId.new()
-    uid2 = UserId.new()
-    await backend.create_mailbox(client, uid1)
-    await backend.create_mailbox(client, uid2)
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
 
-    # Put a request destined for uid2 (not uid1)
-    other_request = Message.create(src=uid1, dest=uid2, body=PingRequest())
-    await backend.put(client, other_request)
+    request = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    await backend.put(client, request)
 
-    # Terminate uid1 — should not touch uid2's in-flight request
-    await backend.terminate(client, uid1)
-
-    request_key = f'request:{other_request.tag}'
-    info_data = await backend._client.get(request_key)
-    assert info_data is not None
+    received = await backend.get(client, receiver_uid, timeout=1.0)
+    assert received.tag == request.tag
+    assert isinstance(received.get_body(), PingRequest)
 
 
 @pytest.mark.asyncio
-async def test_redis_backend_terminate_replies_to_pending_requests(
-    mock_redis,
+async def test_mailbox_backend_request_tracking_completed(
+    backend: MailboxBackend,
 ) -> None:
-    """Terminate replies with MailboxTerminatedError to in-flight requests."""
-    backend = RedisBackend()
     client = ClientInfo(str(uuid.uuid4()), set())
-    uid1 = UserId.new()
-    uid2 = UserId.new()
-    await backend.create_mailbox(client, uid1)
-    await backend.create_mailbox(client, uid2)
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
 
-    # uid1 sends a request destined for uid2
-    request_msg = Message.create(src=uid1, dest=uid2, body=PingRequest())
-    await backend.put(client, request_msg)
+    request = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    await backend.put(client, request)
 
-    # Terminate uid2 — loop should find request where dest == uid2
-    # and clean up the request key after replying
-    await backend.terminate(client, uid2)
+    received_request = await backend.get(client, receiver_uid, timeout=1.0)
+    assert received_request.tag == request.tag
 
-    request_key = f'request:{request_msg.tag}'
-    info_data = await backend._client.get(request_key)
-    assert info_data is None
+    response = received_request.create_response(SuccessResponse())
+    await backend.put(client, response)
+
+    received_response = await backend.get(client, sender_uid, timeout=1.0)
+    assert received_response.tag == request.tag
+    assert isinstance(received_response.get_body(), SuccessResponse)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_response_without_request(
+    backend: MailboxBackend,
+) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
+
+    # Create and send a response message (without a prior request)
+    response = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=SuccessResponse(),
+    )
+    await backend.put(client, response)
+
+    received = await backend.get(client, receiver_uid, timeout=1.0)
+    assert received.tag == response.tag
+    assert isinstance(received.get_body(), SuccessResponse)

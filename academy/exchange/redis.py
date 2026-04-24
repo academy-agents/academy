@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import dataclasses
 import enum
-import json
 import logging
 import sys
 import uuid
@@ -32,7 +31,6 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
-from academy.request_state import RequestInfo
 from academy.serialize import NoPickleMixin
 
 if TYPE_CHECKING:
@@ -88,8 +86,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def _queue_key(self, uid: EntityId) -> str:
         return f'queue:{uid.uid}'
 
-    def _request_key(self, tag: uuid.UUID) -> str:
-        return f'request:{tag}'
+    def _request_key(self, uid: EntityId) -> str:
+        return f'request:{uid.uid}'
 
     @classmethod
     async def new(
@@ -217,7 +215,94 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         assert len(raw) == 2  # noqa: PLR2004
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
             raise MailboxTerminatedError(self.mailbox_id)
-        return Message.model_deserialize(raw[1])
+
+        message: Message[Any] = Message.model_deserialize(raw[1])
+
+        if message.is_request():
+            existing = await self._client.get(
+                self._request_key(message.dest),
+            )
+            tracked: list[Message[Any]] = (
+                Message.list_deserialize(existing) if existing else []
+            )
+            tracked.append(message)
+            await self._client.set(
+                self._request_key(message.dest),
+                Message.list_serialize(tracked),
+            )
+            logger.debug(
+                'Tracking in-flight request: tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                },
+            )
+        elif await self._client.exists(
+            self._request_key(message.src),
+        ):
+            info_data = await self._client.get(
+                self._request_key(message.src),
+            )
+            tracked = Message.list_deserialize(info_data)
+            matching = next(
+                (m for m in tracked if m.tag == message.tag),
+                None,
+            )
+            if matching is not None:
+                tracked.remove(matching)
+                if tracked:
+                    await self._client.set(
+                        self._request_key(message.src),
+                        Message.list_serialize(tracked),
+                    )
+                else:
+                    await self._client.delete(
+                        self._request_key(message.src),
+                    )
+                logger.debug(
+                    'Response received for in-flight request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    matching.src,
+                    matching.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': matching.src,
+                        'academy.dest': matching.dest,
+                    },
+                )
+            else:
+                logger.warning(
+                    'Response received without corresponding request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
+        else:
+            logger.warning(
+                'Response received without corresponding request: '
+                'tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                },
+            )
+
+        return message
 
     async def listen(
         self,
@@ -250,62 +335,6 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         elif status.decode() == _MailboxState.INACTIVE.value:
             raise MailboxTerminatedError(message.dest)
         else:
-            if message.is_request():
-                info_json = json.dumps(
-                    {
-                        'src': message.src.model_dump(mode='json'),
-                        'dest': message.dest.model_dump(mode='json'),
-                    },
-                )
-                await self._client.set(
-                    self._request_key(message.tag),
-                    info_json,
-                )
-                logger.info(
-                    'Tracking in-flight request: tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
-            elif await self._client.exists(
-                self._request_key(message.tag),
-            ):
-                info_data = await self._client.get(
-                    self._request_key(message.tag),
-                )
-                await self._client.delete(self._request_key(message.tag))
-                info_dict = json.loads(info_data)
-                logger.info(
-                    'Response received for in-flight request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    info_dict['src'],
-                    info_dict['dest'],
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': info_dict['src'],
-                        'academy.dest': info_dict['dest'],
-                    },
-                )
-            else:
-                logger.warning(
-                    'Response received without corresponding request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
-
             await self._client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),
                 message.model_serialize(),
@@ -320,19 +349,12 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         else:
             return MailboxStatus.ACTIVE
 
-    @staticmethod
-    def _entity_id_from_dict(data: dict[str, Any]) -> EntityId:
-        if data.get('role') == 'agent':
-            return AgentId.model_validate(data)
-        return UserId.model_validate(data)
-
     async def terminate(self, uid: EntityId) -> None:
         await self._client.set(
             self._active_key(uid),
             _MailboxState.INACTIVE.value,
         )
 
-        pending = await self._client.lrange(self._queue_key(uid), 0, -1)  # type: ignore[misc]
         await self._client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
@@ -341,40 +363,16 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
-        messages: list[Message[Any]] = [
-            Message.model_deserialize(raw)
-            for raw in pending
-            if raw != _CLOSE_SENTINEL
-        ]
-        requests: dict[uuid.UUID, RequestInfo] = {}
-        async for key in self._client.scan_iter(
-            'request:*',
-        ):  # pragma: no branch
-            tag_str = key.decode().split(':', 1)[-1]
-            info_data = await self._client.get(key)
-            info_dict = json.loads(info_data)
-            info = RequestInfo(
-                src=self._entity_id_from_dict(info_dict['src']),
-                dest=self._entity_id_from_dict(info_dict['dest']),
-            )
-            if info.dest == uid:
-                requests[uuid.UUID(tag_str)] = info
+        pending_requests: list[Message[Any]] | None = None
+        key = self._request_key(uid)
+        info_data = await self._client.get(key)
+        if info_data is not None:
+            pending_requests = Message.list_deserialize(info_data)
+            await self._client.delete(key)
 
-        replied_tags_by_src = await _respond_pending_requests_on_terminate(
-            messages,
+        await _respond_pending_requests_on_terminate(
+            pending_requests or [],
             self.send,
-            requests or None,
-        )
-        logger.info(
-            (
-                'Replied to pending requests with '
-                'MailboxTerminatedError for mailbox %s.'
-            ),
-            uid,
-            extra={
-                'academy.mailbox_id': uid,
-                'academy.pending_request_tags_by_src': replied_tags_by_src,
-            },
         )
 
 

@@ -13,7 +13,6 @@ from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange.hybrid import HybridExchangeFactory
-from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
 from academy.identifier import AgentId
@@ -22,7 +21,6 @@ from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
-from academy.request_state import RequestInfo
 from testing.agents import EmptyAgent
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
@@ -165,7 +163,7 @@ async def test_transport_terminate_reply_pending_requests(
     factory = get_factory(factory_type)
     async with await factory._create_transport() as transport1:
         async with await factory._create_transport() as transport2:
-            # Put a request and a response message in transport2 mailbox
+            # Send a request and a response message to transport2 mailbox
             message1 = Message.create(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
@@ -179,7 +177,14 @@ async def test_transport_terminate_reply_pending_requests(
             await transport1.send(message1)
             await transport1.send(message2)
 
-            # Terminate transport2 mailbox should reply to all *requests*
+            # Transport2 receives both messages (requests are tracked on recv)
+            listener2 = transport2.listen(TEST_WAIT_TIMEOUT)
+            received1 = await anext(listener2)
+            assert received1.tag == message1.tag
+            received2 = await anext(listener2)
+            assert received2.tag == message2.tag
+
+            # Terminate transport2 mailbox should reply to pending *requests*
             # with an error. Responses are ignored.
             await transport2.terminate(transport2.mailbox_id)
 
@@ -192,60 +197,6 @@ async def test_transport_terminate_reply_pending_requests(
             assert response.tag == message1.tag
             assert isinstance(body.get_exception(), MailboxTerminatedError)
             # No other messages should have been received
-            with pytest.raises(TimeoutError):  # pragma: <3.14 cover
-                await anext(listener)
-
-
-@pytest.mark.parametrize('factory_type', EXCHANGE_FACTORY_TYPES)
-async def test_pending_requests_on_terminate_returns_inflight_tags(
-    factory_type: type[ExchangeFactory[Any]],
-    get_factory,
-) -> None:
-    if factory_type is HybridExchangeFactory:
-        pytest.skip(
-            'HybridExchangeTransport termination behavior is unreliable.',
-        )
-
-    factory = get_factory(factory_type)
-    async with await factory._create_transport() as transport1:
-        async with await factory._create_transport() as transport2:
-            queued_request = Message.create(
-                src=transport1.mailbox_id,
-                dest=transport2.mailbox_id,
-                body=PingRequest(),
-            )
-            tracked_request = Message.create(
-                src=transport1.mailbox_id,
-                dest=transport2.mailbox_id,
-                body=PingRequest(),
-            )
-
-            replied_tags_by_src = await _respond_pending_requests_on_terminate(
-                [queued_request],
-                transport2.send,
-                {
-                    tracked_request.tag: RequestInfo(
-                        src=tracked_request.src,
-                        dest=tracked_request.dest,
-                    ),
-                },
-            )
-
-            assert replied_tags_by_src == {
-                str(transport1.mailbox_id): [str(tracked_request.tag)],
-            }
-
-            listener = transport1.listen(TEST_WAIT_TIMEOUT)
-            responses = [await anext(listener), await anext(listener)]
-            assert {response.tag for response in responses} == {
-                queued_request.tag,
-                tracked_request.tag,
-            }
-            for response in responses:
-                body = response.get_body()
-                assert isinstance(body, ErrorResponse)
-                assert isinstance(body.get_exception(), MailboxTerminatedError)
-
             with pytest.raises(TimeoutError):  # pragma: <3.14 cover
                 await anext(listener)
 

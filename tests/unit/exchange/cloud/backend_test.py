@@ -505,7 +505,8 @@ async def test_mailbox_backend_request_tracking(
         assert tracked is not None
         assert tracked.src == sender_uid
         assert tracked.dest == receiver_uid
-    elif isinstance(backend, RedisBackend):
+    else:
+        assert isinstance(backend, RedisBackend)
         request_key = f'request:{receiver_uid.uid}'
         info_data = await backend._client.get(request_key)
         assert info_data is not None
@@ -517,7 +518,8 @@ async def test_mailbox_backend_request_tracking(
         response_list = backend._requests.get(sender_uid, [])
         still_tracked = any(m.tag == request.tag for m in response_list)
         assert not still_tracked
-    elif isinstance(backend, RedisBackend):
+    else:
+        assert isinstance(backend, RedisBackend)
         request_key = f'request:{receiver_uid.uid}'
         response_data = await backend._client.get(request_key)
         assert response_data is None
@@ -542,7 +544,8 @@ async def test_mailbox_backend_response_without_request(
 
     if isinstance(backend, PythonBackend):
         assert receiver_uid not in backend._requests
-    elif isinstance(backend, RedisBackend):
+    else:
+        assert isinstance(backend, RedisBackend)
         response_key = f'request:{receiver_uid.uid}'
         tracked = await backend._client.get(response_key)
         assert tracked is None
@@ -580,7 +583,8 @@ async def test_mailbox_backend_multiple_requests_partial_response(
         assert any(
             h.tag == request2.tag for h in backend._requests[receiver_uid]
         )
-    elif isinstance(backend, RedisBackend):
+    else:
+        assert isinstance(backend, RedisBackend)
         request_key = f'request:{receiver_uid.uid}'
         data = await backend._client.get(request_key)
         assert data is not None  # request2 is still tracked
@@ -627,7 +631,8 @@ async def test_mailbox_backend_response_tag_mismatch(
         assert any(
             h.tag == request2.tag for h in backend._requests[receiver_uid]
         )
-    elif isinstance(backend, RedisBackend):
+    else:
+        assert isinstance(backend, RedisBackend)
         request_key = f'request:{receiver_uid.uid}'
         data = await backend._client.get(request_key)
         assert data is not None  # request2 still tracked

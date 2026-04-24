@@ -95,6 +95,8 @@ class Handle(Generic[AgentT_co]):
         self._exchange = exchange
         self._registered_exchanges: WeakSet[ExchangeClient[Any]] = WeakSet()
         self.ignore_context = ignore_context
+        # Set by action/ping/shutdown; consulted by Manager._rebind_handle.
+        self._used_for_messaging = False
 
         if ignore_context and not exchange:
             raise ValueError(
@@ -208,6 +210,7 @@ class Handle(Generic[AgentT_co]):
                 (it self terminated or via another handle).
             Exception: Any exception raised by the action.
         """
+        self._used_for_messaging = True
         tag_id = uuid.uuid4()
         invocation_extra = {
             'academy.action': action,
@@ -331,6 +334,7 @@ class Handle(Generic[AgentT_co]):
                 (it self terminated or via another handle).
             TimeoutError: If the timeout is exceeded.
         """
+        self._used_for_messaging = True
         exchange = self.exchange
         self._register_with_exchange(exchange)
 
@@ -405,6 +409,7 @@ class Handle(Generic[AgentT_co]):
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
         """
+        self._used_for_messaging = True
         exchange = self.exchange
         self._register_with_exchange(exchange)
 

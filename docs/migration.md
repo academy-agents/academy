@@ -29,6 +29,19 @@ Multiple log contexts can be active in a process at any one time - for example, 
 
 Academy comes with three ways of configuring logging: to the console, to a log file, and to a shared home directory JSON logfile store. Developers can implement new logging configurations by subclassing the LogConfig class.
 
+#### New: `Manager.launch_batch()`
+
+Small ergonomics addition for the Globus transport: launches queued inside a `launch_batch()` block are registered under a single auth consent prompt instead of one per agent. Other transports behave identically to separate `Manager.launch()` calls.
+
+```python
+async with manager.launch_batch() as batch:
+    greeter = await batch.launch(Greeter)
+    coordinator = await batch.launch(
+        Coordinator,
+        args=(greeter,),
+    )
+```
+
 ## Academy v0.4
 
 ## Globus SDK version has been updated

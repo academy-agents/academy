@@ -233,7 +233,7 @@ class MailboxBackend(Protocol):
         """Update the heartbeat timestamp for a mailbox.
 
         Args:
-            uid: Mailbox id to check.
+            uid: Mailbox id to update.
         """
         ...
 

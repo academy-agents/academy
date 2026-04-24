@@ -137,3 +137,12 @@ def test_error_response_lazy_deserialize() -> None:
     reconstructed.get_exception()
 
     assert isinstance(reconstructed.exception, Exception)
+
+
+def test_header_list_deserialize_bad_type() -> None:
+    pickled = pickle.dumps('not-a-header-list')
+    with pytest.raises(
+        TypeError,
+        match='Deserialized object is not a list of Header instances.',
+    ):
+        Header.list_deserialize(pickled)

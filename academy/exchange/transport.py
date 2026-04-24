@@ -253,42 +253,15 @@ class ExchangeTransportMixin:
 async def _respond_pending_requests_on_terminate(
     messages: list[Header],
     send: Callable[[Message[Any]], Awaitable[None]],
-    # requests: Iterable[Message[Any]] | None = None,
 ) -> None:
-    # Helper function used to parse all pending messages in a mailbox when
-    # it is terminated and reply to all in-flight request messages with a
-    # MailboxTerminatedError.
-    # processed_tags: set[uuid.UUID] = set()
-    # replied_tags_by_src: dict[str, list[str]] = {}
-    for message in messages:
-        if message.kind == 'request':
-            # processed_tags.add(message.tag)
-            error = MailboxTerminatedError(message.dest)
-            response_header = message.create_response_header()
-            response: Message[ErrorResponse] = Message(
-                header=response_header,
-                body=ErrorResponse(exception=error),
-            )
-            # If the requester's mailbox was also terminated then they
-            # don't need to get a response.
-            with contextlib.suppress(MailboxTerminatedError):
-                await send(response)
-
-    # Also respond to any in-flight requests tracked in the requests dict
-    # that weren't found in the drained messages.
-    # if requests is not None:
-    #     for agent_id, tracked in list(requests.items()):
-    #         for request_message in tracked:
-    #             if request_message.tag not in processed_tags:
-    #                 replied_tags_by_src.setdefault(
-    #                     str(request_message.src),
-    #                     [],
-    #                 ).append(
-    #                     str(request_message.tag),
-    #                 )
-    #                 error = MailboxTerminatedError(request_message.dest)
-    #                 response = request_message.create_response(
-    #                     ErrorResponse(exception=error),
-    #                 )
-    #                 with contextlib.suppress(MailboxTerminatedError):
-    #                     await send(response)
+    for message in messages: 
+        error = MailboxTerminatedError(message.dest)
+        response_header = message.create_response_header()
+        response: Message[ErrorResponse] = Message(
+            header=response_header,
+            body=ErrorResponse(exception=error),
+        )
+        # If the requester's mailbox was also terminated then they
+        # don't need to get a response.
+        with contextlib.suppress(MailboxTerminatedError):
+            await send(response)

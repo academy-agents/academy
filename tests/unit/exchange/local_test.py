@@ -66,7 +66,4 @@ async def test_local_exchange_response_without_request(
     )
     await transport1.send(response)
 
-    if transport2.mailbox_id in state.requests:
-        response_list = state.requests[transport2.mailbox_id]
-        still_tracked = any(m.tag == response.tag for m in response_list)
-        assert not still_tracked
+    assert transport2.mailbox_id not in state.requests

@@ -19,6 +19,7 @@ from academy.exchange.cloud.backend import RedisBackend
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
@@ -108,6 +109,31 @@ async def test_mailbox_backend_mailbox_create_forbidden(
     await backend.create_mailbox(ClientInfo('me', set()), uid)
     with pytest.raises(ForbiddenError):
         await backend.create_mailbox(ClientInfo('not_me', set()), uid)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_mailbox_delete_agent(
+    backend: MailboxBackend,
+) -> None:
+    uid = UserId.new()
+    aid: AgentId[Any] = AgentId.new()
+    client = ClientInfo(str(uid), set())
+    await backend.create_mailbox(client, uid)
+    await backend.create_mailbox(client, aid, ('EmptyAgent',))
+
+    request = Message.create(src=uid, dest=aid, body=PingRequest())
+    await backend.put(client, request)
+    response = Message.create(src=uid, dest=aid, body=SuccessResponse())
+    await backend.put(client, response)
+    await backend.terminate(client, aid)
+
+    message = await backend.get(client, uid, timeout=0.01)
+    print(message)
+    assert isinstance(message.get_body(), ErrorResponse)
+    assert isinstance(message.body.exception, MailboxTerminatedError)
+
+    with pytest.raises(TimeoutError):
+        await backend.get(client, uid, timeout=0.01)
 
 
 @pytest.mark.asyncio

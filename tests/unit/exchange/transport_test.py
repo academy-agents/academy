@@ -177,15 +177,6 @@ async def test_transport_terminate_reply_pending_requests(
             await transport1.send(message1)
             await transport1.send(message2)
 
-            # Transport2 receives both messages (requests are tracked on recv)
-            listener2 = transport2.listen(TEST_WAIT_TIMEOUT)
-            received1 = await anext(listener2)
-            assert received1.tag == message1.tag
-            received2 = await anext(listener2)
-            assert received2.tag == message2.tag
-
-            # Terminate transport2 mailbox should reply to pending *requests*
-            # with an error. Responses are ignored.
             await transport2.terminate(transport2.mailbox_id)
 
             # Check that transport1 gets a response to its request that

@@ -257,12 +257,11 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if isinstance(uid, AgentId):
                 self._state.agents.pop(uid, None)
             pending_requests = self._state.requests.pop(uid, None)
+            await _respond_pending_requests_on_terminate(
+                pending_requests or [],
+                self.send,
+            )
             queue.shutdown(immediate=True)
-
-        await _respond_pending_requests_on_terminate(
-            pending_requests or [],
-            self.send,
-        )
 
 
 class LocalExchangeFactory(

@@ -368,12 +368,11 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         info_data = await self._client.get(key)
         if info_data is not None:
             pending_requests = Message.list_deserialize(info_data)
-            await self._client.delete(key)
-
-        await _respond_pending_requests_on_terminate(
-            pending_requests or [],
-            self.send,
-        )
+            await _respond_pending_requests_on_terminate(
+                pending_requests or [],
+                self.send,
+            )
+        await self._client.delete(key)
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

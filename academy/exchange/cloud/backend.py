@@ -371,6 +371,7 @@ class PythonBackend:
         async def send(message: Message[Any]) -> None:
             await self.put(client, message)
 
+        pending_requests: list[Message[Any]] | None = None
         async with self._locks[uid]:
             pending_requests = self._requests.pop(uid, None)
             mailbox.shutdown(immediate=True)
@@ -870,17 +871,17 @@ class RedisBackend:
         pending_requests: list[Message[Any]] | None = None
         key = self._request_key(uid)
         info_data = await self._client.get(key)
-        if info_data is not None:
-            pending_requests = Message.list_deserialize(info_data)
-            await self._client.delete(key)
 
         async def send(message: Message[Any]) -> None:
             await self.put(client, message)
 
-        await _respond_pending_requests_on_terminate(
-            pending_requests or [],
-            send,
-        )
+        if info_data is not None:
+            pending_requests = Message.list_deserialize(info_data)
+            await _respond_pending_requests_on_terminate(
+                pending_requests or [],
+                send,
+            )
+            await self._client.delete(key)
 
     async def discover(
         self,

@@ -478,3 +478,160 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
         await backend.get(client, uid, timeout=0.01)
 
     await backend.terminate(client, uid)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_request_tracking(
+    backend: MailboxBackend,
+) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
+
+    request = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    await backend.put(client, request)
+
+    if isinstance(backend, PythonBackend):
+        assert receiver_uid in backend._requests
+        request_list = backend._requests[receiver_uid]
+        tracked = next((m for m in request_list if m.tag == request.tag), None)
+        assert tracked is not None
+        assert tracked.src == sender_uid
+        assert tracked.dest == receiver_uid
+    else:
+        assert isinstance(backend, RedisBackend)
+        request_key = f'request:{receiver_uid.uid}'
+        info_data = await backend._client.get(request_key)
+        assert info_data is not None
+
+    response = request.create_response(SuccessResponse())
+    await backend.put(client, response)
+
+    if isinstance(backend, PythonBackend):
+        response_list = backend._requests.get(sender_uid, [])
+        still_tracked = any(m.tag == request.tag for m in response_list)
+        assert not still_tracked
+    else:
+        assert isinstance(backend, RedisBackend)
+        request_key = f'request:{receiver_uid.uid}'
+        response_data = await backend._client.get(request_key)
+        assert response_data is None
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_response_without_request(
+    backend: MailboxBackend,
+) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
+
+    response = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=SuccessResponse(),
+    )
+    await backend.put(client, response)
+
+    if isinstance(backend, PythonBackend):
+        assert receiver_uid not in backend._requests
+    else:
+        assert isinstance(backend, RedisBackend)
+        response_key = f'request:{receiver_uid.uid}'
+        tracked = await backend._client.get(response_key)
+        assert tracked is None
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_multiple_requests_partial_response(
+    backend: MailboxBackend,
+) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
+
+    request1 = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    request2 = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    await backend.put(client, request1)
+    await backend.put(client, request2)
+
+    # Respond to only the first request — second should remain tracked
+    response1 = request1.create_response(SuccessResponse())
+    await backend.put(client, response1)
+
+    if isinstance(backend, PythonBackend):
+        assert receiver_uid in backend._requests
+        assert any(
+            h.tag == request2.tag for h in backend._requests[receiver_uid]
+        )
+    else:
+        assert isinstance(backend, RedisBackend)
+        request_key = f'request:{receiver_uid.uid}'
+        data = await backend._client.get(request_key)
+        assert data is not None  # request2 is still tracked
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_response_tag_mismatch(
+    backend: MailboxBackend,
+) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
+
+    request1 = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    request2 = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    await backend.put(client, request1)
+    await backend.put(client, request2)
+
+    # Partially remove one so key still exists
+    response1 = request1.create_response(SuccessResponse())
+    await backend.put(client, response1)
+
+    # Send a response with a tag that doesn't match any tracked request
+    unmatched_response = Message.create(
+        src=receiver_uid,
+        dest=sender_uid,
+        body=SuccessResponse(),
+    )
+    await backend.put(client, unmatched_response)
+
+    if isinstance(backend, PythonBackend):
+        # request2 is still tracked (unmatched response didn't remove it)
+        assert receiver_uid in backend._requests
+        assert any(
+            h.tag == request2.tag for h in backend._requests[receiver_uid]
+        )
+    else:
+        assert isinstance(backend, RedisBackend)
+        request_key = f'request:{receiver_uid.uid}'
+        data = await backend._client.get(request_key)
+        assert data is not None  # request2 still tracked

@@ -163,7 +163,7 @@ async def test_transport_terminate_reply_pending_requests(
     factory = get_factory(factory_type)
     async with await factory._create_transport() as transport1:
         async with await factory._create_transport() as transport2:
-            # Put a request and a response message in transport2 mailbox
+            # Send a request and a response message to transport2 mailbox
             message1 = Message.create(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
@@ -177,8 +177,6 @@ async def test_transport_terminate_reply_pending_requests(
             await transport1.send(message1)
             await transport1.send(message2)
 
-            # Terminate transport2 mailbox should reply to all *requests*
-            # with an error. Responses are ignored.
             await transport2.terminate(transport2.mailbox_id)
 
             # Check that transport1 gets a response to its request that

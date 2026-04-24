@@ -4,7 +4,8 @@ import contextlib
 import enum
 import sys
 from collections.abc import AsyncGenerator
-from collections.abc import Iterable
+from collections.abc import Awaitable
+from collections.abc import Callable
 from types import TracebackType
 from typing import Any
 from typing import Protocol
@@ -21,6 +22,7 @@ from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ErrorResponse
+from academy.message import Header
 from academy.message import Message
 
 if TYPE_CHECKING:
@@ -249,17 +251,17 @@ class ExchangeTransportMixin:
 
 
 async def _respond_pending_requests_on_terminate(
-    messages: Iterable[Message[Any]],
-    transport: ExchangeTransport[Any],
+    messages: list[Header],
+    send: Callable[[Message[Any]], Awaitable[None]],
 ) -> None:
-    # Helper function used to parse all pending messages in a mailbox when
-    # it is terminated and reply to only request messages with a
-    # MailboxTerminatedError.
     for message in messages:
-        if message.is_request():
-            error = MailboxTerminatedError(transport.mailbox_id)
-            response = message.create_response(ErrorResponse(exception=error))
-            # If the requester's mailbox was also terminated then they
-            # don't need to get a response.
-            with contextlib.suppress(MailboxTerminatedError):
-                await transport.send(response)
+        error = MailboxTerminatedError(message.dest)
+        response_header = message.create_response_header()
+        response: Message[ErrorResponse] = Message(
+            header=response_header,
+            body=ErrorResponse(exception=error),
+        )
+        # If the requester's mailbox was also terminated then they
+        # don't need to get a response.
+        with contextlib.suppress(MailboxTerminatedError):
+            await send(response)

@@ -86,6 +86,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def _queue_key(self, uid: EntityId) -> str:
         return f'queue:{uid.uid}'
 
+    def _heartbeat_key(self, uid: EntityId) -> str:
+        return f'heartbeat:{uid.uid}'
+
     @classmethod
     async def new(
         cls,
@@ -280,6 +283,47 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if raw != _CLOSE_SENTINEL
         ]
         await _respond_pending_requests_on_terminate(messages, self)
+
+    async def redis_current_time(self) -> float:
+        """Helper to transform Redis time structure to Unix float.
+
+        Returns:
+            Unix timestamp as a float
+
+        """
+        # Returns in the form [seconds since epoch, microseconds]
+        current_time = await self._client.time()
+
+        current_seconds = int(current_time[0])
+        current_microseconds = int(current_time[1]) / 1000000
+
+        now = current_seconds + current_microseconds
+
+        return now
+
+    async def update_heartbeat(self) -> None:
+
+        now = await self.redis_current_time()
+
+        await self._client.set(
+            self._heartbeat_key(self._mailbox_id),
+            str(now),
+        )
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+
+        status = await self._client.get(self._active_key(uid))
+        if status is None:
+            raise BadEntityIdError(uid)
+
+        heartbeat_time = await self._client.get(self._heartbeat_key(uid))
+
+        if heartbeat_time is None:
+            return None
+
+        now = await self.redis_current_time()
+
+        return now - float(heartbeat_time.decode())
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

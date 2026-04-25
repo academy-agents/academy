@@ -198,6 +198,12 @@ class ProxyStoreExchangeTransport(
     async def terminate(self, uid: EntityId) -> None:
         await self.transport.terminate(uid)
 
+    async def update_heartbeat(self) -> None:
+        await self.transport.update_heartbeat()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        return await self.transport.heartbeat_status(uid)
+
 
 class ProxyStoreExchangeFactory(
     ExchangeFactory[ProxyStoreExchangeTransport[ExchangeTransportT]],

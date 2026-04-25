@@ -535,14 +535,6 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         terminate_for_error = self.config.terminate_on_error and not expected
         return terminate_for_success or terminate_for_error
 
-    async def _stop_task(self, task: asyncio.Task[None] | None) -> None:
-        # Helper function to reduce complexity of _shutdown block
-
-        if task is not None:
-            task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
-
     async def _shutdown(self) -> None:
         logger.debug(
             'Shutting down agent... (expected: %s; %s; %s)',

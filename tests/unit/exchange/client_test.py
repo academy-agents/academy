@@ -315,3 +315,15 @@ async def test_client_heartbeat_status(
     elapsed = time.time() - start
     assert heartbeat is not None
     assert heartbeat < elapsed
+
+    await client._stop_heartbeat()
+    assert client._heartbeat_task is None
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_status_bad_entity(
+    client: UserExchangeClient[Any],
+) -> None:
+    uid = UserId.new()
+    with pytest.raises(BadEntityIdError):
+        await client.heartbeat_status(uid)

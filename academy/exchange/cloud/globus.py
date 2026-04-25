@@ -766,8 +766,14 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     def _get_heartbeat(self, uid: EntityId) -> float | None:
-        response = self.exchange_client.get_heartbeat(uid)
-        return response.get('heartbeat')
+        missing_code = 404
+        try:
+            response = self.exchange_client.get_heartbeat(uid)
+            return response.get('heartbeat')
+        except AcademyAPIError as e:
+            if e.http_status == missing_code:
+                raise BadEntityIdError(uid) from e
+            raise
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         loop = asyncio.get_running_loop()

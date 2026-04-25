@@ -283,8 +283,14 @@ async def _get_heartbeat_route(request: Request) -> Response:
             status=StatusCode.BAD_REQUEST.value,
             text='Missing or invalid mailbox ID',
         )
+    try:
+        heartbeat = await manager.heartbeat_status(mailbox_id)
+    except BadEntityIdError:
+        return Response(
+            status=StatusCode.NOT_FOUND.value,
+            text='Unknown mailbox ID',
+        )
 
-    heartbeat = await manager.heartbeat_status(mailbox_id)
     return json_response({'heartbeat': heartbeat})
 
 

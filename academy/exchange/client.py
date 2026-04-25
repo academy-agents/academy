@@ -305,6 +305,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
             self._heartbeat_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._heartbeat_task
+            self._heartbeat_task = None
 
     @abc.abstractmethod
     async def _handle_message(self, message: Message[Any]) -> None: ...

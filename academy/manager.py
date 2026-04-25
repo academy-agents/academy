@@ -275,8 +275,7 @@ class _BatchLauncher:
             orphan_registrations = registrations[launch_index:]
             handles = self._manager._handles
             for intent in orphan_intents:
-                if handles.get(intent.handle.agent_id) is intent.handle:
-                    del handles[intent.handle.agent_id]
+                handles.pop(intent.handle.agent_id, None)
             await self._terminate_orphans(orphan_registrations)
             raise
 
@@ -288,9 +287,6 @@ class _BatchLauncher:
 
         The original launch exception must not be masked.
         """
-        if not orphans:
-            return
-
         exchange = self._manager.exchange_client
         results = await asyncio.gather(
             *(exchange.terminate(reg.agent_id) for reg in orphans),
@@ -785,7 +781,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 f'Cannot rebind handle to {new_agent_id}: cache '
                 f'already holds a different handle for that ID.',
             )
-        if self._handles.get(old_agent_id) is handle:
+        if self._handles.get(old_agent_id) is handle:  # pragma: no branch
             del self._handles[old_agent_id]
         handle.agent_id = new_agent_id
         self._handles[new_agent_id] = handle

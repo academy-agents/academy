@@ -434,15 +434,20 @@ async def test_launch_batch_register_agents_failure_skips_launches(
         failing_register,
     )
 
+    placeholder_ids: list[Any] = []
+
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)
-            await batch.launch(EmptyAgent)
+            h1 = await batch.launch(EmptyAgent)
+            h2 = await batch.launch(EmptyAgent)
+            placeholder_ids.extend([h1.agent_id, h2.agent_id])
 
     with pytest.raises(RuntimeError, match='injected register_agents'):
         await body()
 
     assert len(manager.running()) == 0
+    for pid in placeholder_ids:
+        assert pid not in manager._handles
 
 
 @pytest.mark.asyncio

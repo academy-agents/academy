@@ -106,6 +106,7 @@ class _LaunchIntent(Generic[AgentT]):
     # would drop static typing.
     agent: AgentT | type[AgentT]
     handle: Handle[AgentT]
+    placeholder_agent_id: AgentId[AgentT]
     name: str | None = None
     args: tuple[Any, ...] | None = None
     kwargs: dict[str, Any] | None = None
@@ -148,18 +149,26 @@ class _BatchLauncher:
         if not self._intents:
             return
         try:
-            await self._commit()
+            try:
+                await self._commit()
+            except BaseException:
+                self._evict_placeholder_handles()
+                raise
         finally:
-            # Drop per-intent references; the batch object may outlive
-            # ``async with`` and the manager's caches own the state now.
             self._intents.clear()
 
     def _evict_placeholder_handles(self) -> None:
-        """Remove queued intents' handles from the manager cache."""
+        """Remove queued intents' placeholder handles from the cache.
+
+        Safe to call after partial rebinds: rebound intents no longer
+        have their placeholder id in the cache, so the ``is`` check
+        skips them.
+        """
         handles = self._manager._handles
         for intent in self._intents:
-            if handles.get(intent.handle.agent_id) is intent.handle:
-                del handles[intent.handle.agent_id]
+            pid = intent.placeholder_agent_id
+            if handles.get(pid) is intent.handle:
+                del handles[pid]
 
     async def launch(  # noqa: PLR0913
         self,
@@ -202,6 +211,7 @@ class _BatchLauncher:
             _LaunchIntent(
                 agent=agent,
                 handle=handle,
+                placeholder_agent_id=aid,
                 name=name,
                 args=args,
                 kwargs=kwargs,
@@ -805,8 +815,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                     )
 
         A convenience wrapper around :meth:`register_agents` and
-        :meth:`launch(registration=...) <launch>`; you can use the 
-        pair instead when registration and launch need to be 
+        :meth:`launch(registration=...) <launch>`; you can use the
+        pair instead when registration and launch need to be
         separated in time.
         """
         return _BatchLauncher(self)

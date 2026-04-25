@@ -115,6 +115,36 @@ async def test_register_agents_empty(
 
 
 @pytest.mark.asyncio
+async def test_register_agents_fallback_rolls_back(
+    client: UserExchangeClient[Any],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.delattr(
+        type(client._transport),
+        'register_agents',
+        raising=False,
+    )
+    first = await client.register_agent(EmptyAgent)
+    second = await client.register_agent(EmptyAgent)
+    register = mock.AsyncMock(
+        side_effect=[first, second, RuntimeError('boom')],
+    )
+    terminate = mock.AsyncMock(side_effect=[None, RuntimeError('t-fail')])
+    monkeypatch.setattr(client, 'register_agent', register)
+    monkeypatch.setattr(client, 'terminate', terminate)
+
+    with (
+        caplog.at_level(logging.ERROR, logger='academy.exchange.client'),
+        pytest.raises(RuntimeError, match='boom'),
+    ):
+        await client.register_agents([(EmptyAgent, None)] * 3)
+
+    assert terminate.await_count == 2  # noqa: PLR2004
+    assert any('Failed to terminate' in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
 async def test_client_discover(client: UserExchangeClient[Any]) -> None:
     registration = await client.register_agent(EmptyAgent)
     assert await client.discover(EmptyAgent) == (registration.agent_id,)

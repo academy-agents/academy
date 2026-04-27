@@ -1,8 +1,8 @@
 This guide helps users adapt to breaking changes introduced during the v0.X development cycle, such as:
 
-* Changes to APIs, behavior, or configuration that require user action
-* Deprecated or removed features
-* Recommended steps for upgrading between versions
+- Changes to APIs, behavior, or configuration that require user action
+- Deprecated or removed features
+- Recommended steps for upgrading between versions
 
 We provide migration notes for each v0.X release to make upgrades easier during this early phase of development.
 After v1.0, this guide will be retired.
@@ -15,7 +15,6 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)
 
 The once-per-process `init_logging` helper function has been removed. Instead pass log configs when creating managers.
-
 
 ```python
   from academy.logging.helpers import recommended_logging, log_context
@@ -31,7 +30,7 @@ Academy comes with three ways of configuring logging: to the console, to a log f
 
 #### New: `Manager.launch_batch()`
 
-Small ergonomics addition for the Globus transport: launches queued inside a `launch_batch()` block are registered under a single auth consent prompt instead of one per agent. Other transports behave identically to separate `Manager.launch()` calls.
+Batch launch ergonomics for the Globus transport: launches queued inside a `launch_batch()` block are registered under a single auth consent prompt instead of one per agent. Other transports behave identically to separate `Manager.launch()` calls.
 
 ```python
 async with manager.launch_batch() as batch:
@@ -74,6 +73,7 @@ This approach resulted in many edge cases where handles would not be discovered 
 Now, a [`Handle`][academy.handle.Handle] determines the correct [`ExchangeClient`][academy.exchange.ExchangeClient] from [context variables][contextvars].
 This exchange context variable is set when running an agent, or on the user-side when using the [`Manager`][academy.manager.Manager] or [`ExchangeClient`][academy.exchange.ExchangeClient] context managers.
 As a result, it is now safe to instantiate new handles directly inside an agent using only the ID of the peer agent.
+
 ```python
 from academy.agent import Agent, action
 from academy.handle import Handle
@@ -93,6 +93,7 @@ In very specific cases, `ignore_context=True` can be used to force the handle to
 
 Previously, invoking an action on a [`Handle`][academy.handle.Handle.action] returned a [`Future`][asyncio.Future] to the result.
 This resulted in verbose syntax when the result was immediately needed:
+
 ```python
 future = await handle.get_count()
 result = await future
@@ -101,16 +102,20 @@ result = await (await handle.get_count())
 ```
 
 Now, action requests block and return the final result of the action:
+
 ```python
 result = await handle.get_count()
 ```
+
 Code that wants to submit the request and later block on it can create a [`Task`][asyncio.create_task].
+
 ```python
 task = asyncio.create_task(handle.get_count())
 # ... do other work ...
 await task
 print(task.result())
 ```
+
 Using tasks is especially useful when launching multiple long-running actions concurrently and waiting for them in a flexible manner.
 For example, instead of waiting for each action sequentially, you can start them all at once and then wait for them to complete using [`asyncio.wait()`][asyncio.wait] or [`asyncio.as_completed()`][asyncio.as_completed].
 
@@ -135,17 +140,17 @@ Agents are now derived from [`Agent`][academy.agent.Agent] (previously, `Behavio
 
 Summary:
 
-* `academy.agent.Agent` is renamed [`academy.runtime.Runtime`][academy.runtime.Runtime].
-* `academy.behavior.Behavior` is renamed [`academy.agent.Agent`][academy.agent.Agent].
-* `academy.identifier.ClientId` is renamed [`academy.identifier.UserId`][academy.identifier.UserId].
+- `academy.agent.Agent` is renamed [`academy.runtime.Runtime`][academy.runtime.Runtime].
+- `academy.behavior.Behavior` is renamed [`academy.agent.Agent`][academy.agent.Agent].
+- `academy.identifier.ClientId` is renamed [`academy.identifier.UserId`][academy.identifier.UserId].
 
 ### Changes to agents
 
 All special methods provided by [`Agent`][academy.agent.Agent] are named `agent_.*`.
 For example, the startup and shutdown callbacks have been renamed:
 
-* `Agent.on_setup` is renamed `Agent.agent_on_startup`
-* `Agent.on_shutdown` is renamed `Agent.agent_on_shutdown`
+- `Agent.on_setup` is renamed `Agent.agent_on_startup`
+- `Agent.on_shutdown` is renamed `Agent.agent_on_shutdown`
 
 Runtime context is now available via additional methods.
 
@@ -153,22 +158,22 @@ Runtime context is now available via additional methods.
 
 The `Exchange` and `Mailbox` protocols have been merged into a single [`ExchangeClient`][academy.exchange.ExchangeClient] which comes in two forms:
 
-* [`AgentExchangeClient`][academy.exchange.AgentExchangeClient]
-* [`UserExchangeClient`][academy.exchange.UserExchangeClient]
+- [`AgentExchangeClient`][academy.exchange.AgentExchangeClient]
+- [`UserExchangeClient`][academy.exchange.UserExchangeClient]
 
 Thus, an [`ExchangeClient`][academy.exchange.ExchangeClient] has a 1:1 relationship with the mailbox of a single entity.
 Each [`ExchangeClient`][academy.exchange.ExchangeClient] is initialized using a [`ExchangeTransport`][academy.exchange.transport.ExchangeTransport].
 This protocol defines low-level client interaction with the exchange.
 Some of the exchange operations have have been changed:
 
-* `register_client()` has been removed
-* [`send()`][academy.exchange.transport.ExchangeTransport.send] no longer takes a `dest` parameter
-* [`status()`][academy.exchange.transport.ExchangeTransport.status] has been added
+- `register_client()` has been removed
+- [`send()`][academy.exchange.transport.ExchangeTransport.send] no longer takes a `dest` parameter
+- [`status()`][academy.exchange.transport.ExchangeTransport.status] has been added
 
 Exchange clients are created using a factory pattern:
 
-* [`ExchangeFactory.create_agent_client()`][academy.exchange.ExchangeFactory.create_agent_client]
-* [`ExchangeFactory.create_user_client()`][academy.exchange.ExchangeFactory.create_user_client]
+- [`ExchangeFactory.create_agent_client()`][academy.exchange.ExchangeFactory.create_agent_client]
+- [`ExchangeFactory.create_user_client()`][academy.exchange.ExchangeFactory.create_user_client]
 
 All exchange implementations have been updated to provide a custom transport and factory implementation.
 The "thread" exchange has been renamed to "local" now that Academy is async.
@@ -176,16 +181,16 @@ The "thread" exchange has been renamed to "local" now that Academy is async.
 All exchange related errors derive from [`ExchangeError`][academy.exception.ExchangeError].
 `MailboxClosedError` is renamed [`MailboxTerminatedError`][academy.exception.MailboxTerminatedError] with derived types for [`AgentTerminatedError`][academy.exception.AgentTerminatedError] and [`UserTerminatedError`][academy.exception.UserTerminatedError].
 
-
 ### Changes to the manager and launchers
 
 The `Launcher` protocol and implementations have been removed, with their functionality incorporated directly into the [`Manager`][academy.manager.Manager].
 
 Summary:
 
-* [`Manager`][academy.manager.Manager] is now initialized with one or more [`Executors`][concurrent.futures.Executor].
-* Added the [`Manager.from_exchange_factory()`][academy.manager.Manager.from_exchange_factory] class method.
-* `Manager.set_default_launcher()` and `Manager.add_launcher()` are renamed [`set_default_executor()`][academy.manager.Manager.set_default_executor] and [`add_executor()`][academy.manager.Manager.add_executor], respectively.
-* [`Manager`][academy.manager.Manager] exposes [`get_handle()`][academy.manager.Manager.get_handle] and [`register_agent()`][academy.manager.Manager.register_agent].
-* [`Manager.launch()`][academy.manager.Manager.launch] now optionally takes an [`Agent`][academy.agent.Agent] type and args/kwargs and will defer agent initialization to on worker.
-* [`Manager.wait()`][academy.manager.Manager] now takes an iterable of agent IDs or handles.
+- [`Manager`][academy.manager.Manager] is now initialized with one or more [`Executors`][concurrent.futures.Executor].
+- Added the [`Manager.from_exchange_factory()`][academy.manager.Manager.from_exchange_factory] class method.
+- `Manager.set_default_launcher()` and `Manager.add_launcher()` are renamed [`set_default_executor()`][academy.manager.Manager.set_default_executor] and [`add_executor()`][academy.manager.Manager.add_executor], respectively.
+- [`Manager`][academy.manager.Manager] exposes [`get_handle()`][academy.manager.Manager.get_handle] and [`register_agent()`][academy.manager.Manager.register_agent].
+- [`Manager.launch()`][academy.manager.Manager.launch] now optionally takes an [`Agent`][academy.agent.Agent] type and args/kwargs and will defer agent initialization to on worker.
+- [`Manager.wait()`][academy.manager.Manager] now takes an iterable of agent IDs or handles.
+

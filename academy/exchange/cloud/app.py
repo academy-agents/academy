@@ -265,32 +265,15 @@ async def _terminate_route(request: Request) -> Response:
     return Response(status=StatusCode.OKAY.value)
 
 
+@exception_to_response('heartbeat')
 async def _get_heartbeat_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
-
-    try:
-        raw_mailbox_id = data['mailbox']
-        mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
-            raw_mailbox_id,
-        )
-    except (KeyError, ValidationError):
-        logger.warning(
-            'Invalid or missing mailbox id in request.',
-            exc_info=True,
-        )
-        return Response(
-            status=StatusCode.BAD_REQUEST.value,
-            text='Missing or invalid mailbox ID',
-        )
-    try:
-        heartbeat = await manager.heartbeat_status(mailbox_id)
-    except BadEntityIdError:
-        return Response(
-            status=StatusCode.NOT_FOUND.value,
-            text='Unknown mailbox ID',
-        )
-
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
+    heartbeat = await manager.heartbeat_status(mailbox_id)
     return json_response({'heartbeat': heartbeat})
 
 

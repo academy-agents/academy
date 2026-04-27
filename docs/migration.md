@@ -193,4 +193,3 @@ Summary:
 - [`Manager`][academy.manager.Manager] exposes [`get_handle()`][academy.manager.Manager.get_handle] and [`register_agent()`][academy.manager.Manager.register_agent].
 - [`Manager.launch()`][academy.manager.Manager.launch] now optionally takes an [`Agent`][academy.agent.Agent] type and args/kwargs and will defer agent initialization to on worker.
 - [`Manager.wait()`][academy.manager.Manager] now takes an iterable of agent IDs or handles.
-

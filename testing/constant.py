@@ -4,7 +4,7 @@ from __future__ import annotations
 TEST_CONNECTION_TIMEOUT = 15
 # Short sleep interval used in tight loops or on timeouts that should
 # immediately be triggered
-TEST_SLEEP_INTERVAL = 0.001
+TEST_SLEEP_INTERVAL = 0.05
 # Time limit on calls to wait() that should return immediately
 TEST_WAIT_TIMEOUT = 1
 

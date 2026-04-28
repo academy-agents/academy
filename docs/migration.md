@@ -33,7 +33,7 @@ Academy comes with three ways of configuring logging: to the console, to a log f
 
 ## Agent Registration are Pydantic Models
 
-The `AgentRegistration` protocol is used to match new agents with previously created mailboxes --- a different implementation of the protocol is used for each exchange type. These classes are now`pydantic` models instead of dataclasses.  Previously created registrations will not work with the new version of Academy.
+The `AgentRegistration` protocol is used to match new agents with previously created mailboxes --- a different implementation of the protocol is used for each exchange type. These classes are now `pydantic` models instead of dataclasses.  Previously created registrations will not work with the new version of Academy.
 
 ## Academy v0.4
 

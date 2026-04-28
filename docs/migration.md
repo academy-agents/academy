@@ -12,6 +12,8 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 
 ## Academy v0.5
 
+## Logging Configuration
+
 This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)
 
 The once-per-process `init_logging` helper function has been removed. Instead pass log configs when creating managers.
@@ -28,6 +30,10 @@ This will initialize logging for the lifetime of the manager, and use the config
 Multiple log contexts can be active in a process at any one time - for example, a coordinating process and multiple agents in the same process might each want to initialize their own logging. In previous versions of academy, init_logging would either only initialize based on the first call, or would forget previous configurations. In the new logging system, all configurations will see all log lines in a process, which is still a conflict but results in more, rather than less, logging.
 
 Academy comes with three ways of configuring logging: to the console, to a log file, and to a shared home directory JSON logfile store. Developers can implement new logging configurations by subclassing the LogConfig class.
+
+## Agent Registration are Pydantic Models
+
+The `AgentRegistration` protocol is used to match new agents with previously created mailboxes --- a different implementation of the protocol is used for each exchange type. These classes are now`pydantic` models instead of dataclasses.  Previously created registrations will not work with the new version of Academy.
 
 ## Academy v0.4
 

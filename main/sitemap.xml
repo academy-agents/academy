@@ -77,6 +77,10 @@
          <lastmod>2026-04-28</lastmod>
     </url>
     <url>
+         <loc>https://docs.academy-agents.org/stable/api/run/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+    <url>
          <loc>https://docs.academy-agents.org/stable/api/runtime/</loc>
          <lastmod>2026-04-28</lastmod>
     </url>
@@ -226,6 +230,10 @@
     </url>
     <url>
          <loc>https://docs.academy-agents.org/stable/guides/llm/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.academy-agents.org/stable/guides/persistent/</loc>
          <lastmod>2026-04-28</lastmod>
     </url>
     <url>

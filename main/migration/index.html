@@ -617,6 +617,24 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#logging-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Logging Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-registration-are-pydantic-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent Registration are Pydantic Models
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#academy-v04" class="md-nav__link">
     <span class="md-ellipsis">
       Academy v0.4
@@ -1024,6 +1042,29 @@
   
   <span class="md-ellipsis">
     LLM Agents
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/persistent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Building Persistent Agents
     
   </span>
   
@@ -2171,6 +2212,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../api/run/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    academy.run
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/runtime/" class="md-nav__link">
         
   
@@ -2344,6 +2408,24 @@
   <a href="#academy-v05" class="md-nav__link">
     <span class="md-ellipsis">
       Academy v0.5
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Logging Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-registration-are-pydantic-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent Registration are Pydantic Models
     </span>
   </a>
   
@@ -2528,6 +2610,7 @@ After v1.0, this guide will be retired.
 All future changes—including breaking changes and deprecations—will be documented in the project changelog.</p>
 <p>Please refer to our <a href="../version-policy/">Version Policy</a> for more details on when we make breaking changes.</p>
 <h2 id="academy-v05">Academy v0.5<a class="headerlink" href="#academy-v05" title="Permanent link">&para;</a></h2>
+<h2 id="logging-configuration">Logging Configuration<a class="headerlink" href="#logging-configuration" title="Permanent link">&para;</a></h2>
 <p>This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)</p>
 <p>The once-per-process <code>init_logging</code> helper function has been removed. Instead pass log configs when creating managers.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>  <span class="kn">from</span><span class="w"> </span><span class="nn">academy.logging.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">recommended_logging</span><span class="p">,</span> <span class="n">log_context</span>
@@ -2537,6 +2620,8 @@ All future changes—including breaking changes and deprecations—will be docum
 <p>This will initialize logging for the lifetime of the manager, and use the configuration for agents launched through that manager, even when they are remote.</p>
 <p>Multiple log contexts can be active in a process at any one time - for example, a coordinating process and multiple agents in the same process might each want to initialize their own logging. In previous versions of academy, init_logging would either only initialize based on the first call, or would forget previous configurations. In the new logging system, all configurations will see all log lines in a process, which is still a conflict but results in more, rather than less, logging.</p>
 <p>Academy comes with three ways of configuring logging: to the console, to a log file, and to a shared home directory JSON logfile store. Developers can implement new logging configurations by subclassing the LogConfig class.</p>
+<h2 id="agent-registration-are-pydantic-models">Agent Registration are Pydantic Models<a class="headerlink" href="#agent-registration-are-pydantic-models" title="Permanent link">&para;</a></h2>
+<p>The <code>AgentRegistration</code> protocol is used to match new agents with previously created mailboxes --- a different implementation of the protocol is used for each exchange type. These classes are now <code>pydantic</code> models instead of dataclasses.  Previously created registrations will not work with the new version of Academy.</p>
 <h2 id="academy-v04">Academy v0.4<a class="headerlink" href="#academy-v04" title="Permanent link">&para;</a></h2>
 <h2 id="globus-sdk-version-has-been-updated">Globus SDK version has been updated<a class="headerlink" href="#globus-sdk-version-has-been-updated" title="Permanent link">&para;</a></h2>
 <p>If your project depends on both Globus SDK and Academy, you will need to use matching versions. To upgrade to Academy v0.4, we now need globus-sdk&gt;=4.0.  See the migration guide for the <a href="https://globus-sdk-python.readthedocs.io/en/stable/upgrading.html">globus-sdk</a>.</p>

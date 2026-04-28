@@ -216,6 +216,23 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
+    async def update_heartbeat(self) -> None:
+        """Update the heartbeat timestamp for this transport's mailbox."""
+        ...
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Gets time since latest active timestamp for a specific mailbox.
+
+        Args:
+            uid: Entity identifier of the mailbox to check.
+
+        Returns:
+            Time since last heartbeat, or None if no heartbeat
+            retrieved.
+
+        """
+        ...
+
 
 ExchangeTransportT = TypeVar(
     'ExchangeTransportT',

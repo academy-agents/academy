@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 import sys
+import time
 import uuid
 from typing import Any
 from typing import Protocol
@@ -228,6 +229,25 @@ class MailboxBackend(Protocol):
         """
         ...
 
+    async def update_heartbeat(self, uid: EntityId) -> None:
+        """Update the heartbeat timestamp for a mailbox.
+
+        Args:
+            uid: Mailbox id to update.
+        """
+        ...
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Get the last heartbeat timestamp of a mailbox.
+
+        Args:
+            uid: Mailbox id to check.
+
+        Returns:
+            Unix timestamp of the last heartbeat, or None if never recorded.
+        """
+        ...
+
 
 class PythonBackend:
     """Mailbox backend using in-memory python data structures.
@@ -247,6 +267,7 @@ class PythonBackend:
         self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
         self._locks: dict[EntityId, asyncio.Lock] = {}
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
+        self.last_active: dict[EntityId, float] = {}
 
     def _has_permissions(self, client: ClientInfo, uid: EntityId) -> bool:
         """Check if a user has permission to share mailbox.
@@ -345,6 +366,11 @@ class PythonBackend:
             self._locks[uid] = asyncio.Lock()
             if agent is not None and isinstance(uid, AgentId):
                 self._agents[uid] = agent
+            logger.info(
+                'Created mailbox for %s',
+                uid,
+                extra={'academy.mailbox_id': uid},
+            )
 
     async def terminate(self, client: ClientInfo, uid: EntityId) -> None:
         """Close a mailbox.
@@ -381,6 +407,20 @@ class PythonBackend:
                         await self.put(client, response)
 
             mailbox.shutdown(immediate=True)
+
+    async def update_heartbeat(self, uid: EntityId) -> None:
+        """Update the heartbeat timestamp for a mailbox."""
+        self.last_active[uid] = time.time()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Get the last heartbeat timestamp for a mailbox."""
+        if uid not in self._mailboxes:
+            raise BadEntityIdError(uid)
+
+        if self.last_active.get(uid) is None:
+            return None
+
+        return time.time() - self.last_active[uid]
 
     async def discover(
         self,
@@ -595,6 +635,7 @@ class PythonBackend:
             )
 
         self._shares[uid].discard(group_uid)
+        logger.info('Group %s removed from mailbox %s', group_uid, uid)
 
 
 async def _drain_queue(queue: AsyncQueue[Message[Any]]) -> list[Message[Any]]:
@@ -664,6 +705,9 @@ class RedisBackend:
 
     def _share_key(self, uid: EntityId) -> str:
         return f'share:{uid.uid}'
+
+    def _heartbeat_key(self, uid: EntityId) -> str:
+        return f'heartbeat:{uid.uid}'
 
     async def _has_permissions(
         self,
@@ -840,6 +884,44 @@ class RedisBackend:
                 response = message.create_response(body)
                 with contextlib.suppress(Exception):
                     await self.put(client, response)
+
+    async def _redis_current_time(self) -> float:
+        """Helper to transform Redis time structure to Unix float.
+
+        Returns:
+            Unix timestamp as a float
+
+        """
+        # Returns in the form [seconds since epoch, microseconds]
+        current_time = await self._client.time()
+
+        current_seconds = int(current_time[0])
+        current_microseconds = int(current_time[1]) / 1000000
+
+        now = current_seconds + current_microseconds
+
+        return now
+
+    async def update_heartbeat(self, uid: EntityId) -> None:
+        """Update the heartbeat timestamp for a mailbox."""
+        now = await self._redis_current_time()
+
+        await self._client.set(self._heartbeat_key(uid), str(now))
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Get the time since last heartbeat timestamp for a mailbox."""
+        status = await self._client.get(self._active_key(uid))
+        if status is None:
+            raise BadEntityIdError(uid)
+
+        heartbeat_time = await self._client.get(self._heartbeat_key(uid))
+
+        if heartbeat_time is None:
+            return None
+
+        now = await self._redis_current_time()
+
+        return now - float(heartbeat_time.decode())
 
     async def discover(
         self,

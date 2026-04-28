@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import pickle
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -12,6 +13,8 @@ from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
+from academy.exchange.cloud.client import HttpExchangeTransport
+from academy.exchange.cloud.globus import GlobusExchangeTransport
 from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
@@ -22,6 +25,7 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
 from testing.agents import EmptyAgent
+from testing.constant import TEST_HEARTBEAT_INTERVAL
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
@@ -243,3 +247,31 @@ async def test_transport_discover(
 
     found = await transport.discover('academy.agent.Agent')
     assert set(found) == {bid, cid, aid}
+
+
+@pytest.mark.asyncio
+async def test_transport_heartbeat(
+    transport: ExchangeTransport[AgentRegistrationT],
+) -> None:
+    heartbeat = await transport.heartbeat_status(transport.mailbox_id)
+    assert heartbeat is None
+
+    if isinstance(transport, (HttpExchangeTransport, GlobusExchangeTransport)):
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=transport.mailbox_id,
+            body=PingRequest(),
+        )
+        await transport.send(message)
+    else:
+        await transport.update_heartbeat()
+
+    heartbeat = await transport.heartbeat_status(transport.mailbox_id)
+    assert heartbeat is not None
+    assert heartbeat < 1.0
+
+    await transport.update_heartbeat()
+    await asyncio.sleep(TEST_HEARTBEAT_INTERVAL)
+    heartbeat = await transport.heartbeat_status(transport.mailbox_id)
+    assert heartbeat is not None
+    assert TEST_HEARTBEAT_INTERVAL + 1.0 > heartbeat > TEST_HEARTBEAT_INTERVAL

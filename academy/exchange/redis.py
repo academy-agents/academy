@@ -1,7 +1,6 @@
 # ruff: noqa: D102
 from __future__ import annotations
 
-import dataclasses
 import enum
 import logging
 import sys
@@ -10,9 +9,9 @@ from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
 from typing import Any
 from typing import Generic
+from typing import Literal
 from typing import NamedTuple
 from typing import TYPE_CHECKING
-from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -20,6 +19,8 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 import redis.asyncio
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -37,7 +38,8 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
+
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +57,13 @@ class _MailboxState(enum.Enum):
     INACTIVE = 'INACTIVE'
 
 
-@dataclasses.dataclass
-class RedisAgentRegistration(Generic[AgentT]):
+class RedisAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for redis exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['redis'] = Field('redis', repr=False)
 
 
 class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):

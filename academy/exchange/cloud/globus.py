@@ -16,15 +16,15 @@ from datetime import timedelta
 from typing import Any
 from typing import ClassVar
 from typing import Generic
+from typing import Literal
 from typing import NamedTuple
+from typing import TYPE_CHECKING
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from typing import TYPE_CHECKING
-from typing import TypeVar
 
 import globus_sdk
 from globus_sdk import AuthClient
@@ -37,6 +37,8 @@ from globus_sdk.exc import GlobusAPIError
 from globus_sdk.gare import GlobusAuthorizationParameters
 from globus_sdk.scopes import AuthScopes
 from globus_sdk.transport.requests import RequestsTransport
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -58,7 +60,7 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -196,8 +198,7 @@ class _PendingRegistration(Generic[AgentT]):
     scope: Scope
 
 
-@dataclasses.dataclass
-class GlobusAgentRegistration(Generic[AgentT]):
+class GlobusAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for hosted globus exchange."""
 
     agent_id: AgentId[AgentT]
@@ -225,6 +226,8 @@ class GlobusAgentRegistration(Generic[AgentT]):
     security of the launching channel (typically Globus Compute in the
     Academy ecosystem).
     """
+
+    exchange_type: Literal['globus'] = Field('globus', repr=False)
 
 
 class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):

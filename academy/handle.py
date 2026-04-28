@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 else:
     # Agent is only used in the bounding of the AgentT TypeVar.
     AgentT_co = TypeVar('AgentT_co', covariant=True)
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 

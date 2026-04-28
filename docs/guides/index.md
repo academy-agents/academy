@@ -11,3 +11,5 @@ The best way to get started with Academy basics is the [Tutorial](tutorial.md)
 **[HPC Integration Patterns](hpc.md)**
 
 **[LLM Integration Patterns](llm.md)**
+
+**[Persistent Agents](persistent.md)**

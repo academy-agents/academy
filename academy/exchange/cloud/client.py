@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import dataclasses
 import logging
 import multiprocessing
 import sys
@@ -16,7 +15,6 @@ from typing import Generic
 from typing import Literal
 from typing import NamedTuple
 from typing import TYPE_CHECKING
-from typing import TypeVar
 from urllib.parse import urlparse
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -26,6 +24,8 @@ else:  # pragma: <3.11 cover
 
 import aiohttp
 from aiohttp import hdrs
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
@@ -50,7 +50,7 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +64,13 @@ class _HttpConnectionInfo(NamedTuple):
     request_timeout_s: float = 60
 
 
-@dataclasses.dataclass
-class HttpAgentRegistration(Generic[AgentT]):
+class HttpAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for Http exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['http'] = Field('http', repr=False)
 
 
 class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):

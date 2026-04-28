@@ -758,29 +758,20 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         be the real ID and this method (plus the
         ``_used_for_messaging`` guard on :class:`Handle`) could go
         away. Deferred because it changes the transport protocol.
-
-        Raises:
-            RuntimeError: If ``handle`` has already been used for
-                messaging, or if ``new_agent_id`` is already a cache
-                key for a different handle. Uses ``RuntimeError``
-                rather than ``assert`` so the check survives
-                ``python -O``.
         """
         old_agent_id = handle.agent_id
         if old_agent_id == new_agent_id:
             return
-        if getattr(handle, '_used_for_messaging', False):
-            raise RuntimeError(
-                f'Cannot rebind handle {old_agent_id}: already used '
-                'for messaging. Pass the Handle itself (not '
-                'handle.agent_id) as a sibling launch_batch argument.',
-            )
+        assert not handle._used_for_messaging, (
+            f'Cannot rebind handle {old_agent_id}: already used for '
+            'messaging. Pass the Handle itself (not handle.agent_id) '
+            'as a sibling launch_batch argument.'
+        )
         existing = self._handles.get(new_agent_id)
-        if existing is not None and existing is not handle:
-            raise RuntimeError(
-                f'Cannot rebind handle to {new_agent_id}: cache '
-                f'already holds a different handle for that ID.',
-            )
+        assert existing is None or existing is handle, (
+            f'Cannot rebind handle to {new_agent_id}: cache already '
+            'holds a different handle for that ID.'
+        )
         if self._handles.get(old_agent_id) is handle:  # pragma: no branch
             del self._handles[old_agent_id]
         handle.agent_id = new_agent_id

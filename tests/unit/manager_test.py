@@ -227,7 +227,7 @@ async def test_rebind_handle_rejects_conflicting_cached_handle(
     handle_a = manager.get_handle(aid_a)
     manager.get_handle(aid_b)  # cached under aid_b
     with pytest.raises(
-        RuntimeError,
+        AssertionError,
         match='already holds a different handle',
     ):
         manager._rebind_handle(handle_a, aid_b)
@@ -584,7 +584,7 @@ async def test_launch_batch_rejects_rebind_of_used_handle(
             handle = await batch.launch(EmptyAgent)
             handle._used_for_messaging = True
 
-    with pytest.raises(RuntimeError, match='used for messaging'):
+    with pytest.raises(AssertionError, match='used for messaging'):
         await body()
 
 

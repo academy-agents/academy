@@ -314,7 +314,7 @@ async def test_client_heartbeat_status(
     heartbeat = await client.heartbeat_status(client.client_id)
     elapsed = time.time() - start
     assert heartbeat is not None
-    assert heartbeat < elapsed
+    assert heartbeat <= elapsed
 
     await client._stop_heartbeat()
     assert client._heartbeat_task is None

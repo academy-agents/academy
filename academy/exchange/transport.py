@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from academy.agent import AgentT
     from academy.exchange.factory import ExchangeFactory
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 
 class MailboxStatus(enum.Enum):
@@ -47,9 +47,11 @@ class AgentRegistration(Protocol[AgentT]):
     """Agent exchange registration information.
 
     Attributes:
+        exchange_type: The type of exchange this registration is for.
         agent_id: Unique agent identifier returned by the exchange.
     """
 
+    exchange_type: str
     agent_id: AgentId[AgentT]
 
 
@@ -213,6 +215,23 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
 
         Raises:
             ExchangeError: Error returned by the exchange.
+        """
+        ...
+
+    async def update_heartbeat(self) -> None:
+        """Update the heartbeat timestamp for this transport's mailbox."""
+        ...
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Gets time since latest active timestamp for a specific mailbox.
+
+        Args:
+            uid: Entity identifier of the mailbox to check.
+
+        Returns:
+            Time since last heartbeat, or None if no heartbeat
+            retrieved.
+
         """
         ...
 

@@ -12,6 +12,8 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 
 ## Academy v0.5
 
+## Logging Configuration
+
 This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)
 
 The once-per-process `init_logging` helper function has been removed. Instead pass log configs when creating managers.
@@ -40,6 +42,9 @@ async with manager.launch_batch() as batch:
         args=(greeter,),
     )
 ```
+## Agent Registration are Pydantic Models
+
+The `AgentRegistration` protocol is used to match new agents with previously created mailboxes --- a different implementation of the protocol is used for each exchange type. These classes are now `pydantic` models instead of dataclasses.  Previously created registrations will not work with the new version of Academy.
 
 ## Academy v0.4
 

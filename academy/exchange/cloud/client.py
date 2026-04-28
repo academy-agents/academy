@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import dataclasses
 import logging
 import multiprocessing
 import sys
@@ -16,7 +15,6 @@ from typing import Generic
 from typing import Literal
 from typing import NamedTuple
 from typing import TYPE_CHECKING
-from typing import TypeVar
 from urllib.parse import urlparse
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -26,6 +24,8 @@ else:  # pragma: <3.11 cover
 
 import aiohttp
 from aiohttp import hdrs
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
@@ -50,7 +50,7 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +64,13 @@ class _HttpConnectionInfo(NamedTuple):
     request_timeout_s: float = 60
 
 
-@dataclasses.dataclass
-class HttpAgentRegistration(Generic[AgentT]):
+class HttpAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for Http exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['http'] = Field('http', repr=False)
 
 
 class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
@@ -99,6 +100,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._message_url = f'{base_url}/message'
         self._discover_url = f'{base_url}/discover'
         self._listen_url = f'{base_url}/mailbox/listen'
+        self._heartbeat_url = f'{base_url}/mailbox/heartbeat'
 
     @classmethod
     async def new(
@@ -310,6 +312,17 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             json={'mailbox': uid.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id, uid)
+
+    async def update_heartbeat(self) -> None:
+        pass  # Server tracks this automatically via listen/send
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        async with self._session.get(
+            self._heartbeat_url,
+            json={'mailbox': uid.model_dump_json()},
+        ) as response:
+            _raise_for_status(response, self.mailbox_id, uid)
+            return (await response.json())['heartbeat']
 
 
 class HttpExchangeConsole:

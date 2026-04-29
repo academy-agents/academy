@@ -537,3 +537,64 @@ class ProxyHandle(Handle[AgentT]):
         if self._agent_closed:
             raise AgentTerminatedError(self.agent_id)
         self._agent_closed = True if terminate is None else terminate
+
+
+class PossibilyIncompleteHandle(Handle[AgentT]):
+    """Handle that does not point to a registered agent.
+
+    A PossiblyIncompleteHandle handle is that is created before
+    a mailbox is created in the exchange, for instance because
+    the handle was created during a batch. If the registration
+    completes and this handle is updated to point to the agent
+    id, then the Handle behaves like a regular Handle.
+    """
+
+    def __init__(
+        self,
+        *,
+        exchange: ExchangeClient[Any] | None = None,
+        ignore_context: bool = False,
+    ) -> None:
+        super().__init__(
+            None,  # type: ignore[arg-type]
+            exchange=exchange,
+            ignore_context=ignore_context,
+        )
+        self._agent_id: AgentId[AgentT] | None = None
+
+    @property
+    def agent_id(self) -> AgentId[AgentT]:
+        """Return agent_id or raise error if agent_id has not been set."""
+        if self._agent_id is None:
+            raise RuntimeError(
+                'Handle points to unregistered agent. This is caused by '
+                'an unfinished agent registration.',
+            )
+        return self._agent_id
+
+    @agent_id.setter
+    def agent_id(self, agent_id: AgentId[AgentT]) -> None:
+        """Set agent id."""
+        self._agent_id = agent_id
+
+    def __reduce__(
+        self,
+    ) -> tuple[
+        type[Handle[Any]],
+        tuple[Any, ...],
+    ]:
+        if self._agent_id:
+            return super().__reduce__()
+
+        return (PossibilyIncompleteHandle, ())
+
+    def __repr__(self) -> str:
+        return (
+            f'{type(self).__name__}(agent_id={self._agent_id!r}, '
+            f'exchange={self._exchange!r}, '
+            f'ignore_context={self.ignore_context!r})'
+        )
+
+    def __str__(self) -> str:
+        name = type(self).__name__
+        return f'{name}<agent: {self._agent_id}>'

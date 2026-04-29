@@ -4,7 +4,6 @@ import asyncio
 import multiprocessing
 import pathlib
 import time
-import uuid
 from collections.abc import Callable
 from concurrent.futures import Future
 from concurrent.futures import ProcessPoolExecutor
@@ -24,7 +23,6 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.identifier import AgentId
 from academy.logging.configs.file import FileLogging
 from academy.manager import Manager
 from testing.agents import EmptyAgent
@@ -171,113 +169,84 @@ async def test_register_agents_and_launch(
 
 
 @pytest.mark.asyncio
-async def test_rebind_handle_rekeys_cache(
+async def test_launch_batch_launches_agents(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    original_id: AgentId[Any] = AgentId.new()
-    new_id: AgentId[Any] = AgentId.new()
-    handle = manager.get_handle(original_id)
-    assert manager._handles[original_id] is handle
+    instance = EmptyAgent()
+    batch = manager.launch_batch()
+    handle = await batch.launch(instance)
+    agents = await manager.exchange_client.discover(Agent)
+    assert len(agents) == 0
 
-    manager._rebind_handle(handle, new_id)
-
-    assert handle.agent_id == new_id
-    assert original_id not in manager._handles
-    assert manager._handles[new_id] is handle
+    await batch.finalize()
+    assert handle.agent_id in manager.running()
+    agents = await manager.exchange_client.discover(Agent)
+    assert len(agents) == 1
 
 
 @pytest.mark.asyncio
-async def test_rebind_handle_same_id_is_noop(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    agent_id: AgentId[Any] = AgentId.new()
-    handle = manager.get_handle(agent_id)
-
-    manager._rebind_handle(handle, agent_id)
-
-    assert handle.agent_id == agent_id
-    assert manager._handles[agent_id] is handle
-
-
-@pytest.mark.asyncio
-async def test_rebind_handle_equal_but_distinct_id_is_noop(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    # Same UUID in two AgentId objects exercises the `==` short-circuit
-    # rather than `is`.
-    shared_uid = uuid.uuid4()
-    aid1: AgentId[Any] = AgentId(uid=shared_uid)
-    aid2: AgentId[Any] = AgentId(uid=shared_uid)
-    assert aid1 == aid2
-    assert aid1 is not aid2
-
-    handle = manager.get_handle(aid1)
-    manager._rebind_handle(handle, aid2)
-
-    assert handle.agent_id == aid1
-    assert manager._handles[aid1] is handle
-
-
-@pytest.mark.asyncio
-async def test_rebind_handle_rejects_conflicting_cached_handle(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    aid_a: AgentId[Any] = AgentId.new()
-    aid_b: AgentId[Any] = AgentId.new()
-    handle_a = manager.get_handle(aid_a)
-    manager.get_handle(aid_b)  # cached under aid_b
-    with pytest.raises(
-        AssertionError,
-        match='already holds a different handle',
-    ):
-        manager._rebind_handle(handle_a, aid_b)
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_empty_is_noop(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    async with manager.launch_batch():
-        pass
-    assert len(manager.running()) == 0
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_launch_after_close_raises(
+async def test_launch_batch_launch_after_close(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     batch = manager.launch_batch()
-    async with batch:
-        pass
-    with pytest.raises(RuntimeError, match='batch is closed'):
+    await batch.finalize()
+    with pytest.raises(RuntimeError, match='Batch is closed'):
         await batch.launch(EmptyAgent)
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_accepts_instance(
+async def test_launch_batch_use_handle_before_finalize(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    instance = EmptyAgent()
-    async with manager.launch_batch() as batch:
-        handle = await batch.launch(instance)
-        assert batch._intents[0].agent is instance
-    assert handle.agent_id in manager.running()
+    batch = manager.launch_batch()
+    handle = await batch.launch(SleepAgent)
+    with pytest.raises(RuntimeError, match='unregistered agent'):
+        await handle.sleep(1)
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_queues_and_returns_handle(
+async def test_launch_batch_register_agents_failure_skips_launches(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    async with manager.launch_batch() as batch:
-        handle = await batch.launch(EmptyAgent)
-        pre_commit_id = handle.agent_id
-        assert manager._handles[pre_commit_id] is handle
-        assert len(batch._intents) == 1
-        intent = batch._intents[0]
-        assert intent.agent is EmptyAgent
-        assert intent.handle is handle
-    # Same handle object is cached under the post-commit id.
-    assert manager._handles[handle.agent_id] is handle
+    with mock.patch.object(
+        manager.exchange_client,
+        'register_agents',
+        side_effect=RuntimeError('injected failure'),
+    ):
+        batch = manager.launch_batch()
+        await batch.launch(EmptyAgent)
+        await batch.launch(EmptyAgent)
+
+        with pytest.raises(RuntimeError, match='injected failure'):
+            await batch.finalize()
+
+        assert len(manager.running()) == 0
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_launch_failure_terminates_orphans(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    with mock.patch.object(
+        manager,
+        'launch',
+        wraps=manager.launch,
+        side_effect=[mock.DEFAULT, RuntimeError('Launch Failure')],
+    ):
+        batch = manager.launch_batch()
+        await batch.launch(EmptyAgent)  # Launches
+        await batch.launch(EmptyAgent)  # Error
+        await batch.launch(EmptyAgent)  # Orphaned
+
+        with pytest.raises(RuntimeError, match='Launch Failure'):
+            await batch.finalize()
+
+    # First agent starts
+    assert len(manager.running()) == 1
+
+    # Mailboxes for the other 2 agents are terminated
+    agents = await manager.exchange_client.discover(Agent)
+    assert len(agents) == 1
 
 
 @pytest.mark.asyncio
@@ -286,83 +255,24 @@ async def test_launch_batch_name_flows_into_agent_id(
 ) -> None:
     async with manager.launch_batch() as batch:
         handle = await batch.launch(EmptyAgent, name='worker-1')
-        assert handle.agent_id.name == 'worker-1'
-        assert batch._intents[0].name == 'worker-1'
+    assert handle.agent_id.name == 'worker-1'
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_multiple_launches_preserve_order(
+async def test_launch_batch_context_manager(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
+    instance = EmptyAgent()
     async with manager.launch_batch() as batch:
-        h1 = await batch.launch(EmptyAgent, name='a')
-        h2 = await batch.launch(IdentityAgent, name='b')
-        h3 = await batch.launch(EmptyAgent, name='c')
-        assert batch._intents[0].agent is EmptyAgent
-        assert batch._intents[1].agent is IdentityAgent
-        assert batch._intents[2].agent is EmptyAgent
-        assert batch._intents[0].name == 'a'
-        assert batch._intents[1].name == 'b'
-        assert batch._intents[2].name == 'c'
-    ids = {h1.agent_id, h2.agent_id, h3.agent_id}
-    assert len(ids) == 3  # noqa: PLR2004
+        handle = await batch.launch(instance)
+
+    assert handle.agent_id in manager.running()
+    agents = await manager.exchange_client.discover(Agent)
+    assert len(agents) == 1
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_handle_usable_as_sibling_arg(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    async with manager.launch_batch() as batch:
-        parent = await batch.launch(EmptyAgent)
-        await batch.launch(
-            _FlexAgent,
-            args=(parent,),
-            kwargs={'peer': parent},
-        )
-        # Sibling intent captures the parent handle by reference so
-        # that commit-time rebinding is visible to siblings.
-        sibling_intent = batch._intents[1]
-        assert sibling_intent.args is not None
-        assert sibling_intent.kwargs is not None
-        assert sibling_intent.args[0] is parent
-        assert sibling_intent.kwargs['peer'] is parent
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_commits_on_exit(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    async with manager.launch_batch() as batch:
-        h1 = await batch.launch(EmptyAgent)
-        h2 = await batch.launch(IdentityAgent)
-    assert len(manager.running()) == 2  # noqa: PLR2004
-    assert manager._handles[h1.agent_id] is h1
-    assert manager._handles[h2.agent_id] is h2
-    running_ids = manager.running()
-    assert h1.agent_id in running_ids
-    assert h2.agent_id in running_ids
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_commit_rebinds_handle_ids(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    # Local has no transport-level ``register_agents``; the client
-    # falls back to sequential ``register_agent`` which mints a fresh
-    # id. The batch launcher must rebind the pre-minted handle and
-    # re-key ``manager._handles``.
-    async with manager.launch_batch() as batch:
-        handle = await batch.launch(EmptyAgent)
-        pre_minted_id = handle.agent_id
-        assert manager._handles[pre_minted_id] is handle
-    # After commit, the same Handle object is cached under its
-    # post-commit id, and the placeholder id is gone from the cache.
-    assert manager._handles[handle.agent_id] is handle
-    assert pre_minted_id not in manager._handles
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_body_exception_skips_commit(
+async def test_launch_batch_exception_skips_launch(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     captured: list[Any] = []
@@ -376,280 +286,24 @@ async def test_launch_batch_body_exception_skips_commit(
 
     with pytest.raises(ValueError, match='from body'):
         await body()
-    assert len(manager.running()) == 0
-    # Placeholder handles are evicted so they don't linger pointing at
-    # mailboxes that were never created.
-    batch = captured[0]
-    for intent in batch._intents:
-        assert intent.handle.agent_id not in manager._handles
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_empty_body_does_not_call_register_agents(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    with mock.patch.object(
-        manager.exchange_client,
-        'register_agents',
-        new_callable=mock.AsyncMock,
-    ) as register_agents:
-        async with manager.launch_batch():
-            pass
-    assert register_agents.call_count == 0
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_sibling_handle_resolved_after_commit(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    captured_sibling_args: list[Any] = []
-    async with manager.launch_batch() as batch:
-        parent = await batch.launch(EmptyAgent)
-        await batch.launch(_FlexAgent, args=(parent,))
-        sibling_args = batch._intents[1].args
-        assert sibling_args is not None
-        captured_sibling_args.append(sibling_args)
-    assert len(manager.running()) == 2  # noqa: PLR2004
-    # The captured parent handle has been mutated in-place to carry
-    # the transport-minted id, so a worker that pickles it now will
-    # send messages to the running parent.
-    sibling_parent_ref = captured_sibling_args[0][0]
-    assert sibling_parent_ref is parent
-    assert sibling_parent_ref.agent_id in manager.running()
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_register_agents_failure_skips_launches(
-    manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def failing_register(
-        agents: Any,
-    ) -> Any:
-        raise RuntimeError('injected register_agents failure')
-
-    monkeypatch.setattr(
-        manager.exchange_client,
-        'register_agents',
-        failing_register,
-    )
-
-    placeholder_ids: list[Any] = []
-
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            h1 = await batch.launch(EmptyAgent)
-            h2 = await batch.launch(EmptyAgent)
-            placeholder_ids.extend([h1.agent_id, h2.agent_id])
-
-    with pytest.raises(RuntimeError, match='injected register_agents'):
-        await body()
 
     assert len(manager.running()) == 0
-    for pid in placeholder_ids:
-        assert pid not in manager._handles
+    agents = await manager.exchange_client.discover(Agent)
+    assert len(agents) == 0
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_launch_failure_terminates_orphans(
-    manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original_launch = manager.launch
-    launch_calls: dict[str, int] = {'n': 0}
-
-    async def failing_launch(
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        launch_calls['n'] += 1
-        if launch_calls['n'] == 2:  # noqa: PLR2004
-            raise RuntimeError('injected launch failure')
-        return await original_launch(*args, **kwargs)
-
-    monkeypatch.setattr(manager, 'launch', failing_launch)
-
-    original_terminate = manager.exchange_client.terminate
-    terminated: list[Any] = []
-
-    async def wrapped_terminate(agent_id: Any) -> None:
-        terminated.append(agent_id)
-        await original_terminate(agent_id)
-
-    monkeypatch.setattr(
-        manager.exchange_client,
-        'terminate',
-        wrapped_terminate,
-    )
-
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)  # intent 0 — launches
-            await batch.launch(EmptyAgent)  # intent 1 — launch fails
-            await batch.launch(EmptyAgent)  # intent 2 — orphaned
-
-    with pytest.raises(RuntimeError, match='injected launch failure'):
-        await body()
-
-    # Intent 0's agent is still running; intents 1 and 2 were
-    # registered but never successfully launched, so they are
-    # terminated via exchange_client.terminate.
-    assert len(manager.running()) == 1
-    assert len(terminated) == 2  # noqa: PLR2004
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_launch_failure_evicts_stale_handles(
-    manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original_launch = manager.launch
-    launch_calls: dict[str, int] = {'n': 0}
-
-    async def failing_launch(
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        launch_calls['n'] += 1
-        if launch_calls['n'] == 2:  # noqa: PLR2004
-            raise RuntimeError('injected launch failure')
-        return await original_launch(*args, **kwargs)
-
-    monkeypatch.setattr(manager, 'launch', failing_launch)
-
-    handles: list[Any] = []
-
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            handles.append(await batch.launch(EmptyAgent))
-            handles.append(await batch.launch(EmptyAgent))
-            handles.append(await batch.launch(EmptyAgent))
-
-    with pytest.raises(RuntimeError, match='injected launch failure'):
-        await body()
-
-    running_handle, orphan_rebound, orphan_placeholder = handles
-    # Intent 0 launched successfully: handle stays cached.
-    assert manager._handles.get(running_handle.agent_id) is running_handle
-    # Intent 1 rebound but then the launch failed: evicted under its
-    # rebound (real) id.
-    assert orphan_rebound.agent_id not in manager._handles
-    # Intent 2 never reached the loop: evicted under its placeholder id.
-    assert orphan_placeholder.agent_id not in manager._handles
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_orphan_termination_failure_does_not_mask(
-    manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # The original launch exception must surface even when orphan
-    # cleanup raises.
-    original_launch = manager.launch
-
-    async def failing_launch(
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        if not manager.running():
-            return await original_launch(*args, **kwargs)
-        raise RuntimeError('injected launch failure')
-
-    monkeypatch.setattr(manager, 'launch', failing_launch)
-
-    async def failing_terminate(agent_id: Any) -> None:
-        raise RuntimeError('injected terminate failure')
-
-    monkeypatch.setattr(
-        manager.exchange_client,
-        'terminate',
-        failing_terminate,
-    )
-
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)
-            await batch.launch(EmptyAgent)
-
-    with pytest.raises(RuntimeError, match='injected launch failure'):
-        await body()
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_rejects_rebind_of_used_handle(
+async def test_launch_batch_context_manager_manually_finalize(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            handle = await batch.launch(EmptyAgent)
-            handle._used_for_messaging = True
-
-    with pytest.raises(AssertionError, match='used for messaging'):
-        await body()
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_mid_commit_cancellation_propagates(
-    manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Un-launched registrations leak exchange-side on cancellation —
-    # documented limitation, not asserted against here.
-    original_launch = manager.launch
-    first_call = {'seen': False}
-
-    async def launch_then_cancel(*args: Any, **kwargs: Any) -> Any:
-        if not first_call['seen']:
-            first_call['seen'] = True
-            return await original_launch(*args, **kwargs)
-        raise asyncio.CancelledError
-
-    monkeypatch.setattr(manager, 'launch', launch_then_cancel)
-
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)
-            await batch.launch(EmptyAgent)
-
-    with pytest.raises(asyncio.CancelledError):
-        await body()
-    assert len(manager.running()) == 1
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_fan_out_sibling_handle(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
+    instance = EmptyAgent()
     async with manager.launch_batch() as batch:
-        parent = await batch.launch(EmptyAgent)
-        await batch.launch(_FlexAgent, args=(parent,))
-        await batch.launch(_FlexAgent, kwargs={'peer': parent})
-    running = manager.running()
-    assert len(running) == 3  # noqa: PLR2004
-    assert parent.agent_id in running
-    assert manager._handles[parent.agent_id] is parent
+        handle = await batch.launch(instance)
+        await batch.finalize()
 
-
-@pytest.mark.asyncio
-async def test_launch_batch_diamond_sibling_handles(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    captured: list[Any] = []
-    async with manager.launch_batch() as batch:
-        parent_a = await batch.launch(EmptyAgent, name='a')
-        parent_b = await batch.launch(EmptyAgent, name='b')
-        await batch.launch(
-            _FlexAgent,
-            args=(parent_a, parent_b),
-        )
-        captured.append(batch._intents[2].args)
-    running = manager.running()
-    assert len(running) == 3  # noqa: PLR2004
-    assert parent_a.agent_id in running
-    assert parent_b.agent_id in running
-    child_args = captured[0]
-    assert child_args[0] is parent_a
-    assert child_args[1] is parent_b
+    assert handle.agent_id in manager.running()
+    agents = await manager.exchange_client.discover(Agent)
+    assert len(agents) == 1
 
 
 @pytest.mark.asyncio

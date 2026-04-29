@@ -21,6 +21,7 @@ from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import MailboxStatus
 from academy.handle import exchange_context
 from academy.handle import Handle
+from academy.handle import PossibilyIncompleteHandle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId
 from academy.manager import Manager
@@ -545,3 +546,44 @@ async def test_handle_covariance(
     # Only useful for my type checking
     assert test_func(handle)
     assert test_func(sub_handle)
+
+
+@pytest.mark.asyncio
+async def test_agent_incomplete_handle() -> None:
+    handle: Handle[SleepAgent] = PossibilyIncompleteHandle()
+    with pytest.raises(RuntimeError, match='unregistered agent'):
+        await handle.sleep(TEST_SLEEP_INTERVAL)
+
+
+@pytest.mark.asyncio
+async def test_agent_incomplete_handle_set_agent(
+    factory: ExchangeFactory[Any],
+) -> None:
+    async with await Manager.from_exchange_factory(
+        factory=factory,
+    ) as manager:
+        incomplete_handle: Handle[SleepAgent] = PossibilyIncompleteHandle()
+        real_handle = await manager.launch(SleepAgent)
+        incomplete_handle.agent_id = real_handle.agent_id
+        await incomplete_handle.sleep(TEST_SLEEP_INTERVAL)
+
+
+@pytest.mark.asyncio
+async def test_agent_incomplete_handle_serialize() -> None:
+    handle: Handle[EmptyAgent] = PossibilyIncompleteHandle()
+    reconstructed = pickle.loads(pickle.dumps(handle))
+    assert isinstance(reconstructed, PossibilyIncompleteHandle)
+    assert str(reconstructed) == str(handle)
+    assert repr(reconstructed) == repr(handle)
+
+
+@pytest.mark.asyncio
+async def test_agent_incomplete_handle_serialize_with_agent_id(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    agent_reg = await exchange_client.register_agent(EmptyAgent)
+    handle: Handle[EmptyAgent] = PossibilyIncompleteHandle()
+    handle.agent_id = agent_reg.agent_id
+    reconstructed = pickle.loads(pickle.dumps(handle))
+    assert isinstance(reconstructed, Handle)
+    assert not isinstance(reconstructed, PossibilyIncompleteHandle)

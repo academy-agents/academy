@@ -193,6 +193,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             url=self._info.url,
             additional_headers=self._info.additional_headers,
             ssl_verify=self._info.ssl_verify,
+            request_timeout_s=self._info.request_timeout_s,
+            client_timeout=self._info.client_timeout,
         )
 
     async def parse(self, raw_lines: list[str]) -> Message[Any] | None:

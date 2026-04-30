@@ -119,6 +119,25 @@ def test_default_exchange_from_transport():
         assert recreated_factory._info == factory._info
 
 
+def test_transport_factory_round_trip_preserves_non_default_info():
+    # Regression: ``transport.factory()`` previously dropped
+    # ``request_timeout_s`` and ``client_timeout``. The default-vs-default
+    # round-trip in ``test_default_exchange_from_transport`` could not
+    # catch this because both sides equalled the defaults.
+    uid = UserId.new()
+    custom_timeout = aiohttp.ClientTimeout(total=42, sock_connect=7)
+    factory = HttpExchangeFactory(
+        'http://example',
+        request_timeout_s=11,
+        client_timeout=custom_timeout,
+    )
+    transport = HttpExchangeTransport(uid, mock.Mock(), factory._info)
+    recreated_factory = transport.factory()
+    assert recreated_factory._info == factory._info
+    assert recreated_factory._info.request_timeout_s == 11  # noqa: PLR2004
+    assert recreated_factory._info.client_timeout is custom_timeout
+
+
 def test_raise_for_status_error_conversion() -> None:
     class _MockResponse(aiohttp.ClientResponse):
         def __init__(self, status: int) -> None:

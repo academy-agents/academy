@@ -130,7 +130,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ssl_verify = scheme == 'https'
 
         session_kwargs: dict[str, Any] = {}
-        if connection_info.client_timeout is not None:
+        if connection_info.client_timeout is not None:  # pragma: no branch
             session_kwargs['timeout'] = connection_info.client_timeout
 
         session = aiohttp.ClientSession(
@@ -370,7 +370,7 @@ class HttpExchangeConsole:
             ssl_verify = scheme == 'https'
 
         session_kwargs: dict[str, Any] = {}
-        if connection_info.client_timeout is not None:
+        if connection_info.client_timeout is not None:  # pragma: no branch
             session_kwargs['timeout'] = connection_info.client_timeout
 
         session = aiohttp.ClientSession(

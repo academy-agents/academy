@@ -60,6 +60,34 @@ async def test_additional_headers(
         assert 'Authorization' in transport._session.headers
 
 
+@pytest.mark.asyncio
+async def test_default_client_timeout_disables_total_cap(
+    http_exchange_server: tuple[str, int],
+) -> None:
+    # aiohttp's default ClientTimeout(total=300) breaks SSE long-poll
+    # listens after 5 minutes; the factory default must override it.
+    host, port = http_exchange_server
+    url = f'http://{host}:{port}'
+    factory = HttpExchangeFactory(url)
+    assert factory._info.client_timeout is not None
+    assert factory._info.client_timeout.total is None
+    async with await factory._create_transport() as transport:
+        assert transport._session.timeout.total is None
+
+
+@pytest.mark.asyncio
+async def test_custom_client_timeout_is_honored(
+    http_exchange_server: tuple[str, int],
+) -> None:
+    host, port = http_exchange_server
+    url = f'http://{host}:{port}'
+    custom = aiohttp.ClientTimeout(total=123, sock_connect=5)
+    factory = HttpExchangeFactory(url, client_timeout=custom)
+    assert factory._info.client_timeout is custom
+    async with await factory._create_transport() as transport:
+        assert transport._session.timeout == custom
+
+
 def test_default_exchange():
     with mock.patch(
         'academy.exchange.cloud.client.get_auth_headers',

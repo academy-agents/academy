@@ -502,10 +502,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             # connections after 5 minutes, leaving agents unable to receive
             # further messages. Disable the total cap and keep a connect
             # timeout so unreachable hosts still fail fast.
-            client_timeout = aiohttp.ClientTimeout(
-                total=None,
-                sock_connect=30,
-            )
+            client_timeout = aiohttp.ClientTimeout(total=None, sock_connect=30)
 
         self._info = _HttpConnectionInfo(
             url=url,

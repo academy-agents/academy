@@ -166,3 +166,25 @@ async def test_proxy_exchange_timeout(
     async with await wrapped_factory._create_transport() as transport:
         with pytest.raises(TimeoutError):
             await anext(transport.listen(timeout=TEST_SLEEP_INTERVAL))
+
+
+@pytest.mark.asyncio
+async def test_proxystore_heartbeat(
+    store: Store[LocalConnector],
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    wrapped_factory = ProxyStoreExchangeFactory(
+        base=local_exchange_factory,
+        store=store,
+        should_proxy=ProxyAlways(),
+    )
+
+    async with await wrapped_factory._create_transport() as transport:
+        heartbeat = await transport.heartbeat_status(transport.mailbox_id)
+        assert heartbeat is None
+
+        await transport.update_heartbeat()
+
+        heartbeat = await transport.heartbeat_status(transport.mailbox_id)
+        assert heartbeat is not None
+        assert heartbeat < 1.0

@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
-import dataclasses
 import logging
 import sys
 import uuid
@@ -13,10 +12,8 @@ from collections.abc import Awaitable
 from collections.abc import Iterable
 from typing import Any
 from typing import Generic
+from typing import Literal
 from typing import TYPE_CHECKING
-from typing import TypeVar
-
-from academy.task import spawn_guarded_background_task
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -36,6 +33,8 @@ else:  # pragma: <3.13 cover
     from culsans import Queue
 
 import redis.asyncio
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -56,12 +55,13 @@ from academy.socket import open_port
 from academy.socket import SimpleSocketServer
 from academy.socket import SocketClosedError
 from academy.socket import SocketPool
+from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +72,13 @@ _SERVER_ACK = b'<ACK>'
 _SOCKET_POLL_TIMEOUT_MS = 50
 
 
-@dataclasses.dataclass
-class HybridAgentRegistration(Generic[AgentT]):
+class HybridAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for hybrid exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['hybrid'] = Field('hybrid', repr=False)
 
 
 class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
@@ -136,6 +137,9 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _queue_key(self, uid: EntityId) -> str:
         return f'{self._namespace}:queue:{uuid_to_base32(uid.uid)}'
+
+    def _heartbeat_key(self, uid: EntityId) -> str:
+        return f'{self._namespace}:heartbeat:{uuid_to_base32(uid.uid)}'
 
     @classmethod
     async def new(  # noqa: PLR0913
@@ -417,6 +421,47 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         if isinstance(uid, AgentId):
             await self._redis_client.delete(self._agent_key(uid))
+
+    async def redis_current_time(self) -> float:
+        """Helper to transform Redis time structure to Unix float.
+
+        Returns:
+            Unix timestamp as a float
+
+        """
+        # Returns in the form [seconds since epoch, microseconds]
+        current_time = await self._redis_client.time()
+
+        current_seconds = int(current_time[0])
+        current_microseconds = int(current_time[1]) / 1000000
+
+        now = current_seconds + current_microseconds
+
+        return now
+
+    async def update_heartbeat(self) -> None:
+
+        now = await self.redis_current_time()
+
+        await self._redis_client.set(
+            self._heartbeat_key(self._mailbox_id),
+            str(now),
+        )
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+
+        status = await self._redis_client.get(self._status_key(uid))
+        if status is None:
+            raise BadEntityIdError(uid)
+
+        heartbeat_time = await self._redis_client.get(self._heartbeat_key(uid))
+
+        if heartbeat_time is None:
+            return None
+
+        now = await self.redis_current_time()
+
+        return now - float(heartbeat_time.decode())
 
     async def _get_message_from_redis(self) -> None:
         # Block indefinitely with timeout=0

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -16,6 +17,8 @@ from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
 from academy.exchange.client import ExchangeClient
+from academy.exchange.cloud.client import HttpExchangeTransport
+from academy.exchange.cloud.globus import GlobusExchangeTransport
 from academy.exchange.local import LocalExchangeFactory
 from academy.handle import Handle
 from academy.identifier import AgentId
@@ -271,3 +274,56 @@ def test_client_background_error(
     set_academy_debug()
     with pytest.raises(SystemExit):
         asyncio.run(run())
+
+
+@pytest.mark.asyncio
+async def test_client_heartbeat_status(
+    client: UserExchangeClient[Any],
+) -> None:
+
+    if isinstance(
+        client._transport,
+        (HttpExchangeTransport, GlobusExchangeTransport),
+    ):
+        heartbeat = await client.heartbeat_status(client.client_id)
+        # Heartbeat is handled by server send, so no client init means None.
+        assert heartbeat is None
+
+        # Server tracks heartbeat automatically via send/listen.
+        # So we send a message to trigger heartbeat update.
+        registration = await client.register_agent(EmptyAgent)
+        aid = registration.agent_id
+
+        message = Message.create(
+            src=client.client_id,
+            dest=aid,
+            body=PingRequest(),
+        )
+
+        start = time.time()
+        await client.send(message)
+
+    else:
+        heartbeat = await client.heartbeat_status(client.client_id)
+        # initial heartbeat comes from client init, so has a small float.
+        assert heartbeat is not None
+        assert heartbeat < 1.0
+        start = time.time()
+        await client._transport.update_heartbeat()
+
+    heartbeat = await client.heartbeat_status(client.client_id)
+    elapsed = time.time() - start
+    assert heartbeat is not None
+    assert heartbeat <= elapsed
+
+    await client._stop_heartbeat()
+    assert client._heartbeat_task is None
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_status_bad_entity(
+    client: UserExchangeClient[Any],
+) -> None:
+    uid = UserId.new()
+    with pytest.raises(BadEntityIdError):
+        await client.heartbeat_status(uid)

@@ -10,7 +10,6 @@ from collections.abc import Mapping
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
-from typing import TypeVar
 
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
@@ -29,7 +28,7 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 PROXYSTORE_IMPORT_ERROR: Exception | None = None
 try:
@@ -197,6 +196,12 @@ class ProxyStoreExchangeTransport(
 
     async def terminate(self, uid: EntityId) -> None:
         await self.transport.terminate(uid)
+
+    async def update_heartbeat(self) -> None:
+        await self.transport.update_heartbeat()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        return await self.transport.heartbeat_status(uid)
 
 
 class ProxyStoreExchangeFactory(

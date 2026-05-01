@@ -13,7 +13,6 @@ from types import TracebackType
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
-from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -40,7 +39,7 @@ from academy.serialize import NoPickleMixin
 if TYPE_CHECKING:
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -354,9 +353,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                 retries -= 1
                 # Override this configuration for the case where the agent
                 # fails and we will be restarting it.
-                spec.config = dataclasses.replace(
-                    original_config,
-                    terminate_on_error=False,
+                spec.config = original_config.model_copy(
+                    update={'terminate_on_error': False},
                 )
             else:
                 # Otherwise, keep the original config.

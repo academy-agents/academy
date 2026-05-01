@@ -74,6 +74,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         )
         self._close_lock = asyncio.Lock()
         self._closed = False
+        self._heartbeat_task: asyncio.Task[None] | None = None
 
     async def __aenter__(self) -> Self:
         self.exchange_context_token = exchange_context.set(self)
@@ -237,6 +238,23 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """
         await self._transport.terminate(uid)
 
+    async def update_heartbeat(self) -> None:
+        """Update the heartbeat timestamp for this transport's mailbox."""
+        await self._transport.update_heartbeat()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        """Gets time since latest active timestamp for a specific mailbox.
+
+        Args:
+            uid: Entity identifier of the mailbox to check.
+
+        Returns:
+            Unix timestamp of the last heartbeat, or None if no heartbeat
+            retrieved.
+
+        """
+        return await self._transport.heartbeat_status(uid)
+
     async def _listen_for_messages(self) -> None:
         # Transport listen does not necessarily wait on io and neither
         # does _handle_message. If we are persistently receiving messages,
@@ -264,6 +282,30 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
                 if sys.version_info < (3, 12):  # pragma: <3.12 cover
                     await asyncio.sleep(0)
+
+    async def _heartbeat_loop(self) -> None:
+        heartbeat_interval: int = 60
+
+        with contextlib.suppress(
+            asyncio.CancelledError,
+            MailboxTerminatedError,
+        ):
+            while True:
+                await self.update_heartbeat()
+                await asyncio.sleep(heartbeat_interval)
+
+    def _start_heartbeat(self) -> None:
+        self._heartbeat_task = spawn_guarded_background_task(
+            self._heartbeat_loop(),
+            name=f'heartbeat-loop-{self.client_id}',
+        )
+
+    async def _stop_heartbeat(self) -> None:
+        if self._heartbeat_task is not None:
+            self._heartbeat_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._heartbeat_task
+            self._heartbeat_task = None
 
     @abc.abstractmethod
     async def _handle_message(self, message: Message[Any]) -> None: ...
@@ -296,6 +338,7 @@ class AgentExchangeClient(
         super().__init__(transport)
         self._agent_id = agent_id
         self._request_handler = request_handler
+        self._start_heartbeat()
 
     @property
     def client_id(self) -> AgentId[AgentT]:
@@ -312,6 +355,7 @@ class AgentExchangeClient(
         async with self._close_lock:
             if self._closed:
                 return
+            await self._stop_heartbeat()
 
             await self._transport.close()
             self._closed = True
@@ -368,6 +412,7 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 self._listen_for_messages(),
                 name=f'user-exchange-listener-{self.client_id}',
             )
+        self._start_heartbeat()
 
     @property
     def client_id(self) -> UserId:
@@ -385,6 +430,8 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 return
             # Stop listening for incoming messages.
             await self._stop_listener_task()
+            # Stops updating heartbeat
+            await self._stop_heartbeat()
 
             # Delete mailbox
             await self._transport.terminate(self.client_id)

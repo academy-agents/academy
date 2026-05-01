@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import asyncio
-import dataclasses
 import logging
 import sys
 import uuid
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
+from typing import Literal
 from typing import TYPE_CHECKING
-from typing import TypeVar
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -21,6 +21,8 @@ from aiologic import Lock
 from culsans import AsyncQueue
 from culsans import AsyncQueueShutDown as QueueShutDown
 from culsans import Queue
+from pydantic import BaseModel
+from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
@@ -39,7 +41,7 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
 else:
-    AgentT = TypeVar('AgentT')
+    from academy.identifier import AgentT
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +61,16 @@ class _LocalExchangeState(NoPickleMixin):
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
         self.requests: dict[EntityId, dict[uuid.UUID, Header]] = {}
+        self.last_active: dict[EntityId, float] = {}
 
 
-@dataclasses.dataclass
-class LocalAgentRegistration(Generic[AgentT]):
+class LocalAgentRegistration(BaseModel, Generic[AgentT]):
     """Agent registration for local exchanges."""
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    exchange_type: Literal['local'] = Field('local', repr=False)
 
 
 class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
@@ -261,6 +265,18 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 self.send,
             )
             queue.shutdown(immediate=True)
+
+    async def update_heartbeat(self) -> None:
+        self._state.last_active[self.mailbox_id] = time.time()
+
+    async def heartbeat_status(self, uid: EntityId) -> float | None:
+        if uid not in self._state.queues:
+            raise BadEntityIdError(uid)
+
+        if self._state.last_active.get(uid) is None:
+            return None
+        else:
+            return time.time() - self._state.last_active[uid]
 
 
 class LocalExchangeFactory(

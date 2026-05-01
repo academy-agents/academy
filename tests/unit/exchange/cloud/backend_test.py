@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -629,3 +630,22 @@ async def test_mailbox_backend_response_tag_mismatch(
         request_key = f'request:{receiver_uid.uid}:{request2.tag}'
         data = await backend._client.get(request_key)
         assert data is not None  # request2 still tracked
+async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
+    uid = UserId.new()
+    client = ClientInfo(str(uid), set())
+
+    with pytest.raises(BadEntityIdError):
+        await backend.heartbeat_status(uid)
+
+    await backend.create_mailbox(client, uid)
+
+    heartbeat = await backend.heartbeat_status(uid)
+    assert heartbeat is None
+
+    start = time.time()
+    await backend.update_heartbeat(uid)
+
+    heartbeat = await backend.heartbeat_status(uid)
+    elapsed = time.time() - start
+    assert heartbeat is not None
+    assert heartbeat < elapsed

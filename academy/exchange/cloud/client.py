@@ -62,6 +62,7 @@ class _HttpConnectionInfo(NamedTuple):
     additional_headers: dict[str, str] | None = None
     ssl_verify: bool | None = None
     request_timeout_s: float = 60
+    client_timeout: aiohttp.ClientTimeout | None = None
 
 
 class HttpAgentRegistration(BaseModel, Generic[AgentT]):
@@ -128,10 +129,15 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             scheme = urlparse(connection_info.url).scheme
             ssl_verify = scheme == 'https'
 
+        session_kwargs: dict[str, Any] = {}
+        if connection_info.client_timeout is not None:  # pragma: no branch
+            session_kwargs['timeout'] = connection_info.client_timeout
+
         session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=ssl_verify),
             headers=connection_info.additional_headers,
             trust_env=True,
+            **session_kwargs,
         )
 
         if mailbox_id is None:
@@ -187,6 +193,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             url=self._info.url,
             additional_headers=self._info.additional_headers,
             ssl_verify=self._info.ssl_verify,
+            request_timeout_s=self._info.request_timeout_s,
+            client_timeout=self._info.client_timeout,
         )
 
     async def parse(self, raw_lines: list[str]) -> Message[Any] | None:
@@ -363,10 +371,15 @@ class HttpExchangeConsole:
             scheme = urlparse(connection_info.url).scheme
             ssl_verify = scheme == 'https'
 
+        session_kwargs: dict[str, Any] = {}
+        if connection_info.client_timeout is not None:  # pragma: no branch
+            session_kwargs['timeout'] = connection_info.client_timeout
+
         session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=ssl_verify),
             headers=connection_info.additional_headers,
             trust_env=True,
+            **session_kwargs,
         )
         return cls(session, connection_info)
 
@@ -378,6 +391,7 @@ class HttpExchangeConsole:
             additional_headers=self._info.additional_headers,
             ssl_verify=self._info.ssl_verify,
             request_timeout_s=self._info.request_timeout_s,
+            client_timeout=self._info.client_timeout,
         )
 
     async def share_mailbox(
@@ -451,18 +465,28 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         auth_method: Method to get authorization headers
         additional_headers: Any other information necessary to communicate
             with the exchange. Used for passing the Globus bearer token
+        request_timeout_s: Server-side maximum length (seconds) of an SSE
+            listen request before the server returns and the client reopens.
         ssl_verify: Same as requests.Session.verify. If the server's TLS
             certificate should be validated. Should be true if using HTTPS
             Only set to false for testing or local development.
+        client_timeout: Timeout applied to the underlying
+            [`aiohttp.ClientSession`][aiohttp.ClientSession]. Defaults to
+            `aiohttp.ClientTimeout(total=None, sock_connect=30)`, which
+            disables aiohttp's default 5-minute total request cap so that
+            long-lived SSE listen connections are not severed mid-stream.
+            Pass a custom [`aiohttp.ClientTimeout`][aiohttp.ClientTimeout] to
+            override.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         url: str = DEFAULT_EXCHANGE_URL,
         auth_method: Literal['globus'] | None = None,
         additional_headers: dict[str, str] | None = None,
         request_timeout_s: float = 60,
         ssl_verify: bool | None = None,
+        client_timeout: aiohttp.ClientTimeout | None = None,
     ) -> None:
         if additional_headers is None:
             additional_headers = {}
@@ -475,11 +499,19 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
 
         additional_headers |= get_auth_headers(auth_method)
 
+        if client_timeout is None:
+            # aiohttp's default ClientTimeout(total=300) closes SSE listen
+            # connections after 5 minutes, leaving agents unable to receive
+            # further messages. Disable the total cap and keep a connect
+            # timeout so unreachable hosts still fail fast.
+            client_timeout = aiohttp.ClientTimeout(total=None, sock_connect=30)
+
         self._info = _HttpConnectionInfo(
             url=url,
             additional_headers=additional_headers,
             ssl_verify=ssl_verify,
             request_timeout_s=request_timeout_s,
+            client_timeout=client_timeout,
         )
 
     async def _create_transport(

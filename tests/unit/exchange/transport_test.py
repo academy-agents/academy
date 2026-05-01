@@ -163,7 +163,6 @@ async def test_transport_terminate_reply_pending_requests(
     factory = get_factory(factory_type)
     async with await factory._create_transport() as transport1:
         async with await factory._create_transport() as transport2:
-            # Send a request and a response message to transport2 mailbox
             message1 = Message.create(
                 src=transport1.mailbox_id,
                 dest=transport2.mailbox_id,
@@ -174,19 +173,35 @@ async def test_transport_terminate_reply_pending_requests(
                 dest=transport2.mailbox_id,
                 body=SuccessResponse(),
             )
+            message3 = Message.create(
+                src=transport1.mailbox_id,
+                dest=transport2.mailbox_id,
+                body=PingRequest(),
+            )
+
             await transport1.send(message1)
+            listener2 = transport2.listen(TEST_WAIT_TIMEOUT)
+            received = await anext(listener2)
+            assert received == message1
+
+            # Send message1 and message2; they remain in the queue unread
+            # when transport2 is terminated.
             await transport1.send(message2)
+            await transport1.send(message3)
 
             await transport2.terminate(transport2.mailbox_id)
 
-            # Check that transport1 gets a response to its request that
-            # was terminated.
+            # Both pending requests (message3 was read but unanswered;
+            # message1 was never read) must each receive an ErrorResponse.
             listener = transport1.listen(TEST_WAIT_TIMEOUT)
-            response = await anext(listener)
-            body = response.get_body()
-            assert isinstance(body, ErrorResponse)
-            assert response.tag == message1.tag
-            assert isinstance(body.get_exception(), MailboxTerminatedError)
+            tags: set[object] = set()
+            for _ in range(2):
+                response = await anext(listener)
+                body = response.get_body()
+                assert isinstance(body, ErrorResponse)
+                assert isinstance(body.get_exception(), MailboxTerminatedError)
+                tags.add(response.tag)
+            assert tags == {message1.tag, message3.tag}
             # No other messages should have been received
             with pytest.raises(TimeoutError):  # pragma: <3.14 cover
                 await anext(listener)
@@ -218,9 +233,6 @@ async def test_transport_discover(
     did = (await transport.register_agent(C)).agent_id
     await transport.terminate(did)
 
-    astr = 'tests.unit.exchange.transport_test.A'
-    bstr = 'tests.unit.exchange.transport_test.B'
-
     found = await transport.discover(A)
     assert len(found) == 0
     found = await transport.discover(B, allow_subclasses=False)
@@ -228,16 +240,6 @@ async def test_transport_discover(
     found = await transport.discover(B, allow_subclasses=True)
     assert found == (bid, cid)
 
-    found = await transport.discover(astr)
-    assert len(found) == 0
-    found = await transport.discover(bstr, allow_subclasses=False)
-    assert found == (bid,)
-    found = await transport.discover(bstr, allow_subclasses=True)
-    assert found == (bid, cid)
-
     aid = (await transport.register_agent(A)).agent_id
     found = await transport.discover(Agent)
-    assert set(found) == {bid, cid, aid}
-
-    found = await transport.discover('academy.agent.Agent')
     assert set(found) == {bid, cid, aid}

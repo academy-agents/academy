@@ -5,6 +5,7 @@ import asyncio
 import dataclasses
 import logging
 import sys
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
@@ -57,7 +58,7 @@ class _LocalExchangeState(NoPickleMixin):
         self.queues: dict[EntityId, AsyncQueue[Message[Any]]] = {}
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
-        self.requests: dict[EntityId, list[Header]] = {}
+        self.requests: dict[EntityId, dict[uuid.UUID, Header]] = {}
 
 
 @dataclasses.dataclass
@@ -180,8 +181,8 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             raise BadEntityIdError(message.dest)
 
         if message.is_request():
-            self._state.requests.setdefault(message.dest, []).append(
-                message.header,
+            self._state.requests.setdefault(message.dest, {})[message.tag] = (
+                message.header
             )
             logger.debug(
                 'Tracking in-flight request: tag=%s src=%s dest=%s',
@@ -194,22 +195,21 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     'academy.dest': message.dest,
                 },
             )
-        elif message.src in self._state.requests and any(
-            h.tag == message.tag for h in self._state.requests[message.src]
+        elif (
+            message.src in self._state.requests
+            and message.tag in self._state.requests[message.src]
         ):
-            messages_list = self._state.requests[message.src]
-            tracked = next(m for m in messages_list if m.tag == message.tag)
-            messages_list.remove(tracked)
-            if not messages_list:
+            tracked = self._state.requests[message.src].pop(message.tag)
+            if not self._state.requests[message.src]:
                 del self._state.requests[message.src]
             logger.debug(
                 'Response received for in-flight request: '
                 'tag=%s src=%s dest=%s',
-                message.tag,
+                tracked.tag,
                 tracked.src,
                 tracked.dest,
                 extra={
-                    'academy.message_tag': message.tag,
+                    'academy.message_tag': tracked.tag,
                     'academy.src': tracked.src,
                     'academy.dest': tracked.dest,
                 },
@@ -251,12 +251,13 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if queue.is_shutdown:
                 return
 
-            pending_requests: list[Header] | None = None
             if isinstance(uid, AgentId):
                 self._state.agents.pop(uid, None)
-            pending_requests = self._state.requests.pop(uid, None)
+            pending_requests = list(
+                self._state.requests.pop(uid, {}).values(),
+            )
             await _respond_pending_requests_on_terminate(
-                pending_requests or [],
+                pending_requests,
                 self.send,
             )
             queue.shutdown(immediate=True)

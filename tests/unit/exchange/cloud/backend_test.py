@@ -499,14 +499,13 @@ async def test_mailbox_backend_request_tracking(
 
     if isinstance(backend, PythonBackend):
         assert receiver_uid in backend._requests
-        request_list = backend._requests[receiver_uid]
-        tracked = next((m for m in request_list if m.tag == request.tag), None)
+        tracked = backend._requests[receiver_uid].get(request.tag)
         assert tracked is not None
         assert tracked.src == sender_uid
         assert tracked.dest == receiver_uid
     else:
         assert isinstance(backend, RedisBackend)
-        request_key = f'request:{receiver_uid.uid}'
+        request_key = f'request:{receiver_uid.uid}:{request.tag}'
         info_data = await backend._client.get(request_key)
         assert info_data is not None
 
@@ -514,12 +513,11 @@ async def test_mailbox_backend_request_tracking(
     await backend.put(client, response)
 
     if isinstance(backend, PythonBackend):
-        response_list = backend._requests.get(sender_uid, [])
-        still_tracked = any(m.tag == request.tag for m in response_list)
+        still_tracked = request.tag in backend._requests.get(sender_uid, {})
         assert not still_tracked
     else:
         assert isinstance(backend, RedisBackend)
-        request_key = f'request:{receiver_uid.uid}'
+        request_key = f'request:{receiver_uid.uid}:{request.tag}'
         response_data = await backend._client.get(request_key)
         assert response_data is None
 
@@ -579,12 +577,10 @@ async def test_mailbox_backend_multiple_requests_partial_response(
 
     if isinstance(backend, PythonBackend):
         assert receiver_uid in backend._requests
-        assert any(
-            h.tag == request2.tag for h in backend._requests[receiver_uid]
-        )
+        assert request2.tag in backend._requests[receiver_uid]
     else:
         assert isinstance(backend, RedisBackend)
-        request_key = f'request:{receiver_uid.uid}'
+        request_key = f'request:{receiver_uid.uid}:{request2.tag}'
         data = await backend._client.get(request_key)
         assert data is not None  # request2 is still tracked
 
@@ -627,11 +623,9 @@ async def test_mailbox_backend_response_tag_mismatch(
     if isinstance(backend, PythonBackend):
         # request2 is still tracked (unmatched response didn't remove it)
         assert receiver_uid in backend._requests
-        assert any(
-            h.tag == request2.tag for h in backend._requests[receiver_uid]
-        )
+        assert request2.tag in backend._requests[receiver_uid]
     else:
         assert isinstance(backend, RedisBackend)
-        request_key = f'request:{receiver_uid.uid}'
+        request_key = f'request:{receiver_uid.uid}:{request2.tag}'
         data = await backend._client.get(request_key)
         assert data is not None  # request2 still tracked

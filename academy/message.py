@@ -272,26 +272,23 @@ class Header(BaseModel):
             kind='response',
         )
 
-    @staticmethod
-    def list_serialize(headers: list[Header]) -> bytes:
-        """Serialize a list of headers to bytes using pickle."""
-        return pickle.dumps(headers)
+    def model_serialize(self) -> bytes:
+        """Serialize the header to bytes using pickle."""
+        return pickle.dumps(self)
 
     @classmethod
-    def list_deserialize(cls, data: bytes) -> list[Header]:
-        """Deserialize a list of headers from bytes using pickle.
+    def model_deserialize(cls, data: bytes) -> Header:
+        """Deserialize and validate a header from bytes using pickle.
 
         Raises:
-            TypeError: If the deserialized object is not a list of Headers.
+            TypeError: If the deserialized object is not a Header.
         """
-        obj = pickle.loads(data)
-        if not isinstance(obj, list) or not all(
-            isinstance(h, cls) for h in obj
-        ):
+        header = pickle.loads(data)
+        if not isinstance(header, cls):
             raise TypeError(
-                'Deserialized object is not a list of Header instances.',
+                'Deserialized object is not of type Header.',
             )
-        return obj
+        return header
 
 
 class Message(BaseModel, Generic[BodyT]):

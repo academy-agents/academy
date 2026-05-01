@@ -244,7 +244,7 @@ class PythonBackend:
         self._terminated: set[EntityId] = set()
         self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
         self._locks: dict[EntityId, asyncio.Lock] = {}
-        self._requests: dict[EntityId, list[Header]] = {}
+        self._requests: dict[EntityId, dict[uuid.UUID, Header]] = {}
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
 
     def _has_permissions(self, client: ClientInfo, uid: EntityId) -> bool:
@@ -374,11 +374,11 @@ class PythonBackend:
 
         pending_requests: list[Header] | None = None
         async with self._locks[uid]:
-            pending_requests = self._requests.pop(uid, None)
+            pending_requests = list(self._requests.pop(uid, {}).values())
             mailbox.shutdown(immediate=True)
 
         await _respond_pending_requests_on_terminate(
-            pending_requests or [],
+            pending_requests,
             send,
         )
 
@@ -480,7 +480,9 @@ class PythonBackend:
             raise BadEntityIdError(message.dest) from e
 
         if message.is_request():
-            self._requests.setdefault(message.dest, []).append(message.header)
+            self._requests.setdefault(message.dest, {})[message.tag] = (
+                message.header
+            )
             logger.debug(
                 'Tracking in-flight request: tag=%s src=%s dest=%s',
                 message.tag,
@@ -492,24 +494,21 @@ class PythonBackend:
                     'academy.dest': message.dest,
                 },
             )
-        elif message.src in self._requests and any(
-            h.tag == message.tag for h in self._requests[message.src]
+        elif (
+            message.src in self._requests
+            and message.tag in self._requests[message.src]
         ):
-            messages_list = self._requests[message.src]
-            request_msg = next(
-                h for h in messages_list if h.tag == message.tag
-            )
-            messages_list.remove(request_msg)
-            if not messages_list:
+            request_msg = self._requests[message.src].pop(message.tag)
+            if not self._requests[message.src]:
                 del self._requests[message.src]
             logger.debug(
                 'Response received for in-flight request: '
                 'tag=%s src=%s dest=%s',
-                message.tag,
+                request_msg.tag,
                 request_msg.src,
                 request_msg.dest,
                 extra={
-                    'academy.message_tag': message.tag,
+                    'academy.message_tag': request_msg.tag,
                     'academy.src': request_msg.src,
                     'academy.dest': request_msg.dest,
                 },
@@ -699,8 +698,8 @@ class RedisBackend:
     def _share_key(self, uid: EntityId) -> str:
         return f'share:{uid.uid}'
 
-    def _request_key(self, uid: EntityId) -> str:
-        return f'request:{uid.uid}'
+    def _request_key(self, uid: EntityId, tag: uuid.UUID) -> str:
+        return f'request:{uid.uid}:{tag}'
 
     async def _has_permissions(
         self,
@@ -868,19 +867,23 @@ class RedisBackend:
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
-        key = self._request_key(uid)
-        info_data = await self._client.get(key)
+        req_keys = [
+            key async for key in self._client.scan_iter(f'request:{uid.uid}:*')
+        ]
+        pending_requests: list[Header] = []
+        for req_key in req_keys:
+            data = await self._client.get(req_key)
+            if data is not None:
+                pending_requests.append(Header.model_deserialize(data))
+            await self._client.delete(req_key)
 
         async def send(message: Message[Any]) -> None:
             await self.put(client, message)
 
-        if info_data is not None:
-            pending_requests_headers = Header.list_deserialize(info_data)
-            await _respond_pending_requests_on_terminate(
-                pending_requests_headers,
-                send,
-            )
-            await self._client.delete(key)
+        await _respond_pending_requests_on_terminate(
+            pending_requests,
+            send,
+        )
 
     async def discover(
         self,
@@ -1010,16 +1013,9 @@ class RedisBackend:
             )
 
         if message.is_request():
-            existing = await self._client.get(
-                self._request_key(message.dest),
-            )
-            tracked: list[Header] = (
-                Header.list_deserialize(existing) if existing else []
-            )
-            tracked.append(message.header)
             await self._client.set(
-                self._request_key(message.dest),
-                Header.list_serialize(tracked),
+                self._request_key(message.dest, message.tag),
+                message.header.model_serialize(),
             )
             logger.debug(
                 'Tracking in-flight request: tag=%s src=%s dest=%s',
@@ -1033,52 +1029,28 @@ class RedisBackend:
                 },
             )
         elif await self._client.exists(
-            self._request_key(message.src),
+            self._request_key(message.src, message.tag),
         ):
-            info_data = await self._client.get(
-                self._request_key(message.src),
+            matching: Header = Header.model_deserialize(
+                await self._client.get(
+                    self._request_key(message.src, message.tag),
+                ),
             )
-            tracked = Header.list_deserialize(info_data)
-            matching = next(
-                (m for m in tracked if m.tag == message.tag),
-                None,
+            await self._client.delete(
+                self._request_key(message.src, message.tag),
             )
-            if matching is not None:
-                tracked.remove(matching)
-                if tracked:
-                    await self._client.set(
-                        self._request_key(message.src),
-                        Header.list_serialize(tracked),
-                    )
-                else:
-                    await self._client.delete(
-                        self._request_key(message.src),
-                    )
-                logger.debug(
-                    'Response received for in-flight request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    matching.src,
-                    matching.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': matching.src,
-                        'academy.dest': matching.dest,
-                    },
-                )
-            else:
-                logger.warning(
-                    'Response received without corresponding request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
+            logger.debug(
+                'Response received for in-flight request: '
+                'tag=%s src=%s dest=%s',
+                matching.tag,
+                matching.src,
+                matching.dest,
+                extra={
+                    'academy.message_tag': matching.tag,
+                    'academy.src': matching.src,
+                    'academy.dest': matching.dest,
+                },
+            )
         else:
             logger.warning(
                 'Response received without corresponding request: '

@@ -87,8 +87,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def _queue_key(self, uid: EntityId) -> str:
         return f'queue:{uid.uid}'
 
-    def _request_key(self, uid: EntityId) -> str:
-        return f'request:{uid.uid}'
+    def _request_key(self, uid: EntityId, tag: uuid.UUID) -> str:
+        return f'request:{uid.uid}:{tag}'
 
     @classmethod
     async def new(
@@ -251,16 +251,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             raise MailboxTerminatedError(message.dest)
         else:
             if message.is_request():
-                existing = await self._client.get(
-                    self._request_key(message.dest),
-                )
-                tracked: list[Header] = (
-                    Header.list_deserialize(existing) if existing else []
-                )
-                tracked.append(message.header)
                 await self._client.set(
-                    self._request_key(message.dest),
-                    Header.list_serialize(tracked),
+                    self._request_key(message.dest, message.tag),
+                    message.header.model_serialize(),
                 )
                 logger.debug(
                     'Tracking in-flight request: tag=%s src=%s dest=%s',
@@ -274,52 +267,28 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     },
                 )
             elif await self._client.exists(
-                self._request_key(message.src),
+                self._request_key(message.src, message.tag),
             ):
-                info_data = await self._client.get(
-                    self._request_key(message.src),
+                matching: Header = Header.model_deserialize(
+                    await self._client.get(
+                        self._request_key(message.src, message.tag),
+                    ),
                 )
-                tracked = Header.list_deserialize(info_data)
-                matching = next(
-                    (m for m in tracked if m.tag == message.tag),
-                    None,
+                await self._client.delete(
+                    self._request_key(message.src, message.tag),
                 )
-                if matching is not None:
-                    tracked.remove(matching)
-                    if tracked:
-                        await self._client.set(
-                            self._request_key(message.src),
-                            Header.list_serialize(tracked),
-                        )
-                    else:
-                        await self._client.delete(
-                            self._request_key(message.src),
-                        )
-                    logger.debug(
-                        'Response received for in-flight request: '
-                        'tag=%s src=%s dest=%s',
-                        message.tag,
-                        matching.src,
-                        matching.dest,
-                        extra={
-                            'academy.message_tag': message.tag,
-                            'academy.src': matching.src,
-                            'academy.dest': matching.dest,
-                        },
-                    )
-                else:
-                    logger.warning(
-                        'Response received without corresponding request: '
-                        'tag=%s src=%s dest=%s',
-                        message.tag,
-                        message.src,
-                        message.dest,
-                        extra={
-                            'academy.message_tag': message.tag,
-                            'academy.src': message.src,
-                            'academy.dest': message.dest,
-                        },
-                    )
+                logger.debug(
+                    'Response received for in-flight request: '
+                    'tag=%s src=%s dest=%s',
+                    matching.tag,
+                    matching.src,
+                    matching.dest,
+                    extra={
+                        'academy.message_tag': matching.tag,
+                        'academy.src': matching.src,
+                        'academy.dest': matching.dest,
+                    },
+                )
             else:
                 logger.warning(
                     'Response received without corresponding request: '
@@ -362,15 +331,19 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
-        key = self._request_key(uid)
-        info_data = await self._client.get(key)
-        if info_data is not None:
-            pending_requests_msgs = Header.list_deserialize(info_data)
-            await _respond_pending_requests_on_terminate(
-                pending_requests_msgs,
-                self.send,
-            )
-        await self._client.delete(key)
+        pending_requests: list[Header] = []
+        req_keys = [
+            key async for key in self._client.scan_iter(f'request:{uid.uid}:*')
+        ]
+        for req_key in req_keys:
+            data = await self._client.get(req_key)
+            if data is not None:
+                pending_requests.append(Header.model_deserialize(data))
+            await self._client.delete(req_key)
+        await _respond_pending_requests_on_terminate(
+            pending_requests,
+            self.send,
+        )
 
 
 class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):

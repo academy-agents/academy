@@ -43,6 +43,7 @@ from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
+from academy.exchange.transport import HEARTBEAT_STALE_THRESHOLD
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -391,7 +392,14 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         elif status.decode() == _MailboxState.INACTIVE.value:
             return MailboxStatus.TERMINATED
         else:
-            return MailboxStatus.ACTIVE
+            last_heartbeat = await self.heartbeat_status(uid)
+            if (
+                last_heartbeat is not None
+                and last_heartbeat > HEARTBEAT_STALE_THRESHOLD
+            ):
+                return MailboxStatus.INACTIVE
+            else:
+                return MailboxStatus.ACTIVE
 
     async def terminate(self, uid: EntityId) -> None:
         # Warning: terminating a hybrid exchange mailbox is not guaranteed

@@ -407,6 +407,7 @@ class PythonBackend:
             pending_requests,
             send,
         )
+
     async def update_heartbeat(self, uid: EntityId) -> None:
         """Update the heartbeat timestamp for a mailbox."""
         self.last_active[uid] = time.time()
@@ -740,6 +741,7 @@ class RedisBackend:
 
     def _request_key(self, uid: EntityId, tag: uuid.UUID) -> str:
         return f'request:{uid.uid}:{tag}'
+
     def _heartbeat_key(self, uid: EntityId) -> str:
         return f'heartbeat:{uid.uid}'
 

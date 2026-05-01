@@ -4,8 +4,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
-import uuid
 import time
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic

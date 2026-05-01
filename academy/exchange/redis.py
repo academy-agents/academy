@@ -92,6 +92,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _request_key(self, uid: EntityId, tag: uuid.UUID) -> str:
         return f'request:{uid.uid}:{tag}'
+
     def _heartbeat_key(self, uid: EntityId) -> str:
         return f'heartbeat:{uid.uid}'
 

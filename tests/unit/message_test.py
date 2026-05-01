@@ -81,15 +81,6 @@ def test_deserialize_bad_type() -> None:
         Message.model_deserialize(pickled)
 
 
-def test_header_deserialize_bad_type() -> None:
-    pickled = pickle.dumps('string')
-    with pytest.raises(
-        TypeError,
-        match=r'Deserialized object is not of type Header\.',
-    ):
-        Header.model_deserialize(pickled)
-
-
 def tests_create_response_from_response_error() -> None:
     message = Message.create(
         src=AgentId.new(),

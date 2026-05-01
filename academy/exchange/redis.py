@@ -259,7 +259,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if message.is_request():
                 await self._client.set(
                     self._request_key(message.dest, message.tag),
-                    message.header.model_serialize(),
+                    message.header.model_dump_json(),
                 )
                 logger.debug(
                     'Tracking in-flight request: tag=%s src=%s dest=%s',
@@ -275,10 +275,11 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             elif await self._client.exists(
                 self._request_key(message.src, message.tag),
             ):
-                matching: Header = Header.model_deserialize(
-                    await self._client.get(
-                        self._request_key(message.src, message.tag),
-                    ),
+                matching_data = await self._client.get(
+                    self._request_key(message.src, message.tag),
+                )
+                matching: Header = Header.model_validate_json(
+                    matching_data.decode(),
                 )
                 await self._client.delete(
                     self._request_key(message.src, message.tag),
@@ -343,7 +344,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         ]
         for req_key in req_keys:
             data = await self._client.get(req_key)
-            pending_requests.append(Header.model_deserialize(data))
+            pending_requests.append(Header.model_validate_json(data.decode()))
             await self._client.delete(req_key)
         await _respond_pending_requests_on_terminate(
             pending_requests,

@@ -917,7 +917,7 @@ class RedisBackend:
         pending_requests: list[Header] = []
         for req_key in req_keys:
             data = await self._client.get(req_key)
-            pending_requests.append(Header.model_deserialize(data))
+            pending_requests.append(Header.model_validate_json(data.decode()))
             await self._client.delete(req_key)
 
         async def send(message: Message[Any]) -> None:
@@ -1096,7 +1096,7 @@ class RedisBackend:
         if message.is_request():
             await self._client.set(
                 self._request_key(message.dest, message.tag),
-                message.header.model_serialize(),
+                message.header.model_dump_json(),
             )
             logger.debug(
                 'Tracking in-flight request: tag=%s src=%s dest=%s',
@@ -1112,10 +1112,11 @@ class RedisBackend:
         elif await self._client.exists(
             self._request_key(message.src, message.tag),
         ):
-            matching: Header = Header.model_deserialize(
-                await self._client.get(
-                    self._request_key(message.src, message.tag),
-                ),
+            matching_data = await self._client.get(
+                self._request_key(message.src, message.tag),
+            )
+            matching: Header = Header.model_validate_json(
+                matching_data.decode(),
             )
             await self._client.delete(
                 self._request_key(message.src, message.tag),

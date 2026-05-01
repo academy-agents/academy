@@ -272,24 +272,6 @@ class Header(BaseModel):
             kind='response',
         )
 
-    def model_serialize(self) -> bytes:
-        """Serialize the header to bytes using pickle."""
-        return pickle.dumps(self)
-
-    @classmethod
-    def model_deserialize(cls, data: bytes) -> Header:
-        """Deserialize and validate a header from bytes using pickle.
-
-        Raises:
-            TypeError: If the deserialized object is not a Header.
-        """
-        header = pickle.loads(data)
-        if not isinstance(header, cls):
-            raise TypeError(
-                'Deserialized object is not of type Header.',
-            )
-        return header
-
 
 class Message(BaseModel, Generic[BodyT]):
     """A complete message with header and body.

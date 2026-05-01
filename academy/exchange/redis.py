@@ -343,8 +343,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         ]
         for req_key in req_keys:
             data = await self._client.get(req_key)
-            if data is not None:
-                pending_requests.append(Header.model_deserialize(data))
+            pending_requests.append(Header.model_deserialize(data))
             await self._client.delete(req_key)
         await _respond_pending_requests_on_terminate(
             pending_requests,

@@ -258,6 +258,9 @@ async def test_transport_discover(
     found = await transport.discover(Agent)
     assert set(found) == {bid, cid, aid}
 
+    found = await transport.discover('academy.agent.Agent')
+    assert set(found) == {bid, cid, aid}
+
 
 @pytest.mark.asyncio
 async def test_transport_heartbeat(

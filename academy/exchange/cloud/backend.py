@@ -917,8 +917,7 @@ class RedisBackend:
         pending_requests: list[Header] = []
         for req_key in req_keys:
             data = await self._client.get(req_key)
-            if data is not None:
-                pending_requests.append(Header.model_deserialize(data))
+            pending_requests.append(Header.model_deserialize(data))
             await self._client.delete(req_key)
 
         async def send(message: Message[Any]) -> None:

@@ -31,6 +31,7 @@ from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+from academy.message import Header
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 
@@ -88,6 +89,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _queue_key(self, uid: EntityId) -> str:
         return f'queue:{uid.uid}'
+
+    def _request_key(self, uid: EntityId, tag: uuid.UUID) -> str:
+        return f'request:{uid.uid}:{tag}'
 
     def _heartbeat_key(self, uid: EntityId) -> str:
         return f'heartbeat:{uid.uid}'
@@ -218,6 +222,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         assert len(raw) == 2  # noqa: PLR2004
         if raw[1] == _CLOSE_SENTINEL:  # pragma: no cover
             raise MailboxTerminatedError(self.mailbox_id)
+
         return Message.model_deserialize(raw[1])
 
     async def listen(
@@ -251,6 +256,60 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         elif status.decode() == _MailboxState.INACTIVE.value:
             raise MailboxTerminatedError(message.dest)
         else:
+            if message.is_request():
+                await self._client.set(
+                    self._request_key(message.dest, message.tag),
+                    message.header.model_dump_json(),
+                )
+                logger.debug(
+                    'Tracking in-flight request: tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
+            elif await self._client.exists(
+                self._request_key(message.src, message.tag),
+            ):
+                matching_data = await self._client.get(
+                    self._request_key(message.src, message.tag),
+                )
+                matching: Header = Header.model_validate_json(
+                    matching_data.decode(),
+                )
+                await self._client.delete(
+                    self._request_key(message.src, message.tag),
+                )
+                logger.debug(
+                    'Response received for in-flight request: '
+                    'tag=%s src=%s dest=%s',
+                    matching.tag,
+                    matching.src,
+                    matching.dest,
+                    extra={
+                        'academy.message_tag': matching.tag,
+                        'academy.src': matching.src,
+                        'academy.dest': matching.dest,
+                    },
+                )
+            else:
+                logger.warning(
+                    'Response received without corresponding request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
+
             await self._client.rpush(  # type: ignore[misc]
                 self._queue_key(message.dest),
                 message.model_serialize(),
@@ -271,7 +330,6 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _MailboxState.INACTIVE.value,
         )
 
-        pending = await self._client.lrange(self._queue_key(uid), 0, -1)  # type: ignore[misc]
         await self._client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
@@ -280,12 +338,18 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
-        messages: list[Message[Any]] = [
-            Message.model_deserialize(raw)
-            for raw in pending
-            if raw != _CLOSE_SENTINEL
+        pending_requests: list[Header] = []
+        req_keys = [
+            key async for key in self._client.scan_iter(f'request:{uid.uid}:*')
         ]
-        await _respond_pending_requests_on_terminate(messages, self)
+        for req_key in req_keys:
+            data = await self._client.get(req_key)
+            pending_requests.append(Header.model_validate_json(data.decode()))
+            await self._client.delete(req_key)
+        await _respond_pending_requests_on_terminate(
+            pending_requests,
+            self.send,
+        )
 
     async def redis_current_time(self) -> float:
         """Helper to transform Redis time structure to Unix float.

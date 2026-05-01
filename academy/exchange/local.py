@@ -5,6 +5,7 @@ import asyncio
 import logging
 import sys
 import time
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
@@ -18,7 +19,6 @@ else:  # pragma: <3.11 cover
 
 from aiologic import Lock
 from culsans import AsyncQueue
-from culsans import AsyncQueueEmpty as QueueEmpty
 from culsans import AsyncQueueShutDown as QueueShutDown
 from culsans import Queue
 from pydantic import BaseModel
@@ -33,6 +33,7 @@ from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+from academy.message import Header
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 
@@ -59,6 +60,7 @@ class _LocalExchangeState(NoPickleMixin):
         self.queues: dict[EntityId, AsyncQueue[Message[Any]]] = {}
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
+        self.requests: dict[EntityId, dict[uuid.UUID, Header]] = {}
         self.last_active: dict[EntityId, float] = {}
 
 
@@ -181,6 +183,55 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         queue = self._state.queues.get(message.dest, None)
         if queue is None:
             raise BadEntityIdError(message.dest)
+
+        if message.is_request():
+            self._state.requests.setdefault(message.dest, {})[message.tag] = (
+                message.header
+            )
+            logger.debug(
+                'Tracking in-flight request: tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                },
+            )
+        elif (
+            message.src in self._state.requests
+            and message.tag in self._state.requests[message.src]
+        ):
+            tracked = self._state.requests[message.src].pop(message.tag)
+            if not self._state.requests[message.src]:
+                del self._state.requests[message.src]
+            logger.debug(
+                'Response received for in-flight request: '
+                'tag=%s src=%s dest=%s',
+                tracked.tag,
+                tracked.src,
+                tracked.dest,
+                extra={
+                    'academy.message_tag': tracked.tag,
+                    'academy.src': tracked.src,
+                    'academy.dest': tracked.dest,
+                },
+            )
+        else:
+            logger.warning(
+                'Response received without corresponding request: '
+                'tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                },
+            )
+
         async with self._state.locks[message.dest]:
             try:
                 await queue.put(message)
@@ -204,12 +255,16 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if queue.is_shutdown:
                 return
 
-            messages = await _drain_queue(queue)
-            await _respond_pending_requests_on_terminate(messages, self)
-
-            queue.shutdown(immediate=True)
             if isinstance(uid, AgentId):
                 self._state.agents.pop(uid, None)
+            pending_requests = list(
+                self._state.requests.pop(uid, {}).values(),
+            )
+            await _respond_pending_requests_on_terminate(
+                pending_requests,
+                self.send,
+            )
+            queue.shutdown(immediate=True)
 
     async def update_heartbeat(self) -> None:
         self._state.last_active[self.mailbox_id] = time.time()
@@ -253,18 +308,3 @@ class LocalExchangeFactory(
             name=name,
             state=self._state,
         )
-
-
-async def _drain_queue(queue: AsyncQueue[Message[Any]]) -> list[Message[Any]]:
-    items: list[Message[Any]] = []
-
-    while True:
-        try:
-            item = queue.get_nowait()
-        except (QueueShutDown, QueueEmpty):
-            break
-        else:
-            items.append(item)
-            queue.task_done()
-
-    return items

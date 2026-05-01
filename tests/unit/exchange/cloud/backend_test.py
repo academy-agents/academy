@@ -482,6 +482,73 @@ async def test_redis_backend_mailbox_expire(mock_redis) -> None:
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_request_tracking(
+    backend: MailboxBackend,
+) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
+
+    request = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=PingRequest(),
+    )
+    await backend.put(client, request)
+
+    if isinstance(backend, PythonBackend):
+        assert receiver_uid in backend._requests
+        tracked = backend._requests[receiver_uid].get(request.tag)
+        assert tracked is not None
+        assert tracked.src == sender_uid
+        assert tracked.dest == receiver_uid
+    else:
+        assert isinstance(backend, RedisBackend)
+        request_key = f'request:{receiver_uid.uid}:{request.tag}'
+        info_data = await backend._client.get(request_key)
+        assert info_data is not None
+
+    response = request.create_response(SuccessResponse())
+    await backend.put(client, response)
+
+    if isinstance(backend, PythonBackend):
+        still_tracked = request.tag in backend._requests.get(sender_uid, {})
+        assert not still_tracked
+    else:
+        assert isinstance(backend, RedisBackend)
+        request_key = f'request:{receiver_uid.uid}:{request.tag}'
+        response_data = await backend._client.get(request_key)
+        assert response_data is None
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_response_without_request(
+    backend: MailboxBackend,
+) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    receiver_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, receiver_uid)
+
+    response = Message.create(
+        src=sender_uid,
+        dest=receiver_uid,
+        body=SuccessResponse(),
+    )
+    await backend.put(client, response)
+
+    if isinstance(backend, PythonBackend):
+        assert receiver_uid not in backend._requests
+    else:
+        assert isinstance(backend, RedisBackend)
+        response_key = f'request:{receiver_uid.uid}'
+        tracked = await backend._client.get(response_key)
+        assert tracked is None
+
+
 async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     uid = UserId.new()
     client = ClientInfo(str(uid), set())

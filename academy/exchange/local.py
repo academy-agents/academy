@@ -29,6 +29,7 @@ from academy.exception import MailboxTerminatedError
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
+from academy.exchange.transport import HEARTBEAT_STALE_THRESHOLD
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -193,7 +194,14 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         async with self._state.locks[uid]:
             if self._state.queues[uid].is_shutdown:
                 return MailboxStatus.TERMINATED
-            return MailboxStatus.ACTIVE
+        last_heartbeat = await self.heartbeat_status(uid)
+        if (
+            last_heartbeat is not None
+            and last_heartbeat > HEARTBEAT_STALE_THRESHOLD
+        ):
+            return MailboxStatus.INACTIVE
+
+        return MailboxStatus.ACTIVE
 
     async def terminate(self, uid: EntityId) -> None:
         queue = self._state.queues.get(uid, None)

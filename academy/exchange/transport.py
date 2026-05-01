@@ -30,6 +30,9 @@ if TYPE_CHECKING:
 else:
     from academy.identifier import AgentT
 
+# Mailbox is inactive after no recorded activity for 2 minutes.
+HEARTBEAT_STALE_THRESHOLD: float = 120
+
 
 class MailboxStatus(enum.Enum):
     """Exchange mailbox status."""
@@ -40,6 +43,8 @@ class MailboxStatus(enum.Enum):
     """Mailbox exists and is accepting messages."""
     TERMINATED = 'TERMINATED'
     """Mailbox was terminated and no longer accepts messages."""
+    INACTIVE = 'INACTIVE'
+    """Mailbox exists but is offline."""
 
 
 @runtime_checkable

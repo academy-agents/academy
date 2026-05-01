@@ -275,3 +275,70 @@ async def test_transport_heartbeat(
     heartbeat = await transport.heartbeat_status(transport.mailbox_id)
     assert heartbeat is not None
     assert TEST_HEARTBEAT_INTERVAL + 1.0 > heartbeat > TEST_HEARTBEAT_INTERVAL
+
+
+@pytest.mark.asyncio
+async def test_transport_status_inactive_stale_heartbeat(
+    transport: ExchangeTransport[AgentRegistrationT],
+    monkeypatch,
+) -> None:
+
+    # Given that our stale timeout is quite long,
+    # we need to monkey patch test timeout to a reduced time.
+    test_threshold = 0.5
+    monkeypatch.setattr(
+        'academy.exchange.transport.HEARTBEAT_STALE_THRESHOLD',
+        test_threshold,
+    )
+
+    monkeypatch.setattr(
+        'academy.exchange.local.HEARTBEAT_STALE_THRESHOLD',
+        test_threshold,
+    )
+
+    monkeypatch.setattr(
+        'academy.exchange.redis.HEARTBEAT_STALE_THRESHOLD',
+        test_threshold,
+    )
+
+    monkeypatch.setattr(
+        'academy.exchange.hybrid.HEARTBEAT_STALE_THRESHOLD',
+        test_threshold,
+    )
+
+    monkeypatch.setattr(
+        'academy.exchange.cloud.backend.HEARTBEAT_STALE_THRESHOLD',
+        test_threshold,
+    )
+
+    if isinstance(transport, (HttpExchangeTransport, GlobusExchangeTransport)):
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=transport.mailbox_id,
+            body=PingRequest(),
+        )
+        await transport.send(message)
+    else:
+        await transport.update_heartbeat()
+
+    status = await transport.status(transport.mailbox_id)
+    assert status == MailboxStatus.ACTIVE
+
+    await asyncio.sleep(test_threshold + 0.3)
+
+    status = await transport.status(transport.mailbox_id)
+    assert status == MailboxStatus.INACTIVE
+
+    # Retest when heartbeat is refreshed
+    if isinstance(transport, (HttpExchangeTransport, GlobusExchangeTransport)):
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=transport.mailbox_id,
+            body=PingRequest(),
+        )
+        await transport.send(message)
+    else:
+        await transport.update_heartbeat()
+
+    status = await transport.status(transport.mailbox_id)
+    assert status == MailboxStatus.ACTIVE

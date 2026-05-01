@@ -32,6 +32,7 @@ from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
+from academy.exchange.transport import HEARTBEAT_STALE_THRESHOLD
 from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
@@ -329,7 +330,14 @@ class PythonBackend:
             if uid in self._terminated:
                 return MailboxStatus.TERMINATED
             else:
-                return MailboxStatus.ACTIVE
+                last_heartbeat = await self.heartbeat_status(uid)
+                if (
+                    last_heartbeat is not None
+                    and last_heartbeat > HEARTBEAT_STALE_THRESHOLD
+                ):
+                    return MailboxStatus.INACTIVE
+                else:
+                    return MailboxStatus.ACTIVE
 
     async def create_mailbox(
         self,
@@ -790,7 +798,14 @@ class RedisBackend:
         elif status.decode() == MailboxStatus.TERMINATED.value:
             return MailboxStatus.TERMINATED
         else:
-            return MailboxStatus.ACTIVE
+            last_heartbeat = await self.heartbeat_status(uid)
+            if (
+                last_heartbeat is not None
+                and last_heartbeat > HEARTBEAT_STALE_THRESHOLD
+            ):
+                return MailboxStatus.INACTIVE
+            else:
+                return MailboxStatus.ACTIVE
 
     async def create_mailbox(
         self,

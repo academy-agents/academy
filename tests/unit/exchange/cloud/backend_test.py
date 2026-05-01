@@ -501,3 +501,34 @@ async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     elapsed = time.time() - start
     assert heartbeat is not None
     assert heartbeat < elapsed
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_stale_heartbeat(
+    backend: MailboxBackend,
+    monkeypatch,
+) -> None:
+
+    test_threshold = 0.5
+
+    monkeypatch.setattr(
+        'academy.exchange.cloud.backend.HEARTBEAT_STALE_THRESHOLD',
+        test_threshold,
+    )
+
+    uid = UserId.new()
+    client = ClientInfo(str(uid), set())
+
+    await backend.create_mailbox(client, uid)
+
+    await backend.update_heartbeat(uid)
+    status = await backend.check_mailbox(client, uid)
+    assert status == MailboxStatus.ACTIVE
+
+    await asyncio.sleep(test_threshold + 0.3)
+    status = await backend.check_mailbox(client, uid)
+    assert status == MailboxStatus.INACTIVE
+
+    await backend.update_heartbeat(uid)
+    status = await backend.check_mailbox(client, uid)
+    assert status == MailboxStatus.ACTIVE

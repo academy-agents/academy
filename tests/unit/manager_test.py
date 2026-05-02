@@ -419,151 +419,135 @@ async def test_launch_batch_sibling_handle_resolved_after_commit(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_register_agents_failure_skips_launches(
+async def test_launch_batch_evicts_on_register_failure(
     manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def failing_register(
-        agents: Any,
-    ) -> Any:
-        raise RuntimeError('injected register_agents failure')
-
-    monkeypatch.setattr(
-        manager.exchange_client,
-        'register_agents',
-        failing_register,
+    failing_register = mock.AsyncMock(
+        side_effect=RuntimeError('injected register_agents failure'),
     )
 
     placeholder_ids: list[Any] = []
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            h1 = await batch.launch(EmptyAgent)
-            h2 = await batch.launch(EmptyAgent)
-            placeholder_ids.extend([h1.agent_id, h2.agent_id])
+            handle_1 = await batch.launch(EmptyAgent)
+            handle_2 = await batch.launch(EmptyAgent)
+            placeholder_ids.extend([handle_1.agent_id, handle_2.agent_id])
 
-    with pytest.raises(RuntimeError, match='injected register_agents'):
+    with (
+        mock.patch.object(
+            manager.exchange_client,
+            'register_agents',
+            new=failing_register,
+        ),
+        pytest.raises(RuntimeError, match='injected register_agents failure'),
+    ):
         await body()
 
+    failing_register.assert_awaited_once()
     assert len(manager.running()) == 0
-    for pid in placeholder_ids:
-        assert pid not in manager._handles
+    for handle_id in placeholder_ids:
+        assert handle_id not in manager._handles
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_launch_failure_terminates_orphans(
+async def test_launch_batch_terminates_on_launch_failure(
     manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     original_launch = manager.launch
     launch_calls: dict[str, int] = {'n': 0}
 
-    async def failing_launch(
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
+    async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
         launch_calls['n'] += 1
         if launch_calls['n'] == 2:  # noqa: PLR2004
             raise RuntimeError('injected launch failure')
         return await original_launch(*args, **kwargs)
 
-    monkeypatch.setattr(manager, 'launch', failing_launch)
-
-    original_terminate = manager.exchange_client.terminate
-    terminated: list[Any] = []
-
-    async def wrapped_terminate(agent_id: Any) -> None:
-        terminated.append(agent_id)
-        await original_terminate(agent_id)
-
-    monkeypatch.setattr(
-        manager.exchange_client,
-        'terminate',
-        wrapped_terminate,
+    failing_launch = mock.AsyncMock(side_effect=_failing_launch)
+    wrapped_terminate = mock.AsyncMock(
+        wraps=manager.exchange_client.terminate,
     )
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)  # intent 0 — launches
-            await batch.launch(EmptyAgent)  # intent 1 — launch fails
-            await batch.launch(EmptyAgent)  # intent 2 — orphaned
+            await batch.launch(EmptyAgent)  # Launches
+            await batch.launch(EmptyAgent)  # Fails to launch
+            await batch.launch(EmptyAgent)  # Orphaned
 
-    with pytest.raises(RuntimeError, match='injected launch failure'):
+    with (
+        mock.patch.object(manager, 'launch', new=failing_launch),
+        mock.patch.object(
+            manager.exchange_client,
+            'terminate',
+            new=wrapped_terminate,
+        ),
+        pytest.raises(RuntimeError, match='injected launch failure'),
+    ):
         await body()
 
-    # Intent 0's agent is still running; intents 1 and 2 were
-    # registered but never successfully launched, so they are
-    # terminated via exchange_client.terminate.
+    # First launch succeeds
+    # Second launch fails to launch
+    # Third launch is orphaned
+    assert failing_launch.await_count == 2  # noqa: PLR2004
+    assert wrapped_terminate.await_count == 2  # noqa: PLR2004
     assert len(manager.running()) == 1
-    assert len(terminated) == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_launch_failure_evicts_stale_handles(
+async def test_launch_batch_evicts_on_launch_failure(
     manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     original_launch = manager.launch
     launch_calls: dict[str, int] = {'n': 0}
 
-    async def failing_launch(
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
+    async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
         launch_calls['n'] += 1
         if launch_calls['n'] == 2:  # noqa: PLR2004
             raise RuntimeError('injected launch failure')
         return await original_launch(*args, **kwargs)
 
-    monkeypatch.setattr(manager, 'launch', failing_launch)
+    failing_launch = mock.AsyncMock(side_effect=_failing_launch)
 
     handles: list[Any] = []
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            handles.append(await batch.launch(EmptyAgent))
-            handles.append(await batch.launch(EmptyAgent))
-            handles.append(await batch.launch(EmptyAgent))
+            handles.append(await batch.launch(EmptyAgent))  # Launches
+            handles.append(await batch.launch(EmptyAgent))  # Fails to launch
+            handles.append(await batch.launch(EmptyAgent))  # Orphaned
 
-    with pytest.raises(RuntimeError, match='injected launch failure'):
+    with (
+        mock.patch.object(manager, 'launch', new=failing_launch),
+        pytest.raises(RuntimeError, match='injected launch failure'),
+    ):
         await body()
 
-    running_handle, orphan_rebound, orphan_placeholder = handles
-    # Intent 0 launched successfully: handle stays cached.
-    assert manager._handles.get(running_handle.agent_id) is running_handle
-    # Intent 1 rebound but then the launch failed: evicted under its
-    # rebound (real) id.
-    assert orphan_rebound.agent_id not in manager._handles
-    # Intent 2 never reached the loop: evicted under its placeholder id.
-    assert orphan_placeholder.agent_id not in manager._handles
+    assert failing_launch.await_count == 2  # noqa: PLR2004
+    running, failed, orphaned = handles
+    # first launch succeeds, id cached
+    assert manager._handles.get(running.agent_id) is running
+    # second launch fails and is evicted under its rebound id
+    assert failed.agent_id not in manager._handles
+    # third launch is orphaned and evicted under its placeholder id
+    assert orphaned.agent_id not in manager._handles
 
 
 @pytest.mark.asyncio
 async def test_launch_batch_orphan_termination_failure_does_not_mask(
     manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # The original launch exception must surface even when orphan
     # cleanup raises.
     original_launch = manager.launch
 
-    async def failing_launch(
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
+    async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
         if not manager.running():
             return await original_launch(*args, **kwargs)
         raise RuntimeError('injected launch failure')
 
-    monkeypatch.setattr(manager, 'launch', failing_launch)
-
-    async def failing_terminate(agent_id: Any) -> None:
-        raise RuntimeError('injected terminate failure')
-
-    monkeypatch.setattr(
-        manager.exchange_client,
-        'terminate',
-        failing_terminate,
+    failing_launch = mock.AsyncMock(side_effect=_failing_launch)
+    failing_terminate = mock.AsyncMock(
+        side_effect=RuntimeError('injected terminate failure'),
     )
 
     async def body() -> None:
@@ -571,8 +555,23 @@ async def test_launch_batch_orphan_termination_failure_does_not_mask(
             await batch.launch(EmptyAgent)
             await batch.launch(EmptyAgent)
 
-    with pytest.raises(RuntimeError, match='injected launch failure'):
+    with (
+        mock.patch.object(manager, 'launch', new=failing_launch),
+        mock.patch.object(
+            manager.exchange_client,
+            'terminate',
+            new=failing_terminate,
+        ),
+        pytest.raises(RuntimeError, match='injected launch failure'),
+    ):
         await body()
+
+    # intent to launch first agent succeeds
+    # intent to launch second agent fails to launch
+    assert failing_launch.await_count == 2  # noqa: PLR2004
+    # Rollback is run once for the orphaned agent left by
+    # the failing launch.
+    assert failing_terminate.await_count == 1
 
 
 @pytest.mark.asyncio
@@ -589,31 +588,36 @@ async def test_launch_batch_rejects_rebind_of_used_handle(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_mid_commit_cancellation_propagates(
+async def test_launch_batch_propagates_cancellation(
     manager: Manager[LocalExchangeTransport],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Un-launched registrations leak exchange-side on cancellation —
-    # documented limitation, not asserted against here.
+    # Un-launched registrations leak exchange-side on cancellation.
+    # This is expected & not asserted against here.
     original_launch = manager.launch
     first_call = {'seen': False}
 
-    async def launch_then_cancel(*args: Any, **kwargs: Any) -> Any:
+    async def _launch_then_cancel(*args: Any, **kwargs: Any) -> Any:
         if not first_call['seen']:
             first_call['seen'] = True
             return await original_launch(*args, **kwargs)
         raise asyncio.CancelledError
 
-    monkeypatch.setattr(manager, 'launch', launch_then_cancel)
+    launch_then_cancel = mock.AsyncMock(side_effect=_launch_then_cancel)
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
             await batch.launch(EmptyAgent)
             await batch.launch(EmptyAgent)
 
-    with pytest.raises(asyncio.CancelledError):
+    with (
+        mock.patch.object(manager, 'launch', new=launch_then_cancel),
+        pytest.raises(asyncio.CancelledError),
+    ):
         await body()
-    assert len(manager.running()) == 1
+
+    # The first launch intent launched. Second intent was
+    # cancelled before it could be launched.
+    assert launch_then_cancel.await_count == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio

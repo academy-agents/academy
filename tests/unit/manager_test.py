@@ -250,7 +250,7 @@ async def test_launch_batch_launch_after_close_raises(
     async with batch:
         pass
     with pytest.raises(RuntimeError, match='batch is closed'):
-        await batch.launch(EmptyAgent)
+        await batch.queue(EmptyAgent)
 
 
 @pytest.mark.asyncio
@@ -259,7 +259,7 @@ async def test_launch_batch_accepts_instance(
 ) -> None:
     instance = EmptyAgent()
     async with manager.launch_batch() as batch:
-        handle = await batch.launch(instance)
+        handle = await batch.queue(instance)
         assert batch._intents[0].agent is instance
     assert handle.agent_id in manager.running()
 
@@ -269,14 +269,14 @@ async def test_launch_batch_queues_and_returns_handle(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     async with manager.launch_batch() as batch:
-        handle = await batch.launch(EmptyAgent)
-        pre_commit_id = handle.agent_id
-        assert manager._handles[pre_commit_id] is handle
+        handle = await batch.queue(EmptyAgent)
+        pre_submit_id = handle.agent_id
+        assert manager._handles[pre_submit_id] is handle
         assert len(batch._intents) == 1
         intent = batch._intents[0]
         assert intent.agent is EmptyAgent
         assert intent.handle is handle
-    # Same handle object is cached under the post-commit id.
+    # Same handle object is cached under the post-submit id.
     assert manager._handles[handle.agent_id] is handle
 
 
@@ -285,7 +285,7 @@ async def test_launch_batch_name_flows_into_agent_id(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     async with manager.launch_batch() as batch:
-        handle = await batch.launch(EmptyAgent, name='worker-1')
+        handle = await batch.queue(EmptyAgent, name='worker-1')
         assert handle.agent_id.name == 'worker-1'
         assert batch._intents[0].name == 'worker-1'
 
@@ -295,9 +295,9 @@ async def test_launch_batch_multiple_launches_preserve_order(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     async with manager.launch_batch() as batch:
-        h1 = await batch.launch(EmptyAgent, name='a')
-        h2 = await batch.launch(IdentityAgent, name='b')
-        h3 = await batch.launch(EmptyAgent, name='c')
+        h1 = await batch.queue(EmptyAgent, name='a')
+        h2 = await batch.queue(IdentityAgent, name='b')
+        h3 = await batch.queue(EmptyAgent, name='c')
         assert batch._intents[0].agent is EmptyAgent
         assert batch._intents[1].agent is IdentityAgent
         assert batch._intents[2].agent is EmptyAgent
@@ -313,14 +313,14 @@ async def test_launch_batch_handle_usable_as_sibling_arg(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     async with manager.launch_batch() as batch:
-        parent = await batch.launch(EmptyAgent)
-        await batch.launch(
+        parent = await batch.queue(EmptyAgent)
+        await batch.queue(
             _FlexAgent,
             args=(parent,),
             kwargs={'peer': parent},
         )
         # Sibling intent captures the parent handle by reference so
-        # that commit-time rebinding is visible to siblings.
+        # that submit-time rebinding is visible to siblings.
         sibling_intent = batch._intents[1]
         assert sibling_intent.args is not None
         assert sibling_intent.kwargs is not None
@@ -329,12 +329,12 @@ async def test_launch_batch_handle_usable_as_sibling_arg(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_commits_on_exit(
+async def test_launch_batch_submits_on_exit(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     async with manager.launch_batch() as batch:
-        h1 = await batch.launch(EmptyAgent)
-        h2 = await batch.launch(IdentityAgent)
+        h1 = await batch.queue(EmptyAgent)
+        h2 = await batch.queue(IdentityAgent)
     assert len(manager.running()) == 2  # noqa: PLR2004
     assert manager._handles[h1.agent_id] is h1
     assert manager._handles[h2.agent_id] is h2
@@ -344,7 +344,7 @@ async def test_launch_batch_commits_on_exit(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_commit_rebinds_handle_ids(
+async def test_launch_batch_submit_rebinds_handle_ids(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     # Local has no transport-level ``register_agents``; the client
@@ -352,17 +352,17 @@ async def test_launch_batch_commit_rebinds_handle_ids(
     # id. The batch launcher must rebind the pre-minted handle and
     # re-key ``manager._handles``.
     async with manager.launch_batch() as batch:
-        handle = await batch.launch(EmptyAgent)
+        handle = await batch.queue(EmptyAgent)
         pre_minted_id = handle.agent_id
         assert manager._handles[pre_minted_id] is handle
-    # After commit, the same Handle object is cached under its
-    # post-commit id, and the placeholder id is gone from the cache.
+    # After submit, the same Handle object is cached under its
+    # post-submit id, and the placeholder id is gone from the cache.
     assert manager._handles[handle.agent_id] is handle
     assert pre_minted_id not in manager._handles
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_body_exception_skips_commit(
+async def test_launch_batch_body_exception_skips_submit(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     captured: list[Any] = []
@@ -370,8 +370,8 @@ async def test_launch_batch_body_exception_skips_commit(
     async def body() -> None:
         async with manager.launch_batch() as batch:
             captured.append(batch)
-            await batch.launch(EmptyAgent)
-            await batch.launch(IdentityAgent)
+            await batch.queue(EmptyAgent)
+            await batch.queue(IdentityAgent)
             raise ValueError('from body')
 
     with pytest.raises(ValueError, match='from body'):
@@ -399,13 +399,13 @@ async def test_launch_batch_empty_body_does_not_call_register_agents(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_sibling_handle_resolved_after_commit(
+async def test_launch_batch_sibling_handle_resolved_after_submit(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     captured_sibling_args: list[Any] = []
     async with manager.launch_batch() as batch:
-        parent = await batch.launch(EmptyAgent)
-        await batch.launch(_FlexAgent, args=(parent,))
+        parent = await batch.queue(EmptyAgent)
+        await batch.queue(_FlexAgent, args=(parent,))
         sibling_args = batch._intents[1].args
         assert sibling_args is not None
         captured_sibling_args.append(sibling_args)
@@ -430,8 +430,8 @@ async def test_launch_batch_evicts_on_register_failure(
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            handle_1 = await batch.launch(EmptyAgent)
-            handle_2 = await batch.launch(EmptyAgent)
+            handle_1 = await batch.queue(EmptyAgent)
+            handle_2 = await batch.queue(EmptyAgent)
             placeholder_ids.extend([handle_1.agent_id, handle_2.agent_id])
 
     with (
@@ -470,9 +470,9 @@ async def test_launch_batch_terminates_on_launch_failure(
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)  # Launches
-            await batch.launch(EmptyAgent)  # Fails to launch
-            await batch.launch(EmptyAgent)  # Orphaned
+            await batch.queue(EmptyAgent)  # Launches
+            await batch.queue(EmptyAgent)  # Fails to launch
+            await batch.queue(EmptyAgent)  # Orphaned
 
     with (
         mock.patch.object(manager, 'launch', new=failing_launch),
@@ -512,9 +512,9 @@ async def test_launch_batch_evicts_on_launch_failure(
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            handles.append(await batch.launch(EmptyAgent))  # Launches
-            handles.append(await batch.launch(EmptyAgent))  # Fails to launch
-            handles.append(await batch.launch(EmptyAgent))  # Orphaned
+            handles.append(await batch.queue(EmptyAgent))  # Launches
+            handles.append(await batch.queue(EmptyAgent))  # Fails to launch
+            handles.append(await batch.queue(EmptyAgent))  # Orphaned
 
     with (
         mock.patch.object(manager, 'launch', new=failing_launch),
@@ -552,8 +552,8 @@ async def test_launch_batch_orphan_termination_failure_does_not_mask(
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)
-            await batch.launch(EmptyAgent)
+            await batch.queue(EmptyAgent)
+            await batch.queue(EmptyAgent)
 
     with (
         mock.patch.object(manager, 'launch', new=failing_launch),
@@ -580,7 +580,7 @@ async def test_launch_batch_rejects_rebind_of_used_handle(
 ) -> None:
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            handle = await batch.launch(EmptyAgent)
+            handle = await batch.queue(EmptyAgent)
             handle._used_for_messaging = True
 
     with pytest.raises(AssertionError, match='used for messaging'):
@@ -606,8 +606,8 @@ async def test_launch_batch_propagates_cancellation(
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            await batch.launch(EmptyAgent)
-            await batch.launch(EmptyAgent)
+            await batch.queue(EmptyAgent)
+            await batch.queue(EmptyAgent)
 
     with (
         mock.patch.object(manager, 'launch', new=launch_then_cancel),
@@ -621,13 +621,52 @@ async def test_launch_batch_propagates_cancellation(
 
 
 @pytest.mark.asyncio
+async def test_launch_batch_explicit_submit(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    batch = manager.launch_batch()
+    h1 = await batch.queue(EmptyAgent)
+    h2 = await batch.queue(EmptyAgent)
+    await batch.submit()
+
+    assert h1.agent_id in manager.running()
+    assert h2.agent_id in manager.running()
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_abort_evicts_placeholders(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    batch = manager.launch_batch()
+    h1 = await batch.queue(EmptyAgent)
+    h2 = await batch.queue(EmptyAgent)
+    placeholder_ids = [h1.agent_id, h2.agent_id]
+    batch.abort()
+
+    assert len(manager.running()) == 0
+    for pid in placeholder_ids:
+        assert pid not in manager._handles
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_submit_after_close_raises(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    batch = manager.launch_batch()
+    await batch.queue(EmptyAgent)
+    await batch.submit()
+    with pytest.raises(RuntimeError, match='batch is closed'):
+        await batch.submit()
+
+
+@pytest.mark.asyncio
 async def test_launch_batch_fan_out_sibling_handle(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     async with manager.launch_batch() as batch:
-        parent = await batch.launch(EmptyAgent)
-        await batch.launch(_FlexAgent, args=(parent,))
-        await batch.launch(_FlexAgent, kwargs={'peer': parent})
+        parent = await batch.queue(EmptyAgent)
+        await batch.queue(_FlexAgent, args=(parent,))
+        await batch.queue(_FlexAgent, kwargs={'peer': parent})
     running = manager.running()
     assert len(running) == 3  # noqa: PLR2004
     assert parent.agent_id in running
@@ -640,9 +679,9 @@ async def test_launch_batch_diamond_sibling_handles(
 ) -> None:
     captured: list[Any] = []
     async with manager.launch_batch() as batch:
-        parent_a = await batch.launch(EmptyAgent, name='a')
-        parent_b = await batch.launch(EmptyAgent, name='b')
-        await batch.launch(
+        parent_a = await batch.queue(EmptyAgent, name='a')
+        parent_b = await batch.queue(EmptyAgent, name='b')
+        await batch.queue(
             _FlexAgent,
             args=(parent_a, parent_b),
         )

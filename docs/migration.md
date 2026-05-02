@@ -37,8 +37,8 @@ Batch launch ergonomics for the Globus transport: launches queued inside a `laun
 
 ```python
 async with manager.launch_batch() as batch:
-    greeter = await batch.launch(Greeter)
-    coordinator = await batch.launch(
+    greeter = await batch.queue(Greeter)
+    coordinator = await batch.queue(
         Coordinator,
         args=(greeter,),
     )

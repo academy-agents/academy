@@ -1,21 +1,12 @@
-"""Globus exchange example.
+"""Explicit-driving variant of run-12.py.
 
-Uses GlobusExchangeFactory against the hosted exchange at
-exchange.academy-agents.org. Each agent gets its own Globus Auth
-client, credentials, and delegated token.
-
-Agents are launched inside ``async with manager.launch_batch() as
-batch:``, which coalesces all of the per-agent auth flows into a
-single consent prompt. This is ergonomic sugar over the underlying
-``manager.register_agents(...)`` + ``manager.launch(registration=...)``
-pattern, which is still supported for pre-warming or register-elsewhere
-workflows.
+Same scenario, using batch.submit() instead of `async with`.
 
 Requires:
     export ACADEMY_TEST_PROJECT_ID=<project-uuid>
 
 Usage:
-    PYTHONPATH=. python examples/12-globus-exchange/run-12.py
+    PYTHONPATH=. python examples/12-globus-exchange/run-12-explicit.py
 """
 
 from __future__ import annotations
@@ -83,13 +74,18 @@ async def main() -> int:
         factory=factory,
         log_config=recommended_logging(),
     ) as manager:
-        async with manager.launch_batch() as batch:
+        batch = manager.launch_batch()
+        try:
             greeter = await batch.queue(Greeter)
             shouter = await batch.queue(Shouter)
             coordinator = await batch.queue(
                 Coordinator,
                 args=(greeter, shouter),
             )
+            await batch.submit()
+        except Exception:
+            batch.abort()
+            raise
 
         result = await coordinator.greet_loudly('Academy')
         logger.info(f'Result: {result!r}')

@@ -116,13 +116,10 @@ class _LaunchIntent(Generic[AgentT]):
 
 
 class _BatchLauncher:
-    """Context manager that batches multiple agent launches.
+    """Batches multiple agent launches into a single registration.
 
     Returned by
     [`Manager.launch_batch`][academy.manager.Manager.launch_batch].
-    On context exit without error, queued agents are registered
-    together (one auth consent prompt on transports that batch auth)
-    and launched.
 
     Args:
         manager: Manager that owns this batch.
@@ -142,21 +139,12 @@ class _BatchLauncher:
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        self._closed = True
+        if self._closed:
+            return
         if exc_value is not None:
-            # Intents are retained for caller inspection on this path.
-            self._evict_placeholder_handles()
+            self.abort()
             return
-        if not self._intents:
-            return
-        try:
-            try:
-                await self._commit()
-            except BaseException:
-                self._evict_placeholder_handles()
-                raise
-        finally:
-            self._intents.clear()
+        await self.submit()
 
     def _evict_placeholder_handles(self) -> None:
         """Remove queued intents' placeholder handles from the cache.
@@ -171,7 +159,7 @@ class _BatchLauncher:
             if handles.get(pid) is intent.handle:
                 del handles[pid]
 
-    async def launch(  # noqa: PLR0913
+    async def queue(  # noqa: PLR0913
         self,
         agent: AgentT | type[AgentT],
         *,
@@ -183,7 +171,7 @@ class _BatchLauncher:
         name: str | None = None,
         log_config: LogConfig | None = None,
     ) -> Handle[AgentT]:
-        """Queue an agent launch. Committed on context exit.
+        """Queue an agent for launch on `submit()`.
 
         Parameters mirror
         [`Manager.launch`][academy.manager.Manager.launch] exactly
@@ -191,18 +179,17 @@ class _BatchLauncher:
         itself).
 
         Returns:
-            Handle to the agent. Usable as a sibling ``batch.launch``
-            argument; not messageable until the batch commits.
+            Handle to the agent. Usable as a sibling ``batch.queue``
+            argument; not messageable until the batch is submitted.
 
         Warning:
             Pass the [`Handle`][academy.handle.Handle] itself to
             sibling launches, not ``handle.agent_id``. The handle is
-            rebound in place
-            at commit time; an ``agent_id`` captured into ``args``
-            before commit is a stale placeholder UUID.
+            rebound in place at submit time; an ``agent_id`` captured
+            into ``args`` before submit is a stale placeholder UUID.
 
         Raises:
-            RuntimeError: If the batch has already exited.
+            RuntimeError: If the batch has already been closed.
         """
         if self._closed:
             raise RuntimeError('batch is closed')
@@ -227,17 +214,27 @@ class _BatchLauncher:
         )
         return handle
 
-    async def _commit(self) -> None:
-        """Register queued intents together, then launch each.
+    async def submit(self) -> None:
+        """Register and launch all queued intents.
 
         On transports that implement
         [`ExchangeTransport.register_agents`][academy.exchange.transport.ExchangeTransport.register_agents]
-        (e.g. Globus), this produces one auth consent prompt
-        for the whole batch; other transports fall back to
-        sequential registration. Each pre-minted handle is then
-        rebound to the transport-minted ID
-        before launch.
+        (e.g. Globus), this produces one auth consent prompt for the
+        whole batch; other transports fall back to sequential
+        registration.
+
+        A failed launch mid-batch terminates later intents as
+        orphans; earlier intents keep running.
+
+        Raises:
+            RuntimeError: If the batch has already been closed.
         """
+        if self._closed:
+            raise RuntimeError('batch is closed')
+        self._closed = True
+        if not self._intents:
+            return
+
         specs: list[tuple[type[Any], str | None]] = [
             (
                 intent.agent
@@ -247,42 +244,58 @@ class _BatchLauncher:
             )
             for intent in self._intents
         ]
-        registrations = await self._manager.register_agents(specs)
 
-        launch_index = 0
         try:
-            for intent, registration in zip(
-                self._intents,
-                registrations,
-                strict=True,
-            ):
-                self._manager._rebind_handle(
-                    intent.handle,
-                    registration.agent_id,
-                )
-                await self._manager.launch(
-                    intent.agent,
-                    args=intent.args,
-                    kwargs=intent.kwargs,
-                    config=intent.config,
-                    executor=intent.executor,
-                    submit_kwargs=intent.submit_kwargs,
-                    name=intent.name,
-                    registration=registration,
-                    log_config=intent.log_config,
-                )
-                launch_index += 1
-        except Exception:
-            # CancelledError deliberately excluded: registrations past
-            # ``launch_index`` will leak exchange-side, but awaiting
-            # cleanup inside a cancellation frame risks a hung shutdown.
-            orphan_intents = self._intents[launch_index:]
-            orphan_registrations = registrations[launch_index:]
-            handles = self._manager._handles
-            for intent in orphan_intents:
-                handles.pop(intent.handle.agent_id, None)
-            await self._terminate_orphans(orphan_registrations)
+            registrations = await self._manager.register_agents(specs)
+
+            launch_index = 0
+            try:
+                for intent, registration in zip(
+                    self._intents,
+                    registrations,
+                    strict=True,
+                ):
+                    self._manager._rebind_handle(
+                        intent.handle,
+                        registration.agent_id,
+                    )
+                    await self._manager.launch(
+                        intent.agent,
+                        args=intent.args,
+                        kwargs=intent.kwargs,
+                        config=intent.config,
+                        executor=intent.executor,
+                        submit_kwargs=intent.submit_kwargs,
+                        name=intent.name,
+                        registration=registration,
+                        log_config=intent.log_config,
+                    )
+                    launch_index += 1
+            except Exception:
+                # CancelledError deliberately excluded: registrations
+                # past ``launch_index`` will leak exchange-side, but
+                # awaiting cleanup inside a cancellation frame risks a
+                # hung shutdown.
+                orphan_intents = self._intents[launch_index:]
+                orphan_registrations = registrations[launch_index:]
+                handles = self._manager._handles
+                for intent in orphan_intents:
+                    handles.pop(intent.handle.agent_id, None)
+                await self._terminate_orphans(orphan_registrations)
+                raise
+        except BaseException:
+            self._evict_placeholder_handles()
             raise
+        finally:
+            self._intents.clear()
+
+    def abort(self) -> None:
+        """Discard queued intents. Idempotent."""
+        if self._closed:
+            return
+        self._closed = True
+        self._evict_placeholder_handles()
+        self._intents.clear()
 
     async def _terminate_orphans(
         self,
@@ -301,7 +314,7 @@ class _BatchLauncher:
             if isinstance(result, Exception):
                 logger.error(
                     'Failed to terminate orphan registration %s during '
-                    'launch_batch commit rollback.',
+                    'launch_batch submit rollback.',
                     registration.agent_id,
                     exc_info=result,
                     extra={
@@ -784,17 +797,17 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         registered under a single auth consent prompt. Other
         transports fall back to sequential registration.
 
-        Handles returned by ``batch.launch`` can be passed as
-        arguments to sibling ``batch.launch`` calls; they are not
-        messageable until the batch commits on exit.
+        Handles returned by ``batch.queue`` can be passed as
+        arguments to sibling ``batch.queue`` calls; they are not
+        messageable until the batch is submitted on exit.
 
         Example:
             .. code-block:: python
 
                 async with manager.launch_batch() as batch:
-                    greeter = await batch.launch(Greeter)
-                    shouter = await batch.launch(Shouter)
-                    coordinator = await batch.launch(
+                    greeter = await batch.queue(Greeter)
+                    shouter = await batch.queue(Shouter)
+                    coordinator = await batch.queue(
                         Coordinator,
                         args=(greeter, shouter),
                     )

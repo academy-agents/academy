@@ -74,7 +74,8 @@ class Handle(Generic[AgentT_co]):
         an exchange client.
 
     Args:
-        agent_id: ID of the remote agent.
+        agent_id: ID of the remote agent, or ``None`` to defer
+            binding (used by ``batch.queue()``).
         exchange: A default exchange client to be used if an exchange client
             is not configured in the current context.
         ignore_context: Ignore the current context and force use of `exchange`
@@ -86,12 +87,12 @@ class Handle(Generic[AgentT_co]):
 
     def __init__(
         self,
-        agent_id: AgentId[AgentT_co],
+        agent_id: AgentId[AgentT_co] | None = None,
         *,
         exchange: ExchangeClient[Any] | None = None,
         ignore_context: bool = False,
     ) -> None:
-        self.agent_id = agent_id
+        self._agent_id: AgentId[AgentT_co] | None = agent_id
         self._exchange = exchange
         self._registered_exchanges: WeakSet[ExchangeClient[Any]] = WeakSet()
         self.ignore_context = ignore_context
@@ -112,6 +113,25 @@ class Handle(Generic[AgentT_co]):
 
         if self._exchange is not None:
             self._register_with_exchange(self._exchange)
+
+    @property
+    def agent_id(self) -> AgentId[AgentT_co]:
+        """ID of the remote agent.
+
+        Raises:
+            RuntimeError: If the handle is not bound.
+        """
+        if self._agent_id is None:
+            raise RuntimeError(
+                'Handle is not bound to a registered agent. '
+                'Submit the enclosing batch before reading '
+                'agent_id.',
+            )
+        return self._agent_id
+
+    @agent_id.setter
+    def agent_id(self, value: AgentId[AgentT_co]) -> None:
+        self._agent_id = value
 
     @property
     def exchange(self) -> ExchangeClient[Any]:
@@ -146,18 +166,20 @@ class Handle(Generic[AgentT_co]):
             raise PicklingError(
                 'Handle with ignore_context=True is not pickle-able',
             )
-        return (Handle, (self.agent_id,))
+        if self._agent_id is None:
+            raise PicklingError('Cannot pickle an unbound handle.')
+        return (Handle, (self._agent_id,))
 
     def __repr__(self) -> str:
         return (
-            f'{type(self).__name__}(agent_id={self.agent_id!r}, '
+            f'{type(self).__name__}(agent_id={self._agent_id!r}, '
             f'exchange={self._exchange!r}, '
             f'ignore_context={self.ignore_context!r})'
         )
 
     def __str__(self) -> str:
         name = type(self).__name__
-        return f'{name}<agent: {self.agent_id}>'
+        return f'{name}<agent: {self._agent_id}>'
 
     def __getattr__(self, name: str) -> Any:
         async def remote_method_call(*args: Any, **kwargs: Any) -> R:

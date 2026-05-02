@@ -31,6 +31,21 @@ Multiple log contexts can be active in a process at any one time - for example, 
 
 Academy comes with three ways of configuring logging: to the console, to a log file, and to a shared home directory JSON logfile store. Developers can implement new logging configurations by subclassing the LogConfig class.
 
+#### New: `Manager.launch_batch()`
+
+Batch launch ergonomics for the Globus transport: launches queued inside a [`launch_batch()`][academy.manager.Manager.launch_batch] block are registered under a single auth consent prompt instead of one per agent. Other transports behave identically to separate [`Manager.launch()`][academy.manager.Manager.launch] calls.
+
+```python
+async with manager.launch_batch() as batch:
+    greeter = await batch.queue(Greeter)
+    coordinator = await batch.queue(
+        Coordinator,
+        args=(greeter,),
+    )
+```
+
+`batch.queue` returns an unbound [`Handle`][academy.handle.Handle]. Reading [`handle.agent_id`][academy.handle.Handle.agent_id] (or pickling the handle) raises `RuntimeError` until the batch is submitted.
+
 ## Agent Registration are Pydantic Models
 
 The `AgentRegistration` protocol is used to match new agents with previously created mailboxes --- a different implementation of the protocol is used for each exchange type. These classes are now `pydantic` models instead of dataclasses.  Previously created registrations will not work with the new version of Academy.

@@ -173,8 +173,10 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
     ) -> list[AgentRegistration[AgentT]]:
         """Register multiple agents, batching auth if supported.
 
-        Falls back to sequential :meth:`register_agent` calls when
-        the transport does not implement batch registration.
+        Falls back to sequential
+        [`register_agent`][academy.exchange.client.ExchangeClient.register_agent]
+        calls when the transport does not implement batch
+        registration.
 
         Args:
             agents: List of (agent_type, name) pairs to register.
@@ -185,17 +187,36 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         batch_fn = getattr(self._transport, 'register_agents', None)
         if batch_fn is not None:
             registrations = await batch_fn(agents)
-        else:
-            registrations = [
-                await self.register_agent(agent, name=name)
-                for agent, name in agents
-            ]
-        for reg in registrations:
-            logger.info(
-                'Registered %s in exchange',
-                reg.agent_id,
-                extra={'academy.agent_id': reg.agent_id},
+            for reg in registrations:
+                logger.info(
+                    'Registered %s in exchange',
+                    reg.agent_id,
+                    extra={'academy.agent_id': reg.agent_id},
+                )
+            return registrations
+
+        # Sequential fallback
+        registrations = []
+        try:
+            for agent, name in agents:
+                registrations.append(
+                    await self.register_agent(agent, name=name),
+                )
+        except Exception:
+            results = await asyncio.gather(
+                *(self.terminate(reg.agent_id) for reg in registrations),
+                return_exceptions=True,
             )
+            for reg, result in zip(registrations, results, strict=True):
+                if isinstance(result, Exception):
+                    logger.error(
+                        'Failed to terminate partial registration %s '
+                        'during register_agents rollback.',
+                        reg.agent_id,
+                        exc_info=result,
+                        extra={'academy.agent_id': reg.agent_id},
+                    )
+            raise
         return registrations
 
     async def send(self, message: Message[Any]) -> None:

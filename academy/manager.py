@@ -99,6 +99,204 @@ class _ACB(Generic[AgentT]):
     task: asyncio.Task[None]
 
 
+@dataclasses.dataclass
+class _LaunchIntent(Generic[AgentT]):
+    # Fields mirror Manager.launch's parameters; a dict[str, Any]
+    # would drop static typing.
+    agent: AgentT | type[AgentT]
+    handle: Handle[AgentT]
+    name: str | None = None
+    args: tuple[Any, ...] | None = None
+    kwargs: dict[str, Any] | None = None
+    config: RuntimeConfig | None = None
+    executor: str | None = None
+    submit_kwargs: dict[str, Any] | None = None
+    log_config: LogConfig | None = None
+
+
+class _BatchLauncher:
+    """Batches multiple agent launches into a single registration.
+
+    Returned by
+    [`Manager.launch_batch`][academy.manager.Manager.launch_batch].
+
+    Args:
+        manager: Manager that owns this batch.
+    """
+
+    def __init__(self, manager: Manager[Any]) -> None:
+        self._manager = manager
+        self._intents: list[_LaunchIntent[Any]] = []
+        self._closed = False
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
+        if self._closed:
+            return
+        if exc_value is not None:
+            self.abort()
+            return
+        await self.submit()
+
+    async def queue(  # noqa: PLR0913
+        self,
+        agent: AgentT | type[AgentT],
+        *,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        config: RuntimeConfig | None = None,
+        executor: str | None = None,
+        submit_kwargs: dict[str, Any] | None = None,
+        name: str | None = None,
+        log_config: LogConfig | None = None,
+    ) -> Handle[AgentT]:
+        """Queue an agent for launch on `submit()`.
+
+        Parameters mirror
+        [`Manager.launch`][academy.manager.Manager.launch] exactly
+        except for ``registration`` (the batch manages registration
+        itself).
+
+        Returns:
+            Unbound handle. Pass to sibling ``batch.queue``
+            calls as needed.
+
+        Raises:
+            RuntimeError: If the batch has already been closed.
+        """
+        if self._closed:
+            raise RuntimeError('batch is closed')
+
+        handle: Handle[AgentT] = Handle()
+
+        self._intents.append(
+            _LaunchIntent(
+                agent=agent,
+                handle=handle,
+                name=name,
+                args=args,
+                kwargs=kwargs,
+                config=config,
+                executor=executor,
+                submit_kwargs=submit_kwargs,
+                log_config=log_config,
+            ),
+        )
+        return handle
+
+    async def submit(self) -> None:
+        """Register and launch all queued intents.
+
+        On transports that implement
+        [`ExchangeTransport.register_agents`][academy.exchange.transport.ExchangeTransport.register_agents]
+        (e.g. Globus), this produces one auth consent prompt for the
+        whole batch; other transports fall back to sequential
+        registration.
+
+        A failed launch mid-batch terminates later intents as
+        orphans; earlier intents keep running.
+
+        Raises:
+            RuntimeError: If the batch has already been closed.
+        """
+        if self._closed:
+            raise RuntimeError('batch is closed')
+        self._closed = True
+        if not self._intents:
+            return
+
+        specs: list[tuple[type[Any], str | None]] = [
+            (
+                intent.agent
+                if isinstance(intent.agent, type)
+                else type(intent.agent),
+                intent.name,
+            )
+            for intent in self._intents
+        ]
+
+        try:
+            registrations = await self._manager.register_agents(specs)
+
+            launch_index = 0
+            try:
+                for intent, registration in zip(
+                    self._intents,
+                    registrations,
+                    strict=True,
+                ):
+                    intent.handle.agent_id = registration.agent_id
+                    self._manager._handles[registration.agent_id] = (
+                        intent.handle
+                    )
+                    await self._manager.launch(
+                        intent.agent,
+                        args=intent.args,
+                        kwargs=intent.kwargs,
+                        config=intent.config,
+                        executor=intent.executor,
+                        submit_kwargs=intent.submit_kwargs,
+                        name=intent.name,
+                        registration=registration,
+                        log_config=intent.log_config,
+                    )
+                    launch_index += 1
+            except Exception:
+                # CancelledError deliberately excluded: registrations
+                # past ``launch_index`` will leak exchange-side, but
+                # awaiting cleanup inside a cancellation frame risks a
+                # hung shutdown.
+                orphan_intents = self._intents[launch_index:]
+                orphan_registrations = registrations[launch_index:]
+                handles = self._manager._handles
+                for intent in orphan_intents:
+                    if intent.handle._agent_id is not None:
+                        handles.pop(intent.handle._agent_id, None)
+                await self._terminate_orphans(orphan_registrations)
+                raise
+        finally:
+            self._intents.clear()
+
+    def abort(self) -> None:
+        """Discard queued intents. Idempotent."""
+        if self._closed:
+            return
+        self._closed = True
+        self._intents.clear()
+
+    async def _terminate_orphans(
+        self,
+        orphans: list[AgentRegistration[Any]],
+    ) -> None:
+        """Best-effort parallel termination; failures logged, never raised.
+
+        The original launch exception must not be masked.
+        """
+        exchange = self._manager.exchange_client
+        results = await asyncio.gather(
+            *(exchange.terminate(reg.agent_id) for reg in orphans),
+            return_exceptions=True,
+        )
+        for registration, result in zip(orphans, results, strict=True):
+            if isinstance(result, Exception):
+                logger.error(
+                    'Failed to terminate orphan registration %s during '
+                    'launch_batch submit rollback.',
+                    registration.agent_id,
+                    exc_info=result,
+                    extra={
+                        'academy.agent_id': registration.agent_id,
+                    },
+                )
+
+
 class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     """Launch and manage running agents.
 
@@ -434,6 +632,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
     ) -> Handle[AgentT]:
         """Launch a new agent with a specified agent.
 
+        Note:
+            Parameters are mirrored in `_LaunchIntent` and
+            `_BatchLauncher.launch`; keep all three in sync.
+
         Args:
             agent: Agent instance the agent will implement or the
                 agent type that will be initialized on the worker using
@@ -528,6 +730,39 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         self._handles[agent_id] = handle
         return handle
 
+    def launch_batch(self) -> _BatchLauncher:
+        """Open a batch context that joins multiple agent launches.
+
+        On transports that batch auth (notably
+        [`GlobusExchangeFactory`][academy.exchange.cloud.globus.GlobusExchangeFactory]),
+        every agent queued inside the ``async with`` block is
+        registered under a single auth consent prompt. Other
+        transports fall back to sequential registration.
+
+        Handles returned by ``batch.queue`` can be passed as
+        arguments to sibling ``batch.queue`` calls; they are not
+        messageable until the batch is submitted on exit.
+
+        Example:
+            .. code-block:: python
+
+                async with manager.launch_batch() as batch:
+                    greeter = await batch.queue(Greeter)
+                    shouter = await batch.queue(Shouter)
+                    coordinator = await batch.queue(
+                        Coordinator,
+                        args=(greeter, shouter),
+                    )
+
+        A convenience wrapper around
+        [`register_agents`][academy.manager.Manager.register_agents]
+        and
+        [`launch(registration=...)`][academy.manager.Manager.launch];
+        you can use the pair instead when registration and launch
+        need to be separated in time.
+        """
+        return _BatchLauncher(self)
+
     async def register_agent(
         self,
         agent: type[AgentT],
@@ -557,7 +792,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         other transports this falls back to sequential registration.
 
         Use the returned registrations with
-        :meth:`launch(registration=...) <launch>`.
+        [`launch(registration=...)`][academy.manager.Manager.launch].
 
         Args:
             agents: List of (agent_type, name) pairs to register.

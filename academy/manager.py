@@ -118,9 +118,11 @@ class _LaunchIntent(Generic[AgentT]):
 class _BatchLauncher:
     """Context manager that batches multiple agent launches.
 
-    Returned by :meth:`Manager.launch_batch`. On context exit
-    without error, queued agents are registered together (one
-    auth consent prompt on transports that batch auth) and launched.
+    Returned by
+    [`Manager.launch_batch`][academy.manager.Manager.launch_batch].
+    On context exit without error, queued agents are registered
+    together (one auth consent prompt on transports that batch auth)
+    and launched.
 
     Args:
         manager: Manager that owns this batch.
@@ -183,16 +185,19 @@ class _BatchLauncher:
     ) -> Handle[AgentT]:
         """Queue an agent launch. Committed on context exit.
 
-        Parameters mirror :meth:`Manager.launch` exactly except for
-        ``registration`` (the batch manages registration itself).
+        Parameters mirror
+        [`Manager.launch`][academy.manager.Manager.launch] exactly
+        except for ``registration`` (the batch manages registration
+        itself).
 
         Returns:
             Handle to the agent. Usable as a sibling ``batch.launch``
             argument; not messageable until the batch commits.
 
         Warning:
-            Pass the :class:`Handle` itself to sibling launches,
-            not ``handle.agent_id``. The handle is rebound in place
+            Pass the [`Handle`][academy.handle.Handle] itself to
+            sibling launches, not ``handle.agent_id``. The handle is
+            rebound in place
             at commit time; an ``agent_id`` captured into ``args``
             before commit is a stale placeholder UUID.
 
@@ -226,10 +231,11 @@ class _BatchLauncher:
         """Register queued intents together, then launch each.
 
         On transports that implement
-        :meth:`ExchangeTransport.register_agents` (e.g. Globus), this
-        produces one auth consent prompt for the whole batch; other
-        transports fall back to sequential registration. Each
-        pre-minted handle is then rebound to the transport-minted ID
+        [`ExchangeTransport.register_agents`][academy.exchange.transport.ExchangeTransport.register_agents]
+        (e.g. Globus), this produces one auth consent prompt
+        for the whole batch; other transports fall back to
+        sequential registration. Each pre-minted handle is then
+        rebound to the transport-minted ID
         before launch.
         """
         specs: list[tuple[type[Any], str | None]] = [
@@ -640,8 +646,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """Launch a new agent with a specified agent.
 
         Note:
-            Parameters are mirrored in :class:`_LaunchIntent` and
-            :meth:`_BatchLauncher.launch`; keep all three in sync.
+            Parameters are mirrored in `_LaunchIntent` and
+            `_BatchLauncher.launch`; keep all three in sync.
 
         Args:
             agent: Agent instance the agent will implement or the
@@ -745,17 +751,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """Rebind a cached handle to a new agent ID.
 
         Reconciles pre-minted placeholder IDs with the
-        transport-minted IDs returned from :meth:`register_agents`.
+        transport-minted IDs returned from
+        [`register_agents`][academy.manager.Manager.register_agents].
         The handle must not yet have been used for messaging —
         mutating ``agent_id`` after it has been captured in log
         extras, pickled snapshots, or user code is unsafe.
-
-        TODO: Rebinding is only needed because transports mint their
-        own IDs during registration. If ``register_agents`` accepted
-        pre-minted IDs from the caller, the placeholder would already
-        be the real ID and this method (plus the
-        ``_used_for_messaging`` guard on :class:`Handle`) could go
-        away. Deferred because it changes the transport protocol.
         """
         old_agent_id = handle.agent_id
         if old_agent_id == new_agent_id:
@@ -779,7 +779,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         """Open a batch context that joins multiple agent launches.
 
         On transports that batch auth (notably
-        :class:`~academy.exchange.cloud.globus.GlobusExchangeFactory`),
+        [`GlobusExchangeFactory`][academy.exchange.cloud.globus.GlobusExchangeFactory]),
         every agent queued inside the ``async with`` block is
         registered under a single auth consent prompt. Other
         transports fall back to sequential registration.
@@ -799,10 +799,12 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
                         args=(greeter, shouter),
                     )
 
-        A convenience wrapper around :meth:`register_agents` and
-        :meth:`launch(registration=...) <launch>`; you can use the
-        pair instead when registration and launch need to be
-        separated in time.
+        A convenience wrapper around
+        [`register_agents`][academy.manager.Manager.register_agents]
+        and
+        [`launch(registration=...)`][academy.manager.Manager.launch];
+        you can use the pair instead when registration and launch
+        need to be separated in time.
         """
         return _BatchLauncher(self)
 
@@ -835,7 +837,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         other transports this falls back to sequential registration.
 
         Use the returned registrations with
-        :meth:`launch(registration=...) <launch>`.
+        [`launch(registration=...)`][academy.manager.Manager.launch].
 
         Args:
             agents: List of (agent_type, name) pairs to register.

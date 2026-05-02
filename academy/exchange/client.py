@@ -173,8 +173,10 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
     ) -> list[AgentRegistration[AgentT]]:
         """Register multiple agents, batching auth if supported.
 
-        Falls back to sequential :meth:`register_agent` calls when
-        the transport does not implement batch registration.
+        Falls back to sequential
+        [`register_agent`][academy.exchange.client.ExchangeClient.register_agent]
+        calls when the transport does not implement batch
+        registration.
 
         Args:
             agents: List of (agent_type, name) pairs to register.

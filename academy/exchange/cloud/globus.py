@@ -504,8 +504,8 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         entities but does **not** accumulate scope requirements or
         trigger user consent. The caller is responsible for adding
         the returned scope via
-        :meth:`GlobusApp.add_scope_requirements` and triggering
-        login before calling :meth:`_finalize_registration`.
+        ``GlobusApp.add_scope_requirements`` and triggering login
+        before calling ``_finalize_registration``.
         """
         # Create new resource server (auth entity)
         logger.info('Creating new auth client')

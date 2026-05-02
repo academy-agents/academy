@@ -33,7 +33,7 @@ Academy comes with three ways of configuring logging: to the console, to a log f
 
 #### New: `Manager.launch_batch()`
 
-Batch launch ergonomics for the Globus transport: launches queued inside a `launch_batch()` block are registered under a single auth consent prompt instead of one per agent. Other transports behave identically to separate `Manager.launch()` calls.
+Batch launch ergonomics for the Globus transport: launches queued inside a [`launch_batch()`][academy.manager.Manager.launch_batch] block are registered under a single auth consent prompt instead of one per agent. Other transports behave identically to separate [`Manager.launch()`][academy.manager.Manager.launch] calls.
 
 ```python
 async with manager.launch_batch() as batch:
@@ -43,6 +43,8 @@ async with manager.launch_batch() as batch:
         args=(greeter,),
     )
 ```
+
+`batch.queue` returns an unbound [`Handle`][academy.handle.Handle]. Reading [`handle.agent_id`][academy.handle.Handle.agent_id] (or pickling the handle) raises `RuntimeError` until the batch is submitted.
 
 ## Agent Registration are Pydantic Models
 

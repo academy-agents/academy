@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 import multiprocessing
 import pathlib
+import pickle
 import time
-import uuid
 from collections.abc import Callable
 from concurrent.futures import Future
 from concurrent.futures import ProcessPoolExecutor
@@ -24,7 +24,7 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.identifier import AgentId
+from academy.handle import Handle
 from academy.logging.configs.file import FileLogging
 from academy.manager import Manager
 from testing.agents import EmptyAgent
@@ -171,69 +171,6 @@ async def test_register_agents_and_launch(
 
 
 @pytest.mark.asyncio
-async def test_rebind_handle_rekeys_cache(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    original_id: AgentId[Any] = AgentId.new()
-    new_id: AgentId[Any] = AgentId.new()
-    handle = manager.get_handle(original_id)
-    assert manager._handles[original_id] is handle
-
-    manager._rebind_handle(handle, new_id)
-
-    assert handle.agent_id == new_id
-    assert original_id not in manager._handles
-    assert manager._handles[new_id] is handle
-
-
-@pytest.mark.asyncio
-async def test_rebind_handle_same_id_is_noop(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    agent_id: AgentId[Any] = AgentId.new()
-    handle = manager.get_handle(agent_id)
-
-    manager._rebind_handle(handle, agent_id)
-
-    assert handle.agent_id == agent_id
-    assert manager._handles[agent_id] is handle
-
-
-@pytest.mark.asyncio
-async def test_rebind_handle_equal_but_distinct_id_is_noop(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    # Same UUID in two AgentId objects exercises the `==` short-circuit
-    # rather than `is`.
-    shared_uid = uuid.uuid4()
-    aid1: AgentId[Any] = AgentId(uid=shared_uid)
-    aid2: AgentId[Any] = AgentId(uid=shared_uid)
-    assert aid1 == aid2
-    assert aid1 is not aid2
-
-    handle = manager.get_handle(aid1)
-    manager._rebind_handle(handle, aid2)
-
-    assert handle.agent_id == aid1
-    assert manager._handles[aid1] is handle
-
-
-@pytest.mark.asyncio
-async def test_rebind_handle_rejects_conflicting_cached_handle(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    aid_a: AgentId[Any] = AgentId.new()
-    aid_b: AgentId[Any] = AgentId.new()
-    handle_a = manager.get_handle(aid_a)
-    manager.get_handle(aid_b)  # cached under aid_b
-    with pytest.raises(
-        AssertionError,
-        match='already holds a different handle',
-    ):
-        manager._rebind_handle(handle_a, aid_b)
-
-
-@pytest.mark.asyncio
 async def test_launch_batch_empty_is_noop(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
@@ -270,13 +207,12 @@ async def test_launch_batch_queues_and_returns_handle(
 ) -> None:
     async with manager.launch_batch() as batch:
         handle = await batch.queue(EmptyAgent)
-        pre_submit_id = handle.agent_id
-        assert manager._handles[pre_submit_id] is handle
+        with pytest.raises(RuntimeError, match='not bound'):
+            _ = handle.agent_id
         assert len(batch._intents) == 1
         intent = batch._intents[0]
         assert intent.agent is EmptyAgent
         assert intent.handle is handle
-    # Same handle object is cached under the post-submit id.
     assert manager._handles[handle.agent_id] is handle
 
 
@@ -286,8 +222,8 @@ async def test_launch_batch_name_flows_into_agent_id(
 ) -> None:
     async with manager.launch_batch() as batch:
         handle = await batch.queue(EmptyAgent, name='worker-1')
-        assert handle.agent_id.name == 'worker-1'
         assert batch._intents[0].name == 'worker-1'
+    assert handle.agent_id.name == 'worker-1'
 
 
 @pytest.mark.asyncio
@@ -344,44 +280,35 @@ async def test_launch_batch_submits_on_exit(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_submit_rebinds_handle_ids(
+async def test_launch_batch_submit_binds_handle(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    # Local has no transport-level ``register_agents``; the client
-    # falls back to sequential ``register_agent`` which mints a fresh
-    # id. The batch launcher must rebind the pre-minted handle and
-    # re-key ``manager._handles``.
+    # Pre-submit the handle is unbound. Submit registers an agent
+    # and binds the handle to the transport-minted id.
     async with manager.launch_batch() as batch:
         handle = await batch.queue(EmptyAgent)
-        pre_minted_id = handle.agent_id
-        assert manager._handles[pre_minted_id] is handle
-    # After submit, the same Handle object is cached under its
-    # post-submit id, and the placeholder id is gone from the cache.
+        assert handle._agent_id is None
     assert manager._handles[handle.agent_id] is handle
-    assert pre_minted_id not in manager._handles
 
 
 @pytest.mark.asyncio
 async def test_launch_batch_body_exception_skips_submit(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    captured: list[Any] = []
+    handles: list[Any] = []
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            captured.append(batch)
-            await batch.queue(EmptyAgent)
-            await batch.queue(IdentityAgent)
+            handles.append(await batch.queue(EmptyAgent))
+            handles.append(await batch.queue(IdentityAgent))
             raise ValueError('from body')
 
     with pytest.raises(ValueError, match='from body'):
         await body()
     assert len(manager.running()) == 0
-    # Placeholder handles are evicted so they don't linger pointing at
-    # mailboxes that were never created.
-    batch = captured[0]
-    for intent in batch._intents:
-        assert intent.handle.agent_id not in manager._handles
+    # Body raised before submit; handles were never bound.
+    for handle in handles:
+        assert handle._agent_id is None
 
 
 @pytest.mark.asyncio
@@ -425,14 +352,12 @@ async def test_launch_batch_evicts_on_register_failure(
     failing_register = mock.AsyncMock(
         side_effect=RuntimeError('injected register_agents failure'),
     )
-
-    placeholder_ids: list[Any] = []
+    handles: list[Any] = []
 
     async def body() -> None:
         async with manager.launch_batch() as batch:
-            handle_1 = await batch.queue(EmptyAgent)
-            handle_2 = await batch.queue(EmptyAgent)
-            placeholder_ids.extend([handle_1.agent_id, handle_2.agent_id])
+            handles.append(await batch.queue(EmptyAgent))
+            handles.append(await batch.queue(EmptyAgent))
 
     with (
         mock.patch.object(
@@ -446,8 +371,10 @@ async def test_launch_batch_evicts_on_register_failure(
 
     failing_register.assert_awaited_once()
     assert len(manager.running()) == 0
-    for handle_id in placeholder_ids:
-        assert handle_id not in manager._handles
+    # Register failed before any rebind happened, so the handles
+    # remain unbound and were never inserted into the cache.
+    for handle in handles:
+        assert handle._agent_id is None
 
 
 @pytest.mark.asyncio
@@ -524,12 +451,14 @@ async def test_launch_batch_evicts_on_launch_failure(
 
     assert failing_launch.await_count == 2  # noqa: PLR2004
     running, failed, orphaned = handles
-    # first launch succeeds, id cached
+    # First launch succeeded: bound and cached.
     assert manager._handles.get(running.agent_id) is running
-    # second launch fails and is evicted under its rebound id
-    assert failed.agent_id not in manager._handles
-    # third launch is orphaned and evicted under its placeholder id
-    assert orphaned.agent_id not in manager._handles
+    # Second launch's handle was bound (agent_id was set) but the
+    # launch call failed; the cache entry was popped during rollback.
+    assert failed._agent_id is not None
+    assert failed._agent_id not in manager._handles
+    # Third launch was never reached: the handle is still unbound.
+    assert orphaned._agent_id is None
 
 
 @pytest.mark.asyncio
@@ -572,19 +501,6 @@ async def test_launch_batch_orphan_termination_failure_does_not_mask(
     # Rollback is run once for the orphaned agent left by
     # the failing launch.
     assert failing_terminate.await_count == 1
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_rejects_rebind_of_used_handle(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            handle = await batch.queue(EmptyAgent)
-            handle._used_for_messaging = True
-
-    with pytest.raises(AssertionError, match='used for messaging'):
-        await body()
 
 
 @pytest.mark.asyncio
@@ -634,18 +550,17 @@ async def test_launch_batch_explicit_submit(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_abort_evicts_placeholders(
+async def test_launch_batch_abort_discards_intents(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     batch = manager.launch_batch()
     h1 = await batch.queue(EmptyAgent)
     h2 = await batch.queue(EmptyAgent)
-    placeholder_ids = [h1.agent_id, h2.agent_id]
     batch.abort()
 
     assert len(manager.running()) == 0
-    for pid in placeholder_ids:
-        assert pid not in manager._handles
+    assert h1._agent_id is None
+    assert h2._agent_id is None
 
 
 @pytest.mark.asyncio
@@ -657,6 +572,32 @@ async def test_launch_batch_submit_after_close_raises(
     await batch.submit()
     with pytest.raises(RuntimeError, match='batch is closed'):
         await batch.submit()
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_aexit_skips_after_explicit_submit(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    async with manager.launch_batch() as batch:
+        handle = await batch.queue(EmptyAgent)
+        await batch.submit()
+    assert manager._handles[handle.agent_id] is handle
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_abort_is_idempotent(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    batch = manager.launch_batch()
+    await batch.queue(EmptyAgent)
+    batch.abort()
+    batch.abort()
+
+
+def test_handle_pickle_unbound_raises() -> None:
+    handle: Handle[Any] = Handle()
+    with pytest.raises(pickle.PicklingError, match='unbound'):
+        pickle.dumps(handle)
 
 
 @pytest.mark.asyncio

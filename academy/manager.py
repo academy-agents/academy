@@ -105,7 +105,6 @@ class _LaunchIntent(Generic[AgentT]):
     # would drop static typing.
     agent: AgentT | type[AgentT]
     handle: Handle[AgentT]
-    placeholder_agent_id: AgentId[AgentT]
     name: str | None = None
     args: tuple[Any, ...] | None = None
     kwargs: dict[str, Any] | None = None
@@ -146,19 +145,6 @@ class _BatchLauncher:
             return
         await self.submit()
 
-    def _evict_placeholder_handles(self) -> None:
-        """Remove queued intents' placeholder handles from the cache.
-
-        Safe to call after partial rebinds: rebound intents no longer
-        have their placeholder id in the cache, so the ``is`` check
-        skips them.
-        """
-        handles = self._manager._handles
-        for intent in self._intents:
-            pid = intent.placeholder_agent_id
-            if handles.get(pid) is intent.handle:
-                del handles[pid]
-
     async def queue(  # noqa: PLR0913
         self,
         agent: AgentT | type[AgentT],
@@ -179,14 +165,8 @@ class _BatchLauncher:
         itself).
 
         Returns:
-            Handle to the agent. Usable as a sibling ``batch.queue``
-            argument; not messageable until the batch is submitted.
-
-        Warning:
-            Pass the [`Handle`][academy.handle.Handle] itself to
-            sibling launches, not ``handle.agent_id``. The handle is
-            rebound in place at submit time; an ``agent_id`` captured
-            into ``args`` before submit is a stale placeholder UUID.
+            Unbound handle. Pass to sibling ``batch.queue``
+            calls as needed.
 
         Raises:
             RuntimeError: If the batch has already been closed.
@@ -194,15 +174,12 @@ class _BatchLauncher:
         if self._closed:
             raise RuntimeError('batch is closed')
 
-        # Pre-mint so the returned handle can be a sibling-launch arg.
-        aid: AgentId[AgentT] = AgentId.new(name=name)
-        handle = self._manager.get_handle(aid)
+        handle: Handle[AgentT] = Handle()
 
         self._intents.append(
             _LaunchIntent(
                 agent=agent,
                 handle=handle,
-                placeholder_agent_id=aid,
                 name=name,
                 args=args,
                 kwargs=kwargs,
@@ -255,9 +232,9 @@ class _BatchLauncher:
                     registrations,
                     strict=True,
                 ):
-                    self._manager._rebind_handle(
-                        intent.handle,
-                        registration.agent_id,
+                    intent.handle.agent_id = registration.agent_id
+                    self._manager._handles[registration.agent_id] = (
+                        intent.handle
                     )
                     await self._manager.launch(
                         intent.agent,
@@ -280,12 +257,10 @@ class _BatchLauncher:
                 orphan_registrations = registrations[launch_index:]
                 handles = self._manager._handles
                 for intent in orphan_intents:
-                    handles.pop(intent.handle.agent_id, None)
+                    if intent.handle._agent_id is not None:
+                        handles.pop(intent.handle._agent_id, None)
                 await self._terminate_orphans(orphan_registrations)
                 raise
-        except BaseException:
-            self._evict_placeholder_handles()
-            raise
         finally:
             self._intents.clear()
 
@@ -294,7 +269,6 @@ class _BatchLauncher:
         if self._closed:
             return
         self._closed = True
-        self._evict_placeholder_handles()
         self._intents.clear()
 
     async def _terminate_orphans(
@@ -755,38 +729,6 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         handle = Handle(agent_id)
         self._handles[agent_id] = handle
         return handle
-
-    def _rebind_handle(
-        self,
-        handle: Handle[AgentT],
-        new_agent_id: AgentId[AgentT],
-    ) -> None:
-        """Rebind a cached handle to a new agent ID.
-
-        Reconciles pre-minted placeholder IDs with the
-        transport-minted IDs returned from
-        [`register_agents`][academy.manager.Manager.register_agents].
-        The handle must not yet have been used for messaging —
-        mutating ``agent_id`` after it has been captured in log
-        extras, pickled snapshots, or user code is unsafe.
-        """
-        old_agent_id = handle.agent_id
-        if old_agent_id == new_agent_id:
-            return
-        assert not handle._used_for_messaging, (
-            f'Cannot rebind handle {old_agent_id}: already used for '
-            'messaging. Pass the Handle itself (not handle.agent_id) '
-            'as a sibling launch_batch argument.'
-        )
-        existing = self._handles.get(new_agent_id)
-        assert existing is None or existing is handle, (
-            f'Cannot rebind handle to {new_agent_id}: cache already '
-            'holds a different handle for that ID.'
-        )
-        if self._handles.get(old_agent_id) is handle:  # pragma: no branch
-            del self._handles[old_agent_id]
-        handle.agent_id = new_agent_id
-        self._handles[new_agent_id] = handle
 
     def launch_batch(self) -> _BatchLauncher:
         """Open a batch context that joins multiple agent launches.

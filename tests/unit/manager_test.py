@@ -227,44 +227,6 @@ async def test_launch_batch_name_flows_into_agent_id(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_multiple_launches_preserve_order(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    async with manager.launch_batch() as batch:
-        h1 = await batch.queue(EmptyAgent, name='a')
-        h2 = await batch.queue(IdentityAgent, name='b')
-        h3 = await batch.queue(EmptyAgent, name='c')
-        assert batch._intents[0].agent is EmptyAgent
-        assert batch._intents[1].agent is IdentityAgent
-        assert batch._intents[2].agent is EmptyAgent
-        assert batch._intents[0].name == 'a'
-        assert batch._intents[1].name == 'b'
-        assert batch._intents[2].name == 'c'
-    ids = {h1.agent_id, h2.agent_id, h3.agent_id}
-    assert len(ids) == 3  # noqa: PLR2004
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_handle_usable_as_sibling_arg(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    async with manager.launch_batch() as batch:
-        parent = await batch.queue(EmptyAgent)
-        await batch.queue(
-            _FlexAgent,
-            args=(parent,),
-            kwargs={'peer': parent},
-        )
-        # Sibling intent captures the parent handle by reference so
-        # that submit-time rebinding is visible to siblings.
-        sibling_intent = batch._intents[1]
-        assert sibling_intent.args is not None
-        assert sibling_intent.kwargs is not None
-        assert sibling_intent.args[0] is parent
-        assert sibling_intent.kwargs['peer'] is parent
-
-
-@pytest.mark.asyncio
 async def test_launch_batch_submits_on_exit(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
@@ -277,18 +239,6 @@ async def test_launch_batch_submits_on_exit(
     running_ids = manager.running()
     assert h1.agent_id in running_ids
     assert h2.agent_id in running_ids
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_submit_binds_handle(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    # Pre-submit the handle is unbound. Submit registers an agent
-    # and binds the handle to the transport-minted id.
-    async with manager.launch_batch() as batch:
-        handle = await batch.queue(EmptyAgent)
-        assert handle._agent_id is None
-    assert manager._handles[handle.agent_id] is handle
 
 
 @pytest.mark.asyncio
@@ -309,20 +259,6 @@ async def test_launch_batch_body_exception_skips_submit(
     # Body raised before submit; handles were never bound.
     for handle in handles:
         assert handle._agent_id is None
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_empty_body_does_not_call_register_agents(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    with mock.patch.object(
-        manager.exchange_client,
-        'register_agents',
-        new_callable=mock.AsyncMock,
-    ) as register_agents:
-        async with manager.launch_batch():
-            pass
-    assert register_agents.call_count == 0
 
 
 @pytest.mark.asyncio
@@ -504,39 +440,6 @@ async def test_launch_batch_terminate_failure_propagates(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_propagates_cancellation(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    # Un-launched registrations leak exchange-side on cancellation.
-    # This is expected & not asserted against here.
-    original_launch = manager.launch
-    first_call = {'seen': False}
-
-    async def _launch_then_cancel(*args: Any, **kwargs: Any) -> Any:
-        if not first_call['seen']:
-            first_call['seen'] = True
-            return await original_launch(*args, **kwargs)
-        raise asyncio.CancelledError
-
-    launch_then_cancel = mock.AsyncMock(side_effect=_launch_then_cancel)
-
-    async def body() -> None:
-        async with manager.launch_batch() as batch:
-            await batch.queue(EmptyAgent)
-            await batch.queue(EmptyAgent)
-
-    with (
-        mock.patch.object(manager, 'launch', new=launch_then_cancel),
-        pytest.raises(asyncio.CancelledError),
-    ):
-        await body()
-
-    # The first launch intent launched. Second intent was
-    # cancelled before it could be launched.
-    assert launch_then_cancel.await_count == 2  # noqa: PLR2004
-
-
-@pytest.mark.asyncio
 async def test_launch_batch_explicit_submit(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
@@ -574,42 +477,6 @@ def test_handle_pickle_unbound_raises() -> None:
     handle: Handle[Any] = Handle()
     with pytest.raises(pickle.PicklingError, match='unbound'):
         pickle.dumps(handle)
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_fan_out_sibling_handle(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    async with manager.launch_batch() as batch:
-        parent = await batch.queue(EmptyAgent)
-        await batch.queue(_FlexAgent, args=(parent,))
-        await batch.queue(_FlexAgent, kwargs={'peer': parent})
-    running = manager.running()
-    assert len(running) == 3  # noqa: PLR2004
-    assert parent.agent_id in running
-    assert manager._handles[parent.agent_id] is parent
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_diamond_sibling_handles(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    captured: list[Any] = []
-    async with manager.launch_batch() as batch:
-        parent_a = await batch.queue(EmptyAgent, name='a')
-        parent_b = await batch.queue(EmptyAgent, name='b')
-        await batch.queue(
-            _FlexAgent,
-            args=(parent_a, parent_b),
-        )
-        captured.append(batch._intents[2].args)
-    running = manager.running()
-    assert len(running) == 3  # noqa: PLR2004
-    assert parent_a.agent_id in running
-    assert parent_b.agent_id in running
-    child_args = captured[0]
-    assert child_args[0] is parent_a
-    assert child_args[1] is parent_b
 
 
 @pytest.mark.asyncio

@@ -141,7 +141,8 @@ class _BatchLauncher:
         if self._closed:
             return
         if exc_value is not None:
-            self.abort()
+            self._closed = True
+            self._intents.clear()
             return
         await self.submit()
 
@@ -263,13 +264,6 @@ class _BatchLauncher:
                 raise
         finally:
             self._intents.clear()
-
-    def abort(self) -> None:
-        """Discard queued intents. Idempotent."""
-        if self._closed:
-            return
-        self._closed = True
-        self._intents.clear()
 
     async def _terminate_orphans(
         self,

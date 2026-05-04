@@ -550,20 +550,6 @@ async def test_launch_batch_explicit_submit(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_abort_discards_intents(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    batch = manager.launch_batch()
-    h1 = await batch.queue(EmptyAgent)
-    h2 = await batch.queue(EmptyAgent)
-    batch.abort()
-
-    assert len(manager.running()) == 0
-    assert h1._agent_id is None
-    assert h2._agent_id is None
-
-
-@pytest.mark.asyncio
 async def test_launch_batch_submit_after_close_raises(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
@@ -582,16 +568,6 @@ async def test_launch_batch_aexit_skips_after_explicit_submit(
         handle = await batch.queue(EmptyAgent)
         await batch.submit()
     assert manager._handles[handle.agent_id] is handle
-
-
-@pytest.mark.asyncio
-async def test_launch_batch_abort_is_idempotent(
-    manager: Manager[LocalExchangeTransport],
-) -> None:
-    batch = manager.launch_batch()
-    await batch.queue(EmptyAgent)
-    batch.abort()
-    batch.abort()
 
 
 def test_handle_pickle_unbound_raises() -> None:

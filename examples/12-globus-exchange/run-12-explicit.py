@@ -75,17 +75,13 @@ async def main() -> int:
         log_config=recommended_logging(),
     ) as manager:
         batch = manager.launch_batch()
-        try:
-            greeter = await batch.queue(Greeter)
-            shouter = await batch.queue(Shouter)
-            coordinator = await batch.queue(
-                Coordinator,
-                args=(greeter, shouter),
-            )
-            await batch.submit()
-        except Exception:
-            batch.abort()
-            raise
+        greeter = await batch.queue(Greeter)
+        shouter = await batch.queue(Shouter)
+        coordinator = await batch.queue(
+            Coordinator,
+            args=(greeter, shouter),
+        )
+        await batch.submit()
 
         result = await coordinator.greet_loudly('Academy')
         logger.info(f'Result: {result!r}')

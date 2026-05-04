@@ -254,41 +254,15 @@ class _BatchLauncher:
                 # past ``launch_index`` will leak exchange-side, but
                 # awaiting cleanup inside a cancellation frame risks a
                 # hung shutdown.
-                self._manager._handles.pop(
-                    registrations[launch_index].agent_id,
-                    None,
-                )
-                await self._terminate_orphans(
-                    registrations[launch_index:],
+                exchange = self._manager.exchange_client
+                orphans = registrations[launch_index:]
+                self._manager._handles.pop(orphans[0].agent_id, None)
+                await asyncio.gather(
+                    *(exchange.terminate(reg.agent_id) for reg in orphans),
                 )
                 raise
         finally:
             self._intents.clear()
-
-    async def _terminate_orphans(
-        self,
-        orphans: list[AgentRegistration[Any]],
-    ) -> None:
-        """Best-effort parallel termination; failures logged, never raised.
-
-        The original launch exception must not be masked.
-        """
-        exchange = self._manager.exchange_client
-        results = await asyncio.gather(
-            *(exchange.terminate(reg.agent_id) for reg in orphans),
-            return_exceptions=True,
-        )
-        for registration, result in zip(orphans, results, strict=True):
-            if isinstance(result, Exception):
-                logger.error(
-                    'Failed to terminate orphan registration %s during '
-                    'launch_batch submit rollback.',
-                    registration.agent_id,
-                    exc_info=result,
-                    extra={
-                        'academy.agent_id': registration.agent_id,
-                    },
-                )
 
 
 class Manager(Generic[ExchangeTransportT], NoPickleMixin):

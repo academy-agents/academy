@@ -462,19 +462,19 @@ async def test_launch_batch_evicts_on_launch_failure(
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_orphan_termination_failure_does_not_mask(
+async def test_launch_batch_terminate_failure_propagates(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    # The original launch exception must surface even when orphan
-    # cleanup raises.
     original_launch = manager.launch
+    call_count = 0
 
     async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
-        if not manager.running():
-            return await original_launch(*args, **kwargs)
-        raise RuntimeError('injected launch failure')
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:  # noqa: PLR2004
+            raise RuntimeError('injected launch failure')
+        return await original_launch(*args, **kwargs)
 
-    failing_launch = mock.AsyncMock(side_effect=_failing_launch)
     failing_terminate = mock.AsyncMock(
         side_effect=RuntimeError('injected terminate failure'),
     )
@@ -483,24 +483,24 @@ async def test_launch_batch_orphan_termination_failure_does_not_mask(
         async with manager.launch_batch() as batch:
             await batch.queue(EmptyAgent)
             await batch.queue(EmptyAgent)
+            await batch.queue(EmptyAgent)
 
     with (
-        mock.patch.object(manager, 'launch', new=failing_launch),
+        mock.patch.object(manager, 'launch', new=_failing_launch),
         mock.patch.object(
             manager.exchange_client,
             'terminate',
             new=failing_terminate,
         ),
-        pytest.raises(RuntimeError, match='injected launch failure'),
+        pytest.raises(
+            RuntimeError,
+            match='injected terminate failure',
+        ) as exc_info,
     ):
         await body()
 
-    # intent to launch first agent succeeds
-    # intent to launch second agent fails to launch
-    assert failing_launch.await_count == 2  # noqa: PLR2004
-    # Rollback is run once for the orphaned agent left by
-    # the failing launch.
-    assert failing_terminate.await_count == 1
+    assert isinstance(exc_info.value.__context__, RuntimeError)
+    assert 'injected launch failure' in str(exc_info.value.__context__)
 
 
 @pytest.mark.asyncio

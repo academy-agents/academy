@@ -131,6 +131,7 @@ class Handle(Generic[AgentT_co]):
 
     @agent_id.setter
     def agent_id(self, value: AgentId[AgentT_co]) -> None:
+        assert self._agent_id is None, 'Handle is already bound.'
         self._agent_id = value
 
     @property
@@ -463,7 +464,7 @@ class ProxyHandle(Handle[AgentT]):
 
     def __init__(self, agent: AgentT) -> None:
         self.agent = agent
-        self.agent_id: AgentId[AgentT] = AgentId.new()
+        self._agent_id: AgentId[AgentT] = AgentId.new()
         self._agent_closed = False
 
     def __repr__(self) -> str:

@@ -121,6 +121,12 @@ async def test_agent_handle_serialize(
     assert repr(reconstructed) == repr(handle)
 
 
+def test_handle_pickle_unbound_raises() -> None:
+    handle: Handle[Any] = Handle()
+    with pytest.raises(pickle.PicklingError, match='unbound'):
+        pickle.dumps(handle)
+
+
 @pytest.mark.asyncio
 async def test_agent_handle_context() -> None:
     # We cannot use the fixture here because the fixture will create context

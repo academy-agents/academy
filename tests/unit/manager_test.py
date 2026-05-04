@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import multiprocessing
 import pathlib
-import pickle
 import time
 from collections.abc import Callable
 from concurrent.futures import Future
@@ -24,7 +23,6 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.handle import Handle
 from academy.logging.configs.file import FileLogging
 from academy.manager import Manager
 from testing.agents import EmptyAgent
@@ -174,13 +172,19 @@ async def test_register_agents_and_launch(
 async def test_launch_batch_empty_is_noop(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
-    async with manager.launch_batch():
-        pass
+    with mock.patch.object(
+        manager.exchange_client,
+        'register_agents',
+        new_callable=mock.AsyncMock,
+    ) as register_agents:
+        async with manager.launch_batch():
+            pass
     assert len(manager.running()) == 0
+    assert register_agents.await_count == 0
 
 
 @pytest.mark.asyncio
-async def test_launch_batch_launch_after_close_raises(
+async def test_launch_batch_methods_raise_after_close(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     batch = manager.launch_batch()
@@ -188,6 +192,8 @@ async def test_launch_batch_launch_after_close_raises(
         pass
     with pytest.raises(RuntimeError, match='batch is closed'):
         await batch.queue(EmptyAgent)
+    with pytest.raises(RuntimeError, match='batch is closed'):
+        await batch.submit()
 
 
 @pytest.mark.asyncio
@@ -471,12 +477,6 @@ async def test_launch_batch_aexit_skips_after_explicit_submit(
         handle = await batch.queue(EmptyAgent)
         await batch.submit()
     assert manager._handles[handle.agent_id] is handle
-
-
-def test_handle_pickle_unbound_raises() -> None:
-    handle: Handle[Any] = Handle()
-    with pytest.raises(pickle.PicklingError, match='unbound'):
-        pickle.dumps(handle)
 
 
 @pytest.mark.asyncio

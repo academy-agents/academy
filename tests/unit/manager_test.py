@@ -324,11 +324,12 @@ async def test_launch_batch_terminates_on_launch_failure(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     original_launch = manager.launch
-    launch_calls: dict[str, int] = {'n': 0}
+    call_count = 0
 
     async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
-        launch_calls['n'] += 1
-        if launch_calls['n'] == 2:  # noqa: PLR2004
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:  # noqa: PLR2004
             raise RuntimeError('injected launch failure')
         return await original_launch(*args, **kwargs)
 
@@ -367,11 +368,12 @@ async def test_launch_batch_evicts_on_launch_failure(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     original_launch = manager.launch
-    launch_calls: dict[str, int] = {'n': 0}
+    call_count = 0
 
     async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
-        launch_calls['n'] += 1
-        if launch_calls['n'] == 2:  # noqa: PLR2004
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:  # noqa: PLR2004
             raise RuntimeError('injected launch failure')
         return await original_launch(*args, **kwargs)
 

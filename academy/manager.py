@@ -254,13 +254,13 @@ class _BatchLauncher:
                 # past ``launch_index`` will leak exchange-side, but
                 # awaiting cleanup inside a cancellation frame risks a
                 # hung shutdown.
-                orphan_intents = self._intents[launch_index:]
-                orphan_registrations = registrations[launch_index:]
-                handles = self._manager._handles
-                for intent in orphan_intents:
-                    if intent.handle._agent_id is not None:
-                        handles.pop(intent.handle._agent_id, None)
-                await self._terminate_orphans(orphan_registrations)
+                self._manager._handles.pop(
+                    registrations[launch_index].agent_id,
+                    None,
+                )
+                await self._terminate_orphans(
+                    registrations[launch_index:],
+                )
                 raise
         finally:
             self._intents.clear()

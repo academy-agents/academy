@@ -602,7 +602,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         Note:
             Parameters are mirrored in `_LaunchIntent` and
-            `_BatchLauncher.launch`; keep all three in sync.
+            `_BatchLauncher.queue`; keep all three in sync.
 
         Args:
             agent: Agent instance the agent will implement or the
@@ -699,7 +699,7 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         return handle
 
     def launch_batch(self) -> _BatchLauncher:
-        """Open a batch context that joins multiple agent launches.
+        """Open a batch context that performs multiple simultaneous launches.
 
         On transports that batch auth (notably
         [`GlobusExchangeFactory`][academy.exchange.cloud.globus.GlobusExchangeFactory]),
@@ -712,15 +712,15 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         messageable until the batch is submitted on exit.
 
         Example:
-            .. code-block:: python
-
-                async with manager.launch_batch() as batch:
-                    greeter = await batch.queue(Greeter)
-                    shouter = await batch.queue(Shouter)
-                    coordinator = await batch.queue(
-                        Coordinator,
-                        args=(greeter, shouter),
-                    )
+            ```python
+            async with manager.launch_batch() as batch:
+                greeter = await batch.queue(Greeter)
+                shouter = await batch.queue(Shouter)
+                coordinator = await batch.queue(
+                    Coordinator,
+                    args=(greeter, shouter),
+                )
+            ```
 
         A convenience wrapper around
         [`register_agents`][academy.manager.Manager.register_agents]

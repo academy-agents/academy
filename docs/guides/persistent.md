@@ -117,6 +117,39 @@ Once you have created you unit file, you can start the service:
 systemctl --user start <service_name>
 ```
 
+## Launching Multiple Agents at Once
+
+When launching multiple agents from a manager, Academy provides [`launch_batch()`][academy.manager.Manager.launch_batch]. This method works with any exchange, but on the [Globus exchange][academy.exchange.cloud.globus.GlobusExchangeFactory] all agents within the batch are registered under a single consent prompt instead of one per agent.
+
+```
+async with manager.launch_batch() as batch:
+    greeter = await batch.queue(Greeter)
+    shouter = await batch.queue(Shouter)
+    coordinator = await batch.queue(
+        Coordinator,
+        args=(greeter, shouter),
+    )
+```
+
+Handles returned by `batch.queue()` are unbound until the batch is submitted. They can be passed as arguments to other agents *within* same batch (as the coordinator does above), but reading `handle.agent_id` or pickling the handle will raise a `RuntimeError` until submission.
+
+To drive a batch outside of a context manager you call `submit()`:
+
+```
+batch = manager.launch_batch()
+greeter = await batch.queue(Greeter)
+shouter = await batch.queue(Shouter)
+coordinator = await batch.queue(
+    Coordinator,
+    args=(greeter, shouter),
+)
+await batch.submit()
+```
+
+Multiple batches can be used during the lifecycle of a manager.
+
+See `examples/12-globus-exchange/` for working examples of both patterns.
+
 ## Finding and Communicating with Running Agents
 
 ### Creating a handle with AgentId

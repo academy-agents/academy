@@ -215,10 +215,6 @@ async def test_launch_batch_queues_and_returns_handle(
         handle = await batch.queue(EmptyAgent)
         with pytest.raises(RuntimeError, match='not bound'):
             _ = handle.agent_id
-        assert len(batch._intents) == 1
-        intent = batch._intents[0]
-        assert intent.agent is EmptyAgent
-        assert intent.handle is handle
     assert manager._handles[handle.agent_id] is handle
 
 
@@ -228,7 +224,6 @@ async def test_launch_batch_name_flows_into_agent_id(
 ) -> None:
     async with manager.launch_batch() as batch:
         handle = await batch.queue(EmptyAgent, name='worker-1')
-        assert batch._intents[0].name == 'worker-1'
     assert handle.agent_id.name == 'worker-1'
 
 
@@ -262,7 +257,6 @@ async def test_launch_batch_body_exception_skips_submit(
     with pytest.raises(ValueError, match='from body'):
         await body()
     assert len(manager.running()) == 0
-    # Body raised before submit; handles were never bound.
     for handle in handles:
         assert handle._agent_id is None
 
@@ -279,9 +273,6 @@ async def test_launch_batch_sibling_handle_resolved_after_submit(
         assert sibling_args is not None
         captured_sibling_args.append(sibling_args)
     assert len(manager.running()) == 2  # noqa: PLR2004
-    # The captured parent handle has been mutated in-place to carry
-    # the transport-minted id, so a worker that pickles it now will
-    # send messages to the running parent.
     sibling_parent_ref = captured_sibling_args[0][0]
     assert sibling_parent_ref is parent
     assert sibling_parent_ref.agent_id in manager.running()

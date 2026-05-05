@@ -131,7 +131,7 @@ async with manager.launch_batch() as batch:
     )
 ```
 
-Handles returned by `batch.queue()` are unbound until the batch is submitted. They can be passed as arguments to other agents *within* same batch (as the coordinator does above), but reading `handle.agent_id` or pickling the handle will raise a `RuntimeError` until submission.
+Handles returned by `batch.queue()` are unbound until the batch is submitted. They can be passed as arguments to other agents *within* the same batch (as the coordinator does above), but reading `handle.agent_id` or pickling the handle will raise a `RuntimeError` until submission.
 
 To drive a batch outside of a context manager you call `submit()`:
 

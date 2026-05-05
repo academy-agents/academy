@@ -939,6 +939,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#launching-multiple-agents-at-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      Launching Multiple Agents at Once
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finding-and-communicating-with-running-agents" class="md-nav__link">
     <span class="md-ellipsis">
       Finding and Communicating with Running Agents
@@ -2363,6 +2372,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#launching-multiple-agents-at-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      Launching Multiple Agents at Once
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finding-and-communicating-with-running-agents" class="md-nav__link">
     <span class="md-ellipsis">
       Finding and Communicating with Running Agents
@@ -2519,6 +2537,29 @@ The <code>toml</code> file contains two required fields: <code>exchange</code> a
 <p>Once you have created you unit file, you can start the service:
 <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>systemctl --user start &lt;service_name&gt;
 </span></code></pre></div></p>
+<h2 id="launching-multiple-agents-at-once">Launching Multiple Agents at Once<a class="headerlink" href="#launching-multiple-agents-at-once" title="Permanent link">&para;</a></h2>
+<p>When launching multiple agents from a manager, Academy provides <a class="autorefs autorefs-internal" title="            launch_batch" href="../../api/manager/#academy.manager.Manager.launch_batch"><code>launch_batch()</code></a>. This method works with any exchange, but on the <a class="autorefs autorefs-internal" title="            GlobusExchangeFactory" href="../../api/exchange/cloud/globus/#academy.exchange.cloud.globus.GlobusExchangeFactory">Globus exchange</a> all agents within the batch are registered under a single consent prompt instead of one per agent.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>async with manager.launch_batch() as batch:
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    greeter = await batch.queue(Greeter)
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    shouter = await batch.queue(Shouter)
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    coordinator = await batch.queue(
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        Coordinator,
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>        args=(greeter, shouter),
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    )
+</span></code></pre></div>
+<p>Handles returned by <code>batch.queue()</code> are unbound until the batch is submitted. They can be passed as arguments to other agents <em>within</em> the same batch (as the coordinator does above), but reading <code>handle.agent_id</code> or pickling the handle will raise a <code>RuntimeError</code> until submission.</p>
+<p>To drive a batch outside of a context manager you call <code>submit()</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>batch = manager.launch_batch()
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>greeter = await batch.queue(Greeter)
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>shouter = await batch.queue(Shouter)
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>coordinator = await batch.queue(
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    Coordinator,
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    args=(greeter, shouter),
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>)
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>await batch.submit()
+</span></code></pre></div>
+<p>Multiple batches can be used during the lifecycle of a manager.</p>
+<p>See <code>examples/12-globus-exchange/</code> for working examples of both patterns.</p>
 <h2 id="finding-and-communicating-with-running-agents">Finding and Communicating with Running Agents<a class="headerlink" href="#finding-and-communicating-with-running-agents" title="Permanent link">&para;</a></h2>
 <h3 id="creating-a-handle-with-agentid">Creating a handle with AgentId<a class="headerlink" href="#creating-a-handle-with-agentid" title="Permanent link">&para;</a></h3>
 <h3 id="discovering-agents-by-behavior">Discovering Agents by Behavior<a class="headerlink" href="#discovering-agents-by-behavior" title="Permanent link">&para;</a></h3>

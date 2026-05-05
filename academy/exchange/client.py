@@ -203,19 +203,9 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                     await self.register_agent(agent, name=name),
                 )
         except Exception:
-            results = await asyncio.gather(
+            await asyncio.gather(
                 *(self.terminate(reg.agent_id) for reg in registrations),
-                return_exceptions=True,
             )
-            for reg, result in zip(registrations, results, strict=True):
-                if isinstance(result, Exception):
-                    logger.error(
-                        'Failed to terminate partial registration %s '
-                        'during register_agents rollback.',
-                        reg.agent_id,
-                        exc_info=result,
-                        extra={'academy.agent_id': reg.agent_id},
-                    )
             raise
         return registrations
 

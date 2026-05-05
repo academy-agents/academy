@@ -118,6 +118,44 @@ async def test_register_agents_empty(
 
 
 @pytest.mark.asyncio
+async def test_register_agents_fallback_rolls_back(
+    client: UserExchangeClient[Any],
+) -> None:
+    agent_1 = await client.register_agent(EmptyAgent)
+    agent_2 = await client.register_agent(EmptyAgent)
+    register = mock.AsyncMock(
+        side_effect=[
+            agent_1,
+            agent_2,
+            RuntimeError('injected register failure'),
+        ],
+    )
+    terminate = mock.AsyncMock(
+        side_effect=[None, RuntimeError('injected terminate failure')],
+    )
+
+    with (
+        mock.patch.object(
+            type(client._transport),
+            'register_agents',
+            None,
+            create=True,
+        ),
+        mock.patch.object(client, 'register_agent', new=register),
+        mock.patch.object(client, 'terminate', new=terminate),
+        pytest.raises(
+            RuntimeError,
+            match='injected terminate failure',
+        ) as exc_info,
+    ):
+        await client.register_agents([(EmptyAgent, None)] * 3)
+
+    assert terminate.await_count == 2  # noqa: PLR2004
+    assert isinstance(exc_info.value.__context__, RuntimeError)
+    assert 'injected register failure' in str(exc_info.value.__context__)
+
+
+@pytest.mark.asyncio
 async def test_client_discover(client: UserExchangeClient[Any]) -> None:
     registration = await client.register_agent(EmptyAgent)
     assert await client.discover(EmptyAgent) == (registration.agent_id,)

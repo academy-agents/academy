@@ -10,6 +10,7 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import ParamSpec
+from unittest import mock
 
 import pytest
 
@@ -32,6 +33,11 @@ from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
 
 P = ParamSpec('P')
+
+
+class _FlexAgent(Agent):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__()
 
 
 @pytest.mark.asyncio
@@ -160,6 +166,310 @@ async def test_register_agents_and_launch(
         registration=registrations[1],
     )
     assert len(manager.running()) == 2  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_empty_is_noop(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    with mock.patch.object(
+        manager.exchange_client,
+        'register_agents',
+        new_callable=mock.AsyncMock,
+    ) as register_agents:
+        async with manager.launch_batch():
+            pass
+    assert len(manager.running()) == 0
+    assert register_agents.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_methods_raise_after_close(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    batch = manager.launch_batch()
+    async with batch:
+        pass
+    with pytest.raises(RuntimeError, match='batch is closed'):
+        await batch.queue(EmptyAgent)
+    with pytest.raises(RuntimeError, match='batch is closed'):
+        await batch.submit()
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_accepts_instance(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    instance = EmptyAgent()
+    async with manager.launch_batch() as batch:
+        handle = await batch.queue(instance)
+        assert batch._intents[0].agent is instance
+    assert handle.agent_id in manager.running()
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_queues_and_returns_handle(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    async with manager.launch_batch() as batch:
+        handle = await batch.queue(EmptyAgent)
+        with pytest.raises(RuntimeError, match='not bound'):
+            _ = handle.agent_id
+    assert manager._handles[handle.agent_id] is handle
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_name_flows_into_agent_id(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    async with manager.launch_batch() as batch:
+        handle = await batch.queue(EmptyAgent, name='worker-1')
+    assert handle.agent_id.name == 'worker-1'
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_submits_on_exit(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    async with manager.launch_batch() as batch:
+        h1 = await batch.queue(EmptyAgent)
+        h2 = await batch.queue(IdentityAgent)
+    assert len(manager.running()) == 2  # noqa: PLR2004
+    assert manager._handles[h1.agent_id] is h1
+    assert manager._handles[h2.agent_id] is h2
+    running_ids = manager.running()
+    assert h1.agent_id in running_ids
+    assert h2.agent_id in running_ids
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_body_exception_skips_submit(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    handles: list[Any] = []
+
+    async def body() -> None:
+        async with manager.launch_batch() as batch:
+            handles.append(await batch.queue(EmptyAgent))
+            handles.append(await batch.queue(IdentityAgent))
+            raise ValueError('from body')
+
+    with pytest.raises(ValueError, match='from body'):
+        await body()
+    assert len(manager.running()) == 0
+    for handle in handles:
+        assert handle._agent_id is None
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_sibling_handle_resolved_after_submit(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    captured_sibling_args: list[Any] = []
+    async with manager.launch_batch() as batch:
+        parent = await batch.queue(EmptyAgent)
+        await batch.queue(_FlexAgent, args=(parent,))
+        sibling_args = batch._intents[1].args
+        assert sibling_args is not None
+        captured_sibling_args.append(sibling_args)
+    assert len(manager.running()) == 2  # noqa: PLR2004
+    sibling_parent_ref = captured_sibling_args[0][0]
+    assert sibling_parent_ref is parent
+    assert sibling_parent_ref.agent_id in manager.running()
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_evicts_on_register_failure(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    failing_register = mock.AsyncMock(
+        side_effect=RuntimeError('injected register_agents failure'),
+    )
+    handles: list[Any] = []
+
+    async def body() -> None:
+        async with manager.launch_batch() as batch:
+            handles.append(await batch.queue(EmptyAgent))
+            handles.append(await batch.queue(EmptyAgent))
+
+    with (
+        mock.patch.object(
+            manager.exchange_client,
+            'register_agents',
+            new=failing_register,
+        ),
+        pytest.raises(RuntimeError, match='injected register_agents failure'),
+    ):
+        await body()
+
+    failing_register.assert_awaited_once()
+    assert len(manager.running()) == 0
+    # Register failed before any rebind happened, so the handles
+    # remain unbound and were never inserted into the cache.
+    for handle in handles:
+        assert handle._agent_id is None
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_terminates_on_launch_failure(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    original_launch = manager.launch
+    call_count = 0
+
+    async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:  # noqa: PLR2004
+            raise RuntimeError('injected launch failure')
+        return await original_launch(*args, **kwargs)
+
+    failing_launch = mock.AsyncMock(side_effect=_failing_launch)
+    wrapped_terminate = mock.AsyncMock(
+        wraps=manager.exchange_client.terminate,
+    )
+
+    async def body() -> None:
+        async with manager.launch_batch() as batch:
+            await batch.queue(EmptyAgent)  # Launches
+            await batch.queue(EmptyAgent)  # Fails to launch
+            await batch.queue(EmptyAgent)  # Orphaned
+
+    with (
+        mock.patch.object(manager, 'launch', new=failing_launch),
+        mock.patch.object(
+            manager.exchange_client,
+            'terminate',
+            new=wrapped_terminate,
+        ),
+        pytest.raises(RuntimeError, match='injected launch failure'),
+    ):
+        await body()
+
+    # First launch succeeds
+    # Second launch fails to launch
+    # Third launch is orphaned
+    assert failing_launch.await_count == 2  # noqa: PLR2004
+    assert wrapped_terminate.await_count == 2  # noqa: PLR2004
+    assert len(manager.running()) == 1
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_evicts_on_launch_failure(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    original_launch = manager.launch
+    call_count = 0
+
+    async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:  # noqa: PLR2004
+            raise RuntimeError('injected launch failure')
+        return await original_launch(*args, **kwargs)
+
+    failing_launch = mock.AsyncMock(side_effect=_failing_launch)
+
+    handles: list[Any] = []
+
+    async def body() -> None:
+        async with manager.launch_batch() as batch:
+            handles.append(await batch.queue(EmptyAgent))  # Launches
+            handles.append(await batch.queue(EmptyAgent))  # Fails to launch
+            handles.append(await batch.queue(EmptyAgent))  # Orphaned
+
+    with (
+        mock.patch.object(manager, 'launch', new=failing_launch),
+        pytest.raises(RuntimeError, match='injected launch failure'),
+    ):
+        await body()
+
+    assert failing_launch.await_count == 2  # noqa: PLR2004
+    running, failed, orphaned = handles
+    # First launch succeeded: bound and cached.
+    assert manager._handles.get(running.agent_id) is running
+    # Second launch's handle was bound (agent_id was set) but the
+    # launch call failed; the cache entry was popped during rollback.
+    assert failed._agent_id is not None
+    assert failed._agent_id not in manager._handles
+    # Third launch was never reached: the handle is still unbound.
+    assert orphaned._agent_id is None
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_terminate_failure_propagates(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    original_launch = manager.launch
+    call_count = 0
+
+    async def _failing_launch(*args: Any, **kwargs: Any) -> Any:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:  # noqa: PLR2004
+            raise RuntimeError('injected launch failure')
+        return await original_launch(*args, **kwargs)
+
+    failing_terminate = mock.AsyncMock(
+        side_effect=RuntimeError('injected terminate failure'),
+    )
+
+    async def body() -> None:
+        async with manager.launch_batch() as batch:
+            await batch.queue(EmptyAgent)
+            await batch.queue(EmptyAgent)
+            await batch.queue(EmptyAgent)
+
+    with (
+        mock.patch.object(manager, 'launch', new=_failing_launch),
+        mock.patch.object(
+            manager.exchange_client,
+            'terminate',
+            new=failing_terminate,
+        ),
+        pytest.raises(
+            RuntimeError,
+            match='injected terminate failure',
+        ) as exc_info,
+    ):
+        await body()
+
+    assert isinstance(exc_info.value.__context__, RuntimeError)
+    assert 'injected launch failure' in str(exc_info.value.__context__)
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_explicit_submit(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    batch = manager.launch_batch()
+    h1 = await batch.queue(EmptyAgent)
+    h2 = await batch.queue(EmptyAgent)
+    await batch.submit()
+
+    assert h1.agent_id in manager.running()
+    assert h2.agent_id in manager.running()
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_submit_after_close_raises(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    batch = manager.launch_batch()
+    await batch.queue(EmptyAgent)
+    await batch.submit()
+    with pytest.raises(RuntimeError, match='batch is closed'):
+        await batch.submit()
+
+
+@pytest.mark.asyncio
+async def test_launch_batch_aexit_skips_after_explicit_submit(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    async with manager.launch_batch() as batch:
+        handle = await batch.queue(EmptyAgent)
+        await batch.submit()
+    assert manager._handles[handle.agent_id] is handle
 
 
 @pytest.mark.asyncio

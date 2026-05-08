@@ -19,12 +19,11 @@ class ActionCancelledError(Exception):
     configured to cancel running actions.
     """
 
-    def __init__(self, name: str) -> None:
-        super().__init__(f'Action "{name}" was cancelled by the agent.')
-        self.name = name
+    def __init__(self) -> None:
+        super().__init__(f'Action was cancelled by the agent.')
 
     def __reduce__(self) -> Any:
-        return type(self), (self.name,)
+        return type(self), ()
 
 
 class ActionInvalidStateError(Exception):
@@ -186,6 +185,45 @@ class ExchangeClientNotFoundError(Exception):
     def __reduce__(self) -> Any:
         return type(self), (self.aid,)
 
+class DeserializationMethodProhibited(Exception):
+    """Deserialization prohibitted.
+
+    Request argument or results are serialized in a method that is prohibtted
+    from being deserialized in the current context. 
+    """
+
+    def __reduce__(self) -> Any:
+        return type(self), ()
+    
+
+class ExceptionSerializationError(Exception):
+    """Error when serializing an exception.
+
+    An action attepted to return a exception, but that exception could not be
+    serialized using the method provided.
+    """
+
+    def __init__(self, exception_name: str, serializer: str) -> None:
+        super().__init__(
+            f'Exception {exception_name} could not be serialized using '
+            f'method {serializer}. Either change `exception_serialization` in'
+            'the action invocation, or ensure the exception can be '
+            'serialized.'
+        )
+        self.exception_name = exception_name
+        self.serializer = serializer
+
+    def __reduce__(self) -> Any:
+        return type(self), (self.exception_name, self.serializer)
+    
+
+class RemoteException(Exception):
+    """Generalized exception for serializing remote exceptions.
+
+    Any exception raised but is then JSON serialized loses its type. 
+    To raise the original exception, change `exception_serialization` in the
+    action invocation.
+    """
 
 def raise_exceptions(
     exceptions: Iterable[BaseException],

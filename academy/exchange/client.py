@@ -30,7 +30,7 @@ from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
-from academy.message import ErrorResponse
+from academy.message import ACADEMY_ERROR_CODE, AcademyErrorResponse
 from academy.message import Message
 from academy.message import RequestT_co
 from academy.task import spawn_guarded_background_task
@@ -461,8 +461,12 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
 
     async def _handle_message(self, message: Message[Any]) -> None:
         if message.is_request():
-            error = TypeError(f'{self.client_id} cannot fulfill requests.')
-            response = message.create_response(ErrorResponse(exception=error))
+            response = message.create_response(
+                AcademyErrorResponse(
+                    error_code=ACADEMY_ERROR_CODE.INVALID_CLIENT,
+                    mailbox_id=self.client_id,
+                )
+            )
             await self._transport.send(response)
             logger.warning(
                 'Exchange client for %s received unexpected request message '

@@ -11,7 +11,7 @@ from unittest import mock
 import pytest
 import pytest_asyncio
 
-from academy.exception import AgentTerminatedError
+from academy.exception import AgentTerminatedError, DeserializationMethodProhibited
 from academy.exception import ExchangeClientNotFoundError
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
@@ -28,6 +28,8 @@ from academy.message import ActionRequest
 from academy.message import CancelRequest
 from academy.message import Message
 from academy.message import Request
+from academy.serialize import SerializationStrategies, default_serializer
+from academy.serialize import allowed_deserializers
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
@@ -113,12 +115,13 @@ async def test_agent_handle_serialize(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
-    handle = Handle(registration.agent_id)
+    handle = Handle(registration.agent_id, serializer=SerializationStrategies.PICKLE)
     reconstructed = pickle.loads(pickle.dumps(handle))
     assert isinstance(reconstructed, Handle)
     assert reconstructed.agent_id == handle.agent_id
     assert str(reconstructed) == str(handle)
     assert repr(reconstructed) == repr(handle)
+    assert reconstructed.serialization == handle.serialization
 
 
 def test_handle_pickle_unbound_raises() -> None:
@@ -551,3 +554,74 @@ async def test_handle_covariance(
     # Only useful for my type checking
     assert test_func(handle)
     assert test_func(sub_handle)
+
+
+@pytest.mark.asyncio
+async def test_handle_respects_deserialize_allow_list(
+    http_exchange_factory: HttpExchangeFactory
+):
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+    ) as manager:
+        handle = await manager.launch(CounterAgent())
+        assert await handle.ping() > 0
+        with allowed_deserializers.set({SerializationStrategies.JSON}):
+            with pytest.raises(DeserializationMethodProhibited):
+                await handle.action('add', 1)
+
+
+@pytest.mark.asyncio
+async def test_handle_uses_default_serializer(
+    http_exchange_factory: HttpExchangeFactory
+):
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+    ) as manager:
+        handle = await manager.launch(CounterAgent())
+        assert await handle.ping() > 0
+        with allowed_deserializers.set({SerializationStrategies.JSON}):
+            with default_serializer.set(SerializationStrategies.JSON):
+                    await handle.action('add', 1)
+
+@pytest.mark.asyncio
+async def test_handle_args_serializer(
+    http_exchange_factory: HttpExchangeFactory
+):
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+    ) as manager:
+        with allowed_deserializers.set({SerializationStrategies.JSON}):
+            handle = await manager.launch(CounterAgent())
+            handle.serialization = SerializationStrategies.JSON
+            assert await handle.ping() > 0
+            await handle.action('add', 1)
+
+@pytest.mark.asyncio
+async def test_handle_results_serializer(
+    http_exchange_factory: HttpExchangeFactory
+):
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+    ) as manager:
+        with allowed_deserializers.set({SerializationStrategies.JSON}):
+            handle = await manager.launch(CounterAgent())
+            handle.serialization = SerializationStrategies.JSON
+            handle.result_serializer = SerializationStrategies.PICKLE
+            assert await handle.ping() > 0
+            with pytest.raises(DeserializationMethodProhibited):
+                await handle.action('add', 1)
+
+@pytest.mark.asyncio
+async def test_handle_exception_serializer(
+    http_exchange_factory: HttpExchangeFactory
+):
+    async with await Manager.from_exchange_factory(
+        factory=http_exchange_factory,
+    ) as manager:
+        with allowed_deserializers.set({SerializationStrategies.JSON}):
+            error_handle = await manager.launch(ErrorAgent)
+            error_handle.serialization = SerializationStrategies.JSON
+            error_handle.exception_serializer = SerializationStrategies.PICKLE
+            assert await error_handle.ping() > 0
+            with pytest.raises(DeserializationMethodProhibited):
+                await error_handle.fails()

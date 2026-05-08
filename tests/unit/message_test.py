@@ -6,8 +6,9 @@ from typing import Any
 
 import pytest
 
+from academy.exception import ActionCancelledError, ActionInvalidStateError, ExceptionSerializationError, MailboxTerminatedError, PingCancelledError
 from academy.identifier import AgentId
-from academy.message import ActionRequest
+from academy.message import ACADEMY_ERROR_CODE, AcademyErrorResponse, ActionRequest, UserErrorResponse
 from academy.message import ActionResponse
 from academy.message import CancelRequest
 from academy.message import ErrorResponse
@@ -16,12 +17,17 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
+from academy.serialize import SerializationStrategies
 
 
 @pytest.mark.parametrize(
     'message_body',
     (
-        ActionRequest(action='foo', pargs=(b'bar',)),
+        ActionRequest(
+            serialization=SerializationStrategies.PICKLE,
+            action='foo',
+            pargs=(b'bar',)
+        ),
         CancelRequest(target_tag=uuid.uuid4()),
         PingRequest(),
         ShutdownRequest(),
@@ -49,8 +55,17 @@ def test_request_message(message_body: Any) -> None:
 @pytest.mark.parametrize(
     'message_body',
     (
-        ActionResponse(result=b'bar'),
-        ErrorResponse(exception=Exception()),
+        ActionResponse(
+            serialization=SerializationStrategies.PICKLE,
+            result=b'bar',
+        ),
+        AcademyErrorResponse(
+            error_code=ACADEMY_ERROR_CODE.PING_CANCELLED,
+        ),
+        UserErrorResponse(
+            serialization=SerializationStrategies.PICKLE,
+            exception=Exception(),
+        ),
         SuccessResponse(),
     ),
 )
@@ -94,8 +109,20 @@ def tests_create_response_from_response_error() -> None:
         message.create_response(SuccessResponse())
 
 
-def test_action_request_lazy_deserialize() -> None:
-    request = ActionRequest(action='foo', pargs=('bar',), kargs={'foo': 'bar'})
+@pytest.mark.parametrize(
+    'serialization_stratgey',
+    (
+        SerializationStrategies.PICKLE,
+        SerializationStrategies.JSON,
+    ),
+)
+def test_action_request_lazy_deserialize(serialization_stratgey) -> None:
+    request = ActionRequest(
+        serialization=serialization_stratgey, 
+        action='foo', 
+        pargs=('bar',), 
+        kargs={'foo': 'bar'}
+    )
 
     json = request.model_dump_json()
     reconstructed = ActionRequest.model_validate_json(json)
@@ -107,12 +134,21 @@ def test_action_request_lazy_deserialize() -> None:
     reconstructed.get_args()
     reconstructed.get_kwargs()
 
-    assert isinstance(reconstructed.pargs, tuple)
+    assert isinstance(reconstructed.pargs, tuple | list)
     assert isinstance(reconstructed.kargs, dict)
 
-
-def test_action_response_lazy_deserialize() -> None:
-    response = ActionResponse(result={'foo': 'bar'})
+@pytest.mark.parametrize(
+    'serialization_stratgey',
+    (
+        SerializationStrategies.PICKLE,
+        SerializationStrategies.JSON,
+    ),
+)
+def test_action_response_lazy_deserialize(serialization_stratgey) -> None:
+    response = ActionResponse(
+        serialization=serialization_stratgey,
+        result={'foo': 'bar'}
+    )
 
     json = response.model_dump_json()
     reconstructed = ActionResponse.model_validate_json(json)
@@ -125,11 +161,50 @@ def test_action_response_lazy_deserialize() -> None:
     assert isinstance(reconstructed.result, dict)
 
 
-def test_error_response_lazy_deserialize() -> None:
-    response = ErrorResponse(exception=Exception('Oops!'))
+@pytest.mark.parametrize(
+    ('error_code', 'exception_type'),
+    (
+        (ACADEMY_ERROR_CODE.MAILBOX_TERMINATED, MailboxTerminatedError),
+        (ACADEMY_ERROR_CODE.PING_CANCELLED, PingCancelledError),
+        (ACADEMY_ERROR_CODE.ACTION_INVALID_STATE, ActionInvalidStateError),
+        (ACADEMY_ERROR_CODE.ACTION_CANCELLED, ActionCancelledError),
+        (ACADEMY_ERROR_CODE.INVALID_CLIENT, TypeError),
+    ),
+)
+def test_academy_error_response_to_exception(
+    error_code: ACADEMY_ERROR_CODE, 
+    exception_type: type[Exception],
+):
+    response = AcademyErrorResponse(
+        error_code=error_code,
+        mailbox_id=AgentId.new(),
+    )
 
     json = response.model_dump_json()
-    reconstructed = ErrorResponse.model_validate_json(json)
+    reconstructed = AcademyErrorResponse.model_validate_json(json)
+
+    assert isinstance(reconstructed, AcademyErrorResponse)
+    assert isinstance(reconstructed, ErrorResponse)
+
+    exception = reconstructed.get_exception()
+
+    assert isinstance(exception, exception_type)
+
+@pytest.mark.parametrize(
+    'serialization_stratgey',
+    (
+        SerializationStrategies.PICKLE,
+        SerializationStrategies.JSON,
+    ),
+)
+def test_user_error_response_lazy_deserialize(serialization_stratgey) -> None:
+    response = UserErrorResponse(
+        serialization=serialization_stratgey,
+        exception=Exception('Oops!')
+    )
+
+    json = response.model_dump_json()
+    reconstructed = UserErrorResponse.model_validate_json(json)
 
     assert isinstance(reconstructed, ErrorResponse)
     assert isinstance(reconstructed.exception, str)
@@ -137,3 +212,25 @@ def test_error_response_lazy_deserialize() -> None:
     reconstructed.get_exception()
 
     assert isinstance(reconstructed.exception, Exception)
+
+
+class UnserializableException(Exception):
+    def __reduce__(self):
+        raise Exception("This exception cannot be serialized.")
+    
+def test_user_error_response_serialization_error() -> None:
+    response = UserErrorResponse(
+        serialization=SerializationStrategies.PICKLE,
+        exception=UnserializableException(),
+    )
+
+    json = response.model_dump_json()
+    print(json)
+    reconstructed = UserErrorResponse.model_validate_json(json)
+
+    assert isinstance(reconstructed, ErrorResponse)
+    assert isinstance(reconstructed.exception, str)
+
+    reconstructed.get_exception()
+
+    assert isinstance(reconstructed.exception, ExceptionSerializationError)

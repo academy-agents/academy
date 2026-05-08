@@ -26,6 +26,8 @@ from academy.message import PingRequest
 from academy.message import ResponseT
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
+from academy.serialize import SerializationStrategies
+from academy.serialize import default_serializer
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -80,6 +82,8 @@ class Handle(Generic[AgentT_co]):
             is not configured in the current context.
         ignore_context: Ignore the current context and force use of `exchange`
             for communication.
+        serializer: Strategy used to serialize arguments. If None, use the
+            [`academy.serialize.default_serializer`][academy.serialize.default_serializer]
 
     Raises:
         ValueError: If `ignore_context=True` but `exchange` is not provided.
@@ -91,9 +95,15 @@ class Handle(Generic[AgentT_co]):
         *,
         exchange: ExchangeClient[Any] | None = None,
         ignore_context: bool = False,
+        serializer: SerializationStrategies | None = None,
+        result_serializer: SerializationStrategies | None = None,
+        exception_serializer: SerializationStrategies | None = None
     ) -> None:
         self._agent_id: AgentId[AgentT_co] | None = agent_id
         self._exchange = exchange
+        self.serialization = serializer
+        self.result_serializer = result_serializer
+        self.exception_serializer = exception_serializer
         self._registered_exchanges: WeakSet[ExchangeClient[Any]] = WeakSet()
         self.ignore_context = ignore_context
 
@@ -167,9 +177,23 @@ class Handle(Generic[AgentT_co]):
             raise PicklingError(
                 'Handle with ignore_context=True is not pickle-able',
             )
-        if self._agent_id is None:
-            raise PicklingError('Cannot pickle an unbound handle.')
-        return (Handle, (self._agent_id,))
+        return (
+            Handle, 
+            (self._agent_id,),
+            {
+                "serialization": self.serialization,
+                "result_serializer": self.result_serializer,
+                "exception_serializer": self.exception_serializer,
+            }
+        )
+    
+    def __setstate__(self, state):
+        """Set state.
+
+        This is necessary for unpickling to not treat set state as a
+        remote action.
+        """
+        self.__dict__.update(state)
 
     def __repr__(self) -> str:
         return (
@@ -190,17 +214,9 @@ class Handle(Generic[AgentT_co]):
 
     async def _process_response(self, response: Message[ResponseT]) -> None:
         future = self._pending_response_futures.pop(response.tag)
-
         if not future.cancelled():
             body = response.get_body()
-            if isinstance(body, ActionResponse):
-                future.set_result(body.get_result())
-            elif isinstance(body, ErrorResponse):
-                future.set_exception(body.get_exception())
-            elif isinstance(body, SuccessResponse):
-                future.set_result(None)
-            else:
-                raise AssertionError('Unreachable.')
+            future.set_result(body)
 
     def _register_with_exchange(self, exchange: ExchangeClient[Any]) -> None:
         """Register to receive messages from exchange.
@@ -251,16 +267,24 @@ class Handle(Generic[AgentT_co]):
         )
         exchange = self.exchange
         self._register_with_exchange(exchange)
+        serialization = self.serialization or default_serializer.get()
 
         request = Message.create(
             src=exchange.client_id,
             dest=self.agent_id,
             label=self.handle_id,
             tag=tag_id,
-            body=ActionRequest(action=action, pargs=args, kargs=kwargs),
+            body=ActionRequest(
+                action=action, 
+                pargs=args, 
+                kargs=kwargs,
+                serialization=serialization,
+                result_serialization=self.result_serializer,
+                exception_serialization=self.exception_serializer,
+            ),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[R] = loop.create_future()
+        future: asyncio.Future[ResponseT] = loop.create_future()
         self._pending_response_futures[request.tag] = future
 
         try:
@@ -305,7 +329,27 @@ class Handle(Generic[AgentT_co]):
             self._pending_response_futures[cancel_request.tag] = cancel_future
             await self.exchange.send(cancel_request)
             raise
-        except Exception as e:
+
+        assert future.done()
+        assert future.exception() is None
+        body = future.result()
+
+        if isinstance(body, ActionResponse):
+            result = body.get_result()
+            logger.debug(
+                'Successfully completed action %s with tag id %s',
+                action,
+                tag_id,
+                extra=invocation_extra
+                | {
+                    'academy.action_state': 'success',
+                    'academy.result': result,
+                    'academy.agent_id': self.agent_id,
+                },
+            )
+            return result
+        elif isinstance(body, ErrorResponse):
+            exception = body.get_exception()
             logger.debug(
                 'Completed action %s with tag id %s with exception',
                 action,
@@ -314,28 +358,10 @@ class Handle(Generic[AgentT_co]):
                 | {
                     'academy.action_state': 'exception',
                 },
-                exc_info=e,
             )
-
-            raise
-
-        assert future.done()
-        assert future.exception() is None
-        result = future.result()
-
-        logger.debug(
-            'Successfully completed action %s with tag id %s',
-            action,
-            tag_id,
-            extra=invocation_extra
-            | {
-                'academy.action_state': 'success',
-                'academy.result': result,
-                'academy.agent_id': self.agent_id,
-            },
-        )
-
-        return result
+            raise exception
+        
+        raise RuntimeError("Invalid response received from action request.")
 
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
@@ -364,7 +390,7 @@ class Handle(Generic[AgentT_co]):
             body=PingRequest(),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[None] = loop.create_future()
+        future: asyncio.Future[ResponseT] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)
@@ -376,6 +402,12 @@ class Handle(Generic[AgentT_co]):
         )
 
         await asyncio.wait_for(future, timeout)
+
+        assert future.done()
+        body = future.result()
+
+        if isinstance(body, ErrorResponse):
+            raise body.get_exception()
 
         elapsed = time.perf_counter() - start
         logger.debug(
@@ -390,11 +422,16 @@ class Handle(Generic[AgentT_co]):
         )
         return elapsed
 
-    def _shutdown_callback(self, future: asyncio.Future[Any]) -> None:
-        if future.exception() is None:
-            return
+    def _shutdown_callback(self, future: asyncio.Future[ResponseT]) -> None:
+        exception: BaseException
+        if future.exception() is not None:
+            exception = future.exception()
+        else:
+            body = future.result()
+            if not isinstance(body, ErrorResponse):
+                return
+            exception = body.get_exception()
 
-        exception = future.exception()
         # The only ok error to be ignored is if the agent we intended to
         # shutdown was already shutdown.
         if (
@@ -439,7 +476,7 @@ class Handle(Generic[AgentT_co]):
         )
 
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[None] = loop.create_future()
+        future: asyncio.Future[ResponseT] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         await self.exchange.send(request)
 

@@ -198,7 +198,7 @@ class SimpleSocket:
             buffer[received : received + len(chunk)] = chunk
             received += len(chunk)
 
-        return buffer
+        return bytes(buffer)
 
     async def recv_string(self) -> str:
         """Receive the next message from the socket.
@@ -280,7 +280,7 @@ class SimpleSocketServer:
     async def _read_message(
         self,
         reader: asyncio.StreamReader,
-    ) -> bytes | bytearray:
+    ) -> bytes:
         header = await reader.read(MESSAGE_HEADER_SIZE)
         if len(header) == 0:  # pragma: no cover
             return b''
@@ -295,12 +295,12 @@ class SimpleSocketServer:
             buffer[received : received + len(chunk)] = chunk
             received += len(chunk)
 
-        return buffer
+        return bytes(buffer)
 
     async def _write_message(
         self,
         writer: asyncio.StreamWriter,
-        message: bytes | bytearray,
+        message: bytes,
     ) -> None:
         message_size = len(message)
         header = _make_header(message)

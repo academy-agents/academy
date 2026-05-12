@@ -4,11 +4,14 @@ import pickle
 
 import pytest
 
-from academy.exception import ActionCancelledError, DeserializationMethodProhibited, ExceptionSerializationError, RemoteException
+from academy.exception import AcademyRemoteError
+from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
 from academy.exception import AgentNotInitializedError
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
+from academy.exception import DeserializationMethodProhibitedError
+from academy.exception import ExceptionSerializationError
 from academy.exception import ExchangeClientNotFoundError
 from academy.exception import ExchangeError
 from academy.exception import ForbiddenError
@@ -37,9 +40,9 @@ from academy.identifier import UserId
         UnauthorizedError(),
         ExchangeClientNotFoundError(AgentId.new()),
         PingCancelledError(),
-        DeserializationMethodProhibited(),
-        ExceptionSerializationError(TypeError, 'pickle'),
-        RemoteException(),
+        DeserializationMethodProhibitedError(),
+        ExceptionSerializationError('TestError traceback', 'pickle'),
+        AcademyRemoteError(),
     ),
 )
 def test_pickle_exception(exc: Exception) -> None:

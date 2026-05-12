@@ -130,7 +130,7 @@ async def test_mailbox_backend_mailbox_delete_agent(
 
     message = await backend.get(client, uid, timeout=0.01)
     assert isinstance(message.get_body(), ErrorResponse)
-    assert isinstance(message.body.exception, MailboxTerminatedError)
+    assert isinstance(message.body.get_exception(), MailboxTerminatedError)
 
     with pytest.raises(TimeoutError):
         await backend.get(client, uid, timeout=0.01)

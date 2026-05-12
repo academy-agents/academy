@@ -11,7 +11,7 @@ from collections.abc import Awaitable
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
-from typing import Any, List, Set
+from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
 from typing import TypeVar
@@ -21,8 +21,9 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import Field
 
 import academy.exchange as ae
 from academy.context import ActionContext
@@ -34,7 +35,9 @@ from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
 from academy.identifier import EntityId
-from academy.message import ACADEMY_ERROR_CODE, AcademyErrorResponse, ActionRequest, UserErrorResponse
+from academy.message import AcademyErrorCode
+from academy.message import AcademyErrorResponse
+from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import CancelRequest
 from academy.message import Message
@@ -44,10 +47,11 @@ from academy.message import Response
 from academy.message import ResponseT_co
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
-from academy.serialize import ALL_SERIALIZERS, NoPickleMixin
-from academy.serialize import SerializationStrategies
+from academy.message import UserErrorResponse
 from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
+from academy.serialize import NoPickleMixin
+from academy.serialize import SerializationStrategies
 from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
@@ -85,10 +89,10 @@ class RuntimeConfig(BaseModel):
             permanently if the agent shuts down due to an error.
         terminate_on_success: Terminate the agent by closing its mailbox
             permanently if the agent shuts down without an error.
-        default_serializer: Serialization strategy to user when sending 
+        default_serializer: Serialization strategy to user when sending
             requests to other agents. This can be overridden by the `Handle`.
-        allowed_deserializers: Accept only requests whose arguments are 
-            serialized using one of the serializers in this list. If None, 
+        allowed_deserializers: Accept only requests whose arguments are
+            serialized using one of the serializers in this list. If None,
             this will be inherited from the parent context.
     """
 
@@ -101,7 +105,10 @@ class RuntimeConfig(BaseModel):
     terminate_on_error: bool = True
     terminate_on_success: bool = True
     default_serializer: SerializationStrategies | None = None
-    allowed_deserializers: Set[SerializationStrategies] | None = Field(default=None)
+    allowed_deserializers: set[SerializationStrategies] | None = Field(
+        default=None,
+    )
+
 
 class Runtime(Generic[AgentT], NoPickleMixin):
     """Agent runtime manager.
@@ -177,8 +184,12 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             contextvars.Token[ae.ExchangeClient[Any]] | None
         ) = None
 
-        self.allowed_deserializers_token: contextvars.Token[Set[SerializationStrategies]] | None = None
-        self.default_serializer_token: contextvars.Token[SerializationStrategies] | None = None
+        self.allowed_deserializers_token: (
+            contextvars.Token[set[SerializationStrategies]] | None
+        ) = None
+        self.default_serializer_token: (
+            contextvars.Token[SerializationStrategies] | None
+        ) = None
 
     async def __aenter__(self) -> Self:
         try:
@@ -245,12 +256,14 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 'academy.action_state': 'execute_start',
             },
         )
-        exception_serialization = body.exception_serialization or body.serialization
 
+        result_serialization = body.result_serialization or body.serialization
+        exception_serialization = (
+            body.exception_serialization or result_serialization
+        )
         try:
             # Do not run the method until the startup sequence has finished
             await self._started_event.wait()
-            result_serialization = body.result_serialization or body.serialization
             result = await self.action(
                 body.action,
                 request.src,
@@ -268,7 +281,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         except asyncio.CancelledError:
             response = request.create_response(
                 AcademyErrorResponse(
-                    error_code=ACADEMY_ERROR_CODE.ACTION_CANCELLED
+                    error_code=AcademyErrorCode.ACTION_CANCELLED,
                 ),
             )
             logger.debug(
@@ -285,10 +298,13 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 UserErrorResponse(
                     serialization=exception_serialization,
                     exception=e,
-                )
+                ),
             )
             logger.debug(
-                'Action %s ended with exception, with invocation id %s, serializer: %s',
+                (
+                    'Action %s ended with exception, with invocation '
+                    'id %s, serializer: %s'
+                ),
                 body.action,
                 invocation_id,
                 exception_serialization,
@@ -300,7 +316,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             )
         else:
             logger.debug(
-                'Completed action %s with invocation id %s, result serializer: %s',
+                (
+                    'Completed action %s with invocation id %s, result '
+                    'serializer: %s'
+                ),
                 body.action,
                 invocation_id,
                 result_serialization,
@@ -322,7 +341,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         except asyncio.CancelledError:
             response = request.create_response(
                 AcademyErrorResponse(
-                    error_code=ACADEMY_ERROR_CODE.PING_CANCELLED
+                    error_code=AcademyErrorCode.PING_CANCELLED,
                 ),
             )
         else:
@@ -379,7 +398,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             else:
                 response = request.create_response(
                     AcademyErrorResponse(
-                        error_code=ACADEMY_ERROR_CODE.ACTION_INVALID_STATE
+                        error_code=AcademyErrorCode.ACTION_INVALID_STATE,
                     ),
                 )
             task = asyncio.create_task(self._send_response(response))
@@ -495,6 +514,39 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         async with self:
             await self.wait_shutdown()
 
+    def _set_context_vars(self) -> None:
+        """Set up the context variables for the runtime context."""
+        if self.config.allowed_deserializers is not None:
+            self.allowed_deserializers_token = allowed_deserializers.set(
+                self.config.allowed_deserializers,
+            )
+
+        if self.config.default_serializer:
+            self.default_serializer_token = default_serializer.set(
+                self.config.default_serializer,
+            )
+
+        assert self._exchange_client is not None, (
+            'Context vars cannot be set before creating the exchange client.'
+        )
+        self.exchange_context_token = exchange_context.set(
+            self._exchange_client,
+        )
+
+    def _reset_context_vars(self) -> None:
+        """Reset the context variables for the runtime context."""
+        if self.exchange_context_token is not None:
+            exchange_context.reset(self.exchange_context_token)
+            self.exchange_context_token = None
+
+        if self.default_serializer_token is not None:
+            default_serializer.reset(self.default_serializer_token)
+            self.default_serializer_token = None
+
+        if self.allowed_deserializers_token is not None:
+            allowed_deserializers.reset(self.allowed_deserializers_token)
+            self.allowed_deserializers_token = None
+
     async def _start(self) -> None:
         if self._shutdown_event.is_set():
             raise RuntimeError('Agent has already been shutdown.')
@@ -508,23 +560,13 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 'academy.agent': self.agent,
             },
         )
-        if self.config.allowed_deserializers is not None:
-            self.allowed_deserializers_token = allowed_deserializers.set(
-                self.config.allowed_deserializers
-            )
-
-        if self.config.default_serializer:
-            self.default_serializer_token = default_serializer.set(
-                self.config.default_serializer
-            )
 
         self._exchange_client = await self.factory.create_agent_client(
             self.registration,
             request_handler=self._request_handler,
         )
-        self.exchange_context_token = exchange_context.set(
-            self._exchange_client,
-        )
+
+        self._set_context_vars()
 
         context = AgentContext(
             agent_id=self.agent_id,
@@ -622,23 +664,13 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 await task
 
         self._sync_executor.shutdown()
-        # Reset exchange client (for the case of nested execution)
-        if self.exchange_context_token is not None:
-            exchange_context.reset(self.exchange_context_token)
-            self.exchange_context_token = None
+
+        self._reset_context_vars()
 
         if self._exchange_client is not None:
             if self._should_terminate_mailbox():
                 await self._exchange_client.terminate(self.agent_id)
             await self._exchange_client.close()
-
-        if self.default_serializer_token is not None:
-            default_serializer.reset(self.default_serializer_token)
-            self.default_serializer_token = None
-
-        if self.allowed_deserializers_token is not None:
-            allowed_deserializers.reset(self.allowed_deserializers_token)
-            self.allowed_deserializers_token = None
 
         if self.config.raise_loop_errors_on_shutdown:
             # Raise loop exceptions so the caller sees them, even if the loop

@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-import base64
-from contextvars import ContextVar
-from enum import IntEnum
 import pickle
 import sys
 import uuid
-from typing import Any, Protocol, runtime_checkable
+from enum import IntEnum
+from typing import Any
 from typing import Generic
 from typing import get_args
 from typing import Literal
+from typing import Protocol
+from typing import runtime_checkable
 from typing import TypeVar
 
-from academy.exception import ActionCancelledError, ActionInvalidStateError, ExceptionSerializationError, MailboxTerminatedError, PingCancelledError
+from academy.exception import ActionCancelledError
+from academy.exception import ActionInvalidStateError
+from academy.exception import ExceptionSerializationError
+from academy.exception import MailboxTerminatedError
+from academy.exception import PingCancelledError
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -27,7 +31,9 @@ from pydantic import SkipValidation
 from pydantic import TypeAdapter
 
 from academy.identifier import EntityId
-from academy.serialize import SerializationStrategies, deserialize, serialize
+from academy.serialize import deserialize
+from academy.serialize import SerializationStrategies
+from academy.serialize import serialize
 
 DEFAULT_FROZEN_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
@@ -44,6 +50,7 @@ DEFAULT_MUTABLE_CONFIG = ConfigDict(
     validate_default=True,
 )
 
+
 class ActionRequest(BaseModel):
     """Agent action request message.
 
@@ -55,21 +62,21 @@ class ActionRequest(BaseModel):
 
     action: str = Field(description='Name of the requested action.')
     serialization: SerializationStrategies = Field(
-        description='Serialization strategy used send args'
+        description='Serialization strategy used send args',
     )
     result_serialization: SerializationStrategies | None = Field(
         default=None,
         description=(
-            "Requested serialization of results. If none, use the same "
-            "method the args were serialized with."
-        )
+            'Requested serialization of results. If none, use the same '
+            'method the args were serialized with.'
+        ),
     )
     exception_serialization: SerializationStrategies | None = Field(
         default=None,
         description=(
-            "Requested serialization of exceptions. If none, use the same "
-            "method the args were serialized with."
-        )
+            'Requested serialization of exceptions. If none, use the same '
+            'method the args were serialized with.'
+        ),
     )
     pargs: SkipValidation[tuple[Any, ...]] = Field(
         default_factory=tuple,
@@ -157,7 +164,7 @@ class ActionResponse(BaseModel):
         description='Result of the action, if successful.',
     )
     serialization: SerializationStrategies = Field(
-        description='Serialization strategy used send result.'
+        description='Serialization strategy used send result.',
     )
     kind: Literal['action-response'] = Field('action-response', repr=False)
 
@@ -173,7 +180,7 @@ class ActionResponse(BaseModel):
             # Prevent double serialization
             return obj
 
-        data =  serialize(obj, self.serialization)
+        data = serialize(obj, self.serialization)
         # This sential value at the start of the tuple is so we can
         # disambiguate a result that is a str versus the string of a
         # serialized result.
@@ -196,8 +203,11 @@ class ActionResponse(BaseModel):
             self.result = deserialize(self.result[1], self.serialization)
         return self.result
 
+
 @runtime_checkable
 class ErrorResponse(Protocol):
+    """Protocol for all error messages."""
+
     def get_exception(self) -> Exception:
         """Get the exception.
 
@@ -206,11 +216,13 @@ class ErrorResponse(Protocol):
         """
         ...
 
-class ACADEMY_ERROR_CODE(IntEnum):
+
+class AcademyErrorCode(IntEnum):
     """Error codes returned by requests.
-    
-    These error codes allow us to return errrors without serialization.
+
+    These error codes allow us to return errors without serialization.
     """
+
     MAILBOX_TERMINATED = 0
     PING_CANCELLED = 1
     ACTION_INVALID_STATE = 2
@@ -220,14 +232,18 @@ class ACADEMY_ERROR_CODE(IntEnum):
 
 class AcademyErrorResponse(BaseModel):
     """Error response created by Academy."""
-    error_code: ACADEMY_ERROR_CODE = Field(
-        description='Error code '
+
+    error_code: AcademyErrorCode = Field(
+        description='Error code ',
     )
     mailbox_id: EntityId | None = Field(
         description='Mailbox id if necessary for the error.',
         default=None,
     )
-    kind: Literal['academy-error-response'] = Field('academy-error-response', repr=False)
+    kind: Literal['academy-error-response'] = Field(
+        'academy-error-response',
+        repr=False,
+    )
 
     def get_exception(self) -> Exception:
         """Get the exception.
@@ -236,32 +252,38 @@ class AcademyErrorResponse(BaseModel):
             The exception.
         """
         match self.error_code:
-            case ACADEMY_ERROR_CODE.MAILBOX_TERMINATED:
-                assert self.mailbox_id is not None, "Improper error response created."
+            case AcademyErrorCode.MAILBOX_TERMINATED:
+                assert self.mailbox_id is not None, (
+                    'Improper error response created.'
+                )
                 return MailboxTerminatedError(self.mailbox_id)
-            case ACADEMY_ERROR_CODE.PING_CANCELLED:
+            case AcademyErrorCode.PING_CANCELLED:
                 return PingCancelledError()
-            case ACADEMY_ERROR_CODE.ACTION_INVALID_STATE:
+            case AcademyErrorCode.ACTION_INVALID_STATE:
                 return ActionInvalidStateError()
-            case ACADEMY_ERROR_CODE.ACTION_CANCELLED:
+            case AcademyErrorCode.ACTION_CANCELLED:
                 return ActionCancelledError()
-            case ACADEMY_ERROR_CODE.INVALID_CLIENT:
+            case AcademyErrorCode.INVALID_CLIENT:
                 return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
-        assert False, 'Unreachable'
+        raise AssertionError('Unreachable.')
 
-        
+
 class UserErrorResponse(BaseModel):
     """Error response message.
 
     Contains the exception raised by a failed request.
     """
+
     serialization: SerializationStrategies = Field(
-        description='Serialization strategy used send exception.'
+        description='Serialization strategy used send exception.',
     )
     exception: SkipValidation[Exception] = Field(
         description='Exception of the failed request.',
     )
-    kind: Literal['user-error-response'] = Field('user-error-response', repr=False)
+    kind: Literal['user-error-response'] = Field(
+        'user-error-response',
+        repr=False,
+    )
 
     model_config = DEFAULT_MUTABLE_CONFIG
 
@@ -275,11 +297,11 @@ class UserErrorResponse(BaseModel):
             # from being returned. Instead we replace the exception with
             # a exception we know can be serialized, letting the client know
             # that a exception was hidden.
-            print("Serialization raised eception")
+            print('Serialization raised eception')
             return serialize(
                 ExceptionSerializationError(
                     obj.__class__.__name__,
-                    self.serialization
+                    self.serialization,
                 ),
                 self.serialization,
             )
@@ -294,7 +316,7 @@ class UserErrorResponse(BaseModel):
             The deserialized exception.
         """
         if isinstance(self.exception, str):
-            self.exception =  deserialize(self.exception, self.serialization)
+            self.exception = deserialize(self.exception, self.serialization)
         return self.exception
 
 
@@ -307,7 +329,9 @@ class SuccessResponse(BaseModel):
 
 
 Request = ActionRequest | CancelRequest | PingRequest | ShutdownRequest
-Response = ActionResponse | AcademyErrorResponse | UserErrorResponse | SuccessResponse
+Response = (
+    ActionResponse | AcademyErrorResponse | UserErrorResponse | SuccessResponse
+)
 Body = Request | Response
 
 BodyT = TypeVar('BodyT', bound=Body)

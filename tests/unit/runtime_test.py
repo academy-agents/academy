@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import sys
 import uuid
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -13,18 +14,20 @@ from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
 from academy.debug import set_academy_debug
-from academy.exception import ActionCancelledError, DeserializationMethodProhibited
+from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
+from academy.exception import DeserializationMethodProhibitedError
 from academy.exchange import ExchangeClient
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
-from academy.exchange.cloud.client import HttpExchangeFactory, HttpExchangeTransport
+from academy.exchange.cloud.client import HttpExchangeFactory
+from academy.exchange.cloud.client import HttpExchangeTransport
 from academy.exchange.transport import MailboxStatus
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.message import ActionRequest, UserErrorResponse
+from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import CancelRequest
 from academy.message import ErrorResponse
@@ -32,10 +35,11 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
+from academy.message import UserErrorResponse
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
-from academy.serialize import default_serializer
 from academy.serialize import allowed_deserializers
+from academy.serialize import default_serializer
 from academy.serialize import SerializationStrategies
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
@@ -367,7 +371,11 @@ async def test_runtime_action_message(
         request = Message.create(
             src=exchange_client.client_id,
             dest=runtime.agent_id,
-            body=ActionRequest(action='add', pargs=(value,)),
+            body=ActionRequest(
+                action='add',
+                pargs=(value,),
+                serialization=SerializationStrategies.PICKLE,
+            ),
         )
         await exchange_client.send(request)
         message = await anext(listener)
@@ -379,7 +387,10 @@ async def test_runtime_action_message(
         request = Message.create(
             src=exchange_client.client_id,
             dest=runtime.agent_id,
-            body=ActionRequest(action='count'),
+            body=ActionRequest(
+                action='count',
+                serialization=SerializationStrategies.PICKLE,
+            ),
         )
         await exchange_client.send(request)
         message = await anext(listener)
@@ -406,7 +417,11 @@ async def test_runtime_cancel_action_message(
         request = Message.create(
             src=exchange_client.client_id,
             dest=runtime.agent_id,
-            body=ActionRequest(action='sleep', pargs=(value,)),
+            body=ActionRequest(
+                action='sleep',
+                pargs=(value,),
+                serialization=SerializationStrategies.PICKLE,
+            ),
         )
         await exchange_client.send(request)
         cancel_request = Message.create(
@@ -485,7 +500,10 @@ async def test_runtime_cancel_action_requests_on_shutdown(
     request = Message.create(
         src=exchange_client.client_id,
         dest=runtime.agent_id,
-        body=ActionRequest(action='sleep'),
+        body=ActionRequest(
+            action='sleep',
+            serialization=SerializationStrategies.PICKLE,
+        ),
     )
     await exchange_client.send(request)
 
@@ -528,7 +546,10 @@ async def test_runtime_action_message_error(
         request = Message.create(
             src=exchange_client.client_id,
             dest=runtime.agent_id,
-            body=ActionRequest(action='fails'),
+            body=ActionRequest(
+                action='fails',
+                serialization=SerializationStrategies.PICKLE,
+            ),
         )
         await exchange_client.send(request)
         message = await anext(listener)
@@ -555,7 +576,10 @@ async def test_runtime_action_message_unknown(
         request = Message.create(
             src=exchange_client.client_id,
             dest=runtime.agent_id,
-            body=ActionRequest(action='null'),
+            body=ActionRequest(
+                action='null',
+                serialization=SerializationStrategies.PICKLE,
+            ),
         )
         await exchange_client.send(request)
         message = await anext(listener)
@@ -602,7 +626,10 @@ async def test_runtime_delay_actions_and_loops_to_after_startup(
     request = Message.create(
         src=exchange_client.client_id,
         dest=registration.agent_id,
-        body=ActionRequest(action='check_action'),
+        body=ActionRequest(
+            action='check_action',
+            serialization=SerializationStrategies.PICKLE,
+        ),
     )
     await exchange_client.send(request)
 
@@ -740,16 +767,19 @@ async def test_runtime_uses_default_serializer(
     class _CheckSerializationAgent(Agent):
         async def agent_on_startup(self):
             assert default_serializer.get() == SerializationStrategies.JSON
-    
-    registration = await exchange_client.register_agent(_CheckSerializationAgent)
 
-    with default_serializer.set(SerializationStrategies.JSON):
-        async with Runtime(
-            _CheckSerializationAgent(),
-            exchange_factory=exchange_client.factory(),
-            registration=registration,
-        ) as runtime:
-            runtime.signal_shutdown()
+    registration = await exchange_client.register_agent(
+        _CheckSerializationAgent,
+    )
+
+    token = default_serializer.set(SerializationStrategies.JSON)
+    async with Runtime(
+        _CheckSerializationAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        runtime.signal_shutdown()
+    default_serializer.reset(token)
 
 
 @pytest.mark.asyncio
@@ -759,21 +789,26 @@ async def test_runtime_sets_default_serializer(
     class _CheckSerializationAgent(Agent):
         async def agent_on_startup(self):
             assert default_serializer.get() == SerializationStrategies.JSON
-    
-    registration = await exchange_client.register_agent(_CheckSerializationAgent)
+
+    registration = await exchange_client.register_agent(
+        _CheckSerializationAgent,
+    )
     async with Runtime(
         _CheckSerializationAgent(),
         exchange_factory=exchange_client.factory(),
         registration=registration,
-        config=RuntimeConfig(default_serializer=SerializationStrategies.JSON)
+        config=RuntimeConfig(default_serializer=SerializationStrategies.JSON),
     ) as runtime:
         runtime.signal_shutdown()
 
+
 @pytest.fixture
 async def http_exchange_client(
-    http_exchange_factory: HttpExchangeFactory
+    http_exchange_factory: HttpExchangeFactory,
 ) -> AsyncGenerator[UserExchangeClient[HttpExchangeTransport]]:
-    async with await http_exchange_factory.create_user_client(start_listener=False) as client:
+    async with await http_exchange_factory.create_user_client(
+        start_listener=False,
+    ) as client:
         yield client
 
 
@@ -799,7 +834,7 @@ async def test_runtime_respects_allowed_deserializers(
             body=ActionRequest(
                 action='sleep',
                 pargs=(value,),
-                serialization=SerializationStrategies.PICKLE
+                serialization=SerializationStrategies.PICKLE,
             ),
         )
         await http_exchange_client.send(request)
@@ -807,8 +842,12 @@ async def test_runtime_respects_allowed_deserializers(
 
         body = response.get_body()
         assert isinstance(body, ErrorResponse)
-        with allowed_deserializers.set({SerializationStrategies.PICKLE}):
-            assert isinstance(body.get_exception(), DeserializationMethodProhibited)
+        token = allowed_deserializers.set({SerializationStrategies.PICKLE})
+        assert isinstance(
+            body.get_exception(),
+            DeserializationMethodProhibitedError,
+        )
+        allowed_deserializers.reset(token)
 
 
 @pytest.mark.asyncio
@@ -831,7 +870,7 @@ async def test_runtime_uses_result_serialization(
                 action='sleep',
                 pargs=(value,),
                 serialization=SerializationStrategies.PICKLE,
-                result_serialization=SerializationStrategies.JSON
+                result_serialization=SerializationStrategies.JSON,
             ),
         )
         await http_exchange_client.send(request)
@@ -862,7 +901,7 @@ async def test_runtime_uses_exception_serialization(
             body=ActionRequest(
                 action='fails',
                 serialization=SerializationStrategies.PICKLE,
-                result_serialization=SerializationStrategies.JSON
+                exception_serialization=SerializationStrategies.JSON,
             ),
         )
         await http_exchange_client.send(request)

@@ -23,11 +23,11 @@ from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
+from academy.message import Response
 from academy.message import ResponseT
 from academy.message import ShutdownRequest
-from academy.message import SuccessResponse
-from academy.serialize import SerializationStrategies
 from academy.serialize import default_serializer
+from academy.serialize import SerializationStrategies
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -89,7 +89,7 @@ class Handle(Generic[AgentT_co]):
         ValueError: If `ignore_context=True` but `exchange` is not provided.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         agent_id: AgentId[AgentT_co] | None = None,
         *,
@@ -97,7 +97,7 @@ class Handle(Generic[AgentT_co]):
         ignore_context: bool = False,
         serializer: SerializationStrategies | None = None,
         result_serializer: SerializationStrategies | None = None,
-        exception_serializer: SerializationStrategies | None = None
+        exception_serializer: SerializationStrategies | None = None,
     ) -> None:
         self._agent_id: AgentId[AgentT_co] | None = agent_id
         self._exchange = exchange
@@ -172,6 +172,7 @@ class Handle(Generic[AgentT_co]):
     ) -> tuple[
         type[Handle[Any]],
         tuple[Any, ...],
+        dict[str, Any],
     ]:
         if self.ignore_context:
             raise PicklingError(
@@ -181,13 +182,13 @@ class Handle(Generic[AgentT_co]):
             Handle, 
             (self._agent_id,),
             {
-                "serialization": self.serialization,
-                "result_serializer": self.result_serializer,
-                "exception_serializer": self.exception_serializer,
-            }
+                'serialization': self.serialization,
+                'result_serializer': self.result_serializer,
+                'exception_serializer': self.exception_serializer,
+            },
         )
-    
-    def __setstate__(self, state):
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Set state.
 
         This is necessary for unpickling to not treat set state as a
@@ -275,8 +276,8 @@ class Handle(Generic[AgentT_co]):
             label=self.handle_id,
             tag=tag_id,
             body=ActionRequest(
-                action=action, 
-                pargs=args, 
+                action=action,
+                pargs=args,
                 kargs=kwargs,
                 serialization=serialization,
                 result_serialization=self.result_serializer,
@@ -284,7 +285,7 @@ class Handle(Generic[AgentT_co]):
             ),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[ResponseT] = loop.create_future()
+        future: asyncio.Future[Response] = loop.create_future()
         self._pending_response_futures[request.tag] = future
 
         try:
@@ -360,8 +361,10 @@ class Handle(Generic[AgentT_co]):
                 },
             )
             raise exception
-        
-        raise RuntimeError("Invalid response received from action request.")
+
+        raise RuntimeError(
+            'Invalid response received from action request.',
+        )  # pragma: no cover
 
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
@@ -390,7 +393,7 @@ class Handle(Generic[AgentT_co]):
             body=PingRequest(),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[ResponseT] = loop.create_future()
+        future: asyncio.Future[Response] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)
@@ -425,7 +428,7 @@ class Handle(Generic[AgentT_co]):
     def _shutdown_callback(self, future: asyncio.Future[ResponseT]) -> None:
         exception: BaseException
         if future.exception() is not None:
-            exception = future.exception()
+            exception = future.exception()  # type: ignore[assignment]
         else:
             body = future.result()
             if not isinstance(body, ErrorResponse):
@@ -476,7 +479,7 @@ class Handle(Generic[AgentT_co]):
         )
 
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[ResponseT] = loop.create_future()
+        future: asyncio.Future[Response] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         await self.exchange.send(request)
 
@@ -528,8 +531,9 @@ class ProxyHandle(Handle[AgentT]):
     ) -> tuple[
         type[Handle[Any]],
         tuple[Any, ...],
+        dict[str, Any],
     ]:
-        return (ProxyHandle, (self.agent,))
+        return (ProxyHandle, (self.agent,), {})
 
     async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
         """Invoke an action on the agent.

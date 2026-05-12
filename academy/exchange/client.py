@@ -30,7 +30,8 @@ from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
-from academy.message import ACADEMY_ERROR_CODE, AcademyErrorResponse
+from academy.message import AcademyErrorCode
+from academy.message import AcademyErrorResponse
 from academy.message import Message
 from academy.message import RequestT_co
 from academy.task import spawn_guarded_background_task
@@ -463,9 +464,9 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         if message.is_request():
             response = message.create_response(
                 AcademyErrorResponse(
-                    error_code=ACADEMY_ERROR_CODE.INVALID_CLIENT,
+                    error_code=AcademyErrorCode.INVALID_CLIENT,
                     mailbox_id=self.client_id,
-                )
+                ),
             )
             await self._transport.send(response)
             logger.warning(

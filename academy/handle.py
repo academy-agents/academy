@@ -178,6 +178,10 @@ class Handle(Generic[AgentT_co]):
             raise PicklingError(
                 'Handle with ignore_context=True is not pickle-able',
             )
+
+        if self._agent_id is None:
+            raise PicklingError('Cannot pickle an unbound handle.')
+
         return (
             Handle,
             (self._agent_id,),

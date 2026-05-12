@@ -27,7 +27,7 @@ def urlencoded_params_matcher_allow_missing(
         valid = True
         request_body = request.body
         qsl_body = (
-            dict(parse_qsl(request_body, keep_blank_values=allow_blank))  # type: ignore[type-var]
+            dict(parse_qsl(request_body, keep_blank_values=allow_blank))
             if request_body
             else {}
         )

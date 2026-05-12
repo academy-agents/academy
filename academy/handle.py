@@ -179,7 +179,7 @@ class Handle(Generic[AgentT_co]):
                 'Handle with ignore_context=True is not pickle-able',
             )
         return (
-            Handle, 
+            Handle,
             (self._agent_id,),
             {
                 'serialization': self.serialization,

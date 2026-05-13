@@ -35,11 +35,11 @@ from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
 from academy.identifier import EntityId
-from academy.message import AcademyErrorCode
 from academy.message import AcademyErrorResponse
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import CancelRequest
+from academy.message import ErrorCode
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import Request
@@ -51,7 +51,7 @@ from academy.message import UserErrorResponse
 from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
 from academy.serialize import NoPickleMixin
-from academy.serialize import SerializationStrategies
+from academy.serialize import SerializationStrategy
 from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
@@ -89,7 +89,7 @@ class RuntimeConfig(BaseModel):
             permanently if the agent shuts down due to an error.
         terminate_on_success: Terminate the agent by closing its mailbox
             permanently if the agent shuts down without an error.
-        default_serializer: Serialization strategy to user when sending
+        default_serializer: Serialization strategy to use when sending
             requests to other agents. This can be overridden by the `Handle`.
         allowed_deserializers: Accept only requests whose arguments are
             serialized using one of the serializers in this list. If None,
@@ -104,8 +104,8 @@ class RuntimeConfig(BaseModel):
     shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
     terminate_on_success: bool = True
-    default_serializer: SerializationStrategies | None = None
-    allowed_deserializers: set[SerializationStrategies] | None = Field(
+    default_serializer: SerializationStrategy | None = None
+    allowed_deserializers: set[SerializationStrategy] | None = Field(
         default=None,
     )
 
@@ -185,10 +185,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         ) = None
 
         self.allowed_deserializers_token: (
-            contextvars.Token[set[SerializationStrategies]] | None
+            contextvars.Token[set[SerializationStrategy]] | None
         ) = None
         self.default_serializer_token: (
-            contextvars.Token[SerializationStrategies] | None
+            contextvars.Token[SerializationStrategy] | None
         ) = None
 
     async def __aenter__(self) -> Self:
@@ -281,7 +281,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         except asyncio.CancelledError:
             response = request.create_response(
                 AcademyErrorResponse(
-                    error_code=AcademyErrorCode.ACTION_CANCELLED,
+                    error_code=ErrorCode.ACTION_CANCELLED,
                 ),
             )
             logger.debug(
@@ -311,6 +311,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 extra=invocation_extra
                 | {
                     'academy.action_state': 'execute_exception',
+                    'academy.exception_serialization': exception_serialization,
                 },
                 exc_info=e,
             )
@@ -326,6 +327,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 extra=invocation_extra
                 | {
                     'academy.action_state': 'execute_success',
+                    'academy.result_serialization': result_serialization,
                 },
             )
         finally:
@@ -341,7 +343,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         except asyncio.CancelledError:
             response = request.create_response(
                 AcademyErrorResponse(
-                    error_code=AcademyErrorCode.PING_CANCELLED,
+                    error_code=ErrorCode.PING_CANCELLED,
                 ),
             )
         else:
@@ -398,7 +400,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             else:
                 response = request.create_response(
                     AcademyErrorResponse(
-                        error_code=AcademyErrorCode.ACTION_INVALID_STATE,
+                        error_code=ErrorCode.ACTION_INVALID_STATE,
                     ),
                 )
             task = asyncio.create_task(self._send_response(response))

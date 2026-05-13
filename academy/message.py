@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pickle
 import sys
 import uuid
 from enum import IntEnum
@@ -32,7 +31,7 @@ from pydantic import TypeAdapter
 
 from academy.identifier import EntityId
 from academy.serialize import deserialize
-from academy.serialize import SerializationStrategies
+from academy.serialize import SerializationStrategy
 from academy.serialize import serialize
 
 DEFAULT_FROZEN_CONFIG = ConfigDict(
@@ -56,26 +55,27 @@ class ActionRequest(BaseModel):
 
     Warning:
         The positional and keywords arguments for the invoked action are
-        pickled and base64-encoded when serialized to JSON. This can have
-        non-trivial time and space overheads for large arguments.
+        serialized using `serialization` strategy when the message is
+        serialized to JSON. This can have non-trivial time and space
+        overheads for large arguments.
     """
 
     action: str = Field(description='Name of the requested action.')
-    serialization: SerializationStrategies = Field(
-        description='Serialization strategy used send args',
+    serialization: SerializationStrategy = Field(
+        description='Serialization strategy used to send args',
     )
-    result_serialization: SerializationStrategies | None = Field(
+    result_serialization: SerializationStrategy | None = Field(
         default=None,
         description=(
-            'Requested serialization of results. If none, use the same '
-            'method the args were serialized with.'
+            'Requested serialization of results. If none or empty, use the '
+            'same method the args were serialized with.'
         ),
     )
-    exception_serialization: SerializationStrategies | None = Field(
+    exception_serialization: SerializationStrategy | None = Field(
         default=None,
         description=(
-            'Requested serialization of exceptions. If none, use the same '
-            'method the args were serialized with.'
+            'Requested serialization of exceptions. If none or empty, use '
+            'the same method for exceptions as for results.'
         ),
     )
     pargs: SkipValidation[tuple[Any, ...]] = Field(
@@ -91,7 +91,7 @@ class ActionRequest(BaseModel):
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('pargs', 'kargs', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> str:
+    def _serialize_obj(self, obj: Any) -> str:
         if isinstance(obj, str):  # pragma: no cover
             return obj
         return serialize(obj, self.serialization)
@@ -156,22 +156,23 @@ class ActionResponse(BaseModel):
     """Agent action response message.
 
     Warning:
-        The result is pickled and base64-encoded when serialized to JSON.
-        This can have non-trivial time and space overheads for large results.
+        The result is serialized using `serialization` when the response is
+        serialized to JSON. This can have non-trivial time and space
+        overheads for large results.
     """
 
     result: SkipValidation[Any] = Field(
         description='Result of the action, if successful.',
     )
-    serialization: SerializationStrategies = Field(
-        description='Serialization strategy used send result.',
+    serialization: SerializationStrategy = Field(
+        description='Serialization strategy used to send result.',
     )
     kind: Literal['action-response'] = Field('action-response', repr=False)
 
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('result', when_used='json')
-    def _pickle_and_encode_result(self, obj: Any) -> list[Any] | None:
+    def _serialize_result(self, obj: Any) -> list[Any] | None:
         if (
             isinstance(obj, list)
             and len(obj) == 2  # noqa PLR2004
@@ -217,7 +218,7 @@ class ErrorResponse(Protocol):
         ...
 
 
-class AcademyErrorCode(IntEnum):
+class ErrorCode(IntEnum):
     """Error codes returned by requests.
 
     These error codes allow us to return errors without serialization.
@@ -233,7 +234,7 @@ class AcademyErrorCode(IntEnum):
 class AcademyErrorResponse(BaseModel):
     """Error response created by Academy."""
 
-    error_code: AcademyErrorCode = Field(
+    error_code: ErrorCode = Field(
         description='Error code ',
     )
     mailbox_id: EntityId | None = Field(
@@ -252,18 +253,19 @@ class AcademyErrorResponse(BaseModel):
             The exception.
         """
         match self.error_code:
-            case AcademyErrorCode.MAILBOX_TERMINATED:
+            case ErrorCode.MAILBOX_TERMINATED:
                 assert self.mailbox_id is not None, (
-                    'Improper error response created.'
+                    'Improper error response while decoding exception. '
+                    'Missing mailbox_id field in MailboxTerminatedError.'
                 )
                 return MailboxTerminatedError(self.mailbox_id)
-            case AcademyErrorCode.PING_CANCELLED:
+            case ErrorCode.PING_CANCELLED:
                 return PingCancelledError()
-            case AcademyErrorCode.ACTION_INVALID_STATE:
+            case ErrorCode.ACTION_INVALID_STATE:
                 return ActionInvalidStateError()
-            case AcademyErrorCode.ACTION_CANCELLED:
+            case ErrorCode.ACTION_CANCELLED:
                 return ActionCancelledError()
-            case AcademyErrorCode.INVALID_CLIENT:
+            case ErrorCode.INVALID_CLIENT:
                 return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
         raise AssertionError('Unreachable.')
 
@@ -274,8 +276,8 @@ class UserErrorResponse(BaseModel):
     Contains the exception raised by a failed request.
     """
 
-    serialization: SerializationStrategies = Field(
-        description='Serialization strategy used send exception.',
+    serialization: SerializationStrategy = Field(
+        description='Serialization strategy used to send exception.',
     )
     exception: SkipValidation[Exception] = Field(
         description='Exception of the failed request.',
@@ -288,7 +290,7 @@ class UserErrorResponse(BaseModel):
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('exception', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> str | None:
+    def _serialize_obj(self, obj: Any) -> str | None:
         try:
             return serialize(obj, self.serialization)
         except Exception:
@@ -297,7 +299,6 @@ class UserErrorResponse(BaseModel):
             # from being returned. Instead we replace the exception with
             # a exception we know can be serialized, letting the client know
             # that a exception was hidden.
-            print('Serialization raised eception')
             return serialize(
                 ExceptionSerializationError(
                     obj.__class__.__name__,
@@ -521,39 +522,24 @@ class Message(BaseModel, Generic[BodyT]):
 
     @classmethod
     def model_deserialize(cls, data: bytes) -> Message[BodyT]:
-        """Deserialize a message from bytes using pickle.
-
-        Warning:
-            This uses pickle and is therefore susceptible to all the
-            typical pickle warnings about code injection.
+        """Deserialize a message from bytes.
 
         Args:
             data: The serialized message as bytes.
 
         Returns:
             The deserialized message instance.
-
-        Raises:
-            TypeError: If the deserialized object is not a Message.
         """
-        message = pickle.loads(data)
-        if not isinstance(message, cls):
-            raise TypeError(
-                'Deserialized message is not of type Message.',
-            )
+        message = cls.model_validate_json(data.decode('utf-8'))
         return message
 
     def model_serialize(self) -> bytes:
-        """Serialize the message to bytes using pickle.
-
-        Warning:
-            This uses pickle and is therefore susceptible to all the
-            typical pickle warnings about code injection.
+        """Serialize the message to bytes.
 
         Returns:
             The serialized message as bytes.
         """
-        return pickle.dumps(self)
+        return self.model_dump_json().encode('utf-8')
 
     def log_extra(self) -> dict[str, object]:
         """Returns extra info useful in logs about this Message."""

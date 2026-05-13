@@ -27,7 +27,7 @@ from academy.message import Response
 from academy.message import ResponseT
 from academy.message import ShutdownRequest
 from academy.serialize import default_serializer
-from academy.serialize import SerializationStrategies
+from academy.serialize import SerializationStrategy
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -82,8 +82,13 @@ class Handle(Generic[AgentT_co]):
             is not configured in the current context.
         ignore_context: Ignore the current context and force use of `exchange`
             for communication.
-        serializer: Strategy used to serialize arguments. If None, use the
+        request_serializer: Strategy used to serialize arguments. If None,
+            use the
             [`academy.serialize.default_serializer`][academy.serialize.default_serializer]
+        result_serializer: Strategy used to serialize results. If false-y, use
+            the same strategy as the request serializer.
+        exception_serializer: Strategy used to serialize results. If false-y,
+            use the same strategy as the result serializer.
 
     Raises:
         ValueError: If `ignore_context=True` but `exchange` is not provided.
@@ -95,13 +100,13 @@ class Handle(Generic[AgentT_co]):
         *,
         exchange: ExchangeClient[Any] | None = None,
         ignore_context: bool = False,
-        serializer: SerializationStrategies | None = None,
-        result_serializer: SerializationStrategies | None = None,
-        exception_serializer: SerializationStrategies | None = None,
+        request_serializer: SerializationStrategy | None = None,
+        result_serializer: SerializationStrategy | None = None,
+        exception_serializer: SerializationStrategy | None = None,
     ) -> None:
         self._agent_id: AgentId[AgentT_co] | None = agent_id
         self._exchange = exchange
-        self.serialization = serializer
+        self.request_serializer = request_serializer
         self.result_serializer = result_serializer
         self.exception_serializer = exception_serializer
         self._registered_exchanges: WeakSet[ExchangeClient[Any]] = WeakSet()
@@ -186,7 +191,7 @@ class Handle(Generic[AgentT_co]):
             Handle,
             (self._agent_id,),
             {
-                'serialization': self.serialization,
+                'request_serializer': self.request_serializer,
                 'result_serializer': self.result_serializer,
                 'exception_serializer': self.exception_serializer,
             },
@@ -272,7 +277,7 @@ class Handle(Generic[AgentT_co]):
         )
         exchange = self.exchange
         self._register_with_exchange(exchange)
-        serialization = self.serialization or default_serializer.get()
+        serialization = self.request_serializer or default_serializer.get()
 
         request = Message.create(
             src=exchange.client_id,

@@ -78,7 +78,7 @@ class JsonSerializer:
     """Serializes objects into json.
 
     Works only on basic python types, but allows deserialization without
-    arbitrary code execution, and has increased compatibility between
+    arbitrary code execution, and is compatible between
     python versions.
     """
 
@@ -99,7 +99,8 @@ class PickleSerializer:
     Seriliazes objects using pickle. Generally allows for a wider range of
     types to be serialized, but cannot deserialize without allowing arbitrary
     code execution. Sending pickled python objects between processes with
-    different python versions can lead to unexpected results.
+    different python versions or different environments can lead to unexpected
+    results.
     """
 
     @classmethod
@@ -114,7 +115,7 @@ class PickleSerializer:
         return pickle.loads(base64.b64decode(data))
 
 
-class SerializationStrategies(str, Enum):
+class SerializationStrategy(str, Enum):
     """Enum for different serialization strategies."""
 
     PICKLE = 'pickle'
@@ -122,34 +123,34 @@ class SerializationStrategies(str, Enum):
 
 
 ALL_SERIALIZERS = {
-    SerializationStrategies.PICKLE,
-    SerializationStrategies.JSON,
+    SerializationStrategy.PICKLE,
+    SerializationStrategy.JSON,
 }
 
 
-default_serializer: ContextVar[SerializationStrategies] = ContextVar(
+default_serializer: ContextVar[SerializationStrategy] = ContextVar(
     'default_serializer',
-    default=SerializationStrategies.PICKLE,
+    default=SerializationStrategy.PICKLE,
 )
 """Default serialization method used to send requests."""
 
-allowed_deserializers: ContextVar[set[SerializationStrategies]] = ContextVar(
-    'deserialization_allow_list',
+allowed_deserializers: ContextVar[set[SerializationStrategy]] = ContextVar(
+    'allowed_deserializers',
     default=ALL_SERIALIZERS,
 )
 """Deserializers allowed in this context."""
 
 
-def _get_serializer(strategy: SerializationStrategies) -> type[Serializer]:
-    if strategy == SerializationStrategies.PICKLE:
+def _get_serializer(strategy: SerializationStrategy) -> type[Serializer]:
+    if strategy == SerializationStrategy.PICKLE:
         return PickleSerializer
-    elif strategy == SerializationStrategies.JSON:
+    elif strategy == SerializationStrategy.JSON:
         return JsonSerializer
 
     raise AssertionError('Unreachable')
 
 
-def serialize(obj: Any, strategy: SerializationStrategies) -> str:
+def serialize(obj: Any, strategy: SerializationStrategy) -> str:
     """Serialize object using strategy.
 
     Args:
@@ -163,7 +164,7 @@ def serialize(obj: Any, strategy: SerializationStrategies) -> str:
     return serializer.serialize(obj)
 
 
-def deserialize(obj: str, strategy: SerializationStrategies) -> Any:
+def deserialize(obj: str, strategy: SerializationStrategy) -> Any:
     """Deserialize object using strategy.
 
     Args:

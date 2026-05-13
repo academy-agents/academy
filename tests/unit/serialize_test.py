@@ -11,7 +11,7 @@ from academy.serialize import deserialize
 from academy.serialize import JsonSerializer
 from academy.serialize import NoPickleMixin
 from academy.serialize import PickleSerializer
-from academy.serialize import SerializationStrategies
+from academy.serialize import SerializationStrategy
 from academy.serialize import serialize
 from academy.serialize import Serializer
 
@@ -49,11 +49,11 @@ def test_json_serialize_exception():
 @pytest.mark.parametrize(
     'strategy',
     (
-        SerializationStrategies.PICKLE,
-        SerializationStrategies.JSON,
+        SerializationStrategy.PICKLE,
+        SerializationStrategy.JSON,
     ),
 )
-def test_serialize_deserialize(strategy: SerializationStrategies):
+def test_serialize_deserialize(strategy: SerializationStrategy):
     params = [5, 'test', {'key': 'value'}]
     data = serialize(params, strategy)
     reconstructed = deserialize(data, strategy)
@@ -62,10 +62,10 @@ def test_serialize_deserialize(strategy: SerializationStrategies):
 
 def test_serialization_allow_list():
     params = [5, 'test', {'key': 'value'}]
-    data = serialize(params, SerializationStrategies.PICKLE)
+    data = serialize(params, SerializationStrategy.PICKLE)
     token = allowed_deserializers.set(set())
     with pytest.raises(DeserializationMethodProhibitedError):
-        deserialize(data, SerializationStrategies.PICKLE)
+        deserialize(data, SerializationStrategy.PICKLE)
     allowed_deserializers.reset(token)
 
-    deserialize(data, SerializationStrategies.PICKLE)
+    deserialize(data, SerializationStrategy.PICKLE)

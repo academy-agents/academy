@@ -189,8 +189,8 @@ class ExchangeClientNotFoundError(Exception):
 class DeserializationMethodProhibitedError(Exception):
     """Deserialization prohibited.
 
-    Request argument or results are serialized in a method that is prohibtted
-    from being deserialized in the current context.
+    Request argument or results are serialized using a method that is
+    prohibtted from being deserialized in the current context.
     """
 
     def __reduce__(self) -> Any:
@@ -200,7 +200,7 @@ class DeserializationMethodProhibitedError(Exception):
 class ExceptionSerializationError(Exception):
     """Error when serializing an exception.
 
-    An action attempted to return a exception, but that exception could not be
+    An action attempted to return an exception, but that exception could not be
     serialized using the method provided.
     """
 
@@ -221,7 +221,7 @@ class ExceptionSerializationError(Exception):
 class AcademyRemoteError(Exception):
     """Generalized exception for serializing remote exceptions.
 
-    Any exception raised but is then JSON serialized loses its type.
+    Any exception raised that is JSON serialized loses its type.
     To raise the original exception, change `exception_serialization` in the
     action invocation.
     """

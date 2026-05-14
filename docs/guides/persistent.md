@@ -112,7 +112,7 @@ User=centos
 ExecStart=~/.venv/bin/python -m academy.run --config <config.toml>
 ```
 
-Once you have created you unit file, you can start the service:
+Once you have created a unit file, you can start the service:
 ```
 systemctl --user start <service_name>
 ```

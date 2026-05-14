@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-import base64
-import pickle
 import sys
 import uuid
+from enum import IntEnum
 from typing import Any
 from typing import Generic
 from typing import get_args
 from typing import Literal
+from typing import Protocol
+from typing import runtime_checkable
 from typing import TypeVar
+
+from academy.exception import ActionCancelledError
+from academy.exception import ActionInvalidStateError
+from academy.exception import ExceptionSerializationError
+from academy.exception import MailboxTerminatedError
+from academy.exception import PingCancelledError
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -23,6 +30,9 @@ from pydantic import SkipValidation
 from pydantic import TypeAdapter
 
 from academy.identifier import EntityId
+from academy.serialize import deserialize
+from academy.serialize import SerializationStrategy
+from academy.serialize import serialize
 
 DEFAULT_FROZEN_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
@@ -45,11 +55,29 @@ class ActionRequest(BaseModel):
 
     Warning:
         The positional and keywords arguments for the invoked action are
-        pickled and base64-encoded when serialized to JSON. This can have
-        non-trivial time and space overheads for large arguments.
+        serialized using `serialization` strategy when the message is
+        serialized to JSON. This can have non-trivial time and space
+        overheads for large arguments.
     """
 
     action: str = Field(description='Name of the requested action.')
+    serialization: SerializationStrategy = Field(
+        description='Serialization strategy used to send args',
+    )
+    result_serialization: SerializationStrategy | None = Field(
+        default=None,
+        description=(
+            'Requested serialization of results. If none or empty, use the '
+            'same method the args were serialized with.'
+        ),
+    )
+    exception_serialization: SerializationStrategy | None = Field(
+        default=None,
+        description=(
+            'Requested serialization of exceptions. If none or empty, use '
+            'the same method for exceptions as for results.'
+        ),
+    )
     pargs: SkipValidation[tuple[Any, ...]] = Field(
         default_factory=tuple,
         description='Positional arguments to the action method.',
@@ -63,11 +91,10 @@ class ActionRequest(BaseModel):
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('pargs', 'kargs', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> str:
+    def _serialize_obj(self, obj: Any) -> str:
         if isinstance(obj, str):  # pragma: no cover
             return obj
-        raw = pickle.dumps(obj)
-        return base64.b64encode(raw).decode('utf-8')
+        return serialize(obj, self.serialization)
 
     def get_args(self) -> tuple[Any, ...]:
         """Get the positional arguments.
@@ -79,7 +106,7 @@ class ActionRequest(BaseModel):
             The deserialized tuple of positional arguments.
         """
         if isinstance(self.pargs, str):
-            self.pargs = pickle.loads(base64.b64decode(self.pargs))
+            self.pargs = deserialize(self.pargs, self.serialization)
         return self.pargs
 
     def get_kwargs(self) -> dict[str, Any]:
@@ -92,7 +119,7 @@ class ActionRequest(BaseModel):
             The deserialized dictionary of keyword arguments.
         """
         if isinstance(self.kargs, str):
-            self.kargs = pickle.loads(base64.b64decode(self.kargs))
+            self.kargs = deserialize(self.kargs, self.serialization)
         return self.kargs
 
 
@@ -129,32 +156,36 @@ class ActionResponse(BaseModel):
     """Agent action response message.
 
     Warning:
-        The result is pickled and base64-encoded when serialized to JSON.
-        This can have non-trivial time and space overheads for large results.
+        The result is serialized using `serialization` when the response is
+        serialized to JSON. This can have non-trivial time and space
+        overheads for large results.
     """
 
     result: SkipValidation[Any] = Field(
         description='Result of the action, if successful.',
+    )
+    serialization: SerializationStrategy = Field(
+        description='Serialization strategy used to send result.',
     )
     kind: Literal['action-response'] = Field('action-response', repr=False)
 
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('result', when_used='json')
-    def _pickle_and_encode_result(self, obj: Any) -> list[Any] | None:
+    def _serialize_result(self, obj: Any) -> list[Any] | None:
         if (
             isinstance(obj, list)
             and len(obj) == 2  # noqa PLR2004
-            and obj[0] == '__pickled__'
+            and obj[0] == '__serialized__'
         ):  # pragma: no cover
             # Prevent double serialization
             return obj
 
-        raw = pickle.dumps(obj)
+        data = serialize(obj, self.serialization)
         # This sential value at the start of the tuple is so we can
         # disambiguate a result that is a str versus the string of a
         # serialized result.
-        return ['__pickled__', base64.b64encode(raw).decode('utf-8')]
+        return ['__serialized__', data]
 
     def get_result(self) -> Any:
         """Get the result.
@@ -168,29 +199,113 @@ class ActionResponse(BaseModel):
         if (
             isinstance(self.result, list)
             and len(self.result) == 2  # noqa PLR2004
-            and self.result[0] == '__pickled__'
+            and self.result[0] == '__serialized__'
         ):
-            self.result = pickle.loads(base64.b64decode(self.result[1]))
+            self.result = deserialize(self.result[1], self.serialization)
         return self.result
 
 
-class ErrorResponse(BaseModel):
+@runtime_checkable
+class ErrorResponse(Protocol):
+    """Protocol for all error messages."""
+
+    def get_exception(self) -> Exception:
+        """Get the exception.
+
+        Returns:
+            The exception.
+        """
+        ...
+
+
+class ErrorCode(IntEnum):
+    """Error codes returned by requests.
+
+    These error codes allow us to return errors without serialization.
+    """
+
+    MAILBOX_TERMINATED = 0
+    PING_CANCELLED = 1
+    ACTION_INVALID_STATE = 2
+    ACTION_CANCELLED = 3
+    INVALID_CLIENT = 4
+
+
+class AcademyErrorResponse(BaseModel):
+    """Error response created by Academy."""
+
+    error_code: ErrorCode = Field(
+        description='Error code ',
+    )
+    mailbox_id: EntityId | None = Field(
+        description='Mailbox id if necessary for the error.',
+        default=None,
+    )
+    kind: Literal['academy-error-response'] = Field(
+        'academy-error-response',
+        repr=False,
+    )
+
+    def get_exception(self) -> Exception:
+        """Get the exception.
+
+        Returns:
+            The exception.
+        """
+        match self.error_code:
+            case ErrorCode.MAILBOX_TERMINATED:
+                assert self.mailbox_id is not None, (
+                    'Improper error response while decoding exception. '
+                    'Missing mailbox_id field in MailboxTerminatedError.'
+                )
+                return MailboxTerminatedError(self.mailbox_id)
+            case ErrorCode.PING_CANCELLED:
+                return PingCancelledError()
+            case ErrorCode.ACTION_INVALID_STATE:
+                return ActionInvalidStateError()
+            case ErrorCode.ACTION_CANCELLED:
+                return ActionCancelledError()
+            case ErrorCode.INVALID_CLIENT:
+                return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
+        raise AssertionError('Unreachable.')
+
+
+class UserErrorResponse(BaseModel):
     """Error response message.
 
     Contains the exception raised by a failed request.
     """
 
+    serialization: SerializationStrategy = Field(
+        description='Serialization strategy used to send exception.',
+    )
     exception: SkipValidation[Exception] = Field(
         description='Exception of the failed request.',
     )
-    kind: Literal['error-response'] = Field('error-response', repr=False)
+    kind: Literal['user-error-response'] = Field(
+        'user-error-response',
+        repr=False,
+    )
 
     model_config = DEFAULT_MUTABLE_CONFIG
 
     @field_serializer('exception', when_used='json')
-    def _pickle_and_encode_obj(self, obj: Any) -> str | None:
-        raw = pickle.dumps(obj)
-        return base64.b64encode(raw).decode('utf-8')
+    def _serialize_obj(self, obj: Any) -> str | None:
+        try:
+            return serialize(obj, self.serialization)
+        except Exception:
+            # If we get an exception while serializing an exception,
+            # we do not want to raise an exception and prevent any response
+            # from being returned. Instead we replace the exception with
+            # a exception we know can be serialized, letting the client know
+            # that a exception was hidden.
+            return serialize(
+                ExceptionSerializationError(
+                    obj.__class__.__name__,
+                    self.serialization,
+                ),
+                self.serialization,
+            )
 
     def get_exception(self) -> Exception:
         """Get the exception.
@@ -202,7 +317,7 @@ class ErrorResponse(BaseModel):
             The deserialized exception.
         """
         if isinstance(self.exception, str):
-            self.exception = pickle.loads(base64.b64decode(self.exception))
+            self.exception = deserialize(self.exception, self.serialization)
         return self.exception
 
 
@@ -215,7 +330,9 @@ class SuccessResponse(BaseModel):
 
 
 Request = ActionRequest | CancelRequest | PingRequest | ShutdownRequest
-Response = ActionResponse | ErrorResponse | SuccessResponse
+Response = (
+    ActionResponse | AcademyErrorResponse | UserErrorResponse | SuccessResponse
+)
 Body = Request | Response
 
 BodyT = TypeVar('BodyT', bound=Body)
@@ -405,39 +522,24 @@ class Message(BaseModel, Generic[BodyT]):
 
     @classmethod
     def model_deserialize(cls, data: bytes) -> Message[BodyT]:
-        """Deserialize a message from bytes using pickle.
-
-        Warning:
-            This uses pickle and is therefore susceptible to all the
-            typical pickle warnings about code injection.
+        """Deserialize a message from bytes.
 
         Args:
             data: The serialized message as bytes.
 
         Returns:
             The deserialized message instance.
-
-        Raises:
-            TypeError: If the deserialized object is not a Message.
         """
-        message = pickle.loads(data)
-        if not isinstance(message, cls):
-            raise TypeError(
-                'Deserialized message is not of type Message.',
-            )
+        message = cls.model_validate_json(data.decode('utf-8'))
         return message
 
     def model_serialize(self) -> bytes:
-        """Serialize the message to bytes using pickle.
-
-        Warning:
-            This uses pickle and is therefore susceptible to all the
-            typical pickle warnings about code injection.
+        """Serialize the message to bytes.
 
         Returns:
             The serialized message as bytes.
         """
-        return pickle.dumps(self)
+        return self.model_dump_json().encode('utf-8')
 
     def log_extra(self) -> dict[str, object]:
         """Returns extra info useful in logs about this Message."""

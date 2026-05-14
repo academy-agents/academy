@@ -21,7 +21,8 @@ else:  # pragma: <3.11 cover
 from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId
 from academy.identifier import EntityId
-from academy.message import ErrorResponse
+from academy.message import AcademyErrorResponse
+from academy.message import ErrorCode
 from academy.message import Header
 from academy.message import Message
 
@@ -274,11 +275,13 @@ async def _respond_pending_requests_on_terminate(
     send: Callable[[Message[Any]], Awaitable[None]],
 ) -> None:
     for message in messages:
-        error = MailboxTerminatedError(message.dest)
         response_header = message.create_response_header()
-        response: Message[ErrorResponse] = Message(
+        response: Message[AcademyErrorResponse] = Message(
             header=response_header,
-            body=ErrorResponse(exception=error),
+            body=AcademyErrorResponse(
+                error_code=ErrorCode.MAILBOX_TERMINATED,
+                mailbox_id=message.dest,
+            ),
         )
         # If the requester's mailbox was also terminated then they
         # don't need to get a response.

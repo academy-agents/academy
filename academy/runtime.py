@@ -23,24 +23,23 @@ else:  # pragma: <3.11 cover
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import Field
 
 import academy.exchange as ae
 from academy.context import ActionContext
 from academy.context import AgentContext
-from academy.exception import ActionCancelledError
-from academy.exception import ActionInvalidStateError
 from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
-from academy.exception import PingCancelledError
 from academy.exception import raise_exceptions
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
 from academy.identifier import EntityId
+from academy.message import AcademyErrorResponse
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import CancelRequest
-from academy.message import ErrorResponse
+from academy.message import ErrorCode
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import Request
@@ -48,7 +47,11 @@ from academy.message import Response
 from academy.message import ResponseT_co
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
+from academy.message import UserErrorResponse
+from academy.serialize import allowed_deserializers
+from academy.serialize import default_serializer
 from academy.serialize import NoPickleMixin
+from academy.serialize import SerializationStrategy
 from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
@@ -86,6 +89,11 @@ class RuntimeConfig(BaseModel):
             permanently if the agent shuts down due to an error.
         terminate_on_success: Terminate the agent by closing its mailbox
             permanently if the agent shuts down without an error.
+        default_serializer: Serialization strategy to use when sending
+            requests to other agents. This can be overridden by the `Handle`.
+        allowed_deserializers: Accept only requests whose arguments are
+            serialized using one of the serializers in this list. If None,
+            this will be inherited from the parent context.
     """
 
     model_config = ConfigDict(extra='forbid')
@@ -96,6 +104,10 @@ class RuntimeConfig(BaseModel):
     shutdown_on_loop_error: bool = True
     terminate_on_error: bool = True
     terminate_on_success: bool = True
+    default_serializer: SerializationStrategy | None = None
+    allowed_deserializers: set[SerializationStrategy] | None = Field(
+        default=None,
+    )
 
 
 class Runtime(Generic[AgentT], NoPickleMixin):
@@ -172,6 +184,13 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             contextvars.Token[ae.ExchangeClient[Any]] | None
         ) = None
 
+        self.allowed_deserializers_token: (
+            contextvars.Token[set[SerializationStrategy]] | None
+        ) = None
+        self.default_serializer_token: (
+            contextvars.Token[SerializationStrategy] | None
+        ) = None
+
     async def __aenter__(self) -> Self:
         try:
             await self._start()
@@ -238,6 +257,10 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             },
         )
 
+        result_serialization = body.result_serialization or body.serialization
+        exception_serialization = (
+            body.exception_serialization or result_serialization
+        )
         try:
             # Do not run the method until the startup sequence has finished
             await self._started_event.wait()
@@ -248,9 +271,18 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 kwargs=body.get_kwargs(),
             )
 
+            # Keep response in try/except so serialization errors are caught
+            response = request.create_response(
+                ActionResponse(
+                    serialization=result_serialization,
+                    result=result,
+                ),
+            )
         except asyncio.CancelledError:
             response = request.create_response(
-                ErrorResponse(exception=ActionCancelledError(body.action)),
+                AcademyErrorResponse(
+                    error_code=ErrorCode.ACTION_CANCELLED,
+                ),
             )
             logger.debug(
                 'Cancelled action %s with invocation id %s',
@@ -262,28 +294,40 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 },
             )
         except Exception as e:
-            response = request.create_response(ErrorResponse(exception=e))
+            response = request.create_response(
+                UserErrorResponse(
+                    serialization=exception_serialization,
+                    exception=e,
+                ),
+            )
             logger.debug(
-                'Action %s ended with exception, with invocation id %s',
+                (
+                    'Action %s ended with exception, with invocation '
+                    'id %s, serializer: %s'
+                ),
                 body.action,
                 invocation_id,
+                exception_serialization,
                 extra=invocation_extra
                 | {
                     'academy.action_state': 'execute_exception',
+                    'academy.exception_serialization': exception_serialization,
                 },
                 exc_info=e,
             )
         else:
-            response = request.create_response(
-                ActionResponse(result=result),
-            )
             logger.debug(
-                'Completed action %s with invocation id %s',
+                (
+                    'Completed action %s with invocation id %s, result '
+                    'serializer: %s'
+                ),
                 body.action,
                 invocation_id,
+                result_serialization,
                 extra=invocation_extra
                 | {
                     'academy.action_state': 'execute_success',
+                    'academy.result_serialization': result_serialization,
                 },
             )
         finally:
@@ -298,7 +342,9 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             await self._started_event.wait()
         except asyncio.CancelledError:
             response = request.create_response(
-                ErrorResponse(exception=PingCancelledError()),
+                AcademyErrorResponse(
+                    error_code=ErrorCode.PING_CANCELLED,
+                ),
             )
         else:
             response = request.create_response(SuccessResponse())
@@ -353,7 +399,9 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 response = request.create_response(SuccessResponse())
             else:
                 response = request.create_response(
-                    ErrorResponse(exception=ActionInvalidStateError()),
+                    AcademyErrorResponse(
+                        error_code=ErrorCode.ACTION_INVALID_STATE,
+                    ),
                 )
             task = asyncio.create_task(self._send_response(response))
             self._action_tasks[request.tag] = task
@@ -468,6 +516,39 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         async with self:
             await self.wait_shutdown()
 
+    def _set_context_vars(self) -> None:
+        """Set up the context variables for the runtime context."""
+        if self.config.allowed_deserializers is not None:
+            self.allowed_deserializers_token = allowed_deserializers.set(
+                self.config.allowed_deserializers,
+            )
+
+        if self.config.default_serializer:
+            self.default_serializer_token = default_serializer.set(
+                self.config.default_serializer,
+            )
+
+        assert self._exchange_client is not None, (
+            'Context vars cannot be set before creating the exchange client.'
+        )
+        self.exchange_context_token = exchange_context.set(
+            self._exchange_client,
+        )
+
+    def _reset_context_vars(self) -> None:
+        """Reset the context variables for the runtime context."""
+        if self.exchange_context_token is not None:
+            exchange_context.reset(self.exchange_context_token)
+            self.exchange_context_token = None
+
+        if self.default_serializer_token is not None:
+            default_serializer.reset(self.default_serializer_token)
+            self.default_serializer_token = None
+
+        if self.allowed_deserializers_token is not None:
+            allowed_deserializers.reset(self.allowed_deserializers_token)
+            self.allowed_deserializers_token = None
+
     async def _start(self) -> None:
         if self._shutdown_event.is_set():
             raise RuntimeError('Agent has already been shutdown.')
@@ -486,9 +567,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             self.registration,
             request_handler=self._request_handler,
         )
-        self.exchange_context_token = exchange_context.set(
-            self._exchange_client,
-        )
+
+        self._set_context_vars()
 
         context = AgentContext(
             agent_id=self.agent_id,
@@ -586,10 +666,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 await task
 
         self._sync_executor.shutdown()
-        # Reset exchange client (for the case of nested execution)
-        if self.exchange_context_token is not None:
-            exchange_context.reset(self.exchange_context_token)
-            self.exchange_context_token = None
+
+        self._reset_context_vars()
 
         if self._exchange_client is not None:
             if self._should_terminate_mailbox():

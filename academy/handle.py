@@ -23,9 +23,11 @@ from academy.message import CancelRequest
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
+from academy.message import Response
 from academy.message import ResponseT
 from academy.message import ShutdownRequest
-from academy.message import SuccessResponse
+from academy.serialize import default_serializer
+from academy.serialize import SerializationStrategy
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -80,20 +82,33 @@ class Handle(Generic[AgentT_co]):
             is not configured in the current context.
         ignore_context: Ignore the current context and force use of `exchange`
             for communication.
+        request_serializer: Strategy used to serialize arguments. If None,
+            use the
+            [`academy.serialize.default_serializer`][academy.serialize.default_serializer]
+        result_serializer: Strategy used to serialize results. If false-y, use
+            the same strategy as the request serializer.
+        exception_serializer: Strategy used to serialize results. If false-y,
+            use the same strategy as the result serializer.
 
     Raises:
         ValueError: If `ignore_context=True` but `exchange` is not provided.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         agent_id: AgentId[AgentT_co] | None = None,
         *,
         exchange: ExchangeClient[Any] | None = None,
         ignore_context: bool = False,
+        request_serializer: SerializationStrategy | None = None,
+        result_serializer: SerializationStrategy | None = None,
+        exception_serializer: SerializationStrategy | None = None,
     ) -> None:
         self._agent_id: AgentId[AgentT_co] | None = agent_id
         self._exchange = exchange
+        self.request_serializer = request_serializer
+        self.result_serializer = result_serializer
+        self.exception_serializer = exception_serializer
         self._registered_exchanges: WeakSet[ExchangeClient[Any]] = WeakSet()
         self.ignore_context = ignore_context
 
@@ -162,14 +177,33 @@ class Handle(Generic[AgentT_co]):
     ) -> tuple[
         type[Handle[Any]],
         tuple[Any, ...],
+        dict[str, Any],
     ]:
         if self.ignore_context:
             raise PicklingError(
                 'Handle with ignore_context=True is not pickle-able',
             )
+
         if self._agent_id is None:
             raise PicklingError('Cannot pickle an unbound handle.')
-        return (Handle, (self._agent_id,))
+
+        return (
+            Handle,
+            (self._agent_id,),
+            {
+                'request_serializer': self.request_serializer,
+                'result_serializer': self.result_serializer,
+                'exception_serializer': self.exception_serializer,
+            },
+        )
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        """Set state.
+
+        This is necessary for unpickling to not treat set state as a
+        remote action.
+        """
+        self.__dict__.update(state)
 
     def __repr__(self) -> str:
         return (
@@ -190,17 +224,9 @@ class Handle(Generic[AgentT_co]):
 
     async def _process_response(self, response: Message[ResponseT]) -> None:
         future = self._pending_response_futures.pop(response.tag)
-
         if not future.cancelled():
             body = response.get_body()
-            if isinstance(body, ActionResponse):
-                future.set_result(body.get_result())
-            elif isinstance(body, ErrorResponse):
-                future.set_exception(body.get_exception())
-            elif isinstance(body, SuccessResponse):
-                future.set_result(None)
-            else:
-                raise AssertionError('Unreachable.')
+            future.set_result(body)
 
     def _register_with_exchange(self, exchange: ExchangeClient[Any]) -> None:
         """Register to receive messages from exchange.
@@ -251,16 +277,24 @@ class Handle(Generic[AgentT_co]):
         )
         exchange = self.exchange
         self._register_with_exchange(exchange)
+        serialization = self.request_serializer or default_serializer.get()
 
         request = Message.create(
             src=exchange.client_id,
             dest=self.agent_id,
             label=self.handle_id,
             tag=tag_id,
-            body=ActionRequest(action=action, pargs=args, kargs=kwargs),
+            body=ActionRequest(
+                action=action,
+                pargs=args,
+                kargs=kwargs,
+                serialization=serialization,
+                result_serialization=self.result_serializer,
+                exception_serialization=self.exception_serializer,
+            ),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[R] = loop.create_future()
+        future: asyncio.Future[Response] = loop.create_future()
         self._pending_response_futures[request.tag] = future
 
         try:
@@ -305,7 +339,27 @@ class Handle(Generic[AgentT_co]):
             self._pending_response_futures[cancel_request.tag] = cancel_future
             await self.exchange.send(cancel_request)
             raise
-        except Exception as e:
+
+        assert future.done()
+        assert future.exception() is None
+        body = future.result()
+
+        if isinstance(body, ActionResponse):
+            result = body.get_result()
+            logger.debug(
+                'Successfully completed action %s with tag id %s',
+                action,
+                tag_id,
+                extra=invocation_extra
+                | {
+                    'academy.action_state': 'success',
+                    'academy.result': result,
+                    'academy.agent_id': self.agent_id,
+                },
+            )
+            return result
+        elif isinstance(body, ErrorResponse):
+            exception = body.get_exception()
             logger.debug(
                 'Completed action %s with tag id %s with exception',
                 action,
@@ -314,28 +368,12 @@ class Handle(Generic[AgentT_co]):
                 | {
                     'academy.action_state': 'exception',
                 },
-                exc_info=e,
             )
+            raise exception
 
-            raise
-
-        assert future.done()
-        assert future.exception() is None
-        result = future.result()
-
-        logger.debug(
-            'Successfully completed action %s with tag id %s',
-            action,
-            tag_id,
-            extra=invocation_extra
-            | {
-                'academy.action_state': 'success',
-                'academy.result': result,
-                'academy.agent_id': self.agent_id,
-            },
-        )
-
-        return result
+        raise RuntimeError(
+            'Invalid response received from action request.',
+        )  # pragma: no cover
 
     async def ping(self, *, timeout: float | None = None) -> float:
         """Ping the agent.
@@ -364,7 +402,7 @@ class Handle(Generic[AgentT_co]):
             body=PingRequest(),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[None] = loop.create_future()
+        future: asyncio.Future[Response] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)
@@ -376,6 +414,12 @@ class Handle(Generic[AgentT_co]):
         )
 
         await asyncio.wait_for(future, timeout)
+
+        assert future.done()
+        body = future.result()
+
+        if isinstance(body, ErrorResponse):
+            raise body.get_exception()
 
         elapsed = time.perf_counter() - start
         logger.debug(
@@ -390,11 +434,16 @@ class Handle(Generic[AgentT_co]):
         )
         return elapsed
 
-    def _shutdown_callback(self, future: asyncio.Future[Any]) -> None:
-        if future.exception() is None:
-            return
+    def _shutdown_callback(self, future: asyncio.Future[ResponseT]) -> None:
+        exception: BaseException
+        if future.exception() is not None:
+            exception = future.exception()  # type: ignore[assignment]
+        else:
+            body = future.result()
+            if not isinstance(body, ErrorResponse):
+                return
+            exception = body.get_exception()
 
-        exception = future.exception()
         # The only ok error to be ignored is if the agent we intended to
         # shutdown was already shutdown.
         if (
@@ -439,7 +488,7 @@ class Handle(Generic[AgentT_co]):
         )
 
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[None] = loop.create_future()
+        future: asyncio.Future[Response] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         await self.exchange.send(request)
 
@@ -491,8 +540,9 @@ class ProxyHandle(Handle[AgentT]):
     ) -> tuple[
         type[Handle[Any]],
         tuple[Any, ...],
+        dict[str, Any],
     ]:
-        return (ProxyHandle, (self.agent,))
+        return (ProxyHandle, (self.agent,), {})
 
     async def action(self, action: str, /, *args: Any, **kwargs: Any) -> R:
         """Invoke an action on the agent.

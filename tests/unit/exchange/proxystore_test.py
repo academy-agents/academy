@@ -14,6 +14,7 @@ from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import Message
 from academy.message import PingRequest
+from academy.serialize import SerializationStrategy
 from testing.agents import EmptyAgent
 from testing.constant import TEST_SLEEP_INTERVAL
 
@@ -88,6 +89,7 @@ async def test_wrap_basic_transport_functionality(
             action='test',
             pargs=('value', 123),
             kargs={'foo': 'value', 'bar': 123},
+            serialization=SerializationStrategy.PICKLE,
         )
         sent_request_message = Message.create(
             src=src,
@@ -116,7 +118,10 @@ async def test_wrap_basic_transport_functionality(
             assert (type(new) is Proxy) == should_proxy(old)
             assert old == new
 
-        sent_response = ActionResponse(result='result')
+        sent_response = ActionResponse(
+            serialization=SerializationStrategy.PICKLE,
+            result='result',
+        )
         sent_response_message = sent_request_message.create_response(
             sent_response,
         )

@@ -792,6 +792,10 @@ class RedisBackend:
             self._owner_key(entity),
             self.gravestone_expiration_s,
         )
+        await self._client.expire(
+            self._heartbeat_key(entity),
+            self.gravestone_expiration_s,
+        )
         if isinstance(entity, AgentId):
             await self._client.expire(
                 self._agent_key(entity),
@@ -954,6 +958,7 @@ class RedisBackend:
         now = await self._redis_current_time()
 
         await self._client.set(self._heartbeat_key(uid), str(now))
+        await self._update_expirations(uid)
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         """Get the time since last heartbeat timestamp for a mailbox."""
@@ -1103,6 +1108,11 @@ class RedisBackend:
                 self._request_key(message.dest, message.tag),
                 message.header.model_dump_json(),
             )
+            if self.mailbox_expiration_s:
+                await self._client.expire(
+                    self._request_key(message.dest, message.tag),
+                    self.mailbox_expiration_s,
+                )
             logger.debug(
                 'Tracking in-flight request: tag=%s src=%s dest=%s',
                 message.tag,

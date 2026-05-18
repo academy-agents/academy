@@ -88,10 +88,13 @@ class MockRedis:
         xx: bool = False,
         gt: bool = False,
         lt: bool = False,
-    ) -> None:
+    ) -> bool:
+        if not await self.exists(key):
+            return False
+
         key = self._encode(key)
         if nx and key in self.timeouts:
-            return
+            return False
 
         if xx or gt or lt:
             raise NotImplementedError()
@@ -103,6 +106,7 @@ class MockRedis:
         self.timeouts[key] = asyncio.ensure_future(
             self._expire_key(key, time),
         )
+        return True
 
     async def get(
         self,

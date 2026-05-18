@@ -916,7 +916,11 @@ class RedisBackend:
             await self._client.delete(self._agent_key(uid))
 
         req_keys = [
-            key async for key in self._client.scan_iter(f'request:{uid.uid}:*')
+            key
+            async for key in self._client.scan_iter(
+                f'request:{uid.uid}:*',
+                count=1000,
+            )
         ]
         pending_requests: list[Header] = []
         for req_key in req_keys:
@@ -987,6 +991,7 @@ class RedisBackend:
         found: list[AgentId[Any]] = []
         async for key in self._client.scan_iter(
             'agent:*',
+            count=1000,
         ):  # pragma: no branch
             mro_str = (await self._client.get(key)).decode()
             assert isinstance(mro_str, str)

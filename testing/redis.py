@@ -142,7 +142,11 @@ class MockRedis:
             self.lists[key].append(value)
             self.events[key].set()
 
-    async def scan_iter(self, pattern: bytes | str) -> AsyncGenerator[bytes]:
+    async def scan_iter(
+        self,
+        pattern: bytes | str,
+        count: int = 10,
+    ) -> AsyncGenerator[bytes]:
         pattern = self._encode(pattern)
         for key in self.values:
             if fnmatch.fnmatch(key, pattern):

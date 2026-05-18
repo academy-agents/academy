@@ -225,8 +225,7 @@ class Handle(Generic[AgentT_co]):
     async def _process_response(self, response: Message[ResponseT]) -> None:
         future = self._pending_response_futures.pop(response.tag)
         if not future.cancelled():
-            body = response.get_body()
-            future.set_result(body)
+            future.set_result(response)
 
     def _register_with_exchange(self, exchange: ExchangeClient[Any]) -> None:
         """Register to receive messages from exchange.
@@ -294,7 +293,7 @@ class Handle(Generic[AgentT_co]):
             ),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[Response] = loop.create_future()
+        future: asyncio.Future[Message[Response]] = loop.create_future()
         self._pending_response_futures[request.tag] = future
 
         try:
@@ -342,7 +341,8 @@ class Handle(Generic[AgentT_co]):
 
         assert future.done()
         assert future.exception() is None
-        body = future.result()
+        message = future.result()
+        body = message.get_body()
 
         if isinstance(body, ActionResponse):
             result = body.get_result()
@@ -402,7 +402,7 @@ class Handle(Generic[AgentT_co]):
             body=PingRequest(),
         )
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[Response] = loop.create_future()
+        future: asyncio.Future[Message[Response]] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         start = time.perf_counter()
         await self.exchange.send(request)
@@ -416,7 +416,8 @@ class Handle(Generic[AgentT_co]):
         await asyncio.wait_for(future, timeout)
 
         assert future.done()
-        body = future.result()
+        message = future.result()
+        body = message.get_body()
 
         if isinstance(body, ErrorResponse):
             raise body.get_exception()
@@ -434,12 +435,16 @@ class Handle(Generic[AgentT_co]):
         )
         return elapsed
 
-    def _shutdown_callback(self, future: asyncio.Future[ResponseT]) -> None:
+    def _shutdown_callback(
+        self,
+        future: asyncio.Future[Message[ResponseT]],
+    ) -> None:
         exception: BaseException
         if future.exception() is not None:
             exception = future.exception()  # type: ignore[assignment]
         else:
-            body = future.result()
+            message = future.result()
+            body = message.get_body()
             if not isinstance(body, ErrorResponse):
                 return
             exception = body.get_exception()
@@ -488,7 +493,7 @@ class Handle(Generic[AgentT_co]):
         )
 
         loop = asyncio.get_running_loop()
-        future: asyncio.Future[Response] = loop.create_future()
+        future: asyncio.Future[Message[Response]] = loop.create_future()
         self._pending_response_futures[request.tag] = future
         await self.exchange.send(request)
 

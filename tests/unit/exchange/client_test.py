@@ -13,6 +13,7 @@ import pytest_asyncio
 
 from academy.debug import set_academy_debug
 from academy.exception import BadEntityIdError
+from academy.exception import IncompatibleNetworkProtocolError
 from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
@@ -295,6 +296,71 @@ async def test_client_reply_error_on_request(
             body = response.get_body()
             assert isinstance(body, ErrorResponse)
             assert isinstance(body.get_exception(), TypeError)
+
+
+@pytest.mark.asyncio
+async def test_user_client_reply_on_incompatible_protocol(
+    factory: ExchangeFactory[Any],
+) -> None:
+    async with await factory.create_user_client() as client:
+        registration = await client.register_agent(EmptyAgent)
+        async with await factory.create_agent_client(
+            registration,
+            _request_handler,
+        ) as agent_client:
+            message = Message.create(
+                src=agent_client.client_id,
+                dest=client.client_id,
+                body=PingRequest(),
+            )
+            message.header = message.header.model_copy(
+                update={'protocol_version': '1000.0.0'},
+            )
+
+            await agent_client.send(message)
+            response = await anext(
+                agent_client._transport.listen(timeout=TEST_WAIT_TIMEOUT),
+            )
+            body = response.get_body()
+            assert isinstance(body, ErrorResponse)
+            assert isinstance(
+                body.get_exception(),
+                IncompatibleNetworkProtocolError,
+            )
+
+
+@pytest.mark.asyncio
+async def test_agent_client_reply_on_incompatible_protocol(
+    factory: ExchangeFactory[Any],
+) -> None:
+    async with await factory.create_user_client(
+        start_listener=False,
+    ) as client:
+        registration = await client.register_agent(EmptyAgent)
+        async with await factory.create_agent_client(
+            registration,
+            _request_handler,
+        ) as agent_client:
+            message = Message.create(
+                src=agent_client.client_id,
+                dest=client.client_id,
+                body=PingRequest(),
+            )
+            message.header = message.header.model_copy(
+                update={'protocol_version': '1000.0.0'},
+            )
+            await agent_client._handle_message(message)
+
+            await client.send(message)
+            response = await anext(
+                agent_client._transport.listen(timeout=TEST_WAIT_TIMEOUT),
+            )
+            body = response.get_body()
+            assert isinstance(body, ErrorResponse)
+            assert isinstance(
+                body.get_exception(),
+                IncompatibleNetworkProtocolError,
+            )
 
 
 def test_client_background_error(

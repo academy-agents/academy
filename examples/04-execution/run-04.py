@@ -54,7 +54,10 @@ async def main() -> int:
     )
 
     async with await Manager.from_exchange_factory(
-        factory=HttpExchangeFactory(),
+        factory=HttpExchangeFactory(
+            'https://exchange.academy-agents.org/main',
+            auth_method='globus',
+        ),
         # Agents are run by the manager in the processes of this
         # process pool executor.
         executors=executor,

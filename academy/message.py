@@ -39,24 +39,30 @@ from academy.serialize import serialize
 
 DEFAULT_FROZEN_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
-    extra='forbid',
+    extra='ignore',
     frozen=True,
     use_enum_values=True,
     validate_default=True,
 )
 DEFAULT_MUTABLE_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
-    extra='forbid',
+    extra='ignore',
     frozen=False,
     use_enum_values=True,
     validate_default=True,
 )
 
-PROTOCOL_VERSION: Version = Version('0.0')
+PROTOCOL_VERSION: Version = Version('1')
 
 
 def check_version(version: str | None) -> bool:
-    """Checks is a `protocol_version` is compatible.
+    """Checks if a `protocol_version` is compatible.
+
+    Messages within a major version are intended to be mutually
+    compatible, while minor version changes might introduce
+    optional fields or remove existing fields without prohibiting
+    their existence. Local tags may be added for branches/forks
+    and must match exactly.
 
     Args:
         version: The version string to check
@@ -65,7 +71,9 @@ def check_version(version: str | None) -> bool:
         True if the version is compatible.
     """
     return (
-        version is not None and parse(version).major == PROTOCOL_VERSION.major
+        version is not None
+        and parse(version).major == PROTOCOL_VERSION.major
+        and parse(version).local == PROTOCOL_VERSION.local
     )
 
 
@@ -387,8 +395,10 @@ class Header(BaseModel):
     protocol_version: str | None = Field(
         str(PROTOCOL_VERSION),
         description=(
-            'Version of the academy protocol used. Until version 1.0, the '
-            'network protocol may change between minor versions.'
+            'Version of the academy protocol used. Messages within a major '
+            'version are intended to be mutually compatible, while minor '
+            'version changes might introduce optional fields or remove '
+            'existing fields without prohibiting their existence.'
         ),
     )
 
@@ -470,7 +480,7 @@ class Message(BaseModel, Generic[BodyT]):
 
     @property
     def protocol_version(self) -> str | None:
-        """Message label."""
+        """Message protocol version."""
         return self.header.protocol_version
 
     @classmethod

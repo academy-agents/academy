@@ -232,8 +232,9 @@ class IncompatibleNetworkProtocolError(Exception):
 
     def __init__(self) -> None:
         super().__init__(
-            'Incompatible academy network protocol. This likely means '
-            'you need to upgrade your academy version. ',
+            'Incompatible academy network protocol. The network protocol '
+            'version needs to match between communicating agents and the '
+            'exchange.',
         )
 
     def __reduce__(self) -> Any:

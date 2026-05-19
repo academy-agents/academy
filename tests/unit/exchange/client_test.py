@@ -308,13 +308,21 @@ async def test_user_client_reply_on_incompatible_protocol(
             registration,
             _request_handler,
         ) as agent_client:
-            message = Message.create(
-                src=agent_client.client_id,
-                dest=client.client_id,
-                body=PingRequest(),
-            )
-            message.header = message.header.model_copy(
-                update={'protocol_version': '1000.0.0'},
+            message: Message[Any] = Message.model_validate(
+                {
+                    'header': {
+                        'src': agent_client.client_id,
+                        'dest': client.client_id,
+                        'kind': 'request',
+                        'tag': uuid.uuid4(),
+                        'protocol_version': '1000.0.0',
+                        'additional_header_info': 'test',
+                    },
+                    'body': {
+                        'type': 'brand-new-type-of-request',
+                        'with_arbitrary_info': '...',
+                    },
+                },
             )
 
             await agent_client.send(message)

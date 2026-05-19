@@ -296,7 +296,7 @@ class AcademyErrorResponse(BaseModel):
             case ErrorCode.INVALID_CLIENT:
                 return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
             case ErrorCode.INCOMPATIBLE_PROTOCOL:
-                return IncompatibleNetworkProtocolError()
+                return IncompatibleNetworkProtocolError(None, PROTOCOL_VERSION)
         raise AssertionError('Unreachable.')
 
 
@@ -551,7 +551,10 @@ class Message(BaseModel, Generic[BodyT]):
             # If we are deserializing from another protocol version,
             # we expect the validation to fail, but we would like to
             # raise a more informative error.
-            raise IncompatibleNetworkProtocolError()
+            raise IncompatibleNetworkProtocolError(
+                self.protocol_version,
+                PROTOCOL_VERSION,
+            )
 
         adapter: TypeAdapter[BodyT] = TypeAdapter(Body)
         body = (

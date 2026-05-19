@@ -44,7 +44,7 @@ from academy.identifier import UserId
         DeserializationMethodProhibitedError(),
         ExceptionSerializationError('TestError traceback', 'pickle'),
         AcademyRemoteError(),
-        IncompatibleNetworkProtocolError(),
+        IncompatibleNetworkProtocolError('2', '1'),
     ),
 )
 def test_pickle_exception(exc: Exception) -> None:

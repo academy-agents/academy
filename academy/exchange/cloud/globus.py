@@ -20,6 +20,8 @@ from typing import Literal
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
+from academy.exchange.cloud.client import DEFAULT_EXCHANGE_URL
+
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
@@ -86,7 +88,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     asyncio.
     """
 
-    base_url = 'https://exchange.academy-agents.org'
+    base_url = DEFAULT_EXCHANGE_URL
     scopes = AcademyExchangeScopes
     default_scope_requirements: ClassVar[list[Scope]] = [
         AcademyExchangeScopes.academy_exchange,

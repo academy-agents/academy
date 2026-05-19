@@ -54,7 +54,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_EXCHANGE_URL = 'https://exchange.academy-agents.org'
+DEFAULT_EXCHANGE_URL = 'https://exchange.academy-agents.org/v1'
 
 
 class _HttpConnectionInfo(NamedTuple):

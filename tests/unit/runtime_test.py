@@ -13,6 +13,7 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
+from academy.context import AgentStats
 from academy.debug import set_academy_debug
 from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
@@ -800,6 +801,135 @@ async def test_runtime_sets_default_serializer(
         config=RuntimeConfig(default_serializer=SerializationStrategy.JSON),
     ) as runtime:
         runtime.signal_shutdown()
+
+
+@pytest.mark.asyncio
+async def test_runtime_stats_lifetime_set_after_startup(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(EmptyAgent)
+
+    async with Runtime(
+        EmptyAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        stats = await runtime.action(
+            'agent_stats',
+            exchange_client.client_id,
+            args=(),
+            kwargs={},
+        )
+        assert isinstance(stats, AgentStats)
+        assert stats.lifetime is not None
+
+
+@pytest.mark.asyncio
+async def test_runtime_stats_completed_messages_incremented(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(CounterAgent)
+    await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
+    src = exchange_client.client_id
+
+    async with Runtime(
+        CounterAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        for _ in range(2):
+            request = Message.create(
+                src=src,
+                dest=runtime.agent_id,
+                body=ActionRequest(
+                    action='add',
+                    pargs=(1,),
+                    serialization=SerializationStrategy.PICKLE,
+                ),
+            )
+            await exchange_client.send(request)
+            await anext(listener)  # consume SuccessResponse
+
+        stats_request = Message.create(
+            src=src,
+            dest=runtime.agent_id,
+            body=ActionRequest(
+                action='agent_stats',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(stats_request)
+        message = await anext(listener)
+
+        body = message.get_body()
+        assert isinstance(body, ActionResponse)
+        stats = body.get_result()
+        # With the local exchange stats is a live reference.  The 'else' block
+        # in _execute_action increments the counter BEFORE the response is
+        # placed in the queue, so by the time the test reads get_result() the
+        # two 'add' calls AND the 'agent_stats' call itself are all counted.
+        assert stats.completed_messages.get(src, 0) == 3  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_runtime_stats_completed_messages_not_incremented_on_error(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(CounterAgent)
+    await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
+    src = exchange_client.client_id
+
+    async with Runtime(
+        CounterAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        # One successful action first
+        add_request = Message.create(
+            src=src,
+            dest=runtime.agent_id,
+            body=ActionRequest(
+                action='add',
+                pargs=(5,),
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(add_request)
+        await anext(listener)  # consume response
+
+        # Failed action — should not increment the counter
+        bad_request = Message.create(
+            src=src,
+            dest=runtime.agent_id,
+            body=ActionRequest(
+                action='nonexistent',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(bad_request)
+        error_msg = await anext(listener)
+        assert isinstance(error_msg.get_body(), ErrorResponse)
+
+        stats_request = Message.create(
+            src=src,
+            dest=runtime.agent_id,
+            body=ActionRequest(
+                action='agent_stats',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(stats_request)
+        message = await anext(listener)
+
+        body = message.get_body()
+        assert isinstance(body, ActionResponse)
+        stats = body.get_result()
+        # The failed action is not counted; only 'add' and 'agent_stats' itself
+        # are.  With the local exchange the live reference reflects the
+        # incremented counter, so the expected total is 2 (not 3).
+        assert stats.completed_messages.get(src, 0) == 2  # noqa: PLR2004
 
 
 @pytest.fixture

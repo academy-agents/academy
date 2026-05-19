@@ -6,6 +6,7 @@ import contextvars
 import dataclasses
 import logging
 import sys
+import time
 import uuid
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -28,6 +29,7 @@ from pydantic import Field
 import academy.exchange as ae
 from academy.context import ActionContext
 from academy.context import AgentContext
+from academy.context import AgentStats
 from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import raise_exceptions
@@ -170,6 +172,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._action_tasks: dict[uuid.UUID, asyncio.Task[None]] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
         self._loop_exceptions: list[tuple[str, Exception]] = []
+
+        self._stats = AgentStats()
 
         self._sync_executor = ThreadPoolExecutor(
             self.config.max_sync_concurrency,
@@ -316,6 +320,9 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 exc_info=e,
             )
         else:
+            self._stats.completed_messages[request.src] = (
+                self._stats.completed_messages.get(request.src, 0) + 1
+            )
             logger.debug(
                 (
                     'Completed action %s with invocation id %s, result '
@@ -575,6 +582,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             exchange_client=self._exchange_client,
             executor=self._sync_executor,
             shutdown_event=self._shutdown_event,
+            stats=self._stats,
         )
         self.agent._agent_set_context(context)
 
@@ -596,6 +604,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         await self.agent.agent_on_startup()
         self._agent_startup_called = True
 
+        self._stats._start_time = time.monotonic()
         self._started_event.set()
         logger.info(
             'Running agent (%s; %s)',

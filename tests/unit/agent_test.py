@@ -15,6 +15,7 @@ from academy.agent import loop
 from academy.agent import timer
 from academy.context import ActionContext
 from academy.context import AgentContext
+from academy.context import AgentStats
 from academy.exception import AgentNotInitializedError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import LocalExchangeTransport
@@ -55,6 +56,7 @@ async def test_agent_context_initialized_ok(
             exchange_client=client,
             executor=None,  # type: ignore[arg-type]
             shutdown_event=asyncio.Event(),
+            stats=AgentStats(),
         )
         agent._agent_set_context(context)
 
@@ -98,6 +100,7 @@ async def test_agent_run_sync() -> None:
             exchange_client=None,  # type: ignore[arg-type]
             executor=executor,
             shutdown_event=asyncio.Event(),
+            stats=AgentStats(),
         )
         agent._agent_set_context(context)
 
@@ -113,6 +116,7 @@ async def test_agent_run_sync_overloaded_warning(caplog) -> None:
             exchange_client=None,  # type: ignore[arg-type]
             executor=executor,
             shutdown_event=asyncio.Event(),
+            stats=AgentStats(),
         )
         agent._agent_set_context(context)
 
@@ -137,7 +141,7 @@ async def test_agent_empty() -> None:
     assert isinstance(str(agent), str)
     assert isinstance(repr(agent), str)
 
-    assert len(agent._agent_actions()) == 1
+    assert len(agent._agent_actions()) == 2  # noqa: PLR2004
     assert len(agent._agent_loops()) == 0
 
     await agent.agent_on_shutdown()
@@ -161,7 +165,7 @@ async def test_agent_actions() -> None:
     await agent.agent_on_startup()
 
     actions = agent._agent_actions()
-    assert set(actions) == {'identity', 'agent_describe'}
+    assert set(actions) == {'identity', 'agent_describe', 'agent_stats'}
 
     assert await agent.identity(1) == 1
 
@@ -261,7 +265,7 @@ def test_agent_action_decorator_usage_ok() -> None:
         async def action3(self, *, context: ActionContext) -> None: ...
 
     agent = _TestAgent()
-    assert len(agent._agent_actions()) == 4  # noqa: PLR2004
+    assert len(agent._agent_actions()) == 5  # noqa: PLR2004
 
 
 def test_agent_action_decorator_usage_error() -> None:
@@ -399,9 +403,10 @@ async def test_agent_description() -> None:
     description = await TestAgent().agent_describe()
 
     assert description.description == 'This is an agent used for testing.'
-    assert len(description.actions) == 2  # noqa: PLR2004
+    assert len(description.actions) == 3  # noqa: PLR2004
 
     assert 'agent_describe' in description.actions
+    assert 'agent_stats' in description.actions
     assert 'test' in description.actions
     action_description = description.actions['test']
     assert action_description.doc == 'This is a test method.'

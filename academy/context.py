@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
@@ -63,6 +65,31 @@ class ActionContext:
         return isinstance(self.source_id, UserId)
 
 
+@dataclasses.dataclass
+class AgentStats:
+    """Runtime metrics for a running agent."""
+
+    completed_messages: dict[EntityId, int] = dataclasses.field(
+        default_factory=dict,
+    )
+    """Successful action-request count keyed by source entity."""
+    _start_time: float | None = dataclasses.field(
+        default=None,
+        init=False,
+        repr=False,
+    )
+
+    @property
+    def lifetime(self) -> timedelta | None:
+        """Time elapsed since the agent finished startup.
+
+        Returns ``None`` if the agent has not yet started.
+        """
+        if self._start_time is None:
+            return None
+        return timedelta(seconds=time.monotonic() - self._start_time)
+
+
 @dataclasses.dataclass(frozen=True)
 class AgentContext(Generic[AgentT]):
     """Agent runtime context."""
@@ -75,3 +102,5 @@ class AgentContext(Generic[AgentT]):
     """Thread-pool executor used for running synchronous tasks."""
     shutdown_event: asyncio.Event
     """Shutdown event used to signal the agent to shutdown."""
+    stats: AgentStats
+    """Live runtime metrics for this agent."""

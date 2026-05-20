@@ -617,6 +617,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#message-protocol-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message Protocol Change
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#logging-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       Logging Configuration
@@ -2429,6 +2438,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#message-protocol-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message Protocol Change
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#logging-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       Logging Configuration
@@ -2640,6 +2658,9 @@ After v1.0, this guide will be retired.
 All future changes—including breaking changes and deprecations—will be documented in the project changelog.</p>
 <p>Please refer to our <a href="../version-policy/">Version Policy</a> for more details on when we make breaking changes.</p>
 <h2 id="academy-v05">Academy v0.5<a class="headerlink" href="#academy-v05" title="Permanent link">&para;</a></h2>
+<h2 id="message-protocol-change">Message Protocol Change<a class="headerlink" href="#message-protocol-change" title="Permanent link">&para;</a></h2>
+<p>Between version v0.4 and v0.5 we made breaking changes to the format of the communication between agents.
+If you are using standard interfaces (i.e. Runtime, Handle, ExchangeClient, etc.) these create and send messages behind the scenes, so this change will not be visible to you, but this is a <em>breaking</em> change to the protocol. Agents using v0.4 will not be able to deserialize messages from agents using v0.5 and visa-versa. Furthermore the hosted exchange will communicate using v0.5, which will create confusing/un-interpretable errors for users/agents using v0.4.</p>
 <h2 id="logging-configuration">Logging Configuration<a class="headerlink" href="#logging-configuration" title="Permanent link">&para;</a></h2>
 <p>This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)</p>
 <p>The once-per-process <code>init_logging</code> helper function has been removed. Instead pass log configs when creating managers.</p>

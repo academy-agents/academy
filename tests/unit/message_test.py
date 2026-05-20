@@ -7,6 +7,7 @@ from typing import Any
 
 import pydantic
 import pytest
+from pydantic import Field
 
 from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
@@ -274,3 +275,33 @@ def test_incompatible_protocol_error() -> None:
     )
     with pytest.raises(IncompatibleNetworkProtocolError):
         bad_message.get_body()
+
+
+def test_compatible_major_version() -> None:
+    class NewActionRequest(ActionRequest):
+        ttl: int | None = Field(
+            None,
+            description='Time to live of request',
+        )
+
+    message: Message[NewActionRequest] = Message.model_validate(
+        {
+            'header': {
+                'src': AgentId.new(),
+                'dest': AgentId.new(),
+                'tag': uuid.uuid4(),
+                'protocol_version': '1.1',
+                'kind': 'request',
+            },
+            'body': NewActionRequest(
+                action='test',
+                serialization=SerializationStrategy.JSON,
+                ttl=8,
+            ).model_dump(),
+        },
+    )
+
+    # Body is retrieved as old action request (without ttl)
+    body = message.get_body()
+    assert isinstance(body, ActionRequest)
+    assert not isinstance(body, NewActionRequest)

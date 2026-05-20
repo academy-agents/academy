@@ -227,6 +227,27 @@ class AcademyRemoteError(Exception):
     """
 
 
+class IncompatibleNetworkProtocolError(Exception):
+    """Received message incompatible with this version."""
+
+    def __init__(
+        self,
+        version: str | None = None,
+        cur_version: str | None = None,
+    ) -> None:
+        super().__init__(
+            'Incompatible academy network protocol. The network protocol '
+            'version needs to match between communicating agents and the '
+            f'exchange. Remote version {version}, current version '
+            f'{cur_version}',
+        )
+        self.version = version
+        self.cur_version = cur_version
+
+    def __reduce__(self) -> Any:
+        return type(self), (self.version, self.cur_version)
+
+
 def raise_exceptions(
     exceptions: Iterable[BaseException],
     *,

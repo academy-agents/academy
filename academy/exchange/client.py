@@ -31,6 +31,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import AcademyErrorResponse
+from academy.message import check_version
 from academy.message import ErrorCode
 from academy.message import Message
 from academy.message import RequestT_co
@@ -378,9 +379,7 @@ class AgentExchangeClient(
             )
 
     async def _handle_message(self, message: Message[Any]) -> None:
-        if message.is_request():
-            await self._request_handler(message)
-        elif message.is_response():
+        if message.is_response():
             if message.label is None or message.label not in self._handles:
                 logger.warning(
                     'Exchange client for %s received an unexpected response '
@@ -392,6 +391,23 @@ class AgentExchangeClient(
                 return
             handle = self._handles[message.label]
             await handle._process_response(message)
+        elif not check_version(message.protocol_version):
+            response = message.create_response(
+                AcademyErrorResponse(
+                    error_code=ErrorCode.INCOMPATIBLE_PROTOCOL,
+                    mailbox_id=self.client_id,
+                ),
+            )
+            await self._transport.send(response)
+            logger.warning(
+                'Exchange client for %s received message with incompatible '
+                'version from %s',
+                self.client_id,
+                message.src,
+                extra=message.log_extra(),
+            )
+        elif message.is_request():
+            await self._request_handler(message)
         else:
             raise AssertionError('Unreachable.')
 
@@ -461,7 +477,34 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
             )
 
     async def _handle_message(self, message: Message[Any]) -> None:
-        if message.is_request():
+        if message.is_response():
+            if message.label is None or message.label not in self._handles:
+                logger.warning(
+                    'Exchange client for %s received an unexpected response '
+                    'message from %s but no corresponding handle exists.',
+                    self.client_id,
+                    message.src,
+                    extra=message.log_extra(),
+                )
+                return
+            handle = self._handles[message.label]
+            await handle._process_response(message)
+        elif not check_version(message.protocol_version):
+            response = message.create_response(
+                AcademyErrorResponse(
+                    error_code=ErrorCode.INCOMPATIBLE_PROTOCOL,
+                    mailbox_id=self.client_id,
+                ),
+            )
+            await self._transport.send(response)
+            logger.warning(
+                'Exchange client for %s received message with incompatible '
+                'version from %s',
+                self.client_id,
+                message.src,
+                extra=message.log_extra(),
+            )
+        elif message.is_request():
             response = message.create_response(
                 AcademyErrorResponse(
                     error_code=ErrorCode.INVALID_CLIENT,
@@ -476,18 +519,6 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
                 message.src,
                 extra=message.log_extra(),
             )
-        elif message.is_response():
-            if message.label is None or message.label not in self._handles:
-                logger.warning(
-                    'Exchange client for %s received an unexpected response '
-                    'message from %s but no corresponding handle exists.',
-                    self.client_id,
-                    message.src,
-                    extra=message.log_extra(),
-                )
-                return
-            handle = self._handles[message.label]
-            await handle._process_response(message)
         else:
             raise AssertionError('Unreachable.')
 

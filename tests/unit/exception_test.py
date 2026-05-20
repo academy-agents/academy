@@ -15,6 +15,7 @@ from academy.exception import ExceptionSerializationError
 from academy.exception import ExchangeClientNotFoundError
 from academy.exception import ExchangeError
 from academy.exception import ForbiddenError
+from academy.exception import IncompatibleNetworkProtocolError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
 from academy.exception import PingCancelledError
@@ -43,6 +44,7 @@ from academy.identifier import UserId
         DeserializationMethodProhibitedError(),
         ExceptionSerializationError('TestError traceback', 'pickle'),
         AcademyRemoteError(),
+        IncompatibleNetworkProtocolError('2', '1'),
     ),
 )
 def test_pickle_exception(exc: Exception) -> None:

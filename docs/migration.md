@@ -12,6 +12,11 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 
 ## Academy v0.5
 
+## Message Protocol Change
+
+Between version v0.4 and v0.5 we made breaking changes to the format of the communication between agents.
+If you are using standard interfaces (i.e. Runtime, Handle, ExchangeClient, etc.) these create and send messages behind the scenes, so this change will not be visible to you, but this is a *breaking* change to the protocol. Agents using v0.4 will not be able to deserialize messages from agents using v0.5 and visa-versa. Furthermore the hosted exchange will communicate using v0.5, which will create confusing/un-interpretable errors for users/agents using v0.4.
+
 ## Logging Configuration
 
 This version of Academy introduces new logging configuration which is intended to help users configure logging across multiple processes, and to provide a base for development of other log-oriented features (such as provenance tracking, and distributed/cloud based logging)

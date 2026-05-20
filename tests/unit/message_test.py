@@ -7,10 +7,12 @@ from typing import Any
 
 import pydantic
 import pytest
+from pydantic import Field
 
 from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
 from academy.exception import ExceptionSerializationError
+from academy.exception import IncompatibleNetworkProtocolError
 from academy.exception import MailboxTerminatedError
 from academy.exception import PingCancelledError
 from academy.identifier import AgentId
@@ -18,15 +20,29 @@ from academy.message import AcademyErrorResponse
 from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import CancelRequest
+from academy.message import check_version
 from academy.message import ErrorCode
 from academy.message import ErrorResponse
 from academy.message import Header
 from academy.message import Message
 from academy.message import PingRequest
+from academy.message import PROTOCOL_VERSION
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.message import UserErrorResponse
 from academy.serialize import SerializationStrategy
+
+
+def test_check_version_good():
+    assert check_version(str(PROTOCOL_VERSION))
+
+
+def test_check_version_bad():
+    assert not check_version('1000.0.0')
+
+
+def test_check_version_none():
+    assert not check_version(None)
 
 
 @pytest.mark.parametrize(
@@ -176,6 +192,7 @@ def test_action_response_lazy_deserialize(serialization_stratgey) -> None:
         (ErrorCode.ACTION_INVALID_STATE, ActionInvalidStateError),
         (ErrorCode.ACTION_CANCELLED, ActionCancelledError),
         (ErrorCode.INVALID_CLIENT, TypeError),
+        (ErrorCode.INCOMPATIBLE_PROTOCOL, IncompatibleNetworkProtocolError),
     ),
 )
 def test_academy_error_response_to_exception(
@@ -242,3 +259,49 @@ def test_user_error_response_serialization_error() -> None:
     reconstructed.get_exception()
 
     assert isinstance(reconstructed.exception, ExceptionSerializationError)
+
+
+def test_incompatible_protocol_error() -> None:
+    bad_header = Header(
+        src=AgentId.new(),
+        dest=AgentId.new(),
+        tag=uuid.uuid4(),
+        protocol_version=None,
+        kind='response',
+    )
+    bad_message: Message[SuccessResponse] = Message(
+        header=bad_header,
+        body=b'',
+    )
+    with pytest.raises(IncompatibleNetworkProtocolError):
+        bad_message.get_body()
+
+
+def test_compatible_major_version() -> None:
+    class NewActionRequest(ActionRequest):
+        ttl: int | None = Field(
+            None,
+            description='Time to live of request',
+        )
+
+    message: Message[NewActionRequest] = Message.model_validate(
+        {
+            'header': {
+                'src': AgentId.new(),
+                'dest': AgentId.new(),
+                'tag': uuid.uuid4(),
+                'protocol_version': '1.1',
+                'kind': 'request',
+            },
+            'body': NewActionRequest(
+                action='test',
+                serialization=SerializationStrategy.JSON,
+                ttl=8,
+            ).model_dump(),
+        },
+    )
+
+    # Body is retrieved as old action request (without ttl)
+    body = message.get_body()
+    assert isinstance(body, ActionRequest)
+    assert not isinstance(body, NewActionRequest)

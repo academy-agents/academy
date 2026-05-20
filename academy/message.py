@@ -11,11 +11,8 @@ from typing import Protocol
 from typing import runtime_checkable
 from typing import TypeVar
 
-from academy.exception import ActionCancelledError
-from academy.exception import ActionInvalidStateError
-from academy.exception import ExceptionSerializationError
-from academy.exception import MailboxTerminatedError
-from academy.exception import PingCancelledError
+from packaging.version import parse
+from packaging.version import Version
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
@@ -29,6 +26,12 @@ from pydantic import field_serializer
 from pydantic import SkipValidation
 from pydantic import TypeAdapter
 
+from academy.exception import ActionCancelledError
+from academy.exception import ActionInvalidStateError
+from academy.exception import ExceptionSerializationError
+from academy.exception import IncompatibleNetworkProtocolError
+from academy.exception import MailboxTerminatedError
+from academy.exception import PingCancelledError
 from academy.identifier import EntityId
 from academy.serialize import deserialize
 from academy.serialize import SerializationStrategy
@@ -36,18 +39,42 @@ from academy.serialize import serialize
 
 DEFAULT_FROZEN_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
-    extra='forbid',
+    extra='ignore',
     frozen=True,
     use_enum_values=True,
     validate_default=True,
 )
 DEFAULT_MUTABLE_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
-    extra='forbid',
+    extra='ignore',
     frozen=False,
     use_enum_values=True,
     validate_default=True,
 )
+
+PROTOCOL_VERSION: Version = Version('1')
+
+
+def check_version(version: str | None) -> bool:
+    """Checks if a `protocol_version` is compatible.
+
+    Messages within a major version are intended to be mutually
+    compatible, while minor version changes might introduce
+    optional fields or remove existing fields without prohibiting
+    their existence. Local tags may be added for branches/forks
+    and must match exactly.
+
+    Args:
+        version: The version string to check
+
+    Returns:
+        True if the version is compatible.
+    """
+    return (
+        version is not None
+        and parse(version).major == PROTOCOL_VERSION.major
+        and parse(version).local == PROTOCOL_VERSION.local
+    )
 
 
 class ActionRequest(BaseModel):
@@ -229,6 +256,7 @@ class ErrorCode(IntEnum):
     ACTION_INVALID_STATE = 2
     ACTION_CANCELLED = 3
     INVALID_CLIENT = 4
+    INCOMPATIBLE_PROTOCOL = 5
 
 
 class AcademyErrorResponse(BaseModel):
@@ -267,6 +295,8 @@ class AcademyErrorResponse(BaseModel):
                 return ActionCancelledError()
             case ErrorCode.INVALID_CLIENT:
                 return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
+            case ErrorCode.INCOMPATIBLE_PROTOCOL:
+                return IncompatibleNetworkProtocolError(None, PROTOCOL_VERSION)
         raise AssertionError('Unreachable.')
 
 
@@ -362,6 +392,15 @@ class Header(BaseModel):
         ),
     )
     kind: Literal['request', 'response']
+    protocol_version: str | None = Field(
+        str(PROTOCOL_VERSION),
+        description=(
+            'Version of the academy protocol used. Messages within a major '
+            'version are intended to be mutually compatible, while minor '
+            'version changes might introduce optional fields or remove '
+            'existing fields without prohibiting their existence.'
+        ),
+    )
 
     model_config = DEFAULT_FROZEN_CONFIG
 
@@ -439,6 +478,11 @@ class Message(BaseModel, Generic[BodyT]):
         """Message label."""
         return self.header.label
 
+    @property
+    def protocol_version(self) -> str | None:
+        """Message protocol version."""
+        return self.header.protocol_version
+
     @classmethod
     def create(
         cls,
@@ -502,6 +546,15 @@ class Message(BaseModel, Generic[BodyT]):
         """
         if isinstance(self.body, get_args(Body)):
             return self.body
+
+        if not check_version(self.protocol_version):
+            # If we are deserializing from another protocol version,
+            # we expect the validation to fail, but we would like to
+            # raise a more informative error.
+            raise IncompatibleNetworkProtocolError(
+                self.protocol_version,
+                PROTOCOL_VERSION,
+            )
 
         adapter: TypeAdapter[BodyT] = TypeAdapter(Body)
         body = (

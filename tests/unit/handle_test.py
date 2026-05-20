@@ -219,7 +219,7 @@ async def test_client_handle_ping_timeout(
 @pytest.mark.asyncio
 async def test_client_handle_shutdown_future_error_logged(caplog) -> None:
     handle: Handle[EmptyAgent] = Handle(AgentId.new())
-    future: asyncio.Future[Response] = asyncio.Future()
+    future: asyncio.Future[Message[Response]] = asyncio.Future()
     future.set_exception(Exception('Test'))
     handle._shutdown_callback(future)
     with caplog.at_level(logging.ERROR):
@@ -230,10 +230,14 @@ async def test_client_handle_shutdown_future_error_logged(caplog) -> None:
 @pytest.mark.asyncio
 async def test_client_handle_shutdown_ignore_already_terminated() -> None:
     handle: Handle[EmptyAgent] = Handle(AgentId.new())
-    future: asyncio.Future[Response] = asyncio.Future()
-    response = AcademyErrorResponse(
-        error_code=ErrorCode.MAILBOX_TERMINATED,
-        mailbox_id=handle.agent_id,
+    future: asyncio.Future[Message[AcademyErrorResponse]] = asyncio.Future()
+    response = Message.create(
+        src=handle.agent_id,
+        dest=AgentId.new(),
+        body=AcademyErrorResponse(
+            error_code=ErrorCode.MAILBOX_TERMINATED,
+            mailbox_id=handle.agent_id,
+        ),
     )
     future.set_result(response)
     handle._shutdown_callback(future)

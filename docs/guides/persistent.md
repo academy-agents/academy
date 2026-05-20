@@ -1,10 +1,5 @@
 # Building Persistent Agents
 
-!!! warning
-
-    This page is still under construction, more details and examples to come!
-
-
 Academy allows you to build agents as "micro-services" for scientific workflows --- the same agent can outlive a single application and can be reused in different contexts. This guide walks through common techniques that you can use to deploy persistent agents.
 
 !!! note
@@ -117,6 +112,38 @@ Once you have created a unit file, you can start the service:
 systemctl --user start <service_name>
 ```
 
+## Finding and Communicating with Running Agents
+
+To communicate with running agents, you can create a `Handle` directly from the `AgentId`. This should be done inside the context of a `ExchangeClient`, a `Manager` or another `Agent`, since the handle needs to find a mailbox to send and receive requests to the agent:
+
+```
+async with await exchange_factory.create_user_client() as client:
+    hdl = Handle(<AgentId>)
+```
+
+You can either copy the `AgentId` manually, or you can [`discover`][academy.exchange.client.ExchangeClient.discover] the `AgentId` by the class of your agent:
+
+```
+ids = await client.discover(MyAgentClass)
+hdl = Handle(ids[0])
+```
+
+Discovery support discovery by the fully qualified class name as a string as well, or discovery by super types.
+
+## Setting up the GlobusExchangeFactory
+
+The hosted exchange service (`https://exchange.academy-agents.org/v1`) requires for users and agents to authenticate with the exchange. When using the `HttpExchangeFactory`, a single access token is minted by the `UserExchangeClient` and this access token is passed to all `ExchangeFactory` copies that are passed to agents launched from that workflow. Those access tokens expire after 48 hours, after which agents will receive a `UnauthorizedError` from the exchange.
+
+To get around the issue of access tokens expiring, you can set up agents to have refresh tokens --- tokens that can be used to acquire new access tokens. To do so, you need an Authentication Client for each agent. The `GlobusExchangeFactory`/`GlobusExchangeTransport` creates a new Auth. client and refresh token when creating a new mailbox. To setup the `GlobusExchangeFactory`, you first have to create a globus auth project id. Go to [https://app.globus.org/settings/developers](https://app.globus.org/settings/developers), and click "+ add project". This will be the project space for your Auth. clients. Then copy the newly created project id to initialize the `GlobusExchangeFactory`:
+```
+factory = GlobusExchangeFactory(<project_id>)
+```
+
+The factory can be used just like any other exchange factory. Of note, since you are creating long-lived refresh and delegated tokens, you will have to consent 3 times during the launch -- we are working to improve the experience to avoid this authentication. (See below for how to batch launches to reduce the number of consents.)
+
+!!! note
+    The `GlobusExchangeFactory` currently does not support minting child agents from Agents. We are actively working to remove this limitation.
+
 ## Launching Multiple Agents at Once
 
 When launching multiple agents from a manager, Academy provides [`launch_batch()`][academy.manager.Manager.launch_batch]. This method works with any exchange, but on the [Globus exchange][academy.exchange.cloud.globus.GlobusExchangeFactory] all agents within the batch are registered under a single consent prompt instead of one per agent.
@@ -149,11 +176,3 @@ await batch.submit()
 Multiple batches can be used during the lifecycle of a manager.
 
 See `examples/12-globus-exchange/` for working examples of both patterns.
-
-## Finding and Communicating with Running Agents
-
-### Creating a handle with AgentId
-
-### Discovering Agents by Behavior
-
-## Setting up the GlobusExchangeFactory

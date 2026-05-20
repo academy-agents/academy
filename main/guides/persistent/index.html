@@ -939,44 +939,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#launching-multiple-agents-at-once" class="md-nav__link">
-    <span class="md-ellipsis">
-      Launching Multiple Agents at Once
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#finding-and-communicating-with-running-agents" class="md-nav__link">
     <span class="md-ellipsis">
       Finding and Communicating with Running Agents
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Finding and Communicating with Running Agents">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#creating-a-handle-with-agentid" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating a handle with AgentId
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#discovering-agents-by-behavior" class="md-nav__link">
-    <span class="md-ellipsis">
-      Discovering Agents by Behavior
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -984,6 +951,15 @@
   <a href="#setting-up-the-globusexchangefactory" class="md-nav__link">
     <span class="md-ellipsis">
       Setting up the GlobusExchangeFactory
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#launching-multiple-agents-at-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      Launching Multiple Agents at Once
     </span>
   </a>
   
@@ -2372,44 +2348,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#launching-multiple-agents-at-once" class="md-nav__link">
-    <span class="md-ellipsis">
-      Launching Multiple Agents at Once
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#finding-and-communicating-with-running-agents" class="md-nav__link">
     <span class="md-ellipsis">
       Finding and Communicating with Running Agents
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Finding and Communicating with Running Agents">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#creating-a-handle-with-agentid" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating a handle with AgentId
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#discovering-agents-by-behavior" class="md-nav__link">
-    <span class="md-ellipsis">
-      Discovering Agents by Behavior
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -2417,6 +2360,15 @@
   <a href="#setting-up-the-globusexchangefactory" class="md-nav__link">
     <span class="md-ellipsis">
       Setting up the GlobusExchangeFactory
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#launching-multiple-agents-at-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      Launching Multiple Agents at Once
     </span>
   </a>
   
@@ -2442,10 +2394,6 @@
 
 
 <h1 id="building-persistent-agents">Building Persistent Agents<a class="headerlink" href="#building-persistent-agents" title="Permanent link">&para;</a></h1>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>This page is still under construction, more details and examples to come!</p>
-</div>
 <p>Academy allows you to build agents as "micro-services" for scientific workflows --- the same agent can outlive a single application and can be reused in different contexts. This guide walks through common techniques that you can use to deploy persistent agents.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2537,33 +2485,54 @@ The <code>toml</code> file contains two required fields: <code>exchange</code> a
 <p>Once you have created a unit file, you can start the service:
 <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>systemctl --user start &lt;service_name&gt;
 </span></code></pre></div></p>
+<h2 id="finding-and-communicating-with-running-agents">Finding and Communicating with Running Agents<a class="headerlink" href="#finding-and-communicating-with-running-agents" title="Permanent link">&para;</a></h2>
+<p>To communicate with running agents, you can create a <code>Handle</code> directly from the <code>AgentId</code>. This should be done inside the context of a <code>ExchangeClient</code>, a <code>Manager</code> or another <code>Agent</code>, since the handle needs to find a mailbox to send and receive requests to the agent:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>async with await exchange_factory.create_user_client() as client:
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    hdl = Handle(&lt;AgentId&gt;)
+</span></code></pre></div>
+<p>You can either copy the <code>AgentId</code> manually, or you can <a class="autorefs autorefs-internal" title="            discover
+
+
+  
+      async
+  " href="../../api/exchange/client/#academy.exchange.client.ExchangeClient.discover"><code>discover</code></a> the <code>AgentId</code> by the class of your agent:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ids = await client.discover(MyAgentClass)
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>hdl = Handle(ids[0])
+</span></code></pre></div>
+<p>Discovery support discovery by the fully qualified class name as a string as well, or discovery by super types.</p>
+<h2 id="setting-up-the-globusexchangefactory">Setting up the GlobusExchangeFactory<a class="headerlink" href="#setting-up-the-globusexchangefactory" title="Permanent link">&para;</a></h2>
+<p>The hosted exchange service (<code>https://exchange.academy-agents.org/v1</code>) requires for users and agents to authenticate with the exchange. When using the <code>HttpExchangeFactory</code>, a single access token is minted by the <code>UserExchangeClient</code> and this access token is passed to all <code>ExchangeFactory</code> copies that are passed to agents launched from that workflow. Those access tokens expire after 48 hours, after which agents will receive a <code>UnauthorizedError</code> from the exchange.</p>
+<p>To get around the issue of access tokens expiring, you can set up agents to have refresh tokens --- tokens that can be used to acquire new access tokens. To do so, you need an Authentication Client for each agent. The <code>GlobusExchangeFactory</code>/<code>GlobusExchangeTransport</code> creates a new Auth. client and refresh token when creating a new mailbox. To setup the <code>GlobusExchangeFactory</code>, you first have to create a globus auth project id. Go to <a href="https://app.globus.org/settings/developers">https://app.globus.org/settings/developers</a>, and click "+ add project". This will be the project space for your Auth. clients. Then copy the newly created project id to initialize the <code>GlobusExchangeFactory</code>:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>factory = GlobusExchangeFactory(&lt;project_id&gt;)
+</span></code></pre></div></p>
+<p>The factory can be used just like any other exchange factory. Of note, since you are creating long-lived refresh and delegated tokens, you will have to consent 3 times during the launch -- we are working to improve the experience to avoid this authentication. (See below for how to batch launches to reduce the number of consents.)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code>GlobusExchangeFactory</code> currently does not support minting child agents from Agents. We are actively working to remove this limitation.</p>
+</div>
 <h2 id="launching-multiple-agents-at-once">Launching Multiple Agents at Once<a class="headerlink" href="#launching-multiple-agents-at-once" title="Permanent link">&para;</a></h2>
 <p>When launching multiple agents from a manager, Academy provides <a class="autorefs autorefs-internal" title="            launch_batch" href="../../api/manager/#academy.manager.Manager.launch_batch"><code>launch_batch()</code></a>. This method works with any exchange, but on the <a class="autorefs autorefs-internal" title="            GlobusExchangeFactory" href="../../api/exchange/cloud/globus/#academy.exchange.cloud.globus.GlobusExchangeFactory">Globus exchange</a> all agents within the batch are registered under a single consent prompt instead of one per agent.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>async with manager.launch_batch() as batch:
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    greeter = await batch.queue(Greeter)
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    shouter = await batch.queue(Shouter)
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    coordinator = await batch.queue(
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        Coordinator,
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>        args=(greeter, shouter),
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    )
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>async with manager.launch_batch() as batch:
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    greeter = await batch.queue(Greeter)
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    shouter = await batch.queue(Shouter)
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    coordinator = await batch.queue(
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        Coordinator,
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        args=(greeter, shouter),
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    )
 </span></code></pre></div>
 <p>Handles returned by <code>batch.queue()</code> are unbound until the batch is submitted. They can be passed as arguments to other agents <em>within</em> the same batch (as the coordinator does above), but reading <code>handle.agent_id</code> or pickling the handle will raise a <code>RuntimeError</code> until submission.</p>
 <p>To drive a batch outside of a context manager you call <code>submit()</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>batch = manager.launch_batch()
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>greeter = await batch.queue(Greeter)
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>shouter = await batch.queue(Shouter)
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>coordinator = await batch.queue(
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    Coordinator,
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    args=(greeter, shouter),
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>)
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>await batch.submit()
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>batch = manager.launch_batch()
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>greeter = await batch.queue(Greeter)
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>shouter = await batch.queue(Shouter)
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>coordinator = await batch.queue(
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    Coordinator,
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    args=(greeter, shouter),
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>)
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>await batch.submit()
 </span></code></pre></div>
 <p>Multiple batches can be used during the lifecycle of a manager.</p>
 <p>See <code>examples/12-globus-exchange/</code> for working examples of both patterns.</p>
-<h2 id="finding-and-communicating-with-running-agents">Finding and Communicating with Running Agents<a class="headerlink" href="#finding-and-communicating-with-running-agents" title="Permanent link">&para;</a></h2>
-<h3 id="creating-a-handle-with-agentid">Creating a handle with AgentId<a class="headerlink" href="#creating-a-handle-with-agentid" title="Permanent link">&para;</a></h3>
-<h3 id="discovering-agents-by-behavior">Discovering Agents by Behavior<a class="headerlink" href="#discovering-agents-by-behavior" title="Permanent link">&para;</a></h3>
-<h2 id="setting-up-the-globusexchangefactory">Setting up the GlobusExchangeFactory<a class="headerlink" href="#setting-up-the-globusexchangefactory" title="Permanent link">&para;</a></h2>
 
 
 

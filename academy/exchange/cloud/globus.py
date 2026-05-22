@@ -10,6 +10,7 @@ import threading
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from datetime import timedelta
@@ -35,6 +36,8 @@ from globus_sdk import GlobusApp
 from globus_sdk import GlobusHTTPResponse
 from globus_sdk import Scope
 from globus_sdk.authorizers import GlobusAuthorizer
+from globus_sdk.authorizers import RenewingAuthorizer
+from globus_sdk.authorizers.renewing import EXPIRES_ADJUST_SECONDS
 from globus_sdk.exc import GlobusAPIError
 from globus_sdk.gare import GlobusAuthorizationParameters
 from globus_sdk.scopes import AuthScopes
@@ -46,6 +49,7 @@ from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
 from academy.exchange.cloud.app import StatusCode
+from academy.exchange.cloud.credentials import PersistentAgentCredentials
 from academy.exchange.cloud.login import get_globus_app
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_scope_id
@@ -868,3 +872,101 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
                 name=name,
                 connection_info=self.info,
             )
+
+
+class _PersistentAgentAuthorizer(
+    RenewingAuthorizer[globus_sdk.OAuthClientCredentialsResponse],
+):
+    """Authorize against the exchange via ``client_credentials``.
+
+    Mints a chained token for the exchange resource server through the
+    agent's per-agent scope.
+
+    Adds thread-safe renewal on top of ``globus_sdk``'s
+    ``RenewingAuthorizer``. The parent class checks expiry without a
+    lock, so N concurrent callers all see the same expired token and
+    each fire a redundant grant. This subclass locks the
+    check-and-renew so only the first call mints; the rest find a
+    valid token and skip.
+    """
+
+    def __init__(
+        self,
+        confidential_client: globus_sdk.ConfidentialAppAuthClient,
+        scope: str,
+        target_resource_server: str,
+        on_refresh: Callable[
+            [globus_sdk.OAuthClientCredentialsResponse],
+            Any,
+        ]
+        | None = None,
+    ) -> None:
+        self._client = confidential_client
+        self._scope = scope
+        self._target_rs = target_resource_server
+        self._renew_lock = threading.Lock()
+        super().__init__(on_refresh=on_refresh)
+
+    def _needs_new_token(self) -> bool:
+        return (
+            self.access_token is None
+            or self.expires_at is None
+            or time.time() > self.expires_at - EXPIRES_ADJUST_SECONDS
+        )
+
+    def ensure_valid_token(self) -> None:
+        if self._needs_new_token():
+            with self._renew_lock:
+                # The inner re-check guards the race where another
+                # thread renewed while we waited for the lock.
+                # Single-threaded CI tests cannot hit the False branch
+                # of this check; that concurrency property is verified
+                # by spikes/globus_client/spike_authorizer_concurrent_grant.py.
+                if self._needs_new_token():  # pragma: no branch
+                    self._get_new_access_token()
+
+    def _get_token_response(
+        self,
+    ) -> globus_sdk.OAuthClientCredentialsResponse:
+        return self._client.oauth2_client_credentials_tokens(
+            requested_scopes=self._scope,
+        )
+
+    def _extract_token_data(
+        self,
+        res: globus_sdk.OAuthClientCredentialsResponse,
+    ) -> dict[str, Any]:
+        return res.by_resource_server[self._target_rs]
+
+
+async def create_persistent_agent_transport(  # pragma: no cover
+    creds: PersistentAgentCredentials[Any],
+    *,
+    connection_info: _AcademyConnectionInfo,
+) -> GlobusExchangeTransport:
+    """Boot a Globus exchange transport from persistent credentials.
+
+    Pure composition over `_PersistentAgentAuthorizer` and
+    `GlobusExchangeTransport.new`; 
+
+    Args:
+        creds: Durable credentials for the agent.
+        connection_info: Connection settings for the hosted exchange.
+
+    Returns:
+        Authenticated transport bound to ``creds.agent_id``.
+    """
+    auth_client = globus_sdk.ConfidentialAppAuthClient(
+        client_id=str(creds.client_id),
+        client_secret=creds.client_secret.get_secret_value(),
+    )
+    authorizer = _PersistentAgentAuthorizer(
+        confidential_client=auth_client,
+        scope=creds.scope_string,
+        target_resource_server=AcademyExchangeScopes.resource_server,
+    )
+    return await GlobusExchangeTransport.new(
+        authorizer=authorizer,
+        mailbox_id=creds.agent_id,
+        connection_info=connection_info,
+    )

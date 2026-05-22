@@ -50,6 +50,21 @@ class _CustomLoginFlowManager(CommandLineLoginFlowManager):
         return auth_code.strip()
 
 
+def get_academy_home() -> pathlib.Path:
+    """Resolve the Academy data directory.
+
+    Resolves the Academy data directory (``ACADEMY_HOME``) if
+    set, otherwise ``~/local/share/academy``.
+    Assumes callers are responsible for creating the directory
+    as needed.
+
+    Returns:
+        Path to the Academy data directory.
+    """
+    default = os.path.join(os.path.expanduser('~/local/share'), _APP_NAME)
+    return pathlib.Path(os.environ.get('ACADEMY_HOME', default=default))
+
+
 def get_token_storage(
     filepath: str | pathlib.Path | None = None,
     *,
@@ -67,12 +82,7 @@ def get_token_storage(
         Token storage.
     """
     if filepath is None:
-        default = os.path.join(
-            os.path.expanduser('~/local/share'),
-            _APP_NAME,
-        )
-        basepath = os.environ.get('ACADEMY_HOME', default=default)
-        filepath = os.path.join(basepath, _TOKENS_FILE)
+        filepath = get_academy_home() / _TOKENS_FILE
 
     filepath = pathlib.Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)

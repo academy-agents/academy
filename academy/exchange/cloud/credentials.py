@@ -40,13 +40,7 @@ class PersistentAgentCredentials(BaseModel, Generic[AgentT]):
     """Client ID of the agent's Globus Auth resource server."""
 
     client_secret: SecretStr
-    """Secret used to authenticate the agent's Globus Auth client.
-
-    Stored as ``SecretStr`` so ``repr`` and accidental ``model_dump_json``
-    calls do not leak the secret. The credential file store opts into
-    unmasking via ``model_dump_json(context={'unmask': True})``; all other
-    callers see ``'**********'``.
-    """
+    """Secret used to authenticate the agent's Globus Auth client."""
 
     scope_string: str
     """Per-agent scope requested via ``client_credentials``."""
@@ -64,8 +58,7 @@ class PersistentAgentCredentials(BaseModel, Generic[AgentT]):
     """Whether this agent may spawn child agents.
 
     Default ``False``. ``True`` grants project-admin authority and is
-    not safe for production until sub-project isolation lands in v1.1
-    (see threat model T1).
+    not safe for production until isolation is implemented. 
     """
 
     model_config = ConfigDict(frozen=True)
@@ -153,8 +146,7 @@ class AgentCredentialFileStore:
         """List identifiers for all agents with credentials on disk.
 
         Returns ``AgentId`` instances with ``name=None``. Call
-        ``load(agent_id)`` if the display name is needed; this method
-        deliberately avoids reading every file just to enumerate IDs.
+        ``load(agent_id)`` if the display name is needed.
         """
         return [
             AgentId(uid=uuid.UUID(p.stem))

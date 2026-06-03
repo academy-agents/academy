@@ -33,7 +33,7 @@ class MockRedis:
             return value
         return value.encode()
 
-    async def aclose(self) -> None:
+    async def close(self) -> None:
         pass
 
     async def blpop(

@@ -87,7 +87,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def __init__(  # noqa: PLR0913
         self,
         mailbox_id: EntityId,
-        redis_client: redis.asyncio.Redis,
+        redis_client: redis.asyncio.Redis[bytes],
         *,
         redis_info: _RedisConnectionInfo,
         namespace: str,
@@ -180,7 +180,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
         port = port if port is not None else open_port()
 
-        client = redis.asyncio.Redis(
+        client: redis.asyncio.Redis[bytes] = redis.asyncio.Redis(
             host=redis_info.hostname,
             port=redis_info.port,
             decode_responses=False,
@@ -238,7 +238,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         with contextlib.suppress(asyncio.CancelledError):
             await self._redis_task
 
-        await self._redis_client.aclose()
+        await self._redis_client.close()
 
     async def discover(
         self,
@@ -255,7 +255,11 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         async for key in self._redis_client.scan_iter(
             f'{self._namespace}:agent:*',
         ):  # pragma: no branch
-            mro_str = (await self._redis_client.get(key)).decode()
+            data = await self._redis_client.get(key)
+            if data is None:  # Key was removed between scan and get
+                continue  # pragma: no cover
+            mro_str = data.decode()
+
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')
             if fqp == mro[0] or (allow_subclasses and fqp in mro):
@@ -268,7 +272,8 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         for aid in found:
             status = await self._redis_client.get(self._status_key(aid))
             if (
-                status.decode() == _MailboxState.ACTIVE.value
+                status is not None
+                and status.decode() == _MailboxState.ACTIVE.value
             ):  # pragma: no branch
                 active.append(aid)
         return tuple(active)
@@ -373,7 +378,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             else:
                 raise TypeError('Did not active peer address in Redis.')
         except (TypeError, SocketClosedError, OSError):
-            await self._redis_client.rpush(  # type: ignore[misc]
+            await self._redis_client.rpush(
                 self._queue_key(message.dest),
                 message.model_serialize(),
             )
@@ -402,12 +407,12 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _MailboxState.INACTIVE.value,
         )
 
-        pending = await self._redis_client.lrange(self._queue_key(uid), 0, -1)  # type: ignore[misc]
+        pending = await self._redis_client.lrange(self._queue_key(uid), 0, -1)
         await self._redis_client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        await self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
+        await self._redis_client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
 
         messages: list[Message[Any]] = [
             Message.model_deserialize(raw)
@@ -465,7 +470,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def _get_message_from_redis(self) -> None:
         # Block indefinitely with timeout=0
-        raw = await self._redis_client.blpop(  # type: ignore[misc]
+        raw = await self._redis_client.blpop(
             [self._queue_key(self.mailbox_id)],
             timeout=0,
         )

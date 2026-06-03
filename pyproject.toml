@@ -47,6 +47,7 @@ dev = [
     "responses",
     "ruff>=0.2.0",
     "tox",
+    "types-redis",
     "virtualenv",
 ]
 docs = [

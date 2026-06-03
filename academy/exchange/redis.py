@@ -73,7 +73,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
     def __init__(
         self,
         mailbox_id: EntityId,
-        redis_client: redis.asyncio.Redis,
+        redis_client: redis.asyncio.Redis[bytes],
         *,
         redis_info: _RedisConnectionInfo,
     ) -> None:
@@ -121,7 +121,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             redis.exceptions.ConnectionError: If the Redis server is not
                 reachable.
         """
-        client = redis.asyncio.Redis(
+        client: redis.asyncio.Redis[bytes] = redis.asyncio.Redis(
             host=redis_info.hostname,
             port=redis_info.port,
             decode_responses=False,
@@ -152,7 +152,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return self._mailbox_id
 
     async def close(self) -> None:
-        await self._client.aclose()
+        await self._client.close()
 
     async def discover(
         self,
@@ -168,7 +168,10 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         async for key in self._client.scan_iter(
             'agent:*',
         ):  # pragma: no branch
-            mro_str = (await self._client.get(key)).decode()
+            data = await self._client.get(key)
+            if data is None:  # Key was removed between scan and get
+                continue  # pragma: no cover
+            mro_str = data.decode()
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')
             if fqp == mro[0] or (allow_subclasses and fqp in mro):
@@ -181,7 +184,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         for aid in found:
             status = await self._client.get(self._active_key(aid))
             if (
-                status.decode() == _MailboxState.ACTIVE.value
+                status is not None
+                and status.decode() == _MailboxState.ACTIVE.value
             ):  # pragma: no branch
                 active.append(aid)
         return tuple(active)
@@ -207,7 +211,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         elif status.decode() == _MailboxState.INACTIVE.value:
             raise MailboxTerminatedError(self.mailbox_id)
 
-        raw = await self._client.blpop(  # type: ignore[misc]
+        raw = await self._client.blpop(
             [self._queue_key(self.mailbox_id)],
             timeout=_timeout,
         )
@@ -278,6 +282,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 matching_data = await self._client.get(
                     self._request_key(message.src, message.tag),
                 )
+                # TODO: Use locks to ensure thread safety
+                assert matching_data is not None
                 matching: Header = Header.model_validate_json(
                     matching_data.decode(),
                 )
@@ -310,7 +316,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     },
                 )
 
-            await self._client.rpush(  # type: ignore[misc]
+            await self._client.rpush(
                 self._queue_key(message.dest),
                 message.model_serialize(),
             )
@@ -334,7 +340,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
+        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
@@ -344,6 +350,8 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         ]
         for req_key in req_keys:
             data = await self._client.get(req_key)
+            if data is None:  # Key was removed between scan and get
+                continue  # pragma: no cover
             pending_requests.append(Header.model_validate_json(data.decode()))
             await self._client.delete(req_key)
         await _respond_pending_requests_on_terminate(

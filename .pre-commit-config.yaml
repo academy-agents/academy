@@ -35,4 +35,5 @@ repos:
           - proxystore>=1.0.0
           - pydantic>=2,<3
           - redis
+          - types-redis
           - "tomli ; python_version<'3.11'"

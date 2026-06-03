@@ -715,7 +715,7 @@ class RedisBackend:
         if kwargs is None:  # pragma: no branch
             kwargs = {}
 
-        self._client = redis.asyncio.Redis(
+        self._client: redis.asyncio.Redis[bytes] = redis.asyncio.Redis(
             host=hostname,
             port=port,
             decode_responses=False,
@@ -760,7 +760,7 @@ class RedisBackend:
         uid: EntityId,
     ) -> bool:
         """Check if the mailbox is shared with user via Globus groups."""
-        _groups = await self._client.smembers(self._share_key(uid))  # type: ignore[misc]
+        _groups = await self._client.smembers(self._share_key(uid))
         groups = [g.decode() for g in _groups]
         return not client.group_memberships.isdisjoint(groups)
 
@@ -911,7 +911,7 @@ class RedisBackend:
         # Sending a close sentinel to the queue is a quick way to force
         # the entity waiting on messages to the mailbox to stop blocking.
         # This assumes that only one entity is reading from the mailbox.
-        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)  # type: ignore[misc]
+        await self._client.rpush(self._queue_key(uid), _CLOSE_SENTINEL)
         if isinstance(uid, AgentId):
             await self._client.delete(self._agent_key(uid))
 
@@ -925,6 +925,8 @@ class RedisBackend:
         pending_requests: list[Header] = []
         for req_key in req_keys:
             data = await self._client.get(req_key)
+            if data is None:  # The key was removed between scan and delete
+                continue  # pragma: no cover
             pending_requests.append(Header.model_validate_json(data.decode()))
             await self._client.delete(req_key)
 
@@ -993,7 +995,10 @@ class RedisBackend:
             'agent:*',
             count=1000,
         ):  # pragma: no branch
-            mro_str = (await self._client.get(key)).decode()
+            data = await self._client.get(key)
+            if data is None:  # Key was removed between scan and read
+                continue  # pragma: no cover
+            mro_str = data.decode()
             assert isinstance(mro_str, str)
             mro = mro_str.split(',')
             if agent == mro[0] or (allow_subclasses and agent in mro):
@@ -1007,7 +1012,8 @@ class RedisBackend:
             if await self._has_permissions(client, aid):
                 status = await self._client.get(self._active_key(aid))
                 if (
-                    status.decode() == MailboxStatus.ACTIVE.value
+                    status is not None
+                    and status.decode() == MailboxStatus.ACTIVE.value
                 ):  # pragma: no branch
                     active.append(aid)
 
@@ -1055,7 +1061,7 @@ class RedisBackend:
                 self.mailbox_expiration_s,
             )
 
-        raw = await self._client.blpop(  # type: ignore[misc]
+        raw = await self._client.blpop(
             [self._queue_key(uid)],
             timeout=_timeout,
         )
@@ -1130,6 +1136,9 @@ class RedisBackend:
             matching_data = await self._client.get(
                 self._request_key(message.src, message.tag),
             )
+            # TODO: Use redis locks here to ensure thread safety
+            assert matching_data is not None
+
             matching: Header = Header.model_validate_json(
                 matching_data.decode(),
             )
@@ -1162,7 +1171,7 @@ class RedisBackend:
                 },
             )
 
-        await self._client.rpush(  # type: ignore[misc]
+        await self._client.rpush(
             self._queue_key(message.dest),
             serialized,
         )
@@ -1206,7 +1215,7 @@ class RedisBackend:
                 f'Owner does not belong to the group {group_uid}',
             )
 
-        await self._client.sadd(self._share_key(uid), group_uid)  # type: ignore[misc]
+        await self._client.sadd(self._share_key(uid), group_uid)
 
     async def get_mailbox_shares(
         self,
@@ -1241,7 +1250,7 @@ class RedisBackend:
                 'Viewing shared groups requires ownership',
             )
 
-        _groups = await self._client.smembers(self._share_key(uid))  # type: ignore[misc]
+        _groups = await self._client.smembers(self._share_key(uid))
         groups = [g.decode() for g in _groups]
         return groups
 
@@ -1279,4 +1288,4 @@ class RedisBackend:
                 f'mailbox {uid} it does not own.',
             )
 
-        await self._client.srem(self._share_key(uid), group_uid)  # type: ignore[misc]
+        await self._client.srem(self._share_key(uid), group_uid)

@@ -13,7 +13,6 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.agent import loop
 from academy.context import ActionContext
-from academy.context import AgentStats
 from academy.debug import set_academy_debug
 from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
@@ -42,6 +41,7 @@ from academy.runtime import RuntimeConfig
 from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
 from academy.serialize import SerializationStrategy
+from academy.stats import AgentStats
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
@@ -940,6 +940,44 @@ async def http_exchange_client(
         start_listener=False,
     ) as client:
         yield client
+
+
+@pytest.mark.asyncio
+async def test_runtime_stats_inflight_messages(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(SleepAgent)
+    src = exchange_client.client_id
+
+    async with Runtime(
+        SleepAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        # Send a slow action so it's still in-flight when we query stats
+        sleep_request = Message.create(
+            src=src,
+            dest=runtime.agent_id,
+            body=ActionRequest(
+                action='sleep',
+                pargs=(TEST_WAIT_TIMEOUT,),
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(sleep_request)
+        # Give the runtime a moment to pick up the request
+        await asyncio.sleep(TEST_SLEEP_INTERVAL)
+
+        stats = await runtime.action(
+            'agent_stats',
+            src,
+            args=(),
+            kwargs={},
+        )
+        assert stats.inflight_messages >= 1
+
+        # Cancel the sleep so the runtime can shut down cleanly
+        runtime.signal_shutdown()
 
 
 @pytest.mark.asyncio

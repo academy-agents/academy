@@ -15,7 +15,6 @@ from academy.agent import loop
 from academy.agent import timer
 from academy.context import ActionContext
 from academy.context import AgentContext
-from academy.context import AgentStats
 from academy.exception import AgentNotInitializedError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import LocalExchangeTransport
@@ -23,6 +22,7 @@ from academy.exchange import UserExchangeClient
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.manager import Manager
+from academy.stats import AgentStats
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import WaitAgent

@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from academy.exchange import AgentExchangeClient
     from academy.identifier import AgentId
 
-from academy.context import AgentStats
+from academy.stats import AgentStats
 
 AgentT = TypeVar('AgentT', bound='Agent')
 """Type variable bound to [`Agent`][academy.agent.Agent]."""

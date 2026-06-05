@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
-import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
 from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
@@ -14,6 +12,7 @@ from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import AgentT
@@ -63,31 +62,6 @@ class ActionContext:
     def is_user_source(self) -> bool:
         """Is the source a user."""
         return isinstance(self.source_id, UserId)
-
-
-@dataclasses.dataclass
-class AgentStats:
-    """Runtime metrics for a running agent."""
-
-    completed_messages: dict[EntityId, int] = dataclasses.field(
-        default_factory=dict,
-    )
-    """Successful action-request count keyed by source entity."""
-    _start_time: float | None = dataclasses.field(
-        default=None,
-        init=False,
-        repr=False,
-    )
-
-    @property
-    def lifetime(self) -> timedelta | None:
-        """Time elapsed since the agent finished startup.
-
-        Returns ``None`` if the agent has not yet started.
-        """
-        if self._start_time is None:
-            return None
-        return timedelta(seconds=time.monotonic() - self._start_time)
 
 
 @dataclasses.dataclass(frozen=True)

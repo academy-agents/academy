@@ -29,7 +29,6 @@ from pydantic import Field
 import academy.exchange as ae
 from academy.context import ActionContext
 from academy.context import AgentContext
-from academy.context import AgentStats
 from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import raise_exceptions
@@ -54,6 +53,7 @@ from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
 from academy.serialize import NoPickleMixin
 from academy.serialize import SerializationStrategy
+from academy.stats import AgentStats
 from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
@@ -386,13 +386,17 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     async def _request_handler(self, request: Message[Request]) -> None:
         body = request.get_body()
         if isinstance(body, ActionRequest):
+            self._stats.inflight_messages += 1
             task = spawn_guarded_background_task(
                 self._execute_action(request),  # type: ignore[arg-type]
                 name=f'execute-action-{body.action}-{request.tag}',
             )
             self._action_tasks[request.tag] = task
             task.add_done_callback(
-                lambda _: self._action_tasks.pop(request.tag),
+                lambda _, s=self._stats: (
+                    self._action_tasks.pop(request.tag),
+                    setattr(s, 'inflight_messages', s.inflight_messages - 1),
+                ),
             )
             logger.debug(f'Started action with tag {request.tag}')
 

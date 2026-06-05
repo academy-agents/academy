@@ -7,11 +7,11 @@ from typing import Any
 import pytest
 
 from academy.context import ActionContext
-from academy.context import AgentStats
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.stats import AgentStats
 from testing.agents import EmptyAgent
 
 
@@ -105,3 +105,16 @@ def test_agent_stats_completed_messages_multiple_sources() -> None:
     stats.completed_messages[source_b] = count_b
     assert stats.completed_messages[source_a] == count_a
     assert stats.completed_messages[source_b] == count_b
+
+
+def test_agent_stats_inflight_messages_default() -> None:
+    stats = AgentStats()
+    assert stats.inflight_messages == 0
+
+
+def test_agent_stats_inflight_messages_incremented() -> None:
+    stats = AgentStats()
+    stats.inflight_messages += 1
+    assert stats.inflight_messages == 1
+    stats.inflight_messages -= 1
+    assert stats.inflight_messages == 0

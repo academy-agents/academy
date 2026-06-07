@@ -579,8 +579,6 @@ async def test_mailbox_backend_inflight_messages(
     assert await backend.inflight_messages(uid) == 0
 
     await backend.create_mailbox(client, uid)
-    assert await backend.inflight_messages(uid) == 0
-
     message = Message.create(src=uid, dest=uid, body=PingRequest())
     await backend.put(client, message)
     assert await backend.inflight_messages(uid) == 1

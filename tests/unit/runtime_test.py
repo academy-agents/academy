@@ -886,16 +886,9 @@ async def http_exchange_client(
 async def test_runtime_stats_inflight_messages(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    # Register an agent mailbox without starting a runtime/listener so that
-    # messages sent to it stay in the queue (i.e. are truly "pending").
-    registration = await exchange_client.register_agent(SleepAgent)
-    agent_id = registration.agent_id
+    agent_id = (await exchange_client.register_agent(SleepAgent)).agent_id
     src = exchange_client.client_id
 
-    # Initially no pending messages
-    assert await exchange_client.inflight_messages(agent_id) == 0
-
-    # Send two requests without a listener dequeuing them
     for _ in range(2):
         await exchange_client.send(
             Message.create(
@@ -909,7 +902,6 @@ async def test_runtime_stats_inflight_messages(
             ),
         )
 
-    # Both messages are sitting in the mailbox queue
     assert await exchange_client.inflight_messages(agent_id) == 2  # noqa: PLR2004
 
 

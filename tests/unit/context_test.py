@@ -62,49 +62,22 @@ async def test_action_context_user_source(
             _ = context.source_handle
 
 
-def test_agent_stats_lifetime_before_start() -> None:
+def test_agent_stats() -> None:
     stats = AgentStats()
+
     assert stats.lifetime is None
-
-
-def test_agent_stats_lifetime_after_start() -> None:
-    stats = AgentStats()
     stats._start_time = time.monotonic()
-    lifetime = stats.lifetime
-    assert isinstance(lifetime, timedelta)
-    assert lifetime.total_seconds() >= 0
+    assert isinstance(stats.lifetime, timedelta)
 
+    assert stats.inflight_messages == 0
+    stats.inflight_messages = 3
+    assert stats.inflight_messages == 3  # noqa: PLR2004
 
-def test_agent_stats_completed_messages_empty() -> None:
-    stats = AgentStats()
     assert stats.completed_messages == {}
-
-
-def test_agent_stats_completed_messages_incremented() -> None:
-    source: AgentId[EmptyAgent] = AgentId.new()
-    stats = AgentStats()
-    stats.completed_messages[source] = (
-        stats.completed_messages.get(source, 0) + 1
-    )
-    assert stats.completed_messages[source] == 1
-
-
-def test_agent_stats_completed_messages_multiple_sources() -> None:
     source_a: AgentId[EmptyAgent] = AgentId.new()
     source_b: AgentId[EmptyAgent] = AgentId.new()
-    stats = AgentStats()
-    count_a = 3
-    count_b = 7
+    count_a, count_b = 3, 7
     stats.completed_messages[source_a] = count_a
     stats.completed_messages[source_b] = count_b
     assert stats.completed_messages[source_a] == count_a
     assert stats.completed_messages[source_b] == count_b
-
-
-def test_agent_stats_inflight_messages_settable() -> None:
-    # inflight_messages is assigned from the transport queue depth by
-    # the agent_stats action; verify it can be set and defaults to 0.
-    stats = AgentStats()
-    assert stats.inflight_messages == 0
-    stats.inflight_messages = 3
-    assert stats.inflight_messages == 3  # noqa: PLR2004

@@ -826,7 +826,7 @@ async def test_runtime_stats_lifetime_set_after_startup(
 
 
 @pytest.mark.asyncio
-async def test_runtime_stats_completed_messages_incremented(
+async def test_runtime_stats_completed_messages(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange_client.register_agent(CounterAgent)
@@ -840,53 +840,22 @@ async def test_runtime_stats_completed_messages_incremented(
         registration=registration,
     ) as runtime:
         for _ in range(2):
-            request = Message.create(
-                src=src,
-                dest=runtime.agent_id,
-                body=ActionRequest(
-                    action='add',
-                    pargs=(1,),
-                    serialization=SerializationStrategy.PICKLE,
+            await exchange_client.send(
+                Message.create(
+                    src=src,
+                    dest=runtime.agent_id,
+                    body=ActionRequest(
+                        action='add',
+                        pargs=(1,),
+                        serialization=SerializationStrategy.PICKLE,
+                    ),
                 ),
             )
-            await exchange_client.send(request)
             await anext(listener)
 
-        # Fetch via runtime.action() — bypasses _request_handler so the
-        # stats call itself is not counted.
         stats = await runtime.action('agent_stats', src, args=(), kwargs={})
         assert stats.completed_messages.get(src, 0) == 2  # noqa: PLR2004
 
-
-@pytest.mark.asyncio
-async def test_runtime_stats_completed_messages_not_incremented_on_error(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-    registration = await exchange_client.register_agent(CounterAgent)
-    await exchange_client._stop_listener_task()
-    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
-    src = exchange_client.client_id
-
-    async with Runtime(
-        CounterAgent(),
-        exchange_factory=exchange_client.factory(),
-        registration=registration,
-    ) as runtime:
-        # One successful action
-        await exchange_client.send(
-            Message.create(
-                src=src,
-                dest=runtime.agent_id,
-                body=ActionRequest(
-                    action='add',
-                    pargs=(1,),
-                    serialization=SerializationStrategy.PICKLE,
-                ),
-            ),
-        )
-        await anext(listener)
-
-        # Failed action — must not increment the counter
         await exchange_client.send(
             Message.create(
                 src=src,
@@ -897,11 +866,10 @@ async def test_runtime_stats_completed_messages_not_incremented_on_error(
                 ),
             ),
         )
-        error_msg = await anext(listener)
-        assert isinstance(error_msg.get_body(), ErrorResponse)
+        assert isinstance((await anext(listener)).get_body(), ErrorResponse)
 
         stats = await runtime.action('agent_stats', src, args=(), kwargs={})
-        assert stats.completed_messages.get(src, 0) == 1
+        assert stats.completed_messages.get(src, 0) == 2  # noqa: PLR2004
 
 
 @pytest.fixture

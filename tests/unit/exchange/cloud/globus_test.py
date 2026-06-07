@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock
 from unittest.mock import patch
+from unittest.mock import PropertyMock
 
 import pytest
 import responses
@@ -110,7 +111,14 @@ async def test_globus_transport_inflight_messages() -> None:
         uid,
         connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
     )
-    with patch.object(transport, '_get_inflight_messages', return_value=0):
+    mock_client = MagicMock()
+    mock_client.get_inflight_messages.return_value = {'count': 0}
+    with patch.object(
+        type(transport),
+        'exchange_client',
+        new_callable=PropertyMock,
+        return_value=mock_client,
+    ):
         count = await transport.inflight_messages(uid)
         assert count == 0
     transport.executor.shutdown(wait=False)

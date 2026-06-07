@@ -5,6 +5,7 @@ import pickle
 import pytest
 
 from academy.exchange.local import LocalExchangeFactory
+from academy.identifier import UserId
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
@@ -31,6 +32,10 @@ async def test_local_exchange_request_tracking(
         body=PingRequest(),
     )
     await transport1.send(request)
+
+    unregistered = UserId.new()
+    assert await transport1.inflight_messages(unregistered) == 0
+    assert await transport1.inflight_messages(transport2.mailbox_id) == 1
 
     assert transport2.mailbox_id in state.requests
     assert request.tag in state.requests[transport2.mailbox_id]

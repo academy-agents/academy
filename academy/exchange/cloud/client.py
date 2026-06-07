@@ -334,7 +334,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def inflight_messages(self, uid: EntityId) -> int:
         async with self._session.get(
-            f'{self._info.url}/mailbox/pending',
+            f'{self._info.url}/mailbox/inflight',
             json={'mailbox': uid.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id, uid)

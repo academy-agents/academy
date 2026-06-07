@@ -80,6 +80,8 @@ async def test_send_to_mailbox_indirect(
         for _ in range(messages):
             await transport1.send(message)
 
+        assert await transport1.inflight_messages(aid) == messages
+
     async with await factory._create_transport(mailbox_id=aid) as mailbox:
         listener = mailbox.listen(timeout=TEST_CONNECTION_TIMEOUT)
         for _ in range(messages):

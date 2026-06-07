@@ -822,6 +822,7 @@ async def test_runtime_stats_lifetime_set_after_startup(
         )
         assert isinstance(stats, AgentStats)
         assert stats.lifetime is not None
+        assert stats.inflight_messages == 0
 
 
 @pytest.mark.asyncio
@@ -849,27 +850,12 @@ async def test_runtime_stats_completed_messages_incremented(
                 ),
             )
             await exchange_client.send(request)
-            await anext(listener)  # consume SuccessResponse
+            await anext(listener)
 
-        stats_request = Message.create(
-            src=src,
-            dest=runtime.agent_id,
-            body=ActionRequest(
-                action='agent_stats',
-                serialization=SerializationStrategy.PICKLE,
-            ),
-        )
-        await exchange_client.send(stats_request)
-        message = await anext(listener)
-
-        body = message.get_body()
-        assert isinstance(body, ActionResponse)
-        stats = body.get_result()
-        # With the local exchange stats is a live reference.  The 'else' block
-        # in _execute_action increments the counter BEFORE the response is
-        # placed in the queue, so by the time the test reads get_result() the
-        # two 'add' calls AND the 'agent_stats' call itself are all counted.
-        assert stats.completed_messages.get(src, 0) == 3  # noqa: PLR2004
+        # Fetch via runtime.action() — bypasses _request_handler so the
+        # stats call itself is not counted.
+        stats = await runtime.action('agent_stats', src, args=(), kwargs={})
+        assert stats.completed_messages.get(src, 0) == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -886,50 +872,36 @@ async def test_runtime_stats_completed_messages_not_incremented_on_error(
         exchange_factory=exchange_client.factory(),
         registration=registration,
     ) as runtime:
-        # One successful action first
-        add_request = Message.create(
-            src=src,
-            dest=runtime.agent_id,
-            body=ActionRequest(
-                action='add',
-                pargs=(5,),
-                serialization=SerializationStrategy.PICKLE,
+        # One successful action
+        await exchange_client.send(
+            Message.create(
+                src=src,
+                dest=runtime.agent_id,
+                body=ActionRequest(
+                    action='add',
+                    pargs=(1,),
+                    serialization=SerializationStrategy.PICKLE,
+                ),
             ),
         )
-        await exchange_client.send(add_request)
-        await anext(listener)  # consume response
+        await anext(listener)
 
-        # Failed action — should not increment the counter
-        bad_request = Message.create(
-            src=src,
-            dest=runtime.agent_id,
-            body=ActionRequest(
-                action='nonexistent',
-                serialization=SerializationStrategy.PICKLE,
+        # Failed action — must not increment the counter
+        await exchange_client.send(
+            Message.create(
+                src=src,
+                dest=runtime.agent_id,
+                body=ActionRequest(
+                    action='nonexistent',
+                    serialization=SerializationStrategy.PICKLE,
+                ),
             ),
         )
-        await exchange_client.send(bad_request)
         error_msg = await anext(listener)
         assert isinstance(error_msg.get_body(), ErrorResponse)
 
-        stats_request = Message.create(
-            src=src,
-            dest=runtime.agent_id,
-            body=ActionRequest(
-                action='agent_stats',
-                serialization=SerializationStrategy.PICKLE,
-            ),
-        )
-        await exchange_client.send(stats_request)
-        message = await anext(listener)
-
-        body = message.get_body()
-        assert isinstance(body, ActionResponse)
-        stats = body.get_result()
-        # The failed action is not counted; only 'add' and 'agent_stats' itself
-        # are.  With the local exchange the live reference reflects the
-        # incremented counter, so the expected total is 2 (not 3).
-        assert stats.completed_messages.get(src, 0) == 2  # noqa: PLR2004
+        stats = await runtime.action('agent_stats', src, args=(), kwargs={})
+        assert stats.completed_messages.get(src, 0) == 1
 
 
 @pytest.fixture

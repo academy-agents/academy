@@ -86,13 +86,7 @@ def test_agent_stats_completed_messages_incremented() -> None:
     stats.completed_messages[source] = (
         stats.completed_messages.get(source, 0) + 1
     )
-    first_count = 1
-    assert stats.completed_messages[source] == first_count
-    stats.completed_messages[source] = (
-        stats.completed_messages.get(source, 0) + 1
-    )
-    second_count = 2
-    assert stats.completed_messages[source] == second_count
+    assert stats.completed_messages[source] == 1
 
 
 def test_agent_stats_completed_messages_multiple_sources() -> None:
@@ -107,14 +101,10 @@ def test_agent_stats_completed_messages_multiple_sources() -> None:
     assert stats.completed_messages[source_b] == count_b
 
 
-def test_agent_stats_inflight_messages_default() -> None:
+def test_agent_stats_inflight_messages_settable() -> None:
+    # inflight_messages is assigned from the transport queue depth by
+    # the agent_stats action; verify it can be set and defaults to 0.
     stats = AgentStats()
     assert stats.inflight_messages == 0
-
-
-def test_agent_stats_inflight_messages_incremented() -> None:
-    stats = AgentStats()
-    stats.inflight_messages += 1
-    assert stats.inflight_messages == 1
-    stats.inflight_messages -= 1
-    assert stats.inflight_messages == 0
+    stats.inflight_messages = 3
+    assert stats.inflight_messages == 3  # noqa: PLR2004

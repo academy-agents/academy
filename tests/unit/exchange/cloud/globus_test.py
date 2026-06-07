@@ -93,6 +93,29 @@ def test_globus_client_terminate(academy_client: AcademyGlobusClient):
     assert response.http_status == StatusCode.OKAY.value
 
 
+def test_globus_client_get_inflight_messages(
+    academy_client: AcademyGlobusClient,
+):
+    load_response(AcademyGlobusClient.get_inflight_messages)
+    uid = UserId.new()
+    response = academy_client.get_inflight_messages(uid)
+    assert response.http_status == StatusCode.OKAY.value
+    assert 'count' in response.data
+
+
+@pytest.mark.asyncio
+async def test_globus_transport_inflight_messages() -> None:
+    uid = UserId.new()
+    transport = GlobusExchangeTransport(
+        uid,
+        connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
+    )
+    with patch.object(transport, '_get_inflight_messages', return_value=0):
+        count = await transport.inflight_messages(uid)
+        assert count == 0
+    transport.executor.shutdown(wait=False)
+
+
 @pytest.mark.asyncio
 async def test_register_agents_single_login() -> None:
     """Batch registration triggers at most one login."""

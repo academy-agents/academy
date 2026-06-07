@@ -99,6 +99,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     _message_url = '/message'
     _discover_url = '/discover'
     _heartbeat_url = '/mailbox/heartbeat'
+    _inflight_url = '/mailbox/inflight'
 
     def discover(
         self,
@@ -187,7 +188,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     def get_inflight_messages(self, uid: EntityId) -> GlobusHTTPResponse:
         return self.request(
             'GET',
-            '/mailbox/pending',
+            self._inflight_url,
             data={'mailbox': uid.model_dump_json()},
         )
 

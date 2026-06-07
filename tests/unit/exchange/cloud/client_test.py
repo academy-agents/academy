@@ -284,6 +284,16 @@ async def test_sse_event_parse_unexpected_field(
         assert 'unexpected field in event stream' in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_http_transport_inflight_messages(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    uid = UserId.new()
+    async with await http_exchange_factory._create_transport() as transport:
+        count = await transport.inflight_messages(uid)
+        assert count == 0
+
+
 async def test_listen_receive_event(
     http_exchange_factory: HttpExchangeFactory,
 ) -> None:

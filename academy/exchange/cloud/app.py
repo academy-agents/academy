@@ -277,8 +277,8 @@ async def _get_heartbeat_route(request: Request) -> Response:
     return json_response({'heartbeat': heartbeat})
 
 
-@exception_to_response('pending messages')
-async def _pending_messages_route(request: Request) -> Response:
+@exception_to_response('inflight')
+async def _inflight_messages_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
     raw_mailbox_id = data['mailbox']
@@ -550,7 +550,7 @@ def create_app(
     app.router.add_get('/discover', _discover_route)
     app.router.add_get('/mailbox/listen', _listen_mailbox_route)
     app.router.add_get('/mailbox/heartbeat', _get_heartbeat_route)
-    app.router.add_get('/mailbox/pending', _pending_messages_route)
+    app.router.add_get('/mailbox/inflight', _inflight_messages_route)
 
     return app
 

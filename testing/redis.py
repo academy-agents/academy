@@ -119,6 +119,9 @@ class MockRedis:
             raise NotImplementedError()
         return None
 
+    async def llen(self, key: bytes | str) -> int:
+        return len(self.lists.get(self._encode(key), []))
+
     async def lrange(
         self,
         key: bytes | str,

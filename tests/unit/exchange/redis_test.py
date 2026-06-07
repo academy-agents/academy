@@ -37,6 +37,9 @@ async def test_redis_exchange_request_tracking(mock_redis) -> None:
         body=PingRequest(),
     )
     await transport1.send(request)
+
+    assert await transport1.inflight_messages(transport2.mailbox_id) == 1
+
     request_key = f'request:{request.dest.uid}:{request.tag}'
     request_data = await transport1._client.get(request_key)
     assert request_data is not None

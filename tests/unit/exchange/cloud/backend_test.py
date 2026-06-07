@@ -568,3 +568,22 @@ async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     elapsed = time.time() - start
     assert heartbeat is not None
     assert heartbeat < elapsed
+
+
+async def test_mailbox_backend_inflight_messages(
+    backend: MailboxBackend,
+) -> None:
+    uid = UserId.new()
+    client = ClientInfo(str(uid), set())
+
+    assert await backend.inflight_messages(uid) == 0
+
+    await backend.create_mailbox(client, uid)
+    assert await backend.inflight_messages(uid) == 0
+
+    message = Message.create(src=uid, dest=uid, body=PingRequest())
+    await backend.put(client, message)
+    assert await backend.inflight_messages(uid) == 1
+
+    assert await backend.get(client, uid) == message
+    assert await backend.inflight_messages(uid) == 0

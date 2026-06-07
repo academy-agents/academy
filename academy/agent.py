@@ -817,4 +817,10 @@ class Agent:
     @action
     async def agent_stats(self) -> AgentStats:
         """Return live runtime metrics for this agent."""
-        return self.agent_context.stats
+        stats = self.agent_context.stats
+        stats.inflight_messages = (
+            await self.agent_context.exchange_client.inflight_messages(
+                self.agent_context.agent_id,
+            )
+        )
+        return stats

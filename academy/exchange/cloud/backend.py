@@ -246,6 +246,17 @@ class MailboxBackend(Protocol):
         """
         ...
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        """Return the number of messages queued but not yet consumed.
+
+        Args:
+            uid: Mailbox id to check.
+
+        Returns:
+            Count of messages waiting in the mailbox queue.
+        """
+        ...
+
 
 class PythonBackend:
     """Mailbox backend using in-memory python data structures.
@@ -421,6 +432,13 @@ class PythonBackend:
             return None
 
         return time.time() - self.last_active[uid]
+
+    async def inflight_messages(self, uid: EntityId) -> int:
+        """Return the number of messages queued but not yet consumed."""
+        queue = self._mailboxes.get(uid)
+        if queue is None:
+            return 0
+        return queue.qsize()
 
     async def discover(
         self,
@@ -976,6 +994,10 @@ class RedisBackend:
         now = await self._redis_current_time()
 
         return now - float(heartbeat_time.decode())
+
+    async def inflight_messages(self, uid: EntityId) -> int:
+        """Return the number of messages queued but not yet consumed."""
+        return await self._client.llen(self._queue_key(uid))
 
     async def discover(
         self,

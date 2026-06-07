@@ -184,6 +184,13 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             data={'mailbox': uid.model_dump_json()},
         )
 
+    def get_inflight_messages(self, uid: EntityId) -> GlobusHTTPResponse:
+        return self.request(
+            'GET',
+            '/mailbox/pending',
+            data={'mailbox': uid.model_dump_json()},
+        )
+
 
 @dataclasses.dataclass
 class _PendingRegistration(Generic[AgentT]):
@@ -790,6 +797,17 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def update_heartbeat(self) -> None:
         pass  # Server tracks this automatically via listen/send
+
+    def _get_inflight_messages(self, uid: EntityId) -> int:
+        return self.exchange_client.get_inflight_messages(uid)['count']
+
+    async def inflight_messages(self, uid: EntityId) -> int:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            self._get_inflight_messages,
+            uid,
+        )
 
 
 class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):

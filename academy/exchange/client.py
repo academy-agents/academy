@@ -268,6 +268,17 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         """
         return await self._transport.heartbeat_status(uid)
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        """Return the number of messages queued but not yet consumed.
+
+        Args:
+            uid: Entity identifier of the mailbox to check.
+
+        Returns:
+            Count of messages waiting in the mailbox queue.
+        """
+        return await self._transport.inflight_messages(uid)
+
     async def _listen_for_messages(self) -> None:
         # Transport listen does not necessarily wait on io and neither
         # does _handle_message. If we are persistently receiving messages,

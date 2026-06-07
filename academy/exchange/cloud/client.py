@@ -332,6 +332,14 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, uid)
             return (await response.json())['heartbeat']
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        async with self._session.get(
+            f'{self._info.url}/mailbox/pending',
+            json={'mailbox': uid.model_dump_json()},
+        ) as response:
+            _raise_for_status(response, self.mailbox_id, uid)
+            return (await response.json())['count']
+
 
 class HttpExchangeConsole:
     """Client for Http/Cloud specific exchange operations.

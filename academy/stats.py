@@ -14,7 +14,7 @@ class AgentStats:
     completed_messages: dict[EntityId, int] = dataclasses.field(
         default_factory=dict,
     )
-    
+
     inflight_messages: int = 0
 
     _start_time: float | None = dataclasses.field(

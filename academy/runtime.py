@@ -241,6 +241,9 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 extra=response.log_extra(),
             )
 
+    def _on_task_done(self, tag: uuid.UUID) -> None:
+        self._action_tasks.pop(tag, None)
+
     async def _execute_action(self, request: Message[ActionRequest]) -> None:
         body = request.get_body()
         response: Message[Response]
@@ -386,18 +389,12 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     async def _request_handler(self, request: Message[Request]) -> None:
         body = request.get_body()
         if isinstance(body, ActionRequest):
-            self._stats.inflight_messages += 1
             task = spawn_guarded_background_task(
                 self._execute_action(request),  # type: ignore[arg-type]
                 name=f'execute-action-{body.action}-{request.tag}',
             )
             self._action_tasks[request.tag] = task
-            task.add_done_callback(
-                lambda _, s=self._stats: (
-                    self._action_tasks.pop(request.tag),
-                    setattr(s, 'inflight_messages', s.inflight_messages - 1),
-                ),
-            )
+            task.add_done_callback(lambda _: self._on_task_done(request.tag))
             logger.debug(f'Started action with tag {request.tag}')
 
         elif isinstance(body, CancelRequest):
@@ -416,9 +413,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 )
             task = asyncio.create_task(self._send_response(response))
             self._action_tasks[request.tag] = task
-            task.add_done_callback(
-                lambda _: self._action_tasks.pop(request.tag),
-            )
+            task.add_done_callback(lambda _: self._on_task_done(request.tag))
         elif isinstance(body, PingRequest):
             logger.info(
                 'Ping request received by %s',
@@ -430,9 +425,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 name=f'execute-ping-{request.tag}',
             )
             self._action_tasks[request.tag] = task
-            task.add_done_callback(
-                lambda _: self._action_tasks.pop(request.tag),
-            )
+            task.add_done_callback(lambda _: self._on_task_done(request.tag))
         elif isinstance(body, ShutdownRequest):
             response = request.create_response(SuccessResponse())
             # We need to block here, because if we send this async,

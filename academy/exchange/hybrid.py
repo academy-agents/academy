@@ -468,6 +468,9 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         return now - float(heartbeat_time.decode())
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        return await self._redis_client.llen(self._queue_key(uid))
+
     async def _get_message_from_redis(self) -> None:
         # Block indefinitely with timeout=0
         raw = await self._redis_client.blpop(

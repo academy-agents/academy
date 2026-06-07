@@ -167,6 +167,12 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         while True:
             yield await self._recv(timeout)
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        queue = self._state.queues.get(uid)
+        if queue is None:
+            return 0
+        return queue.qsize()
+
     async def register_agent(
         self,
         agent: type[AgentT],

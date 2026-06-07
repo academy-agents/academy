@@ -238,6 +238,17 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        """Return the number of messages queued but not yet consumed.
+
+        Args:
+            uid: Entity identifier of the mailbox to check.
+
+        Returns:
+            Count of messages waiting in the mailbox queue.
+        """
+        ...
+
 
 ExchangeTransportT = TypeVar(
     'ExchangeTransportT',

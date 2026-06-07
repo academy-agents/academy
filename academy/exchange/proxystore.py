@@ -203,6 +203,9 @@ class ProxyStoreExchangeTransport(
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         return await self.transport.heartbeat_status(uid)
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        return await self.transport.inflight_messages(uid)
+
 
 class ProxyStoreExchangeFactory(
     ExchangeFactory[ProxyStoreExchangeTransport[ExchangeTransportT]],

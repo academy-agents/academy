@@ -946,38 +946,31 @@ async def http_exchange_client(
 async def test_runtime_stats_inflight_messages(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
+    # Register an agent mailbox without starting a runtime/listener so that
+    # messages sent to it stay in the queue (i.e. are truly "pending").
     registration = await exchange_client.register_agent(SleepAgent)
+    agent_id = registration.agent_id
     src = exchange_client.client_id
 
-    async with Runtime(
-        SleepAgent(),
-        exchange_factory=exchange_client.factory(),
-        registration=registration,
-    ) as runtime:
-        # Send a slow action so it's still in-flight when we query stats
-        sleep_request = Message.create(
-            src=src,
-            dest=runtime.agent_id,
-            body=ActionRequest(
-                action='sleep',
-                pargs=(TEST_WAIT_TIMEOUT,),
-                serialization=SerializationStrategy.PICKLE,
+    # Initially no pending messages
+    assert await exchange_client.inflight_messages(agent_id) == 0
+
+    # Send two requests without a listener dequeuing them
+    for _ in range(2):
+        await exchange_client.send(
+            Message.create(
+                src=src,
+                dest=agent_id,
+                body=ActionRequest(
+                    action='sleep',
+                    pargs=(0,),
+                    serialization=SerializationStrategy.PICKLE,
+                ),
             ),
         )
-        await exchange_client.send(sleep_request)
-        # Give the runtime a moment to pick up the request
-        await asyncio.sleep(TEST_SLEEP_INTERVAL)
 
-        stats = await runtime.action(
-            'agent_stats',
-            src,
-            args=(),
-            kwargs={},
-        )
-        assert stats.inflight_messages >= 1
-
-        # Cancel the sleep so the runtime can shut down cleanly
-        runtime.signal_shutdown()
+    # Both messages are sitting in the mailbox queue
+    assert await exchange_client.inflight_messages(agent_id) == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio

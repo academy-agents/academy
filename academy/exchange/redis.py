@@ -236,6 +236,9 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         while True:
             yield await self._recv(timeout)
 
+    async def inflight_messages(self, uid: EntityId) -> int:
+        return await self._client.llen(self._queue_key(uid))
+
     async def register_agent(
         self,
         agent: type[AgentT],

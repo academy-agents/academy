@@ -21,6 +21,10 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
+from pydantic import BaseModel
+from pydantic import Field
+
+from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
@@ -54,6 +58,20 @@ RequestHandler: TypeAlias = Callable[
 ]
 
 
+class ExchangeClientConfig(BaseModel):
+    """Common runtime parameters for exchange clients.
+
+    Args:
+        heartbeat_interval: Frequency to send liveness messages to the
+            exchange
+        stale_heartbeat_threshold: Number of missed heartbeats before an
+            agent is considered inactive.
+    """
+
+    heartbeat_interval: float = Field(default=30)
+    stale_heartbeat_threshold: int = Field(default=3)
+
+
 class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
     """Base exchange client.
 
@@ -70,6 +88,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
     def __init__(
         self,
         transport: ExchangeTransportT,
+        config: ExchangeClientConfig,
     ) -> None:
         self._transport = transport
         self._handles: WeakValueDictionary[uuid.UUID, Handle[Any]] = (
@@ -78,6 +97,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         self._close_lock = asyncio.Lock()
         self._closed = False
         self._heartbeat_task: asyncio.Task[None] | None = None
+        self.config = config
 
     async def __aenter__(self) -> Self:
         self.exchange_context_token = exchange_context.set(self)
@@ -236,7 +256,21 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         Args:
             uid: Entity identifier of the mailbox to check.
         """
-        return await self._transport.status(uid)
+        stale_timeout = (
+            self.config.heartbeat_interval
+            * self.config.stale_heartbeat_threshold
+        )
+        try:
+            hb_time = await self._transport.heartbeat_status(uid)
+            if hb_time is not None and hb_time < stale_timeout:
+                return MailboxStatus.ACTIVE
+
+            return MailboxStatus.INACTIVE
+
+        except BadEntityIdError:
+            return MailboxStatus.MISSING
+        except MailboxTerminatedError:
+            return MailboxStatus.TERMINATED
 
     async def terminate(self, uid: EntityId) -> None:
         """Terminate a mailbox in the exchange.
@@ -310,15 +344,13 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
                     await asyncio.sleep(0)
 
     async def _heartbeat_loop(self) -> None:
-        heartbeat_interval: int = 60
-
         with contextlib.suppress(
             asyncio.CancelledError,
             MailboxTerminatedError,
         ):
             while True:
                 await self.update_heartbeat()
-                await asyncio.sleep(heartbeat_interval)
+                await asyncio.sleep(self.config.heartbeat_interval)
 
     def _start_heartbeat(self) -> None:
         self._heartbeat_task = spawn_guarded_background_task(
@@ -360,8 +392,13 @@ class AgentExchangeClient(
         agent_id: AgentId[AgentT],
         transport: ExchangeTransportT,
         request_handler: RequestHandler[RequestT_co],
+        *,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
-        super().__init__(transport)
+        super().__init__(
+            transport,
+            config or ExchangeClientConfig(),
+        )
         self._agent_id = agent_id
         self._request_handler = request_handler
         self._start_heartbeat()
@@ -444,8 +481,12 @@ class UserExchangeClient(ExchangeClient[ExchangeTransportT]):
         transport: ExchangeTransportT,
         *,
         start_listener: bool = True,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
-        super().__init__(transport)
+        super().__init__(
+            transport,
+            config or ExchangeClientConfig(),
+        )
         self._user_id = user_id
         self._listener_task: asyncio.Task[None] | None = None
         if start_listener:

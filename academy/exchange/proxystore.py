@@ -16,7 +16,6 @@ from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import ExchangeTransportT
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
@@ -191,9 +190,6 @@ class ProxyStoreExchangeTransport(
             )
 
         await self.transport.send(message)
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        return await self.transport.status(uid)
 
     async def terminate(self, uid: EntityId) -> None:
         await self.transport.terminate(uid)

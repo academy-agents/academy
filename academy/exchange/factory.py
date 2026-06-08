@@ -14,7 +14,6 @@ from academy.exchange.client import AgentExchangeClient
 from academy.exchange.client import UserExchangeClient
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -90,10 +89,12 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
             registration=registration,
         )
         assert transport.mailbox_id == agent_id
-        status = await transport.status(agent_id)
-        if status != MailboxStatus.ACTIVE:
+        try:
+            await transport.heartbeat_status(agent_id)
+        except BadEntityIdError:
             await transport.close()
-            raise BadEntityIdError(agent_id)
+            raise
+
         return AgentExchangeClient(
             agent_id,
             transport,

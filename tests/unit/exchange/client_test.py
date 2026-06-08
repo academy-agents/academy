@@ -106,8 +106,8 @@ async def test_register_agents(
     )
     assert len(registrations) == 2  # noqa: PLR2004
     for reg in registrations:
-        status = await client._transport.status(reg.agent_id)
-        assert status == MailboxStatus.ACTIVE
+        status = await client.status(reg.agent_id)
+        assert status == MailboxStatus.INACTIVE
 
 
 @pytest.mark.asyncio
@@ -173,7 +173,7 @@ async def test_client_get_status(client: UserExchangeClient[Any]) -> None:
     assert await client.status(uid) == MailboxStatus.MISSING
     registration = await client.register_agent(EmptyAgent)
     agent_id = registration.agent_id
-    assert await client.status(agent_id) == MailboxStatus.ACTIVE
+    assert await client.status(agent_id) == MailboxStatus.INACTIVE
     await client.terminate(agent_id)
     assert await client.status(agent_id) == MailboxStatus.TERMINATED
 

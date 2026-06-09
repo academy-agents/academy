@@ -51,7 +51,7 @@ dev = [
     "virtualenv",
 ]
 docs = [
-    "black==25.1.0",
+    "black==26.3.1",
     "griffe==1.7.3",
     "griffe-pydantic==1.1.4",
     "mkdocs-autorefs==1.4.1",

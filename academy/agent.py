@@ -815,7 +815,7 @@ class Agent:
         )
 
     @action
-    async def agent_stats(self) -> AgentStats:
+    async def get_agent_stats(self) -> AgentStats:
         """Return live metrics for this agent from the exchange."""
         return await self.agent_context.exchange_client.agent_stats(
             self.agent_id,

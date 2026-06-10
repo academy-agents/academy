@@ -161,7 +161,7 @@ async def test_agent_actions() -> None:
     await agent.agent_on_startup()
 
     actions = agent._agent_actions()
-    assert set(actions) == {'identity', 'agent_describe', 'agent_stats'}
+    assert set(actions) == {'identity', 'agent_describe', 'get_agent_stats'}
 
     assert await agent.identity(1) == 1
 
@@ -402,7 +402,7 @@ async def test_agent_description() -> None:
     assert len(description.actions) == 3  # noqa: PLR2004
 
     assert 'agent_describe' in description.actions
-    assert 'agent_stats' in description.actions
+    assert 'get_agent_stats' in description.actions
     assert 'test' in description.actions
     action_description = description.actions['test']
     assert action_description.doc == 'This is a test method.'

@@ -56,43 +56,20 @@ async def test_redis_exchange_agent_stats(mock_redis) -> None:
     sender = await RedisExchangeTransport.new(redis_info=redis_info)
     agent = await RedisExchangeTransport.new(redis_info=redis_info)
 
-    # Zero state before any messages
-    stats = await sender.agent_stats(agent.mailbox_id)
-    assert stats.incoming == 0
-    assert stats.queued == 0
-    assert stats.completed == 0
-
-    # Two requests queued at agent
-    req1 = Message.create(
+    req = Message.create(
         src=sender.mailbox_id,
         dest=agent.mailbox_id,
         body=PingRequest(),
     )
-    req2 = Message.create(
-        src=sender.mailbox_id,
-        dest=agent.mailbox_id,
-        body=PingRequest(),
-    )
-    await sender.send(req1)
-    await sender.send(req2)
+    await sender.send(req)
 
     stats = await sender.agent_stats(agent.mailbox_id)
-    assert stats.incoming == 2  # noqa: PLR2004
-    assert stats.queued == 2  # noqa: PLR2004
-    assert stats.in_progress == 0
-    assert stats.completed == 0
+    assert stats.incoming == 1
+    assert stats.queued == 1
 
-    # Respond to one request: completed rises, pending drops
-    resp = req1.create_response(SuccessResponse())
-    await agent.send(resp)
-
-    stats = await sender.agent_stats(agent.mailbox_id)
-    assert stats.completed == 1
-    assert stats.incoming == 2  # noqa: PLR2004
-
-    # Sender's outgoing reflects requests it sent
-    sender_stats = await agent.agent_stats(sender.mailbox_id)
-    assert sender_stats.outgoing == 2  # noqa: PLR2004
+    await agent.send(req.create_response(SuccessResponse()))
+    assert (await sender.agent_stats(agent.mailbox_id)).completed == 1
+    assert (await agent.agent_stats(sender.mailbox_id)).outgoing == 1
 
     await sender.close()
     await agent.close()

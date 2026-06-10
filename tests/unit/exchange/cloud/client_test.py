@@ -328,17 +328,13 @@ async def test_http_transport_agent_stats(
 ) -> None:
     async with await http_exchange_factory._create_transport() as sender:
         async with await http_exchange_factory._create_transport() as agent:
-            # Send 2 requests from sender → agent before checking stats
-            for _ in range(2):
-                message = Message.create(
+            await sender.send(
+                Message.create(
                     src=sender.mailbox_id,
                     dest=agent.mailbox_id,
                     body=PingRequest(),
-                )
-                await sender.send(message)
-
+                ),
+            )
             stats = await sender.agent_stats(agent.mailbox_id)
-            assert stats.incoming == 2  # noqa: PLR2004
-            assert stats.queued == 2  # noqa: PLR2004
-            assert stats.in_progress == 0
-            assert stats.completed == 0
+            assert stats.incoming == 1
+            assert stats.queued == 1

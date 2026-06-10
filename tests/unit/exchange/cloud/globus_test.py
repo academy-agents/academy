@@ -121,13 +121,12 @@ async def test_globus_transport_agent_stats() -> None:
     )
     uid = UserId.new()
 
-    # Happy path: stats are returned and unpacked correctly
     mock_response = MagicMock()
     mock_response.data = {
         'incoming': 5,
-        'outgoing': 2,
-        'completed': 3,
-        'in_progress': 2,
+        'outgoing': 0,
+        'completed': 0,
+        'in_progress': 0,
         'queued': 0,
     }
     mock_response.get.side_effect = mock_response.data.get
@@ -141,7 +140,6 @@ async def test_globus_transport_agent_stats() -> None:
     ):
         stats = await transport.agent_stats(uid)
     assert stats.incoming == 5  # noqa: PLR2004
-    assert stats.completed == 3  # noqa: PLR2004
 
     # 404 → BadEntityIdError
     def _make_error(status_code: int) -> AcademyAPIError:

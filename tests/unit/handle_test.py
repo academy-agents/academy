@@ -604,7 +604,8 @@ async def test_handle_agent_stats(
         stats = await handle.agent_stats()
         assert isinstance(stats, AgentStats)
         assert stats.incoming == 3  # noqa: PLR2004
-        assert stats.in_progress == 3  # noqa: PLR2004
+        assert stats.queued + stats.in_progress == 3  # noqa: PLR2004
+        assert stats.completed == 0
 
 
 @pytest.mark.asyncio

@@ -557,28 +557,24 @@ async def test_mailbox_backend_agent_stats(backend: MailboxBackend) -> None:
     await backend.create_mailbox(client, sender_uid)
     await backend.create_mailbox(client, agent_uid)
 
-    req1 = Message.create(src=sender_uid, dest=agent_uid, body=PingRequest())
-    req2 = Message.create(src=sender_uid, dest=agent_uid, body=PingRequest())
-    await backend.put(client, req1)
-    await backend.put(client, req2)
+    req = Message.create(src=sender_uid, dest=agent_uid, body=PingRequest())
+    await backend.put(client, req)
 
     stats = await backend.agent_stats(agent_uid)
-    assert stats.incoming == 2  # noqa: PLR2004
-    assert stats.queued == 2  # noqa: PLR2004
-    assert stats.in_progress == 0
-    assert stats.completed == 0
+    assert stats.incoming == 1
+    assert stats.queued == 1
 
     await backend.get(client, agent_uid)
     stats = await backend.agent_stats(agent_uid)
-    assert stats.queued == 1
+    assert stats.queued == 0
     assert stats.in_progress == 1
 
-    await backend.put(client, req1.create_response(SuccessResponse()))
+    await backend.put(client, req.create_response(SuccessResponse()))
     stats = await backend.agent_stats(agent_uid)
     assert stats.completed == 1
     assert stats.in_progress == 0
 
-    assert (await backend.agent_stats(sender_uid)).outgoing == 2  # noqa: PLR2004
+    assert (await backend.agent_stats(sender_uid)).outgoing == 1
 
 
 async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:

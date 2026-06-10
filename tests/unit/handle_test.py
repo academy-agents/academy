@@ -577,35 +577,36 @@ async def test_handle_covariance(
 
 @pytest.mark.asyncio
 async def test_handle_agent_stats(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
+    factory: ExchangeFactory[Any],
 ) -> None:
-    registration = await exchange_client.register_agent(SleepAgent)
-    src = exchange_client.client_id
+    async with await factory.create_user_client() as exchange_client:
+        registration = await exchange_client.register_agent(SleepAgent)
+        src = exchange_client.client_id
 
-    for _ in range(3):
-        await exchange_client.send(
-            Message.create(
-                src=src,
-                dest=registration.agent_id,
-                body=ActionRequest(
-                    action='sleep',
-                    pargs=(TEST_SLEEP_INTERVAL,),
-                    serialization=SerializationStrategy.PICKLE,
+        for _ in range(3):
+            await exchange_client.send(
+                Message.create(
+                    src=src,
+                    dest=registration.agent_id,
+                    body=ActionRequest(
+                        action='sleep',
+                        pargs=(TEST_SLEEP_INTERVAL,),
+                        serialization=SerializationStrategy.PICKLE,
+                    ),
                 ),
-            ),
-        )
+            )
 
-    async with Runtime(
-        SleepAgent(),
-        exchange_factory=exchange_client.factory(),
-        registration=registration,
-    ):
-        handle = Handle(registration.agent_id)
-        stats = await handle.agent_stats()
-        assert isinstance(stats, AgentStats)
-        assert stats.incoming == 3  # noqa: PLR2004
-        assert stats.queued + stats.in_progress == 3  # noqa: PLR2004
-        assert stats.completed == 0
+        async with Runtime(
+            SleepAgent(),
+            exchange_factory=exchange_client.factory(),
+            registration=registration,
+        ):
+            handle = Handle(registration.agent_id)
+            stats = await handle.agent_stats()
+            assert isinstance(stats, AgentStats)
+            assert stats.incoming == 3  # noqa: PLR2004
+            assert stats.queued + stats.in_progress == 3  # noqa: PLR2004
+            assert stats.completed == 0
 
 
 @pytest.mark.asyncio

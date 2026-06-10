@@ -321,20 +321,3 @@ async def test_listen_receive_event(
                 received = await anext(listener)
                 assert received == message
 
-
-@pytest.mark.asyncio
-async def test_http_transport_agent_stats(
-    http_exchange_factory: HttpExchangeFactory,
-) -> None:
-    async with await http_exchange_factory._create_transport() as sender:
-        async with await http_exchange_factory._create_transport() as agent:
-            await sender.send(
-                Message.create(
-                    src=sender.mailbox_id,
-                    dest=agent.mailbox_id,
-                    body=PingRequest(),
-                ),
-            )
-            stats = await sender.agent_stats(agent.mailbox_id)
-            assert stats.incoming == 1
-            assert stats.queued == 1

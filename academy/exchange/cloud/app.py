@@ -290,6 +290,18 @@ async def _agent_stats_route(request: Request) -> Response:
     return json_response(dataclasses.asdict(stats))
 
 
+@exception_to_response('heartbeat')
+async def _update_heartbeat_route(request: Request) -> Response:
+    data = await request.json()
+    manager: MailboxBackend = request.app[MANAGER_KEY]
+    raw_mailbox_id = data['mailbox']
+    mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
+        raw_mailbox_id,
+    )
+    await manager.update_heartbeat(mailbox_id)
+    return Response(status=StatusCode.OKAY.value)
+
+
 @exception_to_response('discover')
 async def _discover_route(request: Request) -> Response:
     data = await request.json()
@@ -341,7 +353,6 @@ async def _send_message_route(request: Request) -> Response:
             'academy.message_tag': message.tag,
         },
     )
-    await manager.update_heartbeat(message.src)
     return Response(status=StatusCode.OKAY.value)
 
 
@@ -388,7 +399,6 @@ async def _listen_mailbox_route(
     async with sse_response(request) as response:
         while response.is_connected():  # pragma: no branch
             try:
-                await manager.update_heartbeat(mailbox_id)
                 message = await manager.get(
                     client,
                     mailbox_id,
@@ -441,7 +451,6 @@ async def _recv_message_route(request: Request) -> Response:
 
     client = get_client_info(request)
     try:
-        await manager.update_heartbeat(mailbox_id)
         message = await manager.get(client, mailbox_id, timeout=timeout)
     except MailboxTerminatedError:
         # We catch this exception separate from above and log it at a lower
@@ -552,6 +561,7 @@ def create_app(
     app.router.add_get('/mailbox/listen', _listen_mailbox_route)
     app.router.add_get('/mailbox/heartbeat', _get_heartbeat_route)
     app.router.add_get('/mailbox/stats', _agent_stats_route)
+    app.router.add_post('/mailbox/heartbeat', _update_heartbeat_route)
 
     return app
 

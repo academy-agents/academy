@@ -609,22 +609,6 @@ async def test_handle_agent_stats(
 
 
 @pytest.mark.asyncio
-async def test_handle_get_agent_stats_action(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-    registration = await exchange_client.register_agent(EmptyAgent)
-    async with Runtime(
-        EmptyAgent(),
-        exchange_factory=exchange_client.factory(),
-        registration=registration,
-    ):
-        handle = Handle(registration.agent_id)
-        stats: AgentStats = await handle.action('get_agent_stats')
-        assert isinstance(stats, AgentStats)
-        assert stats.incoming >= 0
-
-
-@pytest.mark.asyncio
 async def test_handle_respects_deserialize_allow_list(
     http_exchange_factory: HttpExchangeFactory,
 ):

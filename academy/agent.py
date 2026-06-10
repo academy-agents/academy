@@ -38,8 +38,6 @@ if TYPE_CHECKING:
     from academy.exchange import AgentExchangeClient
     from academy.identifier import AgentId
 
-from academy.stats import AgentStats
-
 AgentT = TypeVar('AgentT', bound='Agent')
 """Type variable bound to [`Agent`][academy.agent.Agent]."""
 
@@ -812,11 +810,4 @@ class Agent:
         return AgentDescription(
             description=self.__doc__,
             actions=actions,
-        )
-
-    @action
-    async def get_agent_stats(self) -> AgentStats:
-        """Return live metrics for this agent from the exchange."""
-        return await self.agent_context.exchange_client.agent_stats(
-            self.agent_id,
         )

@@ -402,7 +402,6 @@ async def test_agent_description() -> None:
     assert len(description.actions) == 2  # noqa: PLR2004
 
     assert 'agent_describe' in description.actions
-    assert 'agent_describe' in description.actions
     assert 'test' in description.actions
     action_description = description.actions['test']
     assert action_description.doc == 'This is a test method.'

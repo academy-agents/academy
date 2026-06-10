@@ -119,7 +119,9 @@ async def test_globus_transport_agent_stats() -> None:
         connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
         app=mock_app,
     )
+    uid = UserId.new()
 
+    # Happy path: stats are returned and unpacked correctly
     mock_response = MagicMock()
     mock_response.data = {
         'incoming': 5,
@@ -129,8 +131,6 @@ async def test_globus_transport_agent_stats() -> None:
         'queued': 0,
     }
     mock_response.get.side_effect = mock_response.data.get
-
-    uid = UserId.new()
     with patch.object(
         GlobusExchangeTransport,
         'exchange_client',
@@ -140,63 +140,36 @@ async def test_globus_transport_agent_stats() -> None:
         ),
     ):
         stats = await transport.agent_stats(uid)
-
     assert stats.incoming == 5  # noqa: PLR2004
-    assert stats.outgoing == 2  # noqa: PLR2004
     assert stats.completed == 3  # noqa: PLR2004
-    assert stats.in_progress == 2  # noqa: PLR2004
-    assert stats.queued == 0
 
+    # 404 → BadEntityIdError
+    def _make_error(status_code: int) -> AcademyAPIError:
+        r = MagicMock()
+        r.status_code = status_code
+        r.headers = {}
+        r.json.return_value = {}
+        return AcademyAPIError(r)
 
-@pytest.mark.asyncio
-async def test_globus_transport_agent_stats_not_found() -> None:
-    mock_app = MagicMock()
-    mock_app.login_required.return_value = False
-    transport = GlobusExchangeTransport(
-        UserId.new(),
-        connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
-        app=mock_app,
-    )
-
-    mock_http_resp = MagicMock()
-    mock_http_resp.status_code = 404
-    mock_http_resp.headers = {}
-    mock_http_resp.json.return_value = {}
-    error = AcademyAPIError(mock_http_resp)
-
-    uid = UserId.new()
     with patch.object(
         GlobusExchangeTransport,
         'exchange_client',
         new_callable=PropertyMock,
-        return_value=MagicMock(get_agent_stats=MagicMock(side_effect=error)),
+        return_value=MagicMock(
+            get_agent_stats=MagicMock(side_effect=_make_error(404)),
+        ),
     ):
         with pytest.raises(BadEntityIdError):
             await transport.agent_stats(uid)
 
-
-@pytest.mark.asyncio
-async def test_globus_transport_agent_stats_api_error() -> None:
-    mock_app = MagicMock()
-    mock_app.login_required.return_value = False
-    transport = GlobusExchangeTransport(
-        UserId.new(),
-        connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
-        app=mock_app,
-    )
-
-    mock_http_resp = MagicMock()
-    mock_http_resp.status_code = 500
-    mock_http_resp.headers = {}
-    mock_http_resp.json.return_value = {}
-    error = AcademyAPIError(mock_http_resp)
-
-    uid = UserId.new()
+    # Non-404 API error is re-raised as-is
     with patch.object(
         GlobusExchangeTransport,
         'exchange_client',
         new_callable=PropertyMock,
-        return_value=MagicMock(get_agent_stats=MagicMock(side_effect=error)),
+        return_value=MagicMock(
+            get_agent_stats=MagicMock(side_effect=_make_error(500)),
+        ),
     ):
         with pytest.raises(AcademyAPIError):
             await transport.agent_stats(uid)

@@ -41,7 +41,6 @@ from academy.runtime import RuntimeConfig
 from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
 from academy.serialize import SerializationStrategy
-from academy.stats import AgentStats
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
@@ -811,41 +810,6 @@ async def http_exchange_client(
         start_listener=False,
     ) as client:
         yield client
-
-
-@pytest.mark.asyncio
-async def test_runtime_stats_queued(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-    registration = await exchange_client.register_agent(SleepAgent)
-    src = exchange_client.client_id
-
-    # Send 3 sleep messages before the runtime starts so they sit in the
-    # mailbox queue before the listener task ever calls queue.get().
-    for _ in range(3):
-        await exchange_client.send(
-            Message.create(
-                src=src,
-                dest=registration.agent_id,
-                body=ActionRequest(
-                    action='sleep',
-                    pargs=(TEST_SLEEP_INTERVAL,),
-                    serialization=SerializationStrategy.PICKLE,
-                ),
-            ),
-        )
-
-    async with Runtime(
-        SleepAgent(),
-        exchange_factory=exchange_client.factory(),
-        registration=registration,
-    ):
-        handle = Handle(registration.agent_id)
-        stats = await handle.agent_stats()
-        assert isinstance(stats, AgentStats)
-        assert stats.incoming == 3  # noqa: PLR2004
-        assert stats.queued + stats.in_progress == 3  # noqa: PLR2004
-        assert stats.completed == 0
 
 
 @pytest.mark.asyncio

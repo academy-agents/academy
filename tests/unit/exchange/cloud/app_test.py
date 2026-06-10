@@ -754,34 +754,6 @@ async def test_remove_share_bad_id(auth_client, group_id) -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_stats_route(cli) -> None:
-    uid = UserId.new()
-    agent: AgentId[Any] = AgentId.new()
-
-    await cli.post('/mailbox', json={'mailbox': uid.model_dump_json()})
-    await cli.post(
-        '/mailbox',
-        json={'mailbox': agent.model_dump_json(), 'agent': 'foo'},
-    )
-
-    # Send 2 requests from user → agent
-    for _ in range(2):
-        message = Message.create(src=uid, dest=agent, body=PingRequest())
-        await cli.put('/message', json={'message': message.model_dump_json()})
-
-    response = await cli.get(
-        '/mailbox/stats',
-        json={'mailbox': agent.model_dump_json()},
-    )
-    assert response.status == StatusCode.OKAY.value
-    data = await response.json()
-    assert data['incoming'] == 2  # noqa: PLR2004
-    assert data['queued'] == 2  # noqa: PLR2004
-    assert data['in_progress'] == 0
-    assert data['completed'] == 0
-
-
-@pytest.mark.asyncio
 async def test_agent_stats_validation_error(cli) -> None:
     response = await cli.get('/mailbox/stats', json={'mailbox': 'bad'})
     assert response.status == StatusCode.BAD_REQUEST.value

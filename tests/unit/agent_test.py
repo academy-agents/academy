@@ -22,7 +22,6 @@ from academy.exchange import UserExchangeClient
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.manager import Manager
-from academy.stats import AgentStats
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import WaitAgent
@@ -56,7 +55,6 @@ async def test_agent_context_initialized_ok(
             exchange_client=client,
             executor=None,  # type: ignore[arg-type]
             shutdown_event=asyncio.Event(),
-            stats=AgentStats(),
         )
         agent._agent_set_context(context)
 
@@ -100,7 +98,6 @@ async def test_agent_run_sync() -> None:
             exchange_client=None,  # type: ignore[arg-type]
             executor=executor,
             shutdown_event=asyncio.Event(),
-            stats=AgentStats(),
         )
         agent._agent_set_context(context)
 
@@ -116,7 +113,6 @@ async def test_agent_run_sync_overloaded_warning(caplog) -> None:
             exchange_client=None,  # type: ignore[arg-type]
             executor=executor,
             shutdown_event=asyncio.Event(),
-            stats=AgentStats(),
         )
         agent._agent_set_context(context)
 

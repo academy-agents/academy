@@ -12,9 +12,11 @@ import pytest
 import responses
 from globus_sdk.testing import load_response
 
+from academy.exception import BadEntityIdError
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.globus import _AcademyConnectionInfo
 from academy.exchange.cloud.globus import _PendingRegistration
+from academy.exchange.cloud.globus import AcademyAPIError
 from academy.exchange.cloud.globus import AcademyGlobusClient
 from academy.exchange.cloud.globus import GlobusAgentRegistration
 from academy.exchange.cloud.globus import GlobusExchangeTransport
@@ -22,6 +24,7 @@ from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message
 from academy.message import PingRequest
+from academy.stats import AgentStats
 from testing.agents import EmptyAgent
 from testing.constant import TEST_WAIT_TIMEOUT
 
@@ -87,6 +90,19 @@ def test_globus_client_status(academy_client: AcademyGlobusClient):
     assert 'status' in response.data
 
 
+def test_globus_client_get_agent_stats(academy_client: AcademyGlobusClient):
+    load_response(AcademyGlobusClient.get_agent_stats)
+    uid = UserId.new()
+    response = academy_client.get_agent_stats(uid)
+    assert response.http_status == StatusCode.OKAY.value
+    stats = AgentStats(**response.data)
+    assert stats.incoming == 3  # noqa: PLR2004
+    assert stats.outgoing == 1
+    assert stats.completed == 2  # noqa: PLR2004
+    assert stats.in_progress == 1
+    assert stats.queued == 0
+
+
 def test_globus_client_terminate(academy_client: AcademyGlobusClient):
     load_response(AcademyGlobusClient.terminate)
     agent: AgentId[Any] = AgentId.new()
@@ -94,34 +110,96 @@ def test_globus_client_terminate(academy_client: AcademyGlobusClient):
     assert response.http_status == StatusCode.OKAY.value
 
 
-def test_globus_client_get_inflight_messages(
-    academy_client: AcademyGlobusClient,
-):
-    load_response(AcademyGlobusClient.get_inflight_messages)
+@pytest.mark.asyncio
+async def test_globus_transport_agent_stats() -> None:
+    mock_app = MagicMock()
+    mock_app.login_required.return_value = False
+    transport = GlobusExchangeTransport(
+        UserId.new(),
+        connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
+        app=mock_app,
+    )
+
+    mock_response = MagicMock()
+    mock_response.data = {
+        'incoming': 5,
+        'outgoing': 2,
+        'completed': 3,
+        'in_progress': 2,
+        'queued': 0,
+    }
+    mock_response.get.side_effect = mock_response.data.get
+
     uid = UserId.new()
-    response = academy_client.get_inflight_messages(uid)
-    assert response.http_status == StatusCode.OKAY.value
-    assert 'count' in response.data
+    with patch.object(
+        GlobusExchangeTransport,
+        'exchange_client',
+        new_callable=PropertyMock,
+        return_value=MagicMock(
+            get_agent_stats=MagicMock(return_value=mock_response),
+        ),
+    ):
+        stats = await transport.agent_stats(uid)
+
+    assert stats.incoming == 5  # noqa: PLR2004
+    assert stats.outgoing == 2  # noqa: PLR2004
+    assert stats.completed == 3  # noqa: PLR2004
+    assert stats.in_progress == 2  # noqa: PLR2004
+    assert stats.queued == 0
 
 
 @pytest.mark.asyncio
-async def test_globus_transport_inflight_messages() -> None:
-    uid = UserId.new()
+async def test_globus_transport_agent_stats_not_found() -> None:
+    mock_app = MagicMock()
+    mock_app.login_required.return_value = False
     transport = GlobusExchangeTransport(
-        uid,
+        UserId.new(),
         connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
+        app=mock_app,
     )
-    mock_client = MagicMock()
-    mock_client.get_inflight_messages.return_value = {'count': 0}
+
+    mock_http_resp = MagicMock()
+    mock_http_resp.status_code = 404
+    mock_http_resp.headers = {}
+    mock_http_resp.json.return_value = {}
+    error = AcademyAPIError(mock_http_resp)
+
+    uid = UserId.new()
     with patch.object(
-        type(transport),
+        GlobusExchangeTransport,
         'exchange_client',
         new_callable=PropertyMock,
-        return_value=mock_client,
+        return_value=MagicMock(get_agent_stats=MagicMock(side_effect=error)),
     ):
-        count = await transport.inflight_messages(uid)
-        assert count == 0
-    transport.executor.shutdown(wait=False)
+        with pytest.raises(BadEntityIdError):
+            await transport.agent_stats(uid)
+
+
+@pytest.mark.asyncio
+async def test_globus_transport_agent_stats_api_error() -> None:
+    mock_app = MagicMock()
+    mock_app.login_required.return_value = False
+    transport = GlobusExchangeTransport(
+        UserId.new(),
+        connection_info=_AcademyConnectionInfo(project_id=uuid.uuid4()),
+        app=mock_app,
+    )
+
+    mock_http_resp = MagicMock()
+    mock_http_resp.status_code = 500
+    mock_http_resp.headers = {}
+    mock_http_resp.json.return_value = {}
+    error = AcademyAPIError(mock_http_resp)
+
+    uid = UserId.new()
+    with patch.object(
+        GlobusExchangeTransport,
+        'exchange_client',
+        new_callable=PropertyMock,
+        return_value=MagicMock(get_agent_stats=MagicMock(side_effect=error)),
+    ):
+        with pytest.raises(AcademyAPIError):
+            await transport.agent_stats(uid)
 
 
 @pytest.mark.asyncio

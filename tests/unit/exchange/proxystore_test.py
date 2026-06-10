@@ -193,5 +193,3 @@ async def test_proxystore_heartbeat(
         heartbeat = await transport.heartbeat_status(transport.mailbox_id)
         assert heartbeat is not None
         assert heartbeat < 1.0
-
-        assert await transport.inflight_messages(transport.mailbox_id) == 0

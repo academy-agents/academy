@@ -20,6 +20,7 @@ with HttpExchangeFactory(
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import enum
 import functools
 import logging
@@ -277,16 +278,16 @@ async def _get_heartbeat_route(request: Request) -> Response:
     return json_response({'heartbeat': heartbeat})
 
 
-@exception_to_response('inflight')
-async def _inflight_messages_route(request: Request) -> Response:
+@exception_to_response('agent_stats')
+async def _agent_stats_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
     raw_mailbox_id = data['mailbox']
     mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
         raw_mailbox_id,
     )
-    count = await manager.inflight_messages(mailbox_id)
-    return json_response({'count': count})
+    stats = await manager.agent_stats(mailbox_id)
+    return json_response(dataclasses.asdict(stats))
 
 
 @exception_to_response('discover')
@@ -550,7 +551,7 @@ def create_app(
     app.router.add_get('/discover', _discover_route)
     app.router.add_get('/mailbox/listen', _listen_mailbox_route)
     app.router.add_get('/mailbox/heartbeat', _get_heartbeat_route)
-    app.router.add_get('/mailbox/inflight', _inflight_messages_route)
+    app.router.add_get('/mailbox/stats', _agent_stats_route)
 
     return app
 

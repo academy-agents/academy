@@ -284,14 +284,6 @@ async def test_sse_event_parse_unexpected_field(
         assert 'unexpected field in event stream' in caplog.text
 
 
-@pytest.mark.asyncio
-async def test_http_transport_inflight_messages(
-    http_exchange_factory: HttpExchangeFactory,
-) -> None:
-    async with await http_exchange_factory._create_transport() as transport:
-        assert await transport.inflight_messages(UserId.new()) == 0
-
-
 async def test_listen_receive_event(
     http_exchange_factory: HttpExchangeFactory,
 ) -> None:
@@ -328,3 +320,25 @@ async def test_listen_receive_event(
             for _ in range(3):
                 received = await anext(listener)
                 assert received == message
+
+
+@pytest.mark.asyncio
+async def test_http_transport_agent_stats(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    async with await http_exchange_factory._create_transport() as sender:
+        async with await http_exchange_factory._create_transport() as agent:
+            # Send 2 requests from sender → agent before checking stats
+            for _ in range(2):
+                message = Message.create(
+                    src=sender.mailbox_id,
+                    dest=agent.mailbox_id,
+                    body=PingRequest(),
+                )
+                await sender.send(message)
+
+            stats = await sender.agent_stats(agent.mailbox_id)
+            assert stats.incoming == 2  # noqa: PLR2004
+            assert stats.queued == 2  # noqa: PLR2004
+            assert stats.in_progress == 0
+            assert stats.completed == 0

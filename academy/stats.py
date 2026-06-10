@@ -1,34 +1,23 @@
 from __future__ import annotations
 
 import dataclasses
-import time
-from datetime import timedelta
-
-from academy.identifier import EntityId
 
 
 @dataclasses.dataclass
 class AgentStats:
     """Runtime metrics for a running agent."""
 
-    completed_messages: dict[EntityId, int] = dataclasses.field(
-        default_factory=dict,
-    )
+    incoming: int = 0
+    """Total requests received (completed + in_progress + queued)."""
 
-    inflight_messages: int = 0
+    outgoing: int = 0
+    """Total requests sent by this agent to other agents."""
 
-    _start_time: float | None = dataclasses.field(
-        default=None,
-        init=False,
-        repr=False,
-    )
+    completed: int = 0
+    """Requests fully processed (response sent back to caller)."""
 
-    @property
-    def lifetime(self) -> timedelta | None:
-        """Time elapsed since the agent finished startup.
+    in_progress: int = 0
+    """Requests dequeued and actively being executed."""
 
-        Returns ``None`` if the agent has not yet started.
-        """
-        if self._start_time is None:
-            return None
-        return timedelta(seconds=time.monotonic() - self._start_time)
+    queued: int = 0
+    """Requests waiting in the mailbox queue, not yet dequeued."""

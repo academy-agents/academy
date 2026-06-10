@@ -23,6 +23,7 @@ from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -203,8 +204,8 @@ class ProxyStoreExchangeTransport(
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         return await self.transport.heartbeat_status(uid)
 
-    async def inflight_messages(self, uid: EntityId) -> int:
-        return await self.transport.inflight_messages(uid)
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        return await self.transport.agent_stats(uid)
 
 
 class ProxyStoreExchangeFactory(

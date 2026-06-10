@@ -12,7 +12,6 @@ from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
-from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import AgentT
@@ -76,5 +75,3 @@ class AgentContext(Generic[AgentT]):
     """Thread-pool executor used for running synchronous tasks."""
     shutdown_event: asyncio.Event
     """Shutdown event used to signal the agent to shutdown."""
-    stats: AgentStats
-    """Live runtime metrics for this agent."""

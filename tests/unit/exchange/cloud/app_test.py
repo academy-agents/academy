@@ -318,48 +318,6 @@ async def test_send_mailbox_message_too_large(cli) -> None:
 
 
 @pytest.mark.asyncio
-async def test_inflight_messages_route(cli) -> None:
-    uid = UserId.new()
-    aid: AgentId[Any] = AgentId.new()
-    message = Message.create(src=uid, dest=aid, body=PingRequest())
-
-    # Create both mailboxes
-    response = await cli.post(
-        '/mailbox',
-        json={'mailbox': uid.model_dump_json()},
-    )
-    assert response.status == StatusCode.OKAY.value
-    response = await cli.post(
-        '/mailbox',
-        json={'mailbox': aid.model_dump_json(), 'agent': 'foo'},
-    )
-    assert response.status == StatusCode.OKAY.value
-
-    # Initially zero inflight messages
-    response = await cli.get(
-        '/mailbox/inflight',
-        json={'mailbox': aid.model_dump_json()},
-    )
-    assert response.status == StatusCode.OKAY.value
-    assert (await response.json())['count'] == 0
-
-    # Send a message — it sits in the queue until consumed
-    response = await cli.put(
-        '/message',
-        json={'message': message.model_dump_json()},
-    )
-    assert response.status == StatusCode.OKAY.value
-
-    # One message is now inflight
-    response = await cli.get(
-        '/mailbox/inflight',
-        json={'mailbox': aid.model_dump_json()},
-    )
-    assert response.status == StatusCode.OKAY.value
-    assert (await response.json())['count'] == 1
-
-
-@pytest.mark.asyncio
 async def test_create_app_explicit_config() -> None:
     app = create_app(ExchangeServingConfig())
     async with TestClient(TestServer(app)) as client:
@@ -793,6 +751,41 @@ async def test_remove_share_bad_id(auth_client, group_id) -> None:
         headers={'Authorization': 'Bearer user_1'},
     )
     assert response.status == StatusCode.NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_agent_stats_route(cli) -> None:
+    uid = UserId.new()
+    agent: AgentId[Any] = AgentId.new()
+
+    await cli.post('/mailbox', json={'mailbox': uid.model_dump_json()})
+    await cli.post(
+        '/mailbox',
+        json={'mailbox': agent.model_dump_json(), 'agent': 'foo'},
+    )
+
+    # Send 2 requests from user → agent
+    for _ in range(2):
+        message = Message.create(src=uid, dest=agent, body=PingRequest())
+        await cli.put('/message', json={'message': message.model_dump_json()})
+
+    response = await cli.get(
+        '/mailbox/stats',
+        json={'mailbox': agent.model_dump_json()},
+    )
+    assert response.status == StatusCode.OKAY.value
+    data = await response.json()
+    assert data['incoming'] == 2  # noqa: PLR2004
+    assert data['queued'] == 2  # noqa: PLR2004
+    assert data['in_progress'] == 0
+    assert data['completed'] == 0
+
+
+@pytest.mark.asyncio
+async def test_agent_stats_validation_error(cli) -> None:
+    response = await cli.get('/mailbox/stats', json={'mailbox': 'bad'})
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert 'Missing or invalid field' in await response.text()
 
 
 async def test_heartbeat_validation_error(cli) -> None:

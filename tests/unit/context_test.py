@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import time
-from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -11,7 +9,6 @@ from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.identifier import AgentId
 from academy.identifier import UserId
-from academy.stats import AgentStats
 from testing.agents import EmptyAgent
 
 
@@ -60,24 +57,3 @@ async def test_action_context_user_source(
 
         with pytest.raises(TypeError):
             _ = context.source_handle
-
-
-def test_agent_stats() -> None:
-    stats = AgentStats()
-
-    assert stats.lifetime is None
-    stats._start_time = time.monotonic()
-    assert isinstance(stats.lifetime, timedelta)
-
-    assert stats.inflight_messages == 0
-    stats.inflight_messages = 3
-    assert stats.inflight_messages == 3  # noqa: PLR2004
-
-    assert stats.completed_messages == {}
-    source_a: AgentId[EmptyAgent] = AgentId.new()
-    source_b: AgentId[EmptyAgent] = AgentId.new()
-    count_a, count_b = 3, 7
-    stats.completed_messages[source_a] = count_a
-    stats.completed_messages[source_b] = count_b
-    assert stats.completed_messages[source_a] == count_a
-    assert stats.completed_messages[source_b] == count_b

@@ -25,6 +25,7 @@ from academy.message import AcademyErrorResponse
 from academy.message import ErrorCode
 from academy.message import Header
 from academy.message import Message
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -238,14 +239,15 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         """
         ...
 
-    async def inflight_messages(self, uid: EntityId) -> int:
-        """Return the number of messages queued but not yet consumed.
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        """Return live exchange-level metrics for an agent.
 
         Args:
-            uid: Entity identifier of the mailbox to check.
+            uid: Entity identifier of the agent mailbox.
 
         Returns:
-            Count of messages waiting in the mailbox queue.
+            AgentStats with incoming, outgoing, completed, in_progress,
+            and queued counts derived directly from exchange state.
         """
         ...
 

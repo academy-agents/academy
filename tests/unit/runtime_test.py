@@ -803,75 +803,6 @@ async def test_runtime_sets_default_serializer(
         runtime.signal_shutdown()
 
 
-@pytest.mark.asyncio
-async def test_runtime_stats_lifetime_set_after_startup(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-    registration = await exchange_client.register_agent(EmptyAgent)
-
-    async with Runtime(
-        EmptyAgent(),
-        exchange_factory=exchange_client.factory(),
-        registration=registration,
-    ) as runtime:
-        stats = await runtime.action(
-            'agent_stats',
-            exchange_client.client_id,
-            args=(),
-            kwargs={},
-        )
-        assert isinstance(stats, AgentStats)
-        assert stats.lifetime is not None
-        assert stats.inflight_messages == 0
-
-
-@pytest.mark.asyncio
-async def test_runtime_stats_completed_messages(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-    registration = await exchange_client.register_agent(CounterAgent)
-    await exchange_client._stop_listener_task()
-    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
-    src = exchange_client.client_id
-
-    async with Runtime(
-        CounterAgent(),
-        exchange_factory=exchange_client.factory(),
-        registration=registration,
-    ) as runtime:
-        for _ in range(2):
-            await exchange_client.send(
-                Message.create(
-                    src=src,
-                    dest=runtime.agent_id,
-                    body=ActionRequest(
-                        action='add',
-                        pargs=(1,),
-                        serialization=SerializationStrategy.PICKLE,
-                    ),
-                ),
-            )
-            await anext(listener)
-
-        stats = await runtime.action('agent_stats', src, args=(), kwargs={})
-        assert stats.completed_messages.get(src, 0) == 2  # noqa: PLR2004
-
-        await exchange_client.send(
-            Message.create(
-                src=src,
-                dest=runtime.agent_id,
-                body=ActionRequest(
-                    action='nonexistent',
-                    serialization=SerializationStrategy.PICKLE,
-                ),
-            ),
-        )
-        assert isinstance((await anext(listener)).get_body(), ErrorResponse)
-
-        stats = await runtime.action('agent_stats', src, args=(), kwargs={})
-        assert stats.completed_messages.get(src, 0) == 2  # noqa: PLR2004
-
-
 @pytest.fixture
 async def http_exchange_client(
     http_exchange_factory: HttpExchangeFactory,
@@ -883,26 +814,37 @@ async def http_exchange_client(
 
 
 @pytest.mark.asyncio
-async def test_runtime_stats_inflight_messages(
+async def test_runtime_stats_queued(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
-    agent_id = (await exchange_client.register_agent(SleepAgent)).agent_id
+    registration = await exchange_client.register_agent(SleepAgent)
     src = exchange_client.client_id
 
-    for _ in range(2):
+    # Send 3 sleep messages before the runtime starts so they sit in the
+    # mailbox queue before the listener task ever calls queue.get().
+    for _ in range(3):
         await exchange_client.send(
             Message.create(
                 src=src,
-                dest=agent_id,
+                dest=registration.agent_id,
                 body=ActionRequest(
                     action='sleep',
-                    pargs=(0,),
+                    pargs=(TEST_SLEEP_INTERVAL,),
                     serialization=SerializationStrategy.PICKLE,
                 ),
             ),
         )
 
-    assert await exchange_client.inflight_messages(agent_id) == 2  # noqa: PLR2004
+    async with Runtime(
+        SleepAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ):
+        handle = Handle(registration.agent_id)
+        stats = await handle.agent_stats()
+        assert isinstance(stats, AgentStats)
+        assert stats.incoming == 3  # noqa: PLR2004
+        assert stats.in_progress == 3  # noqa: PLR2004
 
 
 @pytest.mark.asyncio

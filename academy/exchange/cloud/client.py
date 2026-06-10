@@ -45,6 +45,7 @@ from academy.identifier import UserId
 from academy.message import Message
 from academy.serialize import NoPickleMixin
 from academy.socket import wait_connection
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -332,13 +333,14 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, uid)
             return (await response.json())['heartbeat']
 
-    async def inflight_messages(self, uid: EntityId) -> int:
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
         async with self._session.get(
-            f'{self._info.url}/mailbox/inflight',
+            f'{self._info.url}/mailbox/stats',
             json={'mailbox': uid.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id, uid)
-            return (await response.json())['count']
+            data = await response.json()
+            return AgentStats(**data)
 
 
 class HttpExchangeConsole:

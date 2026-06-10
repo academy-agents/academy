@@ -549,6 +549,59 @@ async def test_mailbox_backend_response_without_request(
         assert tracked is None
 
 
+@pytest.mark.asyncio
+async def test_mailbox_backend_agent_stats(backend: MailboxBackend) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    agent_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, agent_uid)
+
+    # Zero state before any messages
+    stats = await backend.agent_stats(agent_uid)
+    assert stats.incoming == 0
+    assert stats.queued == 0
+    assert stats.in_progress == 0
+    assert stats.completed == 0
+    assert stats.outgoing == 0
+
+    # Put 2 requests from sender → agent: both queued, none in-progress
+    req1 = Message.create(src=sender_uid, dest=agent_uid, body=PingRequest())
+    req2 = Message.create(src=sender_uid, dest=agent_uid, body=PingRequest())
+    await backend.put(client, req1)
+    await backend.put(client, req2)
+
+    stats = await backend.agent_stats(agent_uid)
+    assert stats.incoming == 2  # noqa: PLR2004
+    assert stats.queued == 2  # noqa: PLR2004
+    assert stats.in_progress == 0
+    assert stats.completed == 0
+    assert stats.outgoing == 0
+
+    # Dequeue one: pending stays 2, queued drops to 1, in_progress rises to 1
+    await backend.get(client, agent_uid)
+
+    stats = await backend.agent_stats(agent_uid)
+    assert stats.incoming == 2  # noqa: PLR2004
+    assert stats.queued == 1
+    assert stats.in_progress == 1
+    assert stats.completed == 0
+
+    # Send response for dequeued request: pending drops, completed rises
+    resp = req1.create_response(SuccessResponse())
+    await backend.put(client, resp)
+
+    stats = await backend.agent_stats(agent_uid)
+    assert stats.incoming == 2  # noqa: PLR2004
+    assert stats.queued == 1
+    assert stats.in_progress == 0
+    assert stats.completed == 1
+
+    # Sender's outgoing reflects requests it sent
+    sender_stats = await backend.agent_stats(sender_uid)
+    assert sender_stats.outgoing == 2  # noqa: PLR2004
+
+
 async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     uid = UserId.new()
     client = ClientInfo(str(uid), set())
@@ -568,20 +621,3 @@ async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     elapsed = time.time() - start
     assert heartbeat is not None
     assert heartbeat < elapsed
-
-
-async def test_mailbox_backend_inflight_messages(
-    backend: MailboxBackend,
-) -> None:
-    uid = UserId.new()
-    client = ClientInfo(str(uid), set())
-
-    assert await backend.inflight_messages(uid) == 0
-
-    await backend.create_mailbox(client, uid)
-    message = Message.create(src=uid, dest=uid, body=PingRequest())
-    await backend.put(client, message)
-    assert await backend.inflight_messages(uid) == 1
-
-    assert await backend.get(client, uid) == message
-    assert await backend.inflight_messages(uid) == 0

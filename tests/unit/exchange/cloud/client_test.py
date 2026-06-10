@@ -320,4 +320,3 @@ async def test_listen_receive_event(
             for _ in range(3):
                 received = await anext(listener)
                 assert received == message
-

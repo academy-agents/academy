@@ -549,6 +549,34 @@ async def test_mailbox_backend_response_without_request(
         assert tracked is None
 
 
+@pytest.mark.asyncio
+async def test_mailbox_backend_agent_stats(backend: MailboxBackend) -> None:
+    client = ClientInfo(str(uuid.uuid4()), set())
+    sender_uid = UserId.new()
+    agent_uid = UserId.new()
+    await backend.create_mailbox(client, sender_uid)
+    await backend.create_mailbox(client, agent_uid)
+
+    req = Message.create(src=sender_uid, dest=agent_uid, body=PingRequest())
+    await backend.put(client, req)
+
+    stats = await backend.agent_stats(agent_uid)
+    assert stats.incoming == 1
+    assert stats.queued == 1
+
+    await backend.get(client, agent_uid)
+    stats = await backend.agent_stats(agent_uid)
+    assert stats.queued == 0
+    assert stats.in_progress == 1
+
+    await backend.put(client, req.create_response(SuccessResponse()))
+    stats = await backend.agent_stats(agent_uid)
+    assert stats.completed == 1
+    assert stats.in_progress == 0
+
+    assert (await backend.agent_stats(sender_uid)).outgoing == 1
+
+
 async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     uid = UserId.new()
     client = ClientInfo(str(uid), set())

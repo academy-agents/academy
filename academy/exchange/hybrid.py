@@ -55,6 +55,7 @@ from academy.socket import open_port
 from academy.socket import SimpleSocketServer
 from academy.socket import SocketClosedError
 from academy.socket import SocketPool
+from academy.stats import AgentStats
 from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
@@ -467,6 +468,9 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         now = await self.redis_current_time()
 
         return now - float(heartbeat_time.decode())
+
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        raise NotImplementedError
 
     async def _get_message_from_redis(self) -> None:
         # Block indefinitely with timeout=0

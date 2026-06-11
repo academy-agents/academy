@@ -108,6 +108,13 @@ class MockRedis:
         )
         return True
 
+    async def incr(self, key: bytes | str) -> int:
+        key = self._encode(key)
+        current = int(self.values[key]) if key in self.values else 0
+        new_value = current + 1
+        self.values[key] = str(new_value).encode()
+        return new_value
+
     async def get(
         self,
         key: bytes | str,
@@ -118,6 +125,9 @@ class MockRedis:
         elif key in self.lists:
             raise NotImplementedError()
         return None
+
+    async def llen(self, key: bytes | str) -> int:
+        return len(self.lists.get(self._encode(key), []))
 
     async def lrange(
         self,

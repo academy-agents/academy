@@ -35,6 +35,7 @@ from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import Header
 from academy.message import Message
+from academy.stats import AgentStats
 
 logger = logging.getLogger(__name__)
 
@@ -246,6 +247,10 @@ class MailboxBackend(Protocol):
         """
         ...
 
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        """Return live exchange-level metrics for an agent."""
+        ...
+
 
 class PythonBackend:
     """Mailbox backend using in-memory python data structures.
@@ -265,6 +270,8 @@ class PythonBackend:
         self._agents: dict[AgentId[Any], tuple[str, ...]] = {}
         self._locks: dict[EntityId, asyncio.Lock] = {}
         self._requests: dict[EntityId, dict[uuid.UUID, Header]] = {}
+        self._completions: dict[EntityId, int] = {}
+        self._outgoing: dict[EntityId, int] = {}
         self.message_size_limit = message_size_limit_kb * KB_TO_BYTES
         self.last_active: dict[EntityId, float] = {}
 
@@ -422,6 +429,23 @@ class PythonBackend:
 
         return time.time() - self.last_active[uid]
 
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        """Return live exchange-level metrics for an agent."""
+        queue = self._mailboxes.get(uid)
+        queued = queue.qsize() if queue is not None else 0
+        pending = len(self._requests.get(uid, {}))
+        completed = self._completions.get(uid, 0)
+        outgoing = self._outgoing.get(uid, 0)
+        in_progress = max(0, pending - queued)
+        incoming = completed + pending
+        return AgentStats(
+            incoming=incoming,
+            outgoing=outgoing,
+            completed=completed,
+            in_progress=in_progress,
+            queued=queued,
+        )
+
     async def discover(
         self,
         client: ClientInfo,
@@ -523,6 +547,9 @@ class PythonBackend:
             self._requests.setdefault(message.dest, {})[message.tag] = (
                 message.header
             )
+            self._outgoing[message.src] = (
+                self._outgoing.get(message.src, 0) + 1
+            )
             logger.debug(
                 'Tracking in-flight request: tag=%s src=%s dest=%s',
                 message.tag,
@@ -541,6 +568,9 @@ class PythonBackend:
             request_msg = self._requests[message.src].pop(message.tag)
             if not self._requests[message.src]:
                 del self._requests[message.src]
+            self._completions[message.src] = (
+                self._completions.get(message.src, 0) + 1
+            )
             logger.debug(
                 'Response received for in-flight request: '
                 'tag=%s src=%s dest=%s',
@@ -744,6 +774,12 @@ class RedisBackend:
 
     def _heartbeat_key(self, uid: EntityId) -> str:
         return f'heartbeat:{uid.uid}'
+
+    def _completions_key(self, uid: EntityId) -> str:
+        return f'completions:{uid.uid}'
+
+    def _outgoing_key(self, uid: EntityId) -> str:
+        return f'outgoing:{uid.uid}'
 
     async def _has_permissions(
         self,
@@ -977,6 +1013,29 @@ class RedisBackend:
 
         return now - float(heartbeat_time.decode())
 
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        """Return live exchange-level metrics for an agent."""
+        queued = await self._client.llen(self._queue_key(uid))
+        pending = 0
+        async for _ in self._client.scan_iter(
+            f'request:{uid.uid}:*',
+            count=1000,
+        ):
+            pending += 1
+        completed_raw = await self._client.get(self._completions_key(uid))
+        outgoing_raw = await self._client.get(self._outgoing_key(uid))
+        completed = int(completed_raw) if completed_raw is not None else 0
+        outgoing = int(outgoing_raw) if outgoing_raw is not None else 0
+        in_progress = max(0, pending - queued)
+        incoming = completed + pending
+        return AgentStats(
+            incoming=incoming,
+            outgoing=outgoing,
+            completed=completed,
+            in_progress=in_progress,
+            queued=queued,
+        )
+
     async def discover(
         self,
         client: ClientInfo,
@@ -1114,6 +1173,7 @@ class RedisBackend:
                 self._request_key(message.dest, message.tag),
                 message.header.model_dump_json(),
             )
+            await self._client.incr(self._outgoing_key(message.src))
             if self.mailbox_expiration_s:
                 await self._client.expire(
                     self._request_key(message.dest, message.tag),
@@ -1130,46 +1190,41 @@ class RedisBackend:
                     'academy.dest': message.dest,
                 },
             )
-        elif await self._client.exists(
-            self._request_key(message.src, message.tag),
-        ):
-            matching_data = await self._client.get(
-                self._request_key(message.src, message.tag),
-            )
-            # TODO: Use redis locks here to ensure thread safety
-            assert matching_data is not None
-
-            matching: Header = Header.model_validate_json(
-                matching_data.decode(),
-            )
-            await self._client.delete(
-                self._request_key(message.src, message.tag),
-            )
-            logger.debug(
-                'Response received for in-flight request: '
-                'tag=%s src=%s dest=%s',
-                matching.tag,
-                matching.src,
-                matching.dest,
-                extra={
-                    'academy.message_tag': matching.tag,
-                    'academy.src': matching.src,
-                    'academy.dest': matching.dest,
-                },
-            )
         else:
-            logger.warning(
-                'Response received without corresponding request: '
-                'tag=%s src=%s dest=%s',
-                message.tag,
-                message.src,
-                message.dest,
-                extra={
-                    'academy.message_tag': message.tag,
-                    'academy.src': message.src,
-                    'academy.dest': message.dest,
-                },
-            )
+            req_key = self._request_key(message.src, message.tag)
+            matching_data = await self._client.get(req_key)
+            if matching_data is not None:
+                # TODO: Use redis locks here to ensure thread safety
+                matching: Header = Header.model_validate_json(
+                    matching_data.decode(),
+                )
+                await self._client.delete(req_key)
+                await self._client.incr(self._completions_key(message.src))
+                logger.debug(
+                    'Response received for in-flight request: '
+                    'tag=%s src=%s dest=%s',
+                    matching.tag,
+                    matching.src,
+                    matching.dest,
+                    extra={
+                        'academy.message_tag': matching.tag,
+                        'academy.src': matching.src,
+                        'academy.dest': matching.dest,
+                    },
+                )
+            else:
+                logger.warning(
+                    'Response received without corresponding request: '
+                    'tag=%s src=%s dest=%s',
+                    message.tag,
+                    message.src,
+                    message.dest,
+                    extra={
+                        'academy.message_tag': message.tag,
+                        'academy.src': message.src,
+                        'academy.dest': message.dest,
+                    },
+                )
 
         await self._client.rpush(
             self._queue_key(message.dest),

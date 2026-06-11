@@ -34,6 +34,7 @@ from academy.identifier import UserId
 from academy.message import Header
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -95,6 +96,12 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     def _heartbeat_key(self, uid: EntityId) -> str:
         return f'heartbeat:{uid.uid}'
+
+    def _completions_key(self, uid: EntityId) -> str:
+        return f'completions:{uid.uid}'
+
+    def _outgoing_key(self, uid: EntityId) -> str:
+        return f'outgoing:{uid.uid}'
 
     @classmethod
     async def new(
@@ -236,6 +243,25 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         while True:
             yield await self._recv(timeout)
 
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        queued = await self._client.llen(self._queue_key(uid))
+        pending = 0
+        async for _ in self._client.scan_iter(f'request:{uid.uid}:*'):
+            pending += 1
+        completed_raw = await self._client.get(self._completions_key(uid))
+        outgoing_raw = await self._client.get(self._outgoing_key(uid))
+        completed = int(completed_raw) if completed_raw is not None else 0
+        outgoing = int(outgoing_raw) if outgoing_raw is not None else 0
+        in_progress = max(0, pending - queued)
+        incoming = completed + pending
+        return AgentStats(
+            incoming=incoming,
+            outgoing=outgoing,
+            completed=completed,
+            in_progress=in_progress,
+            queued=queued,
+        )
+
     async def register_agent(
         self,
         agent: type[AgentT],
@@ -265,6 +291,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     self._request_key(message.dest, message.tag),
                     message.header.model_dump_json(),
                 )
+                await self._client.incr(self._outgoing_key(message.src))
                 logger.debug(
                     'Tracking in-flight request: tag=%s src=%s dest=%s',
                     message.tag,
@@ -276,45 +303,41 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                         'academy.dest': message.dest,
                     },
                 )
-            elif await self._client.exists(
-                self._request_key(message.src, message.tag),
-            ):
-                matching_data = await self._client.get(
-                    self._request_key(message.src, message.tag),
-                )
-                # TODO: Use locks to ensure thread safety
-                assert matching_data is not None
-                matching: Header = Header.model_validate_json(
-                    matching_data.decode(),
-                )
-                await self._client.delete(
-                    self._request_key(message.src, message.tag),
-                )
-                logger.debug(
-                    'Response received for in-flight request: '
-                    'tag=%s src=%s dest=%s',
-                    matching.tag,
-                    matching.src,
-                    matching.dest,
-                    extra={
-                        'academy.message_tag': matching.tag,
-                        'academy.src': matching.src,
-                        'academy.dest': matching.dest,
-                    },
-                )
             else:
-                logger.warning(
-                    'Response received without corresponding request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
+                req_key = self._request_key(message.src, message.tag)
+                matching_data = await self._client.get(req_key)
+                if matching_data is not None:
+                    # TODO: Use locks to ensure thread safety
+                    matching: Header = Header.model_validate_json(
+                        matching_data.decode(),
+                    )
+                    await self._client.delete(req_key)
+                    await self._client.incr(self._completions_key(message.src))
+                    logger.debug(
+                        'Response received for in-flight request: '
+                        'tag=%s src=%s dest=%s',
+                        matching.tag,
+                        matching.src,
+                        matching.dest,
+                        extra={
+                            'academy.message_tag': matching.tag,
+                            'academy.src': matching.src,
+                            'academy.dest': matching.dest,
+                        },
+                    )
+                else:
+                    logger.warning(
+                        'Response received without corresponding request: '
+                        'tag=%s src=%s dest=%s',
+                        message.tag,
+                        message.src,
+                        message.dest,
+                        extra={
+                            'academy.message_tag': message.tag,
+                            'academy.src': message.src,
+                            'academy.dest': message.dest,
+                        },
+                    )
 
             await self._client.rpush(
                 self._queue_key(message.dest),

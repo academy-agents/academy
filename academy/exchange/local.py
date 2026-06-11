@@ -36,6 +36,7 @@ from academy.identifier import UserId
 from academy.message import Header
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -61,6 +62,8 @@ class _LocalExchangeState(NoPickleMixin):
         self.locks: dict[EntityId, Lock] = {}
         self.agents: dict[AgentId[Any], type[Agent]] = {}
         self.requests: dict[EntityId, dict[uuid.UUID, Header]] = {}
+        self.completions: dict[EntityId, int] = {}
+        self.outgoing: dict[EntityId, int] = {}
         self.last_active: dict[EntityId, float] = {}
 
 
@@ -167,6 +170,22 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         while True:
             yield await self._recv(timeout)
 
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        queue = self._state.queues.get(uid)
+        queued = queue.qsize() if queue is not None else 0
+        pending = len(self._state.requests.get(uid, {}))
+        completed = self._state.completions.get(uid, 0)
+        outgoing = self._state.outgoing.get(uid, 0)
+        in_progress = max(0, pending - queued)
+        incoming = completed + pending
+        return AgentStats(
+            incoming=incoming,
+            outgoing=outgoing,
+            completed=completed,
+            in_progress=in_progress,
+            queued=queued,
+        )
+
     async def register_agent(
         self,
         agent: type[AgentT],
@@ -188,6 +207,9 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._state.requests.setdefault(message.dest, {})[message.tag] = (
                 message.header
             )
+            self._state.outgoing[message.src] = (
+                self._state.outgoing.get(message.src, 0) + 1
+            )
             logger.debug(
                 'Tracking in-flight request: tag=%s src=%s dest=%s',
                 message.tag,
@@ -206,6 +228,9 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             tracked = self._state.requests[message.src].pop(message.tag)
             if not self._state.requests[message.src]:
                 del self._state.requests[message.src]
+            self._state.completions[message.src] = (
+                self._state.completions.get(message.src, 0) + 1
+            )
             logger.debug(
                 'Response received for in-flight request: '
                 'tag=%s src=%s dest=%s',

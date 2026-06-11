@@ -28,6 +28,7 @@ from academy.message import ResponseT
 from academy.message import ShutdownRequest
 from academy.serialize import default_serializer
 from academy.serialize import SerializationStrategy
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -221,6 +222,13 @@ class Handle(Generic[AgentT_co]):
             return await self.action(name, *args, **kwargs)
 
         return remote_method_call
+
+    async def agent_stats(self) -> AgentStats:
+        """Return live exchange-level metrics for the remote agent.
+
+        Reads directly from the exchange state — no message round-trip.
+        """
+        return await self.exchange.agent_stats(self.agent_id)
 
     async def _process_response(self, response: Message[ResponseT]) -> None:
         future = self._pending_response_futures.pop(response.tag)

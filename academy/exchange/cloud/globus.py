@@ -57,6 +57,7 @@ from academy.identifier import EntityId
 from academy.identifier import UserId
 from academy.message import Message
 from academy.serialize import NoPickleMixin
+from academy.stats import AgentStats
 
 if TYPE_CHECKING:
     from academy.agent import Agent
@@ -99,6 +100,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     _message_url = '/message'
     _discover_url = '/discover'
     _heartbeat_url = '/mailbox/heartbeat'
+    _agent_stats_url = '/mailbox/stats'
 
     def discover(
         self,
@@ -181,6 +183,13 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
         return self.request(
             'GET',
             self._heartbeat_url,
+            data={'mailbox': uid.model_dump_json()},
+        )
+
+    def get_agent_stats(self, uid: EntityId) -> GlobusHTTPResponse:
+        return self.request(
+            'GET',
+            self._agent_stats_url,
             data={'mailbox': uid.model_dump_json()},
         )
 
@@ -790,6 +799,24 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def update_heartbeat(self) -> None:
         pass  # Server tracks this automatically via listen/send
+
+    def _get_agent_stats(self, uid: EntityId) -> AgentStats:
+        missing_code = 404
+        try:
+            response = self.exchange_client.get_agent_stats(uid)
+            return AgentStats(**response.data)
+        except AcademyAPIError as e:
+            if e.http_status == missing_code:
+                raise BadEntityIdError(uid) from e
+            raise
+
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            self._get_agent_stats,
+            uid,
+        )
 
 
 class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):

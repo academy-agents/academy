@@ -37,6 +37,7 @@ async def test_redis_exchange_request_tracking(mock_redis) -> None:
         body=PingRequest(),
     )
     await transport1.send(request)
+
     request_key = f'request:{request.dest.uid}:{request.tag}'
     request_data = await transport1._client.get(request_key)
     assert request_data is not None
@@ -47,6 +48,31 @@ async def test_redis_exchange_request_tracking(mock_redis) -> None:
     assert remaining is None
     await transport1.close()
     await transport2.close()
+
+
+@pytest.mark.asyncio
+async def test_redis_exchange_agent_stats(mock_redis) -> None:
+    redis_info = _RedisConnectionInfo(hostname='localhost', port=0, kwargs={})
+    sender = await RedisExchangeTransport.new(redis_info=redis_info)
+    agent = await RedisExchangeTransport.new(redis_info=redis_info)
+
+    req = Message.create(
+        src=sender.mailbox_id,
+        dest=agent.mailbox_id,
+        body=PingRequest(),
+    )
+    await sender.send(req)
+
+    stats = await sender.agent_stats(agent.mailbox_id)
+    assert stats.incoming == 1
+    assert stats.queued == 1
+
+    await agent.send(req.create_response(SuccessResponse()))
+    assert (await sender.agent_stats(agent.mailbox_id)).completed == 1
+    assert (await agent.agent_stats(sender.mailbox_id)).outgoing == 1
+
+    await sender.close()
+    await agent.close()
 
 
 @pytest.mark.asyncio

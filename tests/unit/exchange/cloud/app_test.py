@@ -753,6 +753,13 @@ async def test_remove_share_bad_id(auth_client, group_id) -> None:
     assert response.status == StatusCode.NOT_FOUND.value
 
 
+@pytest.mark.asyncio
+async def test_agent_stats_validation_error(cli) -> None:
+    response = await cli.get('/mailbox/stats', json={'mailbox': 'bad'})
+    assert response.status == StatusCode.BAD_REQUEST.value
+    assert 'Missing or invalid field' in await response.text()
+
+
 async def test_heartbeat_validation_error(cli) -> None:
     response = await cli.get('/mailbox/heartbeat', json={'mailbox': 'test'})
     assert response.status == StatusCode.BAD_REQUEST.value

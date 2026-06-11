@@ -32,9 +32,11 @@ from academy.message import ErrorCode
 from academy.message import Message
 from academy.message import Request
 from academy.message import Response
+from academy.runtime import Runtime
 from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
 from academy.serialize import SerializationStrategy
+from academy.stats import AgentStats
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
@@ -571,6 +573,40 @@ async def test_handle_covariance(
     # Only useful for my type checking
     assert test_func(handle)
     assert test_func(sub_handle)
+
+
+@pytest.mark.asyncio
+async def test_handle_agent_stats(
+    factory: ExchangeFactory[Any],
+) -> None:
+    async with await factory.create_user_client() as exchange_client:
+        registration = await exchange_client.register_agent(SleepAgent)
+        src = exchange_client.client_id
+
+        for _ in range(3):
+            await exchange_client.send(
+                Message.create(
+                    src=src,
+                    dest=registration.agent_id,
+                    body=ActionRequest(
+                        action='sleep',
+                        pargs=(TEST_SLEEP_INTERVAL,),
+                        serialization=SerializationStrategy.PICKLE,
+                    ),
+                ),
+            )
+
+        async with Runtime(
+            SleepAgent(),
+            exchange_factory=exchange_client.factory(),
+            registration=registration,
+        ):
+            handle = Handle(registration.agent_id)
+            stats = await handle.agent_stats()
+            assert isinstance(stats, AgentStats)
+            assert stats.incoming == 3  # noqa: PLR2004
+            assert stats.queued + stats.in_progress == 3  # noqa: PLR2004
+            assert stats.completed == 0
 
 
 @pytest.mark.asyncio

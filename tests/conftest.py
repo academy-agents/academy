@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # Register the most responses from the data directory
 import testing.data.academy.discover
+import testing.data.academy.get_agent_stats
 import testing.data.academy.recv
 import testing.data.academy.register_agent
 import testing.data.academy.register_client

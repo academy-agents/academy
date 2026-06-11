@@ -174,6 +174,23 @@ async def test_proxy_exchange_timeout(
 
 
 @pytest.mark.asyncio
+async def test_proxystore_agent_stats(
+    store: Store[LocalConnector],
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    wrapped_factory = ProxyStoreExchangeFactory(
+        base=local_exchange_factory,
+        store=store,
+        should_proxy=ProxyAlways(),
+    )
+
+    async with await wrapped_factory._create_transport() as transport:
+        stats = await transport.agent_stats(transport.mailbox_id)
+        assert stats.incoming == 0
+        assert stats.queued == 0
+
+
+@pytest.mark.asyncio
 async def test_proxystore_heartbeat(
     store: Store[LocalConnector],
     local_exchange_factory: LocalExchangeFactory,

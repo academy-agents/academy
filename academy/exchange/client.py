@@ -35,6 +35,7 @@ from academy.message import check_version
 from academy.message import ErrorCode
 from academy.message import Message
 from academy.message import RequestT_co
+from academy.stats import AgentStats
 from academy.task import spawn_guarded_background_task
 
 if TYPE_CHECKING:
@@ -267,6 +268,18 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
         """
         return await self._transport.heartbeat_status(uid)
+
+    async def agent_stats(self, uid: EntityId) -> AgentStats:
+        """Return live exchange-level metrics for an agent.
+
+        Args:
+            uid: Entity identifier of the agent mailbox.
+
+        Returns:
+            AgentStats with incoming, outgoing, completed, in_progress,
+            and queued counts.
+        """
+        return await self._transport.agent_stats(uid)
 
     async def _listen_for_messages(self) -> None:
         # Transport listen does not necessarily wait on io and neither

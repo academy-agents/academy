@@ -122,7 +122,7 @@ async def test_globus_transport_agent_stats() -> None:
     uid = UserId.new()
 
     mock_response = MagicMock()
-    mock_response.get.side_effect = {'incoming': 5}.get
+    mock_response.data = {'incoming': 5}
     with patch.object(
         GlobusExchangeTransport,
         'exchange_client',

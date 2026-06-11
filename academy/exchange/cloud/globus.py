@@ -804,13 +804,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         missing_code = 404
         try:
             response = self.exchange_client.get_agent_stats(uid)
-            return AgentStats(
-                incoming=response.get('incoming', 0),
-                outgoing=response.get('outgoing', 0),
-                completed=response.get('completed', 0),
-                in_progress=response.get('in_progress', 0),
-                queued=response.get('queued', 0),
-            )
+            return AgentStats(**response.data)
         except AcademyAPIError as e:
             if e.http_status == missing_code:
                 raise BadEntityIdError(uid) from e

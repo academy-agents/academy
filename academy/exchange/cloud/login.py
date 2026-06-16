@@ -19,6 +19,7 @@ from globus_sdk.login_flows import CommandLineLoginFlowManager
 
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.token_store import SafeSQLiteTokenStorage
+from academy.home import get_academy_home
 
 # Registered `Academy-Client Application` by alokvk2@uchicago.edu
 # For the sdk
@@ -59,7 +60,8 @@ def get_token_storage(
 
     Args:
         filepath: Name of the database file. If not provided, defaults to a
-            file in the Academy home directory specified by ACADEMY_HOME.
+            file in the Academy home directory resolved by
+            [`get_academy_home()`][academy.home.get_academy_home].
         namespace: Optional namespace to use within the database for
             partitioning token data.
 
@@ -67,12 +69,7 @@ def get_token_storage(
         Token storage.
     """
     if filepath is None:
-        default = os.path.join(
-            os.path.expanduser('~/local/share'),
-            _APP_NAME,
-        )
-        basepath = os.environ.get('ACADEMY_HOME', default=default)
-        filepath = os.path.join(basepath, _TOKENS_FILE)
+        filepath = get_academy_home() / _TOKENS_FILE
 
     filepath = pathlib.Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)

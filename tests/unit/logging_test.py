@@ -8,6 +8,7 @@ from unittest import mock
 
 import pytest
 
+from academy.home import get_academy_home
 from academy.logging.configs.base import LogConfig
 from academy.logging.configs.console import ConsoleLogging
 from academy.logging.configs.file import FileLogging
@@ -175,14 +176,7 @@ def test_logging_with_jsonpool() -> None:
         logger = logging.getLogger()
         logger.info('Test logging')
 
-        path = (
-            pathlib.Path.home()
-            / 'local'
-            / 'share'
-            / 'academy'
-            / 'logs'
-            / lc.uuid
-        )
+        path = get_academy_home() / 'logs' / lc.uuid
 
         files = list(path.iterdir())
         assert len(files) == 1, (

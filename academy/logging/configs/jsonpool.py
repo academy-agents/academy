@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-import pathlib
 import uuid
 from collections.abc import Callable
 
+from academy.home import get_academy_home
 from academy.logging.configs.base import LogConfig
 from academy.logging.helpers import JSONHandler
 
@@ -18,7 +18,8 @@ class JSONPoolLogging(LogConfig):
     human readability.
 
     Logs written by this configuration are stored in JSON format under
-    `~/local/share/academy/logs/`
+    `logs/` in the Academy home directory resolved by
+    [`get_academy_home()`][academy.home.get_academy_home].
 
     Under that directory, logs are first separated into directories by
     the (distributed) identity of the log configuration: logs configured
@@ -45,15 +46,7 @@ class JSONPoolLogging(LogConfig):
         # Home resolution is deferred until init_logging time because the path
         # can be different on every invocation as the config object is moved
         # between execution hosts.
-        path = (
-            pathlib.Path.home()
-            / 'local'
-            / 'share'
-            / 'academy'
-            / 'logs'
-            / self.uuid
-            / instance_id
-        )
+        path = get_academy_home() / 'logs' / self.uuid / instance_id
         path.parent.mkdir(parents=True, exist_ok=True)
 
         json_handler = JSONHandler(path.with_suffix('.jsonlog'))

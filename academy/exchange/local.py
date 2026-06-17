@@ -298,6 +298,9 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if uid not in self._state.queues:
             raise BadEntityIdError(uid)
 
+        if self._state.queues[uid].is_shutdown:
+            raise MailboxTerminatedError(uid)
+
         if self._state.last_active.get(uid) is None:
             return None
         else:

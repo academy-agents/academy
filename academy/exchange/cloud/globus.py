@@ -20,8 +20,6 @@ from typing import Literal
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
-from academy.exchange.cloud.client import DEFAULT_EXCHANGE_URL
-
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
@@ -45,7 +43,9 @@ from pydantic import Field
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.cloud.app import StatusCode
+from academy.exchange.cloud.client import DEFAULT_EXCHANGE_URL
 from academy.exchange.cloud.login import get_globus_app
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_scope_id
@@ -828,7 +828,10 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
         project_id: uuid.UUID,
         client_params: dict[str, Any] | None = None,
         request_timeout_s: float = 60,
+        *,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
+        super().__init__(config)
         self.info = _AcademyConnectionInfo(
             project_id=project_id,
             client_params=client_params,

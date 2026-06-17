@@ -31,6 +31,7 @@ from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.cloud.app import _run
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.config import ExchangeServingConfig
@@ -491,7 +492,11 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         request_timeout_s: float = 60,
         ssl_verify: bool | None = None,
         client_timeout: aiohttp.ClientTimeout | None = None,
+        *,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
+        super().__init__(config)
+
         if additional_headers is None:
             additional_headers = {}
 

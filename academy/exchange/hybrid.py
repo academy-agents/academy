@@ -38,6 +38,7 @@ from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
@@ -583,7 +584,10 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
         interface: str | None = None,
         namespace: str | None = 'default',
         ports: Iterable[int] | None = None,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
+        super().__init__(config)
+
         self._namespace = (
             namespace
             if namespace is not None

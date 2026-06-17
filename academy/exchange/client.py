@@ -21,11 +21,10 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from pydantic import BaseModel
-from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
 from academy.exchange.transport import MailboxStatus
@@ -56,21 +55,6 @@ RequestHandler: TypeAlias = Callable[
     [Message[RequestT_co]],
     Coroutine[None, None, None],
 ]
-
-
-class ExchangeClientConfig(BaseModel):
-    """Common runtime parameters for exchange clients."""
-
-    heartbeat_interval: float = Field(
-        default=30,
-        description='Frequency to send liveness messages to the exchange',
-    )
-    stale_heartbeat_threshold: int = Field(
-        default=3,
-        description=(
-            'Missed heartbeats before an agent is considered inactive.'
-        ),
-    )
 
 
 class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
@@ -155,7 +139,9 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     def factory(self) -> ExchangeFactory[ExchangeTransportT]:
         """Get an exchange factory."""
-        return self._transport.factory()
+        factory = self._transport.factory()
+        factory.config = self.config
+        return factory
 
     def register_handle(self, handle: Handle[AgentT]) -> None:
         """Register an existing handle to receive messages.

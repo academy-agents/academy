@@ -24,6 +24,7 @@ from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
@@ -430,8 +431,11 @@ class RedisExchangeFactory(ExchangeFactory[RedisExchangeTransport]):
         self,
         hostname: str,
         port: int,
+        *,
+        config: ExchangeClientConfig | None = None,
         **redis_kwargs: Any,
     ) -> None:
+        super().__init__(config)
         self.redis_info = _RedisConnectionInfo(hostname, port, redis_kwargs)
 
     async def _create_transport(

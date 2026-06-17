@@ -26,6 +26,7 @@ from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
@@ -312,7 +313,9 @@ class LocalExchangeFactory(
         self,
         *,
         _state: _LocalExchangeState | None = None,
+        config: ExchangeClientConfig | None = None,
     ):
+        super().__init__(config)
         self._state = _LocalExchangeState() if _state is None else _state
 
     async def _create_transport(

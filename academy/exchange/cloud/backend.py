@@ -424,6 +424,9 @@ class PythonBackend:
         if uid not in self._mailboxes:
             raise BadEntityIdError(uid)
 
+        if uid in self._terminated:
+            raise MailboxTerminatedError(uid)
+
         if self.last_active.get(uid) is None:
             return None
 
@@ -1003,6 +1006,9 @@ class RedisBackend:
         status = await self._client.get(self._active_key(uid))
         if status is None:
             raise BadEntityIdError(uid)
+
+        if status.decode() == MailboxStatus.TERMINATED.value:
+            raise MailboxTerminatedError(uid)
 
         heartbeat_time = await self._client.get(self._heartbeat_key(uid))
 

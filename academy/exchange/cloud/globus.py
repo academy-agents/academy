@@ -186,6 +186,13 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             data={'mailbox': uid.model_dump_json()},
         )
 
+    def update_heartbeat(self, uid: EntityId) -> GlobusHTTPResponse:
+        return self.request(
+            'POST',
+            self._heartbeat_url,
+            data={'mailbox': uid.model_dump_json()},
+        )
+
     def get_agent_stats(self, uid: EntityId) -> GlobusHTTPResponse:
         return self.request(
             'GET',
@@ -780,13 +787,14 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     def _get_heartbeat(self, uid: EntityId) -> float | None:
-        missing_code = 404
         try:
             response = self.exchange_client.get_heartbeat(uid)
             return response.get('heartbeat')
         except AcademyAPIError as e:
-            if e.http_status == missing_code:
+            if e.http_status == StatusCode.NOT_FOUND.value:
                 raise BadEntityIdError(uid) from e
+            elif e.http_status == StatusCode.TERMINATED.value:
+                raise MailboxTerminatedError(uid) from e
             raise
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
@@ -797,16 +805,30 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             uid,
         )
 
+    def _update_heartbeat(self) -> None:
+        try:
+            self.exchange_client.update_heartbeat(self.mailbox_id)
+            return
+        except AcademyAPIError as e:
+            if e.http_status == StatusCode.NOT_FOUND.value:
+                raise BadEntityIdError(self.mailbox_id) from e
+            elif e.http_status == StatusCode.TERMINATED.value:
+                raise MailboxTerminatedError(self.mailbox_id) from e
+            raise
+
     async def update_heartbeat(self) -> None:
-        pass  # Server tracks this automatically via listen/send
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            self._update_heartbeat,
+        )
 
     def _get_agent_stats(self, uid: EntityId) -> AgentStats:
-        missing_code = 404
         try:
             response = self.exchange_client.get_agent_stats(uid)
             return AgentStats(**response.data)
         except AcademyAPIError as e:
-            if e.http_status == missing_code:
+            if e.http_status == StatusCode.NOT_FOUND.value:
                 raise BadEntityIdError(uid) from e
             raise
 

@@ -455,10 +455,12 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
-
         status = await self._redis_client.get(self._status_key(uid))
         if status is None:
             raise BadEntityIdError(uid)
+
+        if status.decode() == _MailboxState.INACTIVE.value:
+            raise MailboxTerminatedError(uid)
 
         heartbeat_time = await self._redis_client.get(self._heartbeat_key(uid))
 

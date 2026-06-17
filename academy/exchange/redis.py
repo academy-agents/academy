@@ -27,7 +27,6 @@ from academy.exception import MailboxTerminatedError
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -343,15 +342,6 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 self._queue_key(message.dest),
                 message.model_serialize(),
             )
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        status = await self._client.get(self._active_key(uid))
-        if status is None:
-            return MailboxStatus.MISSING
-        elif status.decode() == _MailboxState.INACTIVE.value:
-            return MailboxStatus.TERMINATED
-        else:
-            return MailboxStatus.ACTIVE
 
     async def terminate(self, uid: EntityId) -> None:
         await self._client.set(

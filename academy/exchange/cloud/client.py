@@ -38,7 +38,6 @@ from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.login import get_auth_headers
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -305,15 +304,6 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             json={'message': message.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id, message.dest)
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        async with self._session.get(
-            self._mailbox_url,
-            json={'mailbox': uid.model_dump_json()},
-        ) as response:
-            _raise_for_status(response, self.mailbox_id, uid)
-            status = (await response.json())['status']
-            return MailboxStatus(status)
 
     async def terminate(self, uid: EntityId) -> None:
         async with self._session.delete(

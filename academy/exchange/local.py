@@ -29,7 +29,6 @@ from academy.exception import MailboxTerminatedError
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -262,14 +261,6 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 await queue.put(message)
             except QueueShutDown:
                 raise MailboxTerminatedError(message.dest) from None
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        if uid not in self._state.queues:
-            return MailboxStatus.MISSING
-        async with self._state.locks[uid]:
-            if self._state.queues[uid].is_shutdown:
-                return MailboxStatus.TERMINATED
-            return MailboxStatus.ACTIVE
 
     async def terminate(self, uid: EntityId) -> None:
         queue = self._state.queues.get(uid, None)

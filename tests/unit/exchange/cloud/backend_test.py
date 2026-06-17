@@ -596,3 +596,7 @@ async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     elapsed = time.time() - start
     assert heartbeat is not None
     assert heartbeat < elapsed
+
+    await backend.terminate(client, uid)
+    with pytest.raises(MailboxTerminatedError):
+        await backend.heartbeat_status(uid)

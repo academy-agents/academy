@@ -43,7 +43,6 @@ from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -389,15 +388,6 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 message.dest,
                 extra=message.log_extra(),
             )
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        status = await self._redis_client.get(self._status_key(uid))
-        if status is None:
-            return MailboxStatus.MISSING
-        elif status.decode() == _MailboxState.INACTIVE.value:
-            return MailboxStatus.TERMINATED
-        else:
-            return MailboxStatus.ACTIVE
 
     async def terminate(self, uid: EntityId) -> None:
         # Warning: terminating a hybrid exchange mailbox is not guaranteed

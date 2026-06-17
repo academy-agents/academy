@@ -59,17 +59,18 @@ RequestHandler: TypeAlias = Callable[
 
 
 class ExchangeClientConfig(BaseModel):
-    """Common runtime parameters for exchange clients.
+    """Common runtime parameters for exchange clients."""
 
-    Args:
-        heartbeat_interval: Frequency to send liveness messages to the
-            exchange
-        stale_heartbeat_threshold: Number of missed heartbeats before an
-            agent is considered inactive.
-    """
-
-    heartbeat_interval: float = Field(default=30)
-    stale_heartbeat_threshold: int = Field(default=3)
+    heartbeat_interval: float = Field(
+        default=30,
+        description='Frequency to send liveness messages to the exchange',
+    )
+    stale_heartbeat_threshold: int = Field(
+        default=3,
+        description=(
+            'Missed heartbeats before an agent is considered inactive.'
+        ),
+    )
 
 
 class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):

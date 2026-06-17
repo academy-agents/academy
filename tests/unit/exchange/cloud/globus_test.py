@@ -82,14 +82,6 @@ def test_globus_client_send(academy_client: AcademyGlobusClient):
     assert response.http_status == StatusCode.OKAY.value
 
 
-def test_globus_client_status(academy_client: AcademyGlobusClient):
-    load_response(AcademyGlobusClient.status)
-    agent: AgentId[Any] = AgentId.new()
-    response = academy_client.status(agent)
-    assert response.http_status == StatusCode.OKAY.value
-    assert 'status' in response.data
-
-
 def test_globus_client_get_agent_stats(academy_client: AcademyGlobusClient):
     load_response(AcademyGlobusClient.get_agent_stats)
     uid = UserId.new()

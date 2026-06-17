@@ -7,7 +7,6 @@ import testing.data.academy.recv
 import testing.data.academy.register_agent
 import testing.data.academy.register_client
 import testing.data.academy.send
-import testing.data.academy.status
 import testing.data.academy.terminate
 import testing.data.auth.create_client
 import testing.data.auth.create_client_credentials

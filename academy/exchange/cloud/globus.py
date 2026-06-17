@@ -51,7 +51,6 @@ from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_scope_id
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -163,13 +162,6 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
         return self.put(
             self._message_url,
             data={'message': message.model_dump_json()},
-        )
-
-    def status(self, uid: EntityId) -> GlobusHTTPResponse:
-        return self.request(
-            'GET',
-            self._mailbox_url,
-            data={'mailbox': uid.model_dump_json()},
         )
 
     def terminate(self, uid: EntityId) -> GlobusHTTPResponse:
@@ -762,19 +754,6 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 raise MailboxTerminatedError(message.dest) from e
             raise e  # pragma: no cover
 
-    def _status(self, uid: EntityId) -> MailboxStatus:
-        response = self.exchange_client.status(uid)
-        status = response['status']
-        return MailboxStatus(status)
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            self.executor,
-            self._status,
-            uid,
-        )
-
     def _terminate(self, uid: EntityId) -> None:
         self.exchange_client.terminate(uid)
 
@@ -806,15 +785,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     def _update_heartbeat(self) -> None:
-        try:
-            self.exchange_client.update_heartbeat(self.mailbox_id)
-            return
-        except AcademyAPIError as e:
-            if e.http_status == StatusCode.NOT_FOUND.value:
-                raise BadEntityIdError(self.mailbox_id) from e
-            elif e.http_status == StatusCode.TERMINATED.value:
-                raise MailboxTerminatedError(self.mailbox_id) from e
-            raise
+        self.exchange_client.update_heartbeat(self.mailbox_id)
 
     async def update_heartbeat(self) -> None:
         loop = asyncio.get_running_loop()

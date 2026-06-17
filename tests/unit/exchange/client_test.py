@@ -28,6 +28,7 @@ from academy.message import PingRequest
 from academy.message import Request
 from academy.message import SuccessResponse
 from testing.agents import EmptyAgent
+from testing.constant import TEST_HEARTBEAT_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
@@ -390,8 +391,8 @@ def test_client_background_error(
 async def test_client_heartbeat_status(
     client: UserExchangeClient[Any],
 ) -> None:
+    await asyncio.sleep(TEST_HEARTBEAT_INTERVAL)
     heartbeat = await client.heartbeat_status(client.client_id)
-    # initial heartbeat comes from client init, so has a small float.
     assert heartbeat is not None
     start = time.time()
     await client._transport.update_heartbeat()

@@ -266,7 +266,7 @@ async def _terminate_route(request: Request) -> Response:
     return Response(status=StatusCode.OKAY.value)
 
 
-@exception_to_response('heartbeat')
+@exception_to_response('get_heartbeat')
 async def _get_heartbeat_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
@@ -290,7 +290,7 @@ async def _agent_stats_route(request: Request) -> Response:
     return json_response(dataclasses.asdict(stats))
 
 
-@exception_to_response('heartbeat')
+@exception_to_response('update_heartbeat')
 async def _update_heartbeat_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]

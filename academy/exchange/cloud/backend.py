@@ -69,6 +69,7 @@ class MailboxBackend(Protocol):
         client: ClientInfo,
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
+        permitted_groups: set[str] | None = None,
     ) -> None:
         """Create a mailbox is not exists.
 
@@ -76,8 +77,9 @@ class MailboxBackend(Protocol):
 
         Args:
             client: Client making the request.
-            uid: Mailbox id to check.
-            agent: The agent_mro for behavior discovery.
+            uid: Mailbox id to create.
+            agent: Agent class name for agent mailboxes.
+            permitted_groups: Groups permitted to access this mailbox.
 
         Raises:
             ForbiddenError: If the client does not have the right permissions.
@@ -287,6 +289,10 @@ class PythonBackend:
             uid,
         ) or self._has_shared_mailbox_access(client, uid)
 
+    def _shared_groups(self, uid: EntityId) -> set[str]:
+        """Get the set of Globus groups this mailbox is shared with."""
+        return self._shares.get(uid, set())
+
     def _has_shared_mailbox_access(
         self,
         client: ClientInfo,
@@ -294,7 +300,7 @@ class PythonBackend:
     ) -> bool:
         """Check if the mailbox is shared with user via Globus groups."""
         return not client.group_memberships.isdisjoint(
-            self._shares.get(uid, set()),
+            self._shared_groups(uid),
         )
 
     def _has_mailbox_ownership(
@@ -342,6 +348,7 @@ class PythonBackend:
         client: ClientInfo,
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
+        permitted_groups: set[str] | None = None,
     ) -> None:
         """Create a mailbox is not exists.
 
@@ -349,8 +356,9 @@ class PythonBackend:
 
         Args:
             client: Client making the request.
-            uid: Mailbox id to check.
-            agent: The agent_mro for behavior discovery.
+            uid: Mailbox id to create.
+            agent: Agent class name for agent mailboxes.
+            permitted_groups: Groups permitted to access this mailbox.
 
         Raises:
             ForbiddenError: If the client does not have the right permissions.
@@ -372,6 +380,8 @@ class PythonBackend:
             self._locks[uid] = asyncio.Lock()
             if agent is not None and isinstance(uid, AgentId):
                 self._agents[uid] = agent
+            if permitted_groups:
+                self._shares[uid] = permitted_groups
             logger.info(
                 'Created mailbox for %s',
                 uid,
@@ -390,9 +400,8 @@ class PythonBackend:
 
         Raises:
             ForbiddenError: If the client does not have the right permissions.
-
         """
-        if not self._has_permissions(client, uid):
+        if not self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
@@ -531,6 +540,18 @@ class PythonBackend:
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
+
+        if not self._has_mailbox_ownership(client, message.src):
+            raise ForbiddenError(
+                'Sender does not own source mailbox.',
+            )
+
+        sender_groups = client.group_memberships & self._shared_groups(
+            message.dest,
+        )
+        message.header = message.header.model_copy(
+            update={'groups': frozenset(sender_groups)},
+        )
 
         if sys.getsizeof(message.body) > self.message_size_limit:
             raise MessageTooLargeError(
@@ -790,14 +811,17 @@ class RedisBackend:
         groups = await self._has_shared_mailbox_access(client, entity)
         return owns or groups
 
+    async def _shared_groups(self, uid: EntityId) -> set[str]:
+        """Get the set of Globus groups this mailbox is shared with."""
+        _groups = await self._client.smembers(self._share_key(uid))
+        return {g.decode() for g in _groups}
+
     async def _has_shared_mailbox_access(
         self,
         client: ClientInfo,
         uid: EntityId,
     ) -> bool:
-        """Check if the mailbox is shared with user via Globus groups."""
-        _groups = await self._client.smembers(self._share_key(uid))
-        groups = [g.decode() for g in _groups]
+        groups = await self._shared_groups(uid)
         return not client.group_memberships.isdisjoint(groups)
 
     async def _has_mailbox_ownership(
@@ -873,6 +897,7 @@ class RedisBackend:
         client: ClientInfo,
         uid: EntityId,
         agent: tuple[str, ...] | None = None,
+        permitted_groups: set[str] | None = None,
     ) -> None:
         """Create a mailbox is not exists.
 
@@ -880,8 +905,9 @@ class RedisBackend:
 
         Args:
             client: Client making the request.
-            uid: Mailbox id to check.
-            agent: The agent_mro for behavior discovery.
+            uid: Mailbox id to create.
+            agent: Agent class name for agent mailboxes.
+            permitted_groups: Groups permitted to access this mailbox.
 
         Raises:
             ForbiddenError: If the client does not have the right permissions.
@@ -902,10 +928,16 @@ class RedisBackend:
                 ','.join(agent),
             )
 
-        await self._client.set(
+        created = await self._client.set(
             self._owner_key(uid),
             f'{client.client_id}{_OWNER_SUFFIX}',
+            nx=True,
         )
+        if created and permitted_groups:
+            await self._client.sadd(
+                self._share_key(uid),
+                *permitted_groups,
+            )
         await self._update_expirations(uid)
 
     async def terminate(self, client: ClientInfo, uid: EntityId) -> None:
@@ -920,9 +952,8 @@ class RedisBackend:
 
         Raises:
             ForbiddenError: If the client does not have the right permissions.
-
         """
-        if not await self._has_permissions(client, uid):
+        if not await self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
@@ -1154,6 +1185,18 @@ class RedisBackend:
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
+
+        if not await self._has_mailbox_ownership(client, message.src):
+            raise ForbiddenError(
+                'Sender does not own source mailbox.',
+            )
+
+        sender_groups = client.group_memberships & await self._shared_groups(
+            message.dest,
+        )
+        message.header = message.header.model_copy(
+            update={'groups': frozenset(sender_groups)},
+        )
 
         status = await self._client.get(self._active_key(message.dest))
         if status is None:

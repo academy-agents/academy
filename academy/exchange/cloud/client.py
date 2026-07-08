@@ -72,6 +72,9 @@ class HttpAgentRegistration(BaseModel, Generic[AgentT]):
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
 
+    owner: EntityId | None = None
+    """Entity that owns the mailbox and bypasses group checks."""
+
     exchange_type: Literal['http'] = Field('http', repr=False)
 
 
@@ -289,15 +292,20 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         name: str | None = None,
     ) -> HttpAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
+        permitted_groups = agent._agent_permitted_groups_from_class()
         async with self._session.post(
             self._mailbox_url,
             json={
                 'mailbox': aid.model_dump_json(),
                 'agent': ','.join(agent._agent_mro()),
+                'permitted_groups': ','.join(permitted_groups),
             },
         ) as response:
             _raise_for_status(response, self.mailbox_id, aid)
-        return HttpAgentRegistration(agent_id=aid)
+        return HttpAgentRegistration(
+            agent_id=aid,
+            owner=self.mailbox_id,
+        )
 
     async def send(self, message: Message[Any]) -> None:
         async with self._session.put(

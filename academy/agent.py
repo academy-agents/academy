@@ -9,6 +9,7 @@ import warnings
 from collections.abc import Callable
 from collections.abc import Coroutine
 from collections.abc import Generator
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 from typing import Generic
@@ -71,7 +72,7 @@ class AgentDescription(BaseModel):
 class Action(Generic[P, R_co], Protocol):
     """Action method protocol."""
 
-    _agent_method_type: Literal['action']
+    _action_sharing: frozenset[str] | None
     _action_method_context: bool
 
     async def __call__(self, *arg: P.args, **kwargs: P.kwargs) -> R_co:
@@ -119,6 +120,7 @@ def action(
     *,
     allow_protected_name: bool = False,
     context: bool = False,
+    sharing: Sequence[str] | None = None,
 ) -> Callable[[ActionMethod[P, R]], ActionMethod[P, R]]: ...
 
 
@@ -127,6 +129,7 @@ def action(
     *,
     allow_protected_name: bool = False,
     context: bool = False,
+    sharing: Sequence[str] | None = None,
 ) -> ActionMethod[P, R] | Callable[[ActionMethod[P, R]], ActionMethod[P, R]]:
     """Decorator that annotates a method of a agent as an action.
 
@@ -164,8 +167,17 @@ def action(
             the name of the method clashes with a protected method name of
             [`Handle`][academy.handle.Handle]. This flag silences the
             emitted warning.
-        context: Specify that the action method expects a context argument.
-            The `context` will be provided at runtime as a keyword argument.
+        context: If True, the decorated method must accept a keyword-only
+            argument named `context` which will receive an
+            [`ActionContext`][academy.context.ActionContext] instance.
+        sharing: Globus group UUIDs allowed to invoke this action. A
+            sender in any one of these groups may invoke the action
+            (union semantics). An explicitly empty sequence makes the
+            action owner-only. If omitted (`None`), the action falls
+            back to the agent's permitted-groups union
+            (see
+            [`_agent_permitted_groups`]\
+[academy.agent.Agent._agent_permitted_groups]).
 
     Raises:
         TypeError: If the decorated function is not a coroutine.
@@ -215,6 +227,9 @@ def action(
 
         method_._agent_method_type = 'action'  # type: ignore[attr-defined]
         method_._action_method_context = context  # type: ignore[attr-defined]
+        method_._action_sharing = (  # type: ignore[attr-defined]
+            frozenset(sharing) if sharing is not None else None
+        )
         return method_
 
     if method is None:
@@ -590,6 +605,40 @@ class Agent:
             if _is_agent_method_type(attr, 'action'):
                 actions[name] = attr
         return actions
+
+    def _agent_permitted_groups(self) -> frozenset[str]:
+        """Get the union of sharing groups across all decorated actions.
+
+        This is the fallback set of groups used to authorize
+        undecorated actions (those with no `sharing` list of their
+        own), and is the set the exchange uses to determine whether a
+        sender has access to this agent's mailbox at all.
+
+        Returns:
+            Union of all groups listed in any action's `sharing`
+            parameter.
+        """
+        return type(self)._agent_permitted_groups_from_class()
+
+    @classmethod
+    def _agent_permitted_groups_from_class(cls) -> frozenset[str]:
+        """Get the union of sharing groups across all decorated actions.
+
+        Class method version that works on the class without
+        instantiation. This is the single source of truth; the
+        instance method delegates here so the set registered with the
+        exchange always matches the set the runtime enforces.
+
+        Returns:
+            Union of all groups listed in any action's `sharing`
+            parameter.
+        """
+        groups: set[str] = set()
+        for name in dir(cls):
+            attr = getattr(cls, name, None)
+            if attr is not None and _is_agent_method_type(attr, 'action'):
+                groups.update(attr._action_sharing or ())
+        return frozenset(groups)
 
     def _agent_loops(self) -> dict[str, ControlLoop]:
         """Get methods of this agent type that are decorated as loops.

@@ -56,6 +56,26 @@ class AgentNotInitializedError(Exception):
         return type(self), ()
 
 
+class RequestForbiddenError(Exception):
+    """Sender is not authorized to make this request.
+
+    Raised when an agent runtime rejects an `ActionRequest`,
+    `CancelRequest`, `PingRequest`, or `ShutdownRequest` because the
+    sender is neither the mailbox owner nor a member of a group
+    permitted to make the request.
+    """
+
+    def __init__(self, mailbox_id: EntityId | None = None) -> None:
+        self.mailbox_id = mailbox_id
+        suffix = f' to {mailbox_id}' if mailbox_id is not None else ''
+        super().__init__(
+            f'Sender is not authorized to make this request{suffix}.',
+        )
+
+    def __reduce__(self) -> Any:
+        return type(self), (self.mailbox_id,)
+
+
 class PingCancelledError(Exception):
     """Ping cancelled before response.
 

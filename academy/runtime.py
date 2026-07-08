@@ -161,13 +161,14 @@ class Runtime(Generic[AgentT], NoPickleMixin):
 
         self._actions = agent._agent_actions()
         self._loops = agent._agent_loops()
+        self._permitted_groups = agent._agent_permitted_groups()
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
         self._shutdown_options = _ShutdownState()
         self._agent_startup_called = False
-
         self._action_tasks: dict[uuid.UUID, asyncio.Task[None]] = {}
+        self._action_requesters: dict[uuid.UUID, EntityId] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
         self._loop_exceptions: list[tuple[str, Exception]] = []
 
@@ -351,6 +352,57 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         finally:
             await asyncio.shield(self._send_response(response))
 
+    def _is_owner(self, sender: EntityId) -> bool:
+        """Check if `sender` is the mailbox owner."""
+        owner = getattr(self.registration, 'owner', None)
+        return owner is not None and sender == owner
+
+    def _authorized_for_action(
+        self,
+        sender: EntityId,
+        sender_groups: frozenset[str],
+        action: str,
+    ) -> bool:
+        """Check if `sender` may invoke `action`.
+
+        The owner always passes. An action with an explicit `sharing`
+        list requires membership in one of those groups; an explicitly
+        empty list means owner-only. Undecorated actions and unknown
+        action names fall back to the agent-wide permitted-groups
+        union; if that union is empty the agent has not opted into
+        access control and the request is allowed.
+        """
+        if self._is_owner(sender):
+            return True
+        method = self._actions.get(action)
+        sharing = method._action_sharing if method is not None else None
+        if sharing is not None:
+            return not sender_groups.isdisjoint(sharing)
+        if not self._permitted_groups:
+            return True
+        return not sender_groups.isdisjoint(self._permitted_groups)
+
+    def _authorized(
+        self,
+        sender: EntityId,
+        sender_groups: frozenset[str],
+        permitted_groups: frozenset[str],
+    ) -> bool:
+        """Check if `sender` may make a group-gated request.
+
+        The owner always passes. Otherwise, if the agent has never declared
+        any `sharing` groups on any action, group-based access control is
+        not in effect for this agent and the request is allowed (this
+        preserves the behavior of agents/tests that do not use the
+        `sharing` parameter at all). Otherwise, the sender must belong to
+        at least one of the permitted groups.
+        """
+        if self._is_owner(sender):
+            return True
+        if not permitted_groups:
+            return True
+        return not sender_groups.isdisjoint(permitted_groups)
+
     async def _execute_loop(
         self,
         name: str,
@@ -379,24 +431,54 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     async def _request_handler(self, request: Message[Request]) -> None:
         body = request.get_body()
         if isinstance(body, ActionRequest):
-            task = spawn_guarded_background_task(
-                self._execute_action(request),  # type: ignore[arg-type]
-                name=f'execute-action-{body.action}-{request.tag}',
+            authorized = self._authorized_for_action(
+                request.src,
+                request.header.groups,
+                body.action,
             )
+            if not authorized:
+                response = request.create_response(
+                    AcademyErrorResponse(
+                        error_code=ErrorCode.FORBIDDEN,
+                        mailbox_id=self.agent_id,
+                    ),
+                )
+                task = asyncio.create_task(self._send_response(response))
+            else:
+                task = spawn_guarded_background_task(
+                    self._execute_action(request),  # type: ignore[arg-type]
+                    name=f'execute-action-{body.action}-{request.tag}',
+                )
+                logger.debug(f'Started action with tag {request.tag}')
+            self._action_requesters[request.tag] = request.src
             self._action_tasks[request.tag] = task
             task.add_done_callback(
                 lambda _: self._action_tasks.pop(request.tag),
             )
-            logger.debug(f'Started action with tag {request.tag}')
+            task.add_done_callback(
+                lambda _: self._action_requesters.pop(request.tag, None),
+            )
 
         elif isinstance(body, CancelRequest):
-            response: Message[Response]
-            if (
+            requester = self._action_requesters.get(body.target_tag)
+            if requester is not None and not (
+                self._is_owner(request.src) or request.src == requester
+            ):
+                # Cancelling doesn't re-check group permissions: if you
+                # requested the action, you can always stop it, even if
+                # your permissions have since changed.
+                response = request.create_response(
+                    AcademyErrorResponse(
+                        error_code=ErrorCode.FORBIDDEN,
+                        mailbox_id=self.agent_id,
+                    ),
+                )
+            elif (
                 body.target_tag in self._action_tasks
                 and self._action_tasks[body.target_tag].cancel()
             ):
                 logger.debug(f'Cancelled action with tag {body.target_tag}')
-                response = request.create_response(SuccessResponse())
+                response = request.create_response(SuccessResponse())  # type: ignore[arg-type]
             else:
                 response = request.create_response(
                     AcademyErrorResponse(
@@ -418,16 +500,33 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 self._execute_ping(request),  # type: ignore[arg-type]
                 name=f'execute-ping-{request.tag}',
             )
+            self._action_requesters[request.tag] = request.src
             self._action_tasks[request.tag] = task
             task.add_done_callback(
                 lambda _: self._action_tasks.pop(request.tag),
             )
+            task.add_done_callback(
+                lambda _: self._action_requesters.pop(request.tag, None),
+            )
         elif isinstance(body, ShutdownRequest):
-            response = request.create_response(SuccessResponse())
-            # We need to block here, because if we send this async,
-            # the exchange could be closed before the message is sent
-            await self._send_response(response)
-            self.signal_shutdown(expected=True, terminate=body.terminate)
+            if getattr(
+                self.registration,
+                'owner',
+                None,
+            ) is not None and not self._is_owner(request.src):
+                response = request.create_response(
+                    AcademyErrorResponse(
+                        error_code=ErrorCode.FORBIDDEN,
+                        mailbox_id=self.agent_id,
+                    ),
+                )
+                await self._send_response(response)
+            else:
+                response = request.create_response(SuccessResponse())  # type: ignore[arg-type]
+                # We need to block here, because if we send this async,
+                # the exchange could be closed before the message is sent
+                await self._send_response(response)
+                self.signal_shutdown(expected=True, terminate=body.terminate)
         else:
             raise AssertionError('Unreachable.')
 

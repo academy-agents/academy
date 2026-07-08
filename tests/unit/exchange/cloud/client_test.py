@@ -25,6 +25,7 @@ from academy.identifier import UserId
 from academy.message import Message
 from academy.message import PingRequest
 from academy.socket import open_port
+from testing.agents import EmptyAgent
 from testing.constant import TEST_CONNECTION_TIMEOUT
 from testing.constant import TEST_WAIT_TIMEOUT
 
@@ -320,3 +321,15 @@ async def test_listen_receive_event(
             for _ in range(3):
                 received = await anext(listener)
                 assert received == message
+
+
+@pytest.mark.asyncio
+async def test_register_agent_sets_owner(
+    http_exchange_server: tuple[str, int],
+) -> None:
+    host, port = http_exchange_server
+    url = f'http://{host}:{port}'
+    factory = HttpExchangeFactory(url, request_timeout_s=TEST_WAIT_TIMEOUT)
+    async with await factory._create_transport() as transport:
+        registration = await transport.register_agent(EmptyAgent)
+        assert registration.owner == transport.mailbox_id

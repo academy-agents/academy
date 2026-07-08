@@ -162,10 +162,18 @@ class MockRedis:
             if fnmatch.fnmatch(key, pattern):
                 yield key
 
-    async def set(self, key: bytes | str, value: bytes | str) -> None:
+    async def set(
+        self,
+        key: bytes | str,
+        value: bytes | str,
+        nx: bool = False,
+    ) -> bool | None:
         key = self._encode(key)
         value = self._encode(value)
+        if nx and key in self.values:
+            return None
         self.values[key] = value
+        return True
 
     async def sadd(self, key: bytes | str, *values: bytes | str) -> None:
         key = self._encode(key)

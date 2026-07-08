@@ -140,11 +140,13 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
         agent_id: AgentId[AgentT],
         agent: type[AgentT],
     ) -> GlobusHTTPResponse:
+        permitted_groups = agent._agent_permitted_groups_from_class()
         return self.post(
             self._mailbox_url,
             data={
                 'mailbox': agent_id.model_dump_json(),
                 'agent': ','.join(agent._agent_mro()),
+                'permitted_groups': ','.join(permitted_groups),
             },
         )
 
@@ -214,6 +216,10 @@ class GlobusAgentRegistration(BaseModel, Generic[AgentT]):
 
     agent_id: AgentId[AgentT]
     """Unique identifier for the agent created by the exchange."""
+
+    owner: EntityId | None = None
+    """Entity that owns the mailbox and bypasses group-based
+    permission checks."""
 
     client_id: uuid.UUID
     """Client ID of Globus resource server.
@@ -589,6 +595,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
         return GlobusAgentRegistration(
             agent_id=pending.agent_id,
+            owner=self.mailbox_id,
             client_id=pending.client_id,
             token=token,
             secret=pending.secret,

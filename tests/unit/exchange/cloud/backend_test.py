@@ -622,6 +622,61 @@ async def test_mailbox_backend_response_without_request(
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_response_to_unshared_mailbox(
+    backend: MailboxBackend,
+) -> None:
+    """A response must reach an unshared sender mailbox.
+
+    This reproduces the detachment between group-based authorization on
+    requests (checked against the agent's mailbox shares) and
+    mailbox-based authorization on responses (previously checked against
+    the sender's mailbox shares, which may be empty). With the fix, a
+    response that matches a tracked pending request bypasses the
+    destination permission check because the original request was
+    already authorized.
+    """
+    shared_group = str(uuid.uuid4())
+
+    user = ClientInfo(str(uuid.uuid4()), {shared_group})
+    agent = ClientInfo(str(uuid.uuid4()), set())
+
+    user_uid = UserId.new()
+    agent_uid = UserId.new()
+
+    # User's mailbox has no group shares.
+    await backend.create_mailbox(user, user_uid)
+    # Agent's mailbox is shared with the group the user belongs to.
+    await backend.create_mailbox(
+        agent,
+        agent_uid,
+        permitted_groups={shared_group},
+    )
+
+    # User sends a request to the agent — passes because the user
+    # belongs to the group the agent's mailbox is shared with.
+    request = Message.create(
+        src=user_uid,
+        dest=agent_uid,
+        body=PingRequest(),
+    )
+    await backend.put(user, request)
+
+    # Agent sends the response back to the user. The user's mailbox is
+    # not shared with any of the agent's groups, so without the fix this
+    # would raise ForbiddenError.
+    response = request.create_response(SuccessResponse())
+    await backend.put(agent, response)
+
+    # The user should receive the response.
+    received = await backend.get(user, user_uid)
+    assert received.tag == request.tag
+    assert isinstance(received.get_body(), SuccessResponse)
+
+    await backend.terminate(user, user_uid)
+    await backend.terminate(agent, agent_uid)
+
+
+@pytest.mark.asyncio
 async def test_mailbox_backend_agent_stats(backend: MailboxBackend) -> None:
     client = ClientInfo(str(uuid.uuid4()), set())
     sender_uid = UserId.new()

@@ -522,48 +522,11 @@ class PythonBackend:
                 f'No message retrieved within {timeout} seconds.',
             ) from None
 
-    async def put(self, client: ClientInfo, message: Message[Any]) -> None:
-        """Put a message in a mailbox.
-
-        Args:
-            client: Client making the request.
-            message: Message to put in mailbox.
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-            BadEntityIdError: The mailbox requested does not exist.
-            MailboxTerminatedError: The mailbox is closed.
-            MessageTooLargeError: The message is larger than the message
-                size limit for this exchange.
-        """
-        if not self._has_permissions(client, message.dest):
-            raise ForbiddenError(
-                'Client does not have correct permissions.',
-            )
-
-        if not self._has_mailbox_ownership(client, message.src):
-            raise ForbiddenError(
-                'Sender does not own source mailbox.',
-            )
-
-        sender_groups = client.group_memberships & self._shared_groups(
-            message.dest,
-        )
-        message.header = message.header.model_copy(
-            update={'groups': frozenset(sender_groups)},
-        )
-
-        if sys.getsizeof(message.body) > self.message_size_limit:
-            raise MessageTooLargeError(
-                sys.getsizeof(message.body),
-                self.message_size_limit,
-            )
-
-        try:
-            queue = self._mailboxes[message.dest]
-        except KeyError as e:
-            raise BadEntityIdError(message.dest) from e
-
+    def _track_put_delivery(
+        self,
+        message: Message[Any],
+        matched_request_header: Header | None,
+    ) -> None:
         if message.is_request():
             self._requests.setdefault(message.dest, {})[message.tag] = (
                 message.header
@@ -582,11 +545,8 @@ class PythonBackend:
                     'academy.dest': message.dest,
                 },
             )
-        elif (
-            message.src in self._requests
-            and message.tag in self._requests[message.src]
-        ):
-            request_msg = self._requests[message.src].pop(message.tag)
+        elif matched_request_header is not None:
+            self._requests[message.src].pop(message.tag)
             if not self._requests[message.src]:
                 del self._requests[message.src]
             self._completions[message.src] = (
@@ -595,13 +555,13 @@ class PythonBackend:
             logger.debug(
                 'Response received for in-flight request: '
                 'tag=%s src=%s dest=%s',
-                request_msg.tag,
-                request_msg.src,
-                request_msg.dest,
+                matched_request_header.tag,
+                matched_request_header.src,
+                matched_request_header.dest,
                 extra={
-                    'academy.message_tag': request_msg.tag,
-                    'academy.src': request_msg.src,
-                    'academy.dest': request_msg.dest,
+                    'academy.message_tag': matched_request_header.tag,
+                    'academy.src': matched_request_header.src,
+                    'academy.dest': matched_request_header.dest,
                 },
             )
         else:
@@ -617,6 +577,73 @@ class PythonBackend:
                     'academy.dest': message.dest,
                 },
             )
+
+    async def put(self, client: ClientInfo, message: Message[Any]) -> None:
+        """Put a message in a mailbox.
+
+        Args:
+            client: Client making the request.
+            message: Message to put in mailbox.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox requested does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+            MessageTooLargeError: The message is larger than the message
+                size limit for this exchange.
+        """
+        # For responses, check for a matching pending request before
+        # the permission check. If a match is found, the response
+        # corresponds to a request that was already authorized when it
+        # was delivered, so the destination permission check is skipped.
+        # This closes the detachment between group-based authorization
+        # on requests (checked against the agent's mailbox shares) and
+        # mailbox-based authorization on responses (which would check
+        # against the sender's mailbox shares and fail when those are
+        # empty).
+        matched_request_header: Header | None = None
+        if message.is_response():
+            pending = self._requests.get(message.src, {})
+            matched_request_header = pending.get(message.tag)
+
+        if matched_request_header is None and not self._has_permissions(
+            client,
+            message.dest,
+        ):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
+        if not self._has_mailbox_ownership(client, message.src):
+            raise ForbiddenError(
+                'Sender does not own source mailbox.',
+            )
+
+        if matched_request_header is not None:
+            sender_groups = matched_request_header.groups
+        else:
+            sender_groups = frozenset(
+                client.group_memberships
+                & self._shared_groups(
+                    message.dest,
+                ),
+            )
+        message.header = message.header.model_copy(
+            update={'groups': sender_groups},
+        )
+
+        if sys.getsizeof(message.body) > self.message_size_limit:
+            raise MessageTooLargeError(
+                sys.getsizeof(message.body),
+                self.message_size_limit,
+            )
+
+        try:
+            queue = self._mailboxes[message.dest]
+        except KeyError as e:
+            raise BadEntityIdError(message.dest) from e
+
+        self._track_put_delivery(message, matched_request_header)
 
         async with self._locks[message.dest]:
             try:
@@ -1167,50 +1194,11 @@ class RedisBackend:
             raise MailboxTerminatedError(uid)
         return Message.model_deserialize(raw[1])
 
-    async def put(self, client: ClientInfo, message: Message[Any]) -> None:
-        """Put a message in a mailbox.
-
-        Args:
-            client: Client making the request.
-            message: Message to put in mailbox.
-
-        Raises:
-            ForbiddenError: If the client does not have the right permissions.
-            BadEntityIdError: The mailbox requested does not exist.
-            MailboxTerminatedError: The mailbox is closed.
-            MessageTooLargeError: The message is larger than the message
-                size limit for this exchange.
-        """
-        if not await self._has_permissions(client, message.dest):
-            raise ForbiddenError(
-                'Client does not have correct permissions.',
-            )
-
-        if not await self._has_mailbox_ownership(client, message.src):
-            raise ForbiddenError(
-                'Sender does not own source mailbox.',
-            )
-
-        sender_groups = client.group_memberships & await self._shared_groups(
-            message.dest,
-        )
-        message.header = message.header.model_copy(
-            update={'groups': frozenset(sender_groups)},
-        )
-
-        status = await self._client.get(self._active_key(message.dest))
-        if status is None:
-            raise BadEntityIdError(message.dest)
-        elif status.decode() == MailboxStatus.TERMINATED.value:
-            raise MailboxTerminatedError(message.dest)
-
-        serialized = message.model_serialize()
-        if len(serialized) > self.message_size_limit:
-            raise MessageTooLargeError(
-                len(serialized),
-                self.message_size_limit,
-            )
-
+    async def _track_put_delivery(
+        self,
+        message: Message[Any],
+        matched_request_header: Header | None,
+    ) -> None:
         if message.is_request():
             await self._client.set(
                 self._request_key(message.dest, message.tag),
@@ -1233,41 +1221,106 @@ class RedisBackend:
                     'academy.dest': message.dest,
                 },
             )
+        elif matched_request_header is not None:
+            req_key = self._request_key(message.src, message.tag)
+            await self._client.delete(req_key)
+            await self._client.incr(self._completions_key(message.src))
+            logger.debug(
+                'Response received for in-flight request: '
+                'tag=%s src=%s dest=%s',
+                matched_request_header.tag,
+                matched_request_header.src,
+                matched_request_header.dest,
+                extra={
+                    'academy.message_tag': matched_request_header.tag,
+                    'academy.src': matched_request_header.src,
+                    'academy.dest': matched_request_header.dest,
+                },
+            )
         else:
+            logger.warning(
+                'Response received without corresponding request: '
+                'tag=%s src=%s dest=%s',
+                message.tag,
+                message.src,
+                message.dest,
+                extra={
+                    'academy.message_tag': message.tag,
+                    'academy.src': message.src,
+                    'academy.dest': message.dest,
+                },
+            )
+
+    async def put(self, client: ClientInfo, message: Message[Any]) -> None:
+        """Put a message in a mailbox.
+
+        Args:
+            client: Client making the request.
+            message: Message to put in mailbox.
+
+        Raises:
+            ForbiddenError: If the client does not have the right permissions.
+            BadEntityIdError: The mailbox requested does not exist.
+            MailboxTerminatedError: The mailbox is closed.
+            MessageTooLargeError: The message is larger than the message
+                size limit for this exchange.
+        """
+        # For responses, check for a matching pending request before
+        # the permission check. If a match is found, the response
+        # corresponds to a request that was already authorized when it
+        # was delivered, so the destination permission check is skipped.
+        # This closes the detachment between group-based authorization
+        # on requests (checked against the agent's mailbox shares) and
+        # mailbox-based authorization on responses (which would check
+        # against the sender's mailbox shares and fail when those are
+        # empty).
+        matched_request_header: Header | None = None
+        if message.is_response():
             req_key = self._request_key(message.src, message.tag)
             matching_data = await self._client.get(req_key)
             if matching_data is not None:
-                # TODO: Use redis locks here to ensure thread safety
-                matching: Header = Header.model_validate_json(
+                matched_request_header = Header.model_validate_json(
                     matching_data.decode(),
                 )
-                await self._client.delete(req_key)
-                await self._client.incr(self._completions_key(message.src))
-                logger.debug(
-                    'Response received for in-flight request: '
-                    'tag=%s src=%s dest=%s',
-                    matching.tag,
-                    matching.src,
-                    matching.dest,
-                    extra={
-                        'academy.message_tag': matching.tag,
-                        'academy.src': matching.src,
-                        'academy.dest': matching.dest,
-                    },
-                )
-            else:
-                logger.warning(
-                    'Response received without corresponding request: '
-                    'tag=%s src=%s dest=%s',
-                    message.tag,
-                    message.src,
-                    message.dest,
-                    extra={
-                        'academy.message_tag': message.tag,
-                        'academy.src': message.src,
-                        'academy.dest': message.dest,
-                    },
-                )
+
+        if matched_request_header is None and not await self._has_permissions(
+            client,
+            message.dest,
+        ):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
+        if not await self._has_mailbox_ownership(client, message.src):
+            raise ForbiddenError(
+                'Sender does not own source mailbox.',
+            )
+
+        if matched_request_header is not None:
+            sender_groups = matched_request_header.groups
+        else:
+            sender_groups = frozenset(
+                client.group_memberships
+                & await self._shared_groups(message.dest),
+            )
+        message.header = message.header.model_copy(
+            update={'groups': sender_groups},
+        )
+
+        status = await self._client.get(self._active_key(message.dest))
+        if status is None:
+            raise BadEntityIdError(message.dest)
+        elif status.decode() == MailboxStatus.TERMINATED.value:
+            raise MailboxTerminatedError(message.dest)
+
+        serialized = message.model_serialize()
+        if len(serialized) > self.message_size_limit:
+            raise MessageTooLargeError(
+                len(serialized),
+                self.message_size_limit,
+            )
+
+        await self._track_put_delivery(message, matched_request_header)
 
         await self._client.rpush(
             self._queue_key(message.dest),

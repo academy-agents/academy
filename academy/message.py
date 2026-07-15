@@ -440,6 +440,7 @@ class Header(BaseModel):
             src=self.dest,
             dest=self.src,
             label=self.label,
+            groups=self.groups,
             kind='response',
         )
 

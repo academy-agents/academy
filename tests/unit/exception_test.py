@@ -19,6 +19,7 @@ from academy.exception import IncompatibleNetworkProtocolError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
 from academy.exception import PingCancelledError
+from academy.exception import RequestForbiddenError
 from academy.exception import UnauthorizedError
 from academy.exception import UserTerminatedError
 from academy.identifier import AgentId
@@ -45,6 +46,8 @@ from academy.identifier import UserId
         ExceptionSerializationError('TestError traceback', 'pickle'),
         AcademyRemoteError(),
         IncompatibleNetworkProtocolError('2', '1'),
+        RequestForbiddenError(),
+        RequestForbiddenError(AgentId.new()),
     ),
 )
 def test_pickle_exception(exc: Exception) -> None:

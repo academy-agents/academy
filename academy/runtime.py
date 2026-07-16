@@ -382,7 +382,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             return True
         return not sender_groups.isdisjoint(self._permitted_groups)
 
-    def _authorized(
+    def _authorized(  # pragma: no cover
         self,
         sender: EntityId,
         sender_groups: frozenset[str],

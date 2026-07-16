@@ -436,8 +436,7 @@ async def test_agent_launch_alongside(
 def test_agent_permitted_groups_from_class_empty() -> None:
     class NoSharingAgent(Agent):
         @action
-        async def do_something(self) -> str:
-            return 'ok'
+        async def do_something(self) -> None: ...
 
     groups = NoSharingAgent._agent_permitted_groups_from_class()
     assert groups == frozenset()
@@ -446,8 +445,7 @@ def test_agent_permitted_groups_from_class_empty() -> None:
 def test_agent_permitted_groups_from_class_single_group() -> None:
     class SingleGroupAgent(Agent):
         @action(sharing=['group-a'])
-        async def restricted(self) -> str:
-            return 'ok'
+        async def restricted(self) -> None: ...
 
     groups = SingleGroupAgent._agent_permitted_groups_from_class()
     assert groups == frozenset({'group-a'})
@@ -456,16 +454,13 @@ def test_agent_permitted_groups_from_class_single_group() -> None:
 def test_agent_permitted_groups_from_class_multiple_groups() -> None:
     class MultiGroupAgent(Agent):
         @action(sharing=['group-a'])
-        async def action_a(self) -> str:
-            return 'a'
+        async def action_a(self) -> None: ...
 
         @action(sharing=['group-b'])
-        async def action_b(self) -> str:
-            return 'b'
+        async def action_b(self) -> None: ...
 
         @action
-        async def open_action(self) -> str:
-            return 'open'
+        async def open_action(self) -> None: ...
 
     groups = MultiGroupAgent._agent_permitted_groups_from_class()
     assert groups == frozenset({'group-a', 'group-b'})
@@ -474,12 +469,10 @@ def test_agent_permitted_groups_from_class_multiple_groups() -> None:
 def test_agent_permitted_groups_from_class_overlapping_groups() -> None:
     class OverlappingAgent(Agent):
         @action(sharing=['group-a', 'group-b'])
-        async def action_ab(self) -> str:
-            return 'ab'
+        async def action_ab(self) -> None: ...
 
         @action(sharing=['group-b', 'group-c'])
-        async def action_bc(self) -> str:
-            return 'bc'
+        async def action_bc(self) -> None: ...
 
     groups = OverlappingAgent._agent_permitted_groups_from_class()
     assert groups == frozenset({'group-a', 'group-b', 'group-c'})

@@ -15,6 +15,7 @@ from globus_sdk.token_storage import MemoryTokenStorage
 
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_ID_ENV_NAME
 from academy.exchange.cloud.login import ACADEMY_GLOBUS_CLIENT_SECRET_ENV_NAME
+from academy.exchange.cloud.login import get_academy_home
 from academy.exchange.cloud.login import get_auth_headers
 from academy.exchange.cloud.login import get_client_app
 from academy.exchange.cloud.login import get_client_credentials_from_env
@@ -35,6 +36,19 @@ def mock_env_credentials() -> Generator[tuple[str, str], None, None]:
     }
     with mock.patch.dict(os.environ, env):
         yield client_uuid, client_secret
+
+
+def test_get_academy_home(tmp_path: pathlib.Path):
+    with mock.patch.dict(os.environ, {}, clear=True):
+        assert (
+            get_academy_home()
+            == pathlib.Path(
+                os.path.expanduser('~/local/share'),
+            )
+            / 'academy'
+        )
+    with mock.patch.dict(os.environ, {'ACADEMY_HOME': str(tmp_path)}):
+        assert get_academy_home() == tmp_path
 
 
 def test_get_token_storage(tmp_path: pathlib.Path):

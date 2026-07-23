@@ -454,7 +454,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         for executor in self._executors.values():
             if executor is not None:
+                if hasattr(executor, 'aclose'):
+                    await executor.aclose()
                 executor.shutdown(wait=True, cancel_futures=True)
+                
 
         exceptions = (acb.task.exception() for acb in self._acbs.values())
         exceptions_only = tuple(e for e in exceptions if e is not None)

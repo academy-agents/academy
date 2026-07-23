@@ -88,7 +88,13 @@ def _run_agent_on_worker(
 ) -> None:
     with log_context(spec.log_config):
         set_academy_debug(academy_debug_mode)
-        asyncio.run(_run_agent_async(spec))
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError: 
+            asyncio.run(_run_agent_async(spec))
+        else: #If get_running_loop doesn't throw, means that we're already in the host agent's event loop.
+            return _run_agent_async(spec)
+
 
 
 @dataclasses.dataclass
@@ -448,7 +454,10 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         for executor in self._executors.values():
             if executor is not None:
+                if hasattr(executor, 'aclose'):
+                    await executor.aclose()
                 executor.shutdown(wait=True, cancel_futures=True)
+                
 
         exceptions = (acb.task.exception() for acb in self._acbs.values())
         exceptions_only = tuple(e for e in exceptions if e is not None)

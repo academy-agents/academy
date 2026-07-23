@@ -271,10 +271,11 @@ async def _get_heartbeat_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
     raw_mailbox_id = data['mailbox']
+    client_info = get_client_info(request)
     mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
         raw_mailbox_id,
     )
-    heartbeat = await manager.heartbeat_status(mailbox_id)
+    heartbeat = await manager.heartbeat_status(client_info, mailbox_id)
     return json_response({'heartbeat': heartbeat})
 
 
@@ -283,10 +284,11 @@ async def _agent_stats_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
     raw_mailbox_id = data['mailbox']
+    client_info = get_client_info(request)
     mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
         raw_mailbox_id,
     )
-    stats = await manager.agent_stats(mailbox_id)
+    stats = await manager.agent_stats(client_info, mailbox_id)
     return json_response(dataclasses.asdict(stats))
 
 
@@ -295,10 +297,11 @@ async def _update_heartbeat_route(request: Request) -> Response:
     data = await request.json()
     manager: MailboxBackend = request.app[MANAGER_KEY]
     raw_mailbox_id = data['mailbox']
+    client_info = get_client_info(request)
     mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
         raw_mailbox_id,
     )
-    await manager.update_heartbeat(mailbox_id)
+    await manager.update_heartbeat(client_info, mailbox_id)
     return Response(status=StatusCode.OKAY.value)
 
 

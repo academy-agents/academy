@@ -560,43 +560,65 @@ async def test_mailbox_backend_agent_stats(backend: MailboxBackend) -> None:
     req = Message.create(src=sender_uid, dest=agent_uid, body=PingRequest())
     await backend.put(client, req)
 
-    stats = await backend.agent_stats(agent_uid)
+    stats = await backend.agent_stats(client, agent_uid)
     assert stats.incoming == 1
     assert stats.queued == 1
 
     await backend.get(client, agent_uid)
-    stats = await backend.agent_stats(agent_uid)
+    stats = await backend.agent_stats(client, agent_uid)
     assert stats.queued == 0
     assert stats.in_progress == 1
 
     await backend.put(client, req.create_response(SuccessResponse()))
-    stats = await backend.agent_stats(agent_uid)
+    stats = await backend.agent_stats(client, agent_uid)
     assert stats.completed == 1
     assert stats.in_progress == 0
 
-    assert (await backend.agent_stats(sender_uid)).outgoing == 1
+    assert (await backend.agent_stats(client, sender_uid)).outgoing == 1
 
 
+@pytest.mark.asyncio
 async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     uid = UserId.new()
     client = ClientInfo(str(uid), set())
 
     with pytest.raises(BadEntityIdError):
-        await backend.heartbeat_status(uid)
+        await backend.heartbeat_status(client, uid)
 
     await backend.create_mailbox(client, uid)
 
-    heartbeat = await backend.heartbeat_status(uid)
+    heartbeat = await backend.heartbeat_status(client, uid)
     assert heartbeat is None
 
     start = time.time()
-    await backend.update_heartbeat(uid)
+    await backend.update_heartbeat(client, uid)
 
-    heartbeat = await backend.heartbeat_status(uid)
+    heartbeat = await backend.heartbeat_status(client, uid)
     elapsed = time.time() - start
     assert heartbeat is not None
     assert heartbeat <= elapsed
 
     await backend.terminate(client, uid)
     with pytest.raises(MailboxTerminatedError):
-        await backend.heartbeat_status(uid)
+        await backend.heartbeat_status(client, uid)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_client_permission(backend: MailboxBackend) -> None:
+
+    uid_owner = UserId.new()
+    client_owner = ClientInfo(str(uid_owner), set())
+
+    await backend.create_mailbox(client_owner, uid_owner)
+
+    uid_intruder = UserId.new()
+    client_intruder = ClientInfo(str(uid_intruder), set())
+
+    with pytest.raises(ForbiddenError):
+        await backend.update_heartbeat(client_intruder, uid_owner)
+
+    with pytest.raises(ForbiddenError):
+        await backend.heartbeat_status(client_intruder, uid_owner)
+
+    with pytest.raises(ForbiddenError):
+        await backend.agent_stats(client_intruder, uid_owner)

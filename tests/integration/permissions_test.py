@@ -204,8 +204,18 @@ async def test_access_groups_member_allowed_non_member_denied() -> None:
         await factory.create_user_client(start_listener=False) as _owner,
         await Manager.from_exchange_factory(factory) as manager,
     ):
+        # The local exchange is ownerless (self-hosted trust mode); inject
+        # an owner so the runtime enforces access_groups instead of
+        # allowing every caller. See _OwnableReg and
+        # test_control_groups_stranger_shutdown_denied.
+        reg = await manager.exchange_client.register_agent(SimpleAgent)
+        owned_reg = _OwnableReg(
+            agent_id=reg.agent_id,
+            owner=manager.exchange_client.client_id,
+        )
         handle = await manager.launch(
             SimpleAgent,
+            registration=owned_reg,
             config=RuntimeConfig(access_groups={GROUP_A}),
         )
         await _wait_agent_ready(handle)
@@ -450,8 +460,18 @@ async def test_sharing_empty_owner_only_against_access_groups() -> None:
         await factory.create_user_client(start_listener=False) as _owner,
         await Manager.from_exchange_factory(factory) as manager,
     ):
+        # The local exchange is ownerless (self-hosted trust mode); inject
+        # an owner so the runtime enforces sharing/access_groups instead of
+        # allowing every caller. See _OwnableReg and
+        # test_control_groups_stranger_shutdown_denied.
+        reg = await manager.exchange_client.register_agent(OwnerOnlyAgent)
+        owned_reg = _OwnableReg(
+            agent_id=reg.agent_id,
+            owner=manager.exchange_client.client_id,
+        )
         handle = await manager.launch(
             OwnerOnlyAgent,
+            registration=owned_reg,
             config=RuntimeConfig(access_groups={GROUP_A}),
         )
         await _wait_agent_ready(handle)

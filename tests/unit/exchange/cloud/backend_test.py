@@ -677,6 +677,61 @@ async def test_mailbox_backend_response_to_unshared_mailbox(
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_forged_response_cannot_bypass_permissions(
+    backend: MailboxBackend,
+) -> None:
+    """A forged response cannot bypass the destination permission check.
+
+    A client that owns a mailbox with a pending inbound request must not
+    be able to redirect a matching response to an unrelated mailbox it
+    has no permission to reach. The response-match shortcut only applies
+    when the response returns to the original requester.
+    """
+    shared_group = str(uuid.uuid4())
+    attacker = ClientInfo(str(uuid.uuid4()), set())
+    victim_owner = ClientInfo(str(uuid.uuid4()), set())
+    requester = ClientInfo(str(uuid.uuid4()), {shared_group})
+
+    attacker_uid = UserId.new()
+    victim_uid = UserId.new()
+    requester_uid = UserId.new()
+
+    # The attacker owns an agent mailbox shared with the requester's
+    # group, so it legitimately receives requests (and could forge
+    # responses). The victim's mailbox has no shares.
+    await backend.create_mailbox(
+        attacker,
+        attacker_uid,
+        permitted_groups={shared_group},
+    )
+    await backend.create_mailbox(victim_owner, victim_uid)
+    await backend.create_mailbox(requester, requester_uid)
+
+    # A legitimate request creates a tracked pending request addressed to
+    # the attacker's mailbox.
+    request = Message.create(
+        src=requester_uid,
+        dest=attacker_uid,
+        body=PingRequest(),
+    )
+    await backend.put(requester, request)
+
+    # The attacker forges a response reusing the matching tag but
+    # redirects it to the victim's mailbox, which it cannot reach.
+    legit_response = request.create_response(SuccessResponse())
+    forged = legit_response.model_copy(
+        update={
+            'header': legit_response.header.model_copy(
+                update={'dest': victim_uid},
+            ),
+        },
+    )
+
+    with pytest.raises(ForbiddenError):
+        await backend.put(attacker, forged)
+
+
+@pytest.mark.asyncio
 async def test_mailbox_backend_agent_stats(backend: MailboxBackend) -> None:
     client = ClientInfo(str(uuid.uuid4()), set())
     sender_uid = UserId.new()

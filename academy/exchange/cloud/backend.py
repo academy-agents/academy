@@ -578,6 +578,21 @@ class PythonBackend:
                 },
             )
 
+    def _match_response(self, message: Message[Any]) -> Header | None:
+        """Return the pending request a response replies to, if any.
+
+        Only a response returning to the original requester matches; a
+        matched tag whose destination differs is a forged response and is
+        treated as unmatched so it cannot bypass the destination's
+        permission check.
+        """
+        if not message.is_response():
+            return None
+        candidate = self._requests.get(message.src, {}).get(message.tag)
+        if candidate is not None and message.dest == candidate.src:
+            return candidate
+        return None
+
     async def put(self, client: ClientInfo, message: Message[Any]) -> None:
         """Put a message in a mailbox.
 
@@ -592,19 +607,12 @@ class PythonBackend:
             MessageTooLargeError: The message is larger than the message
                 size limit for this exchange.
         """
-        # For responses, check for a matching pending request before
-        # the permission check. If a match is found, the response
-        # corresponds to a request that was already authorized when it
-        # was delivered, so the destination permission check is skipped.
-        # This closes the detachment between group-based authorization
-        # on requests (checked against the agent's mailbox shares) and
-        # mailbox-based authorization on responses (which would check
-        # against the sender's mailbox shares and fail when those are
-        # empty).
-        matched_request_header: Header | None = None
-        if message.is_response():
-            pending = self._requests.get(message.src, {})
-            matched_request_header = pending.get(message.tag)
+        # For responses, a match means the corresponding request was
+        # already authorized when delivered, so the destination
+        # permission check below is skipped. This closes the detachment
+        # between group-based authorization on requests and mailbox-based
+        # authorization on responses.
+        matched_request_header = self._match_response(message)
 
         if matched_request_header is None and not self._has_permissions(
             client,
@@ -1251,6 +1259,25 @@ class RedisBackend:
                 },
             )
 
+    async def _match_response(self, message: Message[Any]) -> Header | None:
+        """Return the pending request a response replies to, if any.
+
+        Only a response returning to the original requester matches; a
+        matched tag whose destination differs is a forged response and is
+        treated as unmatched so it cannot bypass the destination's
+        permission check.
+        """
+        if not message.is_response():
+            return None
+        req_key = self._request_key(message.src, message.tag)
+        matching_data = await self._client.get(req_key)
+        if matching_data is None:
+            return None
+        candidate = Header.model_validate_json(matching_data.decode())
+        if message.dest == candidate.src:
+            return candidate
+        return None
+
     async def put(self, client: ClientInfo, message: Message[Any]) -> None:
         """Put a message in a mailbox.
 
@@ -1265,23 +1292,12 @@ class RedisBackend:
             MessageTooLargeError: The message is larger than the message
                 size limit for this exchange.
         """
-        # For responses, check for a matching pending request before
-        # the permission check. If a match is found, the response
-        # corresponds to a request that was already authorized when it
-        # was delivered, so the destination permission check is skipped.
-        # This closes the detachment between group-based authorization
-        # on requests (checked against the agent's mailbox shares) and
-        # mailbox-based authorization on responses (which would check
-        # against the sender's mailbox shares and fail when those are
-        # empty).
-        matched_request_header: Header | None = None
-        if message.is_response():
-            req_key = self._request_key(message.src, message.tag)
-            matching_data = await self._client.get(req_key)
-            if matching_data is not None:
-                matched_request_header = Header.model_validate_json(
-                    matching_data.decode(),
-                )
+        # For responses, a match means the corresponding request was
+        # already authorized when delivered, so the destination
+        # permission check below is skipped. This closes the detachment
+        # between group-based authorization on requests and mailbox-based
+        # authorization on responses.
+        matched_request_header = await self._match_response(message)
 
         if matched_request_header is None and not await self._has_permissions(
             client,

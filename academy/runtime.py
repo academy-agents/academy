@@ -170,7 +170,6 @@ class Runtime(Generic[AgentT], NoPickleMixin):
 
         self._actions = agent._agent_actions()
         self._loops = agent._agent_loops()
-        self._permitted_groups = agent._agent_permitted_groups()
 
         self._access_groups = frozenset(self.config.access_groups or ())
         self._control_groups = frozenset(self.config.control_groups or ())
@@ -390,6 +389,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         """
         if self._is_owner(sender):
             return True
+        if getattr(self.registration, 'owner', None) is None:
+            # Ownerless registrations come from self-hosted (local or
+            # hybrid) exchanges, which are fully trusted and do not stamp
+            # group memberships. Action authorization does not apply.
+            return True
         method = self._actions.get(action)
         sharing = method._action_sharing if method is not None else None
         if sharing is not None and not sharing:
@@ -428,6 +432,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
 
     async def _request_handler(self, request: Message[Request]) -> None:
         body = request.get_body()
+        response: Message[Response]
         if isinstance(body, ActionRequest):
             authorized = self._authorized_for_action(
                 request.src,
@@ -483,7 +488,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 and self._action_tasks[body.target_tag].cancel()
             ):
                 logger.debug(f'Cancelled action with tag {body.target_tag}')
-                response = request.create_response(SuccessResponse())  # type: ignore[arg-type]
+                response = request.create_response(SuccessResponse())
             else:
                 response = request.create_response(
                     AcademyErrorResponse(
@@ -532,7 +537,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 await self._send_response(response)
                 return
             # else: ownerless registration, self-hosted — allow
-            response = request.create_response(SuccessResponse())  # type: ignore[arg-type]
+            response = request.create_response(SuccessResponse())
             # We need to block here, because if we send this async,
             # the exchange could be closed before the message is sent
             await self._send_response(response)

@@ -173,11 +173,10 @@ def action(
         sharing: Globus group UUIDs allowed to invoke this action. A
             sender in any one of these groups may invoke the action
             (union semantics). An explicitly empty sequence makes the
-            action owner-only. If omitted (`None`), the action falls
-            back to the agent's permitted-groups union
-            (see
-            [`_agent_permitted_groups`]\
-[academy.agent.Agent._agent_permitted_groups]).
+            action owner-only. If omitted (`None`), the action is
+            reachable by the owner and by any agent-wide access groups
+            configured on the runtime, but not by other actions'
+            decorator groups.
 
     Raises:
         TypeError: If the decorated function is not a coroutine.

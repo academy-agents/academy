@@ -298,7 +298,7 @@ class AcademyErrorResponse(BaseModel):
             case ErrorCode.INVALID_CLIENT:
                 return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
             case ErrorCode.INCOMPATIBLE_PROTOCOL:
-                return IncompatibleNetworkProtocolError()
+                return IncompatibleNetworkProtocolError(None, PROTOCOL_VERSION)
             case ErrorCode.FORBIDDEN:
                 return RequestForbiddenError(self.mailbox_id)
         raise AssertionError('Unreachable.')

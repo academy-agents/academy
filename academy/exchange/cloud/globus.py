@@ -10,6 +10,7 @@ import threading
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from datetime import timedelta
@@ -139,8 +140,14 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
         self,
         agent_id: AgentId[AgentT],
         agent: type[AgentT],
+        *,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> GlobusHTTPResponse:
-        permitted_groups = agent._agent_permitted_groups_from_class()
+        permitted_groups: set[str] = set(
+            agent._agent_permitted_groups_from_class(),
+        )
+        if extra_permitted_groups:
+            permitted_groups |= set(extra_permitted_groups)
         return self.post(
             self._mailbox_url,
             data={
@@ -621,14 +628,20 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self,
         aid: AgentId[AgentT],
         agent: type[AgentT],
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> None:
-        self.exchange_client.register_agent(aid, agent)
+        self.exchange_client.register_agent(
+            aid,
+            agent,
+            extra_permitted_groups=extra_permitted_groups,
+        )
 
     async def register_agent(
         self,
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> GlobusAgentRegistration[AgentT]:
         loop = asyncio.get_running_loop()
 
@@ -646,6 +659,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             self._create_mailbox,
             aid,
             agent,
+            extra_permitted_groups,
         )
 
         self.child_clients.append(registration.client_id)
@@ -654,12 +668,13 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
 
     async def register_agents(
         self,
-        agents: list[tuple[type[AgentT], str | None]],
+        agents: list[tuple[type[AgentT], str | None, Iterable[str] | None]],
     ) -> list[GlobusAgentRegistration[AgentT]]:
         """Register multiple agents with a single auth prompt.
 
         Args:
-            agents: List of (agent_type, name) pairs to register.
+            agents: List of (agent_type, name, extra_permitted_groups)
+                triples to register.
 
         Returns:
             List of agent registrations in order of input.
@@ -671,7 +686,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # state, and the auth_client property serializes interactive
         # login via _auth_lock, so parallel dispatch is safe.
         aids: list[AgentId[AgentT]] = [
-            AgentId.new(name=name) for _, name in agents
+            AgentId.new(name=name) for _, name, _ in agents
         ]
         prepared: list[_PendingRegistration[AgentT]] = list(
             await asyncio.gather(
@@ -688,7 +703,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         pending = list(
             zip(
                 prepared,
-                [at for at, _ in agents],
+                [at for at, _, _ in agents],
                 strict=True,
             ),
         )
@@ -723,6 +738,10 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ),
         )
 
+        # Build a lookup from agent_type -> extra groups since
+        # pending is ordered the same as the input agents list.
+        extras_per_agent = [eg for _, _, eg in agents]
+
         await asyncio.gather(
             *(
                 loop.run_in_executor(
@@ -730,11 +749,10 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                     self._create_mailbox,
                     reg.agent_id,
                     agent_type,
+                    extras_per_agent[idx],
                 )
-                for reg, (_, agent_type) in zip(
-                    regs,
-                    pending,
-                    strict=True,
+                for idx, (reg, (_, agent_type)) in enumerate(
+                    zip(regs, pending, strict=True),
                 )
             ),
         )

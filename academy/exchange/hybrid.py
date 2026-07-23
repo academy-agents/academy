@@ -314,6 +314,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> HybridAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
         await self._redis_client.set(

@@ -44,6 +44,8 @@ async def main():
 ```
 In the code, the [`RuntimeConfig`][academy.runtime.RuntimeConfig] is used to tell the agent not to delete the mailbox if it is manually shutdown, or if it catches an error. This allows the registration to be reused across agent restarts.
 
+The same [`RuntimeConfig`][academy.runtime.RuntimeConfig] can also configure access control when using the hosted exchange: [`access_groups`][academy.runtime.RuntimeConfig] to share the agent with members of specific Globus groups, and [`control_groups`][academy.runtime.RuntimeConfig] to grant lifecycle control (e.g., shutdown) without action access. See [Access Control](../concepts/access-control.md) for details.
+
 Once the `Runtime` is initialized we can start the agent.
 ```
 async def main():

@@ -10,6 +10,7 @@ import time
 import uuid
 from collections.abc import AsyncGenerator
 from collections.abc import Generator
+from collections.abc import Iterable
 from typing import Any
 from typing import Generic
 from typing import Literal
@@ -290,9 +291,14 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> HttpAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
-        permitted_groups = agent._agent_permitted_groups_from_class()
+        permitted_groups: set[str] = set(
+            agent._agent_permitted_groups_from_class(),
+        )
+        if extra_permitted_groups:
+            permitted_groups |= set(extra_permitted_groups)
         async with self._session.post(
             self._mailbox_url,
             json={

@@ -921,6 +921,7 @@ async def test_runtime_uses_exception_serialization(
 
 GROUP_A = 'group-a'
 GROUP_B = 'group-b'
+CONTROL_GROUP = 'control-group'
 
 
 class GatedAgent(Agent):
@@ -1261,13 +1262,14 @@ async def test_unknown_action_forbidden_for_unauthorized_sender(
 
 
 @pytest.mark.asyncio
-async def test_undecorated_action_uses_group_union(
+async def test_undecorated_action_denied_in_fine_grained_mode(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     owner_id = exchange_client.client_id
     factory = exchange_client.factory()
     registration = await exchange_client.register_agent(GatedAgent)
     registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+    owner_listener = await _listen_on(exchange_client)
 
     async with (
         await factory.create_user_client() as stranger,
@@ -1279,8 +1281,8 @@ async def test_undecorated_action_uses_group_union(
     ):
         listener = await _listen_on(stranger)
 
-        # Undecorated action falls back to the agent's permitted-groups
-        # union, so GROUP_A grants access.
+        # When any decorator sharing is declared, undecorated actions
+        # are closed by default: GROUP_A does NOT grant access.
         request = _make_group_request(
             runtime.agent_id,
             stranger.client_id,
@@ -1292,7 +1294,357 @@ async def test_undecorated_action_uses_group_union(
         )
         await stranger.send(request)
         message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+        # The owner may still call the undecorated action.
+        request = _make_group_request(
+            runtime.agent_id,
+            owner_id,
+            ActionRequest(
+                action='open_',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(request)
+        message = await anext(owner_listener)
         assert isinstance(message.get_body(), ActionResponse)
+
+
+@pytest.mark.asyncio
+async def test_access_groups_only_member_reaches_all_actions(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """access_groups grants access to every action.
+
+    access_groups grants members access to every action on an agent
+    with no decorator sharing.
+    """
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(CounterAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as member,
+        await factory.create_user_client() as stranger,
+        Runtime(
+            CounterAgent(),
+            exchange_factory=factory,
+            registration=registration,
+            config=RuntimeConfig(access_groups={GROUP_A}),
+        ) as runtime,
+    ):
+        member_listener = await _listen_on(member)
+        stranger_listener = await _listen_on(stranger)
+
+        # Member reaches every action.
+        request = _make_group_request(
+            runtime.agent_id,
+            member.client_id,
+            ActionRequest(
+                action='add',
+                pargs=(1,),
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await member.send(request)
+        message = await anext(member_listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+        # Non-member is denied.
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ActionRequest(
+                action='add',
+                pargs=(1,),
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await stranger.send(request)
+        message = await anext(stranger_listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+
+@pytest.mark.asyncio
+async def test_access_groups_with_decorators(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """access_groups and decorators interact correctly.
+
+    access_groups opens all actions; decorator-only groups reach
+    only their own action; undecorated is denied without access_groups.
+    """
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as access_member,
+        await factory.create_user_client() as group_b,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+            config=RuntimeConfig(access_groups={GROUP_A}),
+        ) as runtime,
+    ):
+        access_listener = await _listen_on(access_member)
+        group_b_listener = await _listen_on(group_b)
+
+        # GROUP_A (access_groups) reaches decorated actions...
+        for action in ('restricted', 'restricted_b'):
+            request = _make_group_request(
+                runtime.agent_id,
+                access_member.client_id,
+                ActionRequest(
+                    action=action,
+                    serialization=SerializationStrategy.PICKLE,
+                ),
+                groups=frozenset({GROUP_A}),
+            )
+            await access_member.send(request)
+            message = await anext(access_listener)
+            assert isinstance(message.get_body(), ActionResponse)
+
+        # ...and also the undecorated action.
+        request = _make_group_request(
+            runtime.agent_id,
+            access_member.client_id,
+            ActionRequest(
+                action='open_',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await access_member.send(request)
+        message = await anext(access_listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+        # GROUP_B reaches restricted_b (decorator)...
+        request = _make_group_request(
+            runtime.agent_id,
+            group_b.client_id,
+            ActionRequest(
+                action='restricted_b',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_B}),
+        )
+        await group_b.send(request)
+        message = await anext(group_b_listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+        # ...but GROUP_B cannot reach undecorated (fine-grained closed).
+        request = _make_group_request(
+            runtime.agent_id,
+            group_b.client_id,
+            ActionRequest(
+                action='open_',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_B}),
+        )
+        await group_b.send(request)
+        message = await anext(group_b_listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+
+@pytest.mark.asyncio
+async def test_explicit_empty_sharing_not_widened_by_access_groups(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """sharing=[] is owner-only even when access_groups is set."""
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(OwnerOnlyAgent)
+    registration = _OwnableReg(
+        agent_id=registration.agent_id,
+        owner=owner_id,
+    )
+
+    async with (
+        await factory.create_user_client() as member,
+        Runtime(
+            OwnerOnlyAgent(),
+            exchange_factory=factory,
+            registration=registration,
+            config=RuntimeConfig(access_groups={GROUP_A}),
+        ) as runtime,
+    ):
+        listener = await _listen_on(member)
+
+        # access_groups member still FORBIDDEN on owner_only.
+        request = _make_group_request(
+            runtime.agent_id,
+            member.client_id,
+            ActionRequest(
+                action='owner_only',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await member.send(request)
+        message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+        # shared is still reachable (decorator allows GROUP_A).
+        request = _make_group_request(
+            runtime.agent_id,
+            member.client_id,
+            ActionRequest(
+                action='shared',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await member.send(request)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+
+@pytest.mark.asyncio
+async def test_control_groups_allows_shutdown(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """A control_groups member may shut down the agent."""
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as controller,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+            config=RuntimeConfig(control_groups={GROUP_A}),
+        ) as runtime,
+    ):
+        listener = await _listen_on(controller)
+
+        request = _make_group_request(
+            runtime.agent_id,
+            controller.client_id,
+            ShutdownRequest(),
+            groups=frozenset({GROUP_A}),
+        )
+        await controller.send(request)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), SuccessResponse)
+        assert runtime._shutdown_event.is_set()
+
+
+@pytest.mark.asyncio
+async def test_control_groups_does_not_grant_action_access(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """control_groups membership alone does not grant action access."""
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as controller,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+            config=RuntimeConfig(control_groups={CONTROL_GROUP}),
+        ) as runtime,
+    ):
+        listener = await _listen_on(controller)
+
+        request = _make_group_request(
+            runtime.agent_id,
+            controller.client_id,
+            ActionRequest(
+                action='restricted',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({CONTROL_GROUP}),
+        )
+        await controller.send(request)
+        message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+
+@pytest.mark.asyncio
+async def test_control_groups_allows_cancel(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """Control group members can cancel actions.
+
+    A control_groups member may cancel another sender's action;
+    an unrelated stranger is still denied.
+    """
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(SleepAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as requester,
+        await factory.create_user_client() as stranger,
+        await factory.create_user_client() as controller,
+        Runtime(
+            SleepAgent(),
+            exchange_factory=factory,
+            registration=registration,
+            config=RuntimeConfig(control_groups={GROUP_A}),
+        ) as runtime,
+    ):
+        controller_listener = await _listen_on(controller)
+        stranger_listener = await _listen_on(stranger)
+
+        action_request = _make_group_request(
+            runtime.agent_id,
+            requester.client_id,
+            ActionRequest(
+                action='sleep',
+                pargs=(TEST_SLEEP_INTERVAL * 10,),
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await requester.send(action_request)
+        await asyncio.sleep(TEST_SLEEP_INTERVAL)
+
+        # Stranger cannot cancel.
+        cancel_request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            CancelRequest(target_tag=action_request.tag),
+        )
+        await stranger.send(cancel_request)
+        message = await anext(stranger_listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+        # Control-groups member can cancel.
+        cancel_request = _make_group_request(
+            runtime.agent_id,
+            controller.client_id,
+            CancelRequest(target_tag=action_request.tag),
+            groups=frozenset({GROUP_A}),
+        )
+        await controller.send(cancel_request)
+        message = await anext(controller_listener)
+        assert isinstance(message.get_body(), SuccessResponse)
 
 
 @pytest.mark.asyncio

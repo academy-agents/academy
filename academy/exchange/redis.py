@@ -7,6 +7,7 @@ import sys
 import uuid
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
+from collections.abc import Iterable
 from typing import Any
 from typing import Generic
 from typing import Literal
@@ -267,6 +268,7 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> RedisAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
         await self._client.set(

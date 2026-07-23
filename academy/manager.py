@@ -81,6 +81,24 @@ async def _run_agent_async(
         raise
 
 
+def _groups_from_config(
+    config: RuntimeConfig | None,
+) -> set[str] | None:
+    """Union of access_groups and control_groups from a RuntimeConfig.
+
+    Returns None when the config is None or both fields are None/empty,
+    so that callers can treat a missing config as no-op.
+    """
+    if config is None:
+        return None
+    groups: set[str] = set()
+    if config.access_groups:
+        groups |= config.access_groups
+    if config.control_groups:
+        groups |= config.control_groups
+    return groups or None
+
+
 def _run_agent_on_worker(
     spec: _RunSpec[AgentT, ExchangeTransportT],
     academy_debug_mode: bool = False,
@@ -213,12 +231,13 @@ class _BatchLauncher:
         if not self._intents:
             return
 
-        specs: list[tuple[type[Any], str | None]] = [
+        specs: list[tuple[type[Any], str | None, Iterable[str] | None]] = [
             (
                 intent.agent
                 if isinstance(intent.agent, type)
                 else type(intent.agent),
                 intent.name,
+                _groups_from_config(intent.config),
             )
             for intent in self._intents
         ]
@@ -636,7 +655,11 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
 
         if registration is None:
             agent_type = agent if isinstance(agent, type) else type(agent)
-            registration = await self.register_agent(agent_type, name=name)
+            registration = await self.register_agent(
+                agent_type,
+                name=name,
+                extra_permitted_groups=_groups_from_config(config),
+            )
         elif registration.agent_id in self._acbs:
             raise RuntimeError(
                 f'{registration.agent_id} has already been executed.',
@@ -736,22 +759,29 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> AgentRegistration[AgentT]:
         """Register a new agent with the exchange.
 
         Args:
             agent: Agent type of the agent.
             name: Optional display name for the agent.
+            extra_permitted_groups: Additional groups beyond the class-
+                derived union to include in the mailbox share set.
 
         Returns:
             Agent registration info that can be passed to
             [`launch()`][academy.manager.Manager.launch].
         """
-        return await self.exchange_client.register_agent(agent, name=name)
+        return await self.exchange_client.register_agent(
+            agent,
+            name=name,
+            extra_permitted_groups=extra_permitted_groups,
+        )
 
     async def register_agents(
         self,
-        agents: list[tuple[type[AgentT], str | None]],
+        agents: list[tuple[type[AgentT], str | None, Iterable[str] | None]],
     ) -> list[AgentRegistration[AgentT]]:
         """Register multiple agents, batching auth when possible.
 
@@ -763,7 +793,8 @@ class Manager(Generic[ExchangeTransportT], NoPickleMixin):
         [`launch(registration=...)`][academy.manager.Manager.launch].
 
         Args:
-            agents: List of (agent_type, name) pairs to register.
+            agents: List of (agent_type, name, extra_permitted_groups)
+                triples to register.
 
         Returns:
             List of registrations in the same order as the input.

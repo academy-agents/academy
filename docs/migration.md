@@ -10,6 +10,46 @@ All future changes—including breaking changes and deprecations—will be docum
 
 Please refer to our [Version Policy](version-policy.md) for more details on when we make breaking changes.
 
+## Academy v0.6
+
+## Closed-Default Fine-Grained Access Control
+
+When any action on an agent is decorated with [`@action(sharing=[...])`][academy.agent.action], undecorated actions are now **owner-only**. Previously, undecorated actions inherited the union of all decorator groups, effectively making them accessible to any group listed on *any* decorated action.
+
+**Who is affected:** Only agents that mix decorated and undecorated actions. Agents with no decorators, fully decorated agents, and agents using only agent-wide `access_groups` are unaffected.
+
+**Migration path:** Choose one:
+
+- **Decorate the undecorated actions** with their own `sharing` lists if they should remain accessible to specific groups.
+- **Use [`access_groups`][academy.runtime.RuntimeConfig]** in your [`RuntimeConfig`][academy.runtime.RuntimeConfig] to grant group members access to every action on the agent.
+
+**Example — before (v0.5):**
+```python
+class MyAgent(Agent):
+    @action(sharing=["group-a"])
+    async def read(self) -> str: ...
+
+    @action  # undecorated, but accessible to "group-a" in v0.5
+    async def health(self) -> str: ...
+```
+
+**Example — after (v0.6):**
+```python
+class MyAgent(Agent):
+    @action(sharing=["group-a"])
+    async def read(self) -> str: ...
+
+    @action(sharing=["group-a"])  # explicit decoration
+    async def health(self) -> str: ...
+```
+
+Or, without changing the agent code:
+```python
+config = RuntimeConfig(access_groups={"group-a"})
+```
+
+See [Access Control](concepts/access-control.md) for the full access-control model.
+
 ## Academy v0.5
 
 ## Message Protocol Change

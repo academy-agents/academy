@@ -94,6 +94,13 @@ class RuntimeConfig(BaseModel):
         allowed_deserializers: Accept only requests whose arguments are
             serialized using one of the serializers in this list. If None,
             this will be inherited from the parent context.
+        access_groups: Groups granted access to every action on the agent.
+            Members of these groups may invoke any action, including
+            actions without explicit `@action(sharing=...)` groups. This
+            is the common way to share an entire agent at launch time.
+        control_groups: Groups allowed to send lifecycle requests (e.g.,
+            shutdown) to the agent. Control access does not grant action
+            access.
     """
 
     model_config = ConfigDict(extra='forbid')
@@ -108,6 +115,8 @@ class RuntimeConfig(BaseModel):
     allowed_deserializers: set[SerializationStrategy] | None = Field(
         default=None,
     )
+    access_groups: set[str] | None = None
+    control_groups: set[str] | None = None
 
 
 class Runtime(Generic[AgentT], NoPickleMixin):
@@ -162,6 +171,12 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._actions = agent._agent_actions()
         self._loops = agent._agent_loops()
         self._permitted_groups = agent._agent_permitted_groups()
+
+        self._access_groups = frozenset(self.config.access_groups or ())
+        self._control_groups = frozenset(self.config.control_groups or ())
+        self._fine_grained = any(
+            m._action_sharing is not None for m in self._actions.values()
+        )
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
@@ -365,43 +380,26 @@ class Runtime(Generic[AgentT], NoPickleMixin):
     ) -> bool:
         """Check if `sender` may invoke `action`.
 
-        The owner always passes. An action with an explicit `sharing`
-        list requires membership in one of those groups; an explicitly
-        empty list means owner-only. Undecorated actions and unknown
-        action names fall back to the agent-wide permitted-groups
-        union; if that union is empty the agent has not opted into
-        access control and the request is allowed.
+        The owner always passes. An explicitly empty sharing list
+        means owner-only and is never widened. Actions with explicit
+        decorator groups check only those groups. Undecorated actions
+        (and unknown action names) fall back to the agent-wide
+        ``access_groups`` config. When any decorator sharing is
+        declared on the agent, undecorated actions are denied to
+        non-owner senders unless ``access_groups`` grants them access.
         """
         if self._is_owner(sender):
             return True
         method = self._actions.get(action)
         sharing = method._action_sharing if method is not None else None
-        if sharing is not None:
-            return not sender_groups.isdisjoint(sharing)
-        if not self._permitted_groups:
-            return True
-        return not sender_groups.isdisjoint(self._permitted_groups)
-
-    def _authorized(  # pragma: no cover
-        self,
-        sender: EntityId,
-        sender_groups: frozenset[str],
-        permitted_groups: frozenset[str],
-    ) -> bool:
-        """Check if `sender` may make a group-gated request.
-
-        The owner always passes. Otherwise, if the agent has never declared
-        any `sharing` groups on any action, group-based access control is
-        not in effect for this agent and the request is allowed (this
-        preserves the behavior of agents/tests that do not use the
-        `sharing` parameter at all). Otherwise, the sender must belong to
-        at least one of the permitted groups.
-        """
-        if self._is_owner(sender):
-            return True
-        if not permitted_groups:
-            return True
-        return not sender_groups.isdisjoint(permitted_groups)
+        if sharing is not None and not sharing:
+            return False
+        permitted = self._access_groups | (
+            sharing if sharing is not None else frozenset()
+        )
+        if not permitted:
+            return not self._fine_grained
+        return not sender_groups.isdisjoint(permitted)
 
     async def _execute_loop(
         self,
@@ -462,11 +460,18 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         elif isinstance(body, CancelRequest):
             requester = self._action_requesters.get(body.target_tag)
             if requester is not None and not (
-                self._is_owner(request.src) or request.src == requester
+                self._is_owner(request.src)
+                or request.src == requester
+                or (
+                    self._control_groups
+                    and not request.header.groups.isdisjoint(
+                        self._control_groups,
+                    )
+                )
             ):
-                # Cancelling doesn't re-check group permissions: if you
-                # requested the action, you can always stop it, even if
-                # your permissions have since changed.
+                # Cancelling re-checks group permissions: a sender who
+                # requested the action, the owner, or a control-group
+                # member may cancel.
                 response = request.create_response(
                     AcademyErrorResponse(
                         error_code=ErrorCode.FORBIDDEN,
@@ -509,11 +514,15 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 lambda _: self._action_requesters.pop(request.tag, None),
             )
         elif isinstance(body, ShutdownRequest):
-            if getattr(
-                self.registration,
-                'owner',
-                None,
-            ) is not None and not self._is_owner(request.src):
+            owner = getattr(self.registration, 'owner', None)
+            if self._is_owner(request.src) or (
+                self._control_groups
+                and not request.header.groups.isdisjoint(
+                    self._control_groups,
+                )
+            ):
+                pass
+            elif owner is not None:
                 response = request.create_response(
                     AcademyErrorResponse(
                         error_code=ErrorCode.FORBIDDEN,
@@ -521,12 +530,13 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                     ),
                 )
                 await self._send_response(response)
-            else:
-                response = request.create_response(SuccessResponse())  # type: ignore[arg-type]
-                # We need to block here, because if we send this async,
-                # the exchange could be closed before the message is sent
-                await self._send_response(response)
-                self.signal_shutdown(expected=True, terminate=body.terminate)
+                return
+            # else: ownerless registration, self-hosted — allow
+            response = request.create_response(SuccessResponse())  # type: ignore[arg-type]
+            # We need to block here, because if we send this async,
+            # the exchange could be closed before the message is sent
+            await self._send_response(response)
+            self.signal_shutdown(expected=True, terminate=body.terminate)
         else:
             raise AssertionError('Unreachable.')
 

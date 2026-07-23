@@ -8,6 +8,7 @@ import sys
 import uuid
 from collections.abc import Callable
 from collections.abc import Coroutine
+from collections.abc import Iterable
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -149,12 +150,15 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> AgentRegistration[AgentT]:
         """Register a new agent and associated mailbox with the exchange.
 
         Args:
             agent: Agent type of the agent.
             name: Optional display name for the agent.
+            extra_permitted_groups: Additional groups beyond the class-
+                derived union to include in the mailbox share set.
 
         Returns:
             Agent registration info.
@@ -162,6 +166,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         registration = await self._transport.register_agent(
             agent,
             name=name,
+            extra_permitted_groups=extra_permitted_groups,
         )
         logger.info(
             'Registered %s in exchange',
@@ -172,7 +177,7 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
 
     async def register_agents(
         self,
-        agents: list[tuple[type[AgentT], str | None]],
+        agents: list[tuple[type[AgentT], str | None, Iterable[str] | None]],
     ) -> list[AgentRegistration[AgentT]]:
         """Register multiple agents, batching auth if supported.
 
@@ -182,7 +187,8 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         registration.
 
         Args:
-            agents: List of (agent_type, name) pairs to register.
+            agents: List of (agent_type, name, extra_permitted_groups)
+                triples to register.
 
         Returns:
             List of agent registrations in input order.
@@ -201,9 +207,13 @@ class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):
         # Sequential fallback
         registrations = []
         try:
-            for agent, name in agents:
+            for agent, name, extra_groups in agents:
                 registrations.append(
-                    await self.register_agent(agent, name=name),
+                    await self.register_agent(
+                        agent,
+                        name=name,
+                        extra_permitted_groups=extra_groups,
+                    ),
                 )
         except Exception:
             await asyncio.gather(

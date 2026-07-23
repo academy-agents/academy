@@ -6,6 +6,7 @@ import sys
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
 from collections.abc import Callable
+from collections.abc import Iterable
 from types import TracebackType
 from typing import Any
 from typing import Protocol
@@ -156,12 +157,18 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> AgentRegistrationT_co:
         """Register a new agent and associated mailbox with the exchange.
 
         Args:
             agent: Agent type of the agent.
             name: Optional display name for the agent.
+            extra_permitted_groups: Additional groups to include in the
+                mailbox's permitted-groups set beyond what the agent class
+                declares via ``@action(sharing=...)`` decorators. On
+                self-hosted exchanges (local, hybrid) this parameter has no
+                effect.
 
         Returns:
             Agent registration info.

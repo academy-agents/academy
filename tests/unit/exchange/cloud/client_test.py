@@ -9,6 +9,8 @@ from unittest import mock
 import aiohttp
 import pytest
 
+from academy.agent import action
+from academy.agent import Agent
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
@@ -17,6 +19,7 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange import HttpExchangeTransport
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.authenticate import NullAuthenticator
+from academy.exchange.cloud.client import _HttpConnectionInfo
 from academy.exchange.cloud.client import _raise_for_status
 from academy.exchange.cloud.client import spawn_http_exchange
 from academy.exchange.cloud.client_info import ClientInfo
@@ -333,3 +336,139 @@ async def test_register_agent_sets_owner(
     async with await factory._create_transport() as transport:
         registration = await transport.register_agent(EmptyAgent)
         assert registration.owner == transport.mailbox_id
+
+
+# ---------------------------------------------------------------------------
+# Registration -- permitted_groups union tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def deco_agent() -> type[Agent]:
+    """Fresh Agent subclass with two sharing-decorated actions.
+
+    Defined as a fixture so every test receives an unpolluted class; no
+    module-level class can leak state between tests.
+    """
+
+    class _Agent(Agent):
+        @action(sharing=['alpha'])
+        async def greet(self) -> str:  # pragma: no cover
+            return 'hello'
+
+        @action(sharing=['beta'])
+        async def bye(self) -> str:  # pragma: no cover
+            return 'goodbye'
+
+    return _Agent
+
+
+@pytest.mark.asyncio
+async def test_register_agent_unions_extra_groups(
+    deco_agent: type[Agent],
+) -> None:
+    """Verify JSON payload contains union of class-derived and extra groups.
+
+    The JSON payload sent to the exchange contains the
+    union of class-derived groups and extra_permitted_groups.
+    """
+    captured_payload: dict[str, Any] | None = None
+
+    class _MockResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_: Any) -> None:
+            pass
+
+        async def json(self) -> dict[str, Any]:
+            return {}
+
+        def raise_for_status(self) -> None:
+            pass
+
+    class _MockSession:
+        def post(self, url: str, *, json: dict[str, Any]) -> _MockResponse:
+            nonlocal captured_payload
+            captured_payload = json
+            return _MockResponse()
+
+        async def close(self) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_: Any) -> None:
+            pass
+
+    transport = HttpExchangeTransport(
+        mailbox_id=UserId.new(),
+        session=_MockSession(),  # type: ignore[arg-type]
+        connection_info=_HttpConnectionInfo(
+            url='http://test/v1',
+        ),
+    )
+
+    await transport.register_agent(
+        deco_agent,
+        extra_permitted_groups={'gamma', 'delta'},
+    )
+
+    assert captured_payload is not None
+    groups = set(captured_payload['permitted_groups'].split(','))
+    assert groups == {'alpha', 'beta', 'gamma', 'delta'}
+
+
+@pytest.mark.asyncio
+async def test_register_agent_no_extra_groups_class_only(
+    deco_agent: type[Agent],
+) -> None:
+    """Without extra_permitted_groups, only class-derived groups are sent."""
+    captured_payload: dict[str, Any] | None = None
+
+    class _MockResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_: Any) -> None:
+            pass
+
+        async def json(self) -> dict[str, Any]:
+            return {}
+
+        def raise_for_status(self) -> None:
+            pass
+
+    class _MockSession:
+        def post(self, url: str, *, json: dict[str, Any]) -> _MockResponse:
+            nonlocal captured_payload
+            captured_payload = json
+            return _MockResponse()
+
+        async def close(self) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_: Any) -> None:
+            pass
+
+    transport = HttpExchangeTransport(
+        mailbox_id=UserId.new(),
+        session=_MockSession(),  # type: ignore[arg-type]
+        connection_info=_HttpConnectionInfo(
+            url='http://test/v1',
+        ),
+    )
+
+    await transport.register_agent(deco_agent)
+
+    assert captured_payload is not None
+    groups = set(captured_payload['permitted_groups'].split(','))
+    assert groups == {'alpha', 'beta'}

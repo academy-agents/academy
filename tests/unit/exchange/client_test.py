@@ -102,7 +102,7 @@ async def test_register_agents(
     client: UserExchangeClient[Any],
 ) -> None:
     registrations = await client.register_agents(
-        [(EmptyAgent, None), (EmptyAgent, 'named')],
+        [(EmptyAgent, None, None), (EmptyAgent, 'named', None)],
     )
     assert len(registrations) == 2  # noqa: PLR2004
     for reg in registrations:
@@ -149,7 +149,7 @@ async def test_register_agents_fallback_rolls_back(
             match='injected terminate failure',
         ) as exc_info,
     ):
-        await client.register_agents([(EmptyAgent, None)] * 3)
+        await client.register_agents([(EmptyAgent, None, None)] * 3)
 
     assert terminate.await_count == 2  # noqa: PLR2004
     assert isinstance(exc_info.value.__context__, RuntimeError)

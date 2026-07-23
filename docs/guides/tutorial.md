@@ -96,3 +96,11 @@ To run the script:
 ```
 python run-05.py
 ```
+
+!!! tip "Sharing via `RuntimeConfig`"
+    When running on the hosted exchange, you can share the battleship coordinator
+    with other players by setting [`access_groups`][academy.runtime.RuntimeConfig] in
+    [`RuntimeConfig`][academy.runtime.RuntimeConfig] instead of calling
+    `share_mailbox` manually. This grants group members access to every action on the
+    agent at launch time—no code changes needed inside the agent. See
+    [Access Control](../concepts/access-control.md) for the full guide.

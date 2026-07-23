@@ -167,8 +167,13 @@ class ProxyStoreExchangeTransport(
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> AgentRegistration[AgentT]:
-        return await self.transport.register_agent(agent, name=name)
+        return await self.transport.register_agent(
+            agent,
+            name=name,
+            extra_permitted_groups=extra_permitted_groups,
+        )
 
     async def send(self, message: Message[Any]) -> None:
         body = message.get_body()

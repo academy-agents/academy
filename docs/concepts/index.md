@@ -74,6 +74,10 @@ Academy provides many exchange implementations for different scenarios, such as:
 * [**Redis**][academy.exchange.redis.RedisExchangeFactory]: Stores state and mailboxes in a Redis server. Use of Redis enables optional replication and cloud-hosting for improved resilience and availability.
 * [**HybridExchange**][academy.exchange.hybrid.HybridExchangeFactory]: Entities host their mailbox locally and message each other directly over TCP when possible. Redis is used to map mailbox IDs to address and port pairs, and to store messages for offline entities or when two entities cannot directly communicate (such as when behind NATs).
 
+## Access Control
+
+Academy supports sharing agents with other users via Globus group membership on the hosted exchange. See the [Access Control](access-control.md) page for the two grant mechanisms (agent-wide via [`RuntimeConfig`][academy.runtime.RuntimeConfig] and per-action via [`@action(sharing=...)`][academy.agent.action]), the closed-default rule, control groups, and the trust model.
+
 ## Manager
 
 Agents can be run manually via [`Runtime.run_until_complete()`][academy.runtime.Runtime.run_until_complete], but typically applications want to run many agents concurrently across parallel or distributed resources.

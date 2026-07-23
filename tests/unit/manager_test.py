@@ -25,6 +25,7 @@ from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.logging.configs.file import FileLogging
 from academy.manager import Manager
+from academy.runtime import RuntimeConfig
 from testing.agents import EmptyAgent
 from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
@@ -154,7 +155,7 @@ async def test_register_agents_and_launch(
     manager: Manager[LocalExchangeTransport],
 ) -> None:
     registrations = await manager.register_agents(
-        [(EmptyAgent, None), (IdentityAgent, None)],
+        [(EmptyAgent, None, None), (IdentityAgent, None, None)],
     )
     assert len(registrations) == 2  # noqa: PLR2004
     await manager.launch(
@@ -754,3 +755,114 @@ async def test_terminate_mailbox_on_launch_error(
 
     with pytest.raises(RuntimeError):
         await manager.close()
+
+
+# ---------------------------------------------------------------------------
+# Registration -- extra_permitted_groups
+# ---------------------------------------------------------------------------
+
+
+class _GroupsAgent(Agent):
+    @action
+    async def greet(self) -> str:  # pragma: no cover
+        return 'hello'
+
+
+class _DecoratedGroupsAgent(Agent):
+    @action(sharing=['alpha'])
+    async def greet(self) -> str:  # pragma: no cover
+        return 'hello'
+
+    @action(sharing=['beta'])
+    async def echo(self, msg: str) -> str:  # pragma: no cover
+        return msg
+
+
+def _extras_from_spy(spy: mock.AsyncMock) -> set[str] | None:
+    """Extract extra_permitted_groups from the last call to the spy."""
+    kwargs = spy.call_args.kwargs
+    extras = kwargs.get('extra_permitted_groups')
+    return set(extras) if extras else None
+
+
+@pytest.mark.asyncio
+async def test_register_agent_no_config_passes_no_extras(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """No extras sent when RuntimeConfig is absent.
+
+    When launched without a RuntimeConfig, only the class-derived union
+    is sent (extra_permitted_groups is None).
+    """
+    manager = Manager(exchange_client)
+    with mock.patch.object(
+        manager.exchange_client,
+        'register_agent',
+        wraps=manager.exchange_client.register_agent,
+    ) as spy:
+        await manager.register_agent(_GroupsAgent)
+        assert _extras_from_spy(spy) is None
+
+
+@pytest.mark.asyncio
+async def test_register_agent_with_config_sends_extras(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """Config groups produce extra_permitted_groups.
+
+    Launch with access_groups and control_groups in RuntimeConfig
+    produces extra_permitted_groups = access + control.
+    """
+    manager = Manager(exchange_client)
+    config = RuntimeConfig(
+        access_groups={'group-a'},
+        control_groups={'group-ctrl'},
+    )
+    with mock.patch.object(
+        manager.exchange_client,
+        'register_agent',
+        wraps=manager.exchange_client.register_agent,
+    ) as spy:
+        await manager.launch(_GroupsAgent, config=config)
+        extras = _extras_from_spy(spy)
+        assert extras == {'group-a', 'group-ctrl'}
+
+
+@pytest.mark.asyncio
+async def test_register_agent_extras_union_with_decorators(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    """Manager passes correct extras alongside decorator groups.
+
+    access_groups + control_groups unioned with class-derived decorator
+    groups at the exchange layer. Here we only verify the manager passes
+    the correct extras; the exchange union is tested at the transport
+    level.
+    """
+    manager = Manager(exchange_client)
+    config = RuntimeConfig(
+        access_groups={'gamma'},
+        control_groups={'ctrl'},
+    )
+    with mock.patch.object(
+        manager.exchange_client,
+        'register_agent',
+        wraps=manager.exchange_client.register_agent,
+    ) as spy:
+        await manager.launch(_DecoratedGroupsAgent, config=config)
+        extras = _extras_from_spy(spy)
+        assert extras == {'gamma', 'ctrl'}
+
+
+@pytest.mark.asyncio
+async def test_launch_without_config_extras_is_none(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    """Launching without config → extra_permitted_groups is None."""
+    with mock.patch.object(
+        manager.exchange_client,
+        'register_agent',
+        wraps=manager.exchange_client.register_agent,
+    ) as spy:
+        await manager.launch(_GroupsAgent)
+        assert _extras_from_spy(spy) is None

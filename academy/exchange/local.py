@@ -7,6 +7,7 @@ import sys
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from collections.abc import Iterable
 from typing import Any
 from typing import Generic
 from typing import Literal
@@ -191,6 +192,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         agent: type[AgentT],
         *,
         name: str | None = None,
+        extra_permitted_groups: Iterable[str] | None = None,
     ) -> LocalAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
         self._state.queues[aid] = Queue().async_q

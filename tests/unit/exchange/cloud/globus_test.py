@@ -211,9 +211,9 @@ async def test_register_agents_single_login() -> None:
     ):
         results = await transport.register_agents(
             [
-                (EmptyAgent, None),
-                (EmptyAgent, None),
-                (EmptyAgent, None),
+                (EmptyAgent, None, None),
+                (EmptyAgent, None, None),
+                (EmptyAgent, None, None),
             ],
         )
 

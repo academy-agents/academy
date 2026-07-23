@@ -11,6 +11,8 @@ from academy.executor import _EventLoopHost
 from academy.executor import EventLoopExecutor
 from academy.manager import Manager
 from testing.agents import IdentityAgent
+from academy.exception import ActionCancelledError
+
 
 def _add(a:int, b:int) -> int:
     return a+b
@@ -48,3 +50,10 @@ async def test_event_loop_pack_agents(
 
         for handle in handles:
             assert await handle.identity('hello') == 'hello'
+
+
+
+
+
+
+

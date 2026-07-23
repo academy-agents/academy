@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+
+import academy.exchange as ae
+
 from collections.abc import Callable
 from typing import Any
 from concurrent.futures import Executor
@@ -10,8 +14,9 @@ from academy.agent import action
 from academy.agent import Agent
 from academy.handle import Handle
 from academy.manager import _run_agent_on_worker, _RunSpec
-import academy.exchange as ae
 from academy.runtime import RuntimeConfig
+from academy.exception import AgentTerminatedError
+
 
 
 
@@ -31,8 +36,6 @@ class _EventLoopHost(Agent):
         """Run a submitted Callable in this agent's own event loop.
         Args:
             fn: Callable function to run, where an awaitable result is awaited before returning.
-            args: Position args for fn.
-            kwargs: Keyword args for fn.
 
         Returns:
         Results of fn and awaited potentially.=
@@ -78,8 +81,6 @@ class EventLoopExecutor(Executor):
 
         Args: 
             fn: Callable to run on the host.
-            Args: Positional args for fn.
-            Kwargs: Keyword args for fn.
 
         Returns: Future resolving when fn finishes on host.
         """
@@ -150,7 +151,24 @@ class EventLoopExecutor(Executor):
                  *,
                  cancel_futures: bool = False,
                  ) -> None:
+        
         self._shutdown = True,
         self._inner.shutdown(wait=wait, cancel_futures=cancel_futures)
+
+    async def aclose(self):
+        """Used to shutdown the host agent since it does not exist as an acb on our manager.
+        
+        """
+
+        self._shutdown = True
+
+        if self._host is not None:
+            with contextlib.suppress(AgentTerminatedError):
+                await self._host.shutdown()
+
+        await asyncio.wrap_future(self._host_future)
+        
+        if self._client is not None:
+            await self._client.close()
 
 

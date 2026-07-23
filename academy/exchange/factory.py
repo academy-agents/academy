@@ -12,9 +12,9 @@ from typing import TypeAlias
 from academy.exception import BadEntityIdError
 from academy.exchange.client import AgentExchangeClient
 from academy.exchange.client import UserExchangeClient
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -46,7 +46,13 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
         Factory implementations must be efficiently pickleable because
         factory instances are shared between user and agent processes so
         that all entities can create clients to the same exchange.
+
+    Args:
+        config: Configuration for exchange client.
     """
+
+    def __init__(self, config: None | ExchangeClientConfig) -> None:
+        self.config = config
 
     @abc.abstractmethod
     async def _create_transport(
@@ -90,14 +96,17 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
             registration=registration,
         )
         assert transport.mailbox_id == agent_id
-        status = await transport.status(agent_id)
-        if status != MailboxStatus.ACTIVE:
+        try:
+            await transport.heartbeat_status(agent_id)
+        except BadEntityIdError:
             await transport.close()
-            raise BadEntityIdError(agent_id)
+            raise
+
         return AgentExchangeClient(
             agent_id,
             transport,
             request_handler=request_handler,
+            config=self.config,
         )
 
     async def create_user_client(
@@ -122,4 +131,5 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
             user_id,
             transport,
             start_listener=start_listener,
+            config=self.config,
         )

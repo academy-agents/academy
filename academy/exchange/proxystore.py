@@ -11,12 +11,12 @@ from typing import Any
 from typing import Generic
 from typing import TYPE_CHECKING
 
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.exchange.transport import ExchangeTransportT
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import ActionRequest
@@ -192,9 +192,6 @@ class ProxyStoreExchangeTransport(
 
         await self.transport.send(message)
 
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        return await self.transport.status(uid)
-
     async def terminate(self, uid: EntityId) -> None:
         await self.transport.terminate(uid)
 
@@ -232,8 +229,10 @@ class ProxyStoreExchangeFactory(
         should_proxy: Callable[[Any], bool],
         *,
         resolve_async: bool = False,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
         _assert_proxystore_available()
+        super().__init__(config)
         self.base = base
         self.store = store
         self.should_proxy = should_proxy

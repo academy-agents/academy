@@ -18,6 +18,7 @@ from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
 from academy.exchange.client import ExchangeClient
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.local import LocalExchangeFactory
 from academy.handle import Handle
 from academy.identifier import AgentId
@@ -29,6 +30,7 @@ from academy.message import Request
 from academy.message import SuccessResponse
 from testing.agents import EmptyAgent
 from testing.constant import TEST_HEARTBEAT_INTERVAL
+from testing.constant import TEST_HEARTBEAT_STALE
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
@@ -413,3 +415,21 @@ async def test_heartbeat_status_bad_entity(
     uid = UserId.new()
     with pytest.raises(BadEntityIdError):
         await client.heartbeat_status(uid)
+
+
+@pytest.mark.asyncio
+async def test_client_exchange_config(client: UserExchangeClient[Any]) -> None:
+
+    config = ExchangeClientConfig(
+        heartbeat_interval=TEST_HEARTBEAT_INTERVAL,
+        stale_heartbeat_threshold=TEST_HEARTBEAT_STALE,
+    )
+
+    factory = LocalExchangeFactory(config=config)
+
+    client = await factory.create_user_client(start_listener=False)
+
+    assert client.config.heartbeat_interval == TEST_HEARTBEAT_INTERVAL
+    assert client.config.stale_heartbeat_threshold == TEST_HEARTBEAT_STALE
+
+    await client.close()

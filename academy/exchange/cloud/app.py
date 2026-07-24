@@ -231,11 +231,17 @@ async def _create_mailbox_route(request: Request) -> Response:
     mailbox_id: EntityId = TypeAdapter(EntityId).validate_json(
         raw_mailbox_id,
     )
-    agent_raw = data.get('agent', None)
-    agent = agent_raw.split(',') if agent_raw is not None else None
+    agent_raw = data.get('agent', '')
+    agent: tuple[str, ...] | None = (
+        tuple(agent_raw.split(',')) if agent_raw else None
+    )
+    permitted_groups_raw = data.get('permitted_groups', '')
+    permitted_groups = (
+        set(permitted_groups_raw.split(',')) if permitted_groups_raw else set()
+    )
 
     client = get_client_info(request)
-    await manager.create_mailbox(client, mailbox_id, agent)
+    await manager.create_mailbox(client, mailbox_id, agent, permitted_groups)
     logger.info(
         f'Creating mailbox {mailbox_id} of type {agent}',
         extra={

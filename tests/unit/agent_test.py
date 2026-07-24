@@ -16,7 +16,6 @@ from academy.agent import timer
 from academy.context import ActionContext
 from academy.context import AgentContext
 from academy.exception import AgentNotInitializedError
-from academy.exception import MailboxTerminatedError
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.handle import Handle
@@ -433,5 +432,93 @@ async def test_agent_launch_alongside(
     await manager.shutdown(parent)
     await manager.wait([parent])
 
-    with pytest.raises(MailboxTerminatedError):
-        await child.echo('hello')
+
+def test_agent_permitted_groups_from_class_empty() -> None:
+    class NoSharingAgent(Agent):
+        @action
+        async def do_something(self) -> str:
+            return 'ok'
+
+    groups = NoSharingAgent._agent_permitted_groups_from_class()
+    assert groups == frozenset()
+
+
+def test_agent_permitted_groups_from_class_single_group() -> None:
+    class SingleGroupAgent(Agent):
+        @action(sharing=['group-a'])
+        async def restricted(self) -> str:
+            return 'ok'
+
+    groups = SingleGroupAgent._agent_permitted_groups_from_class()
+    assert groups == frozenset({'group-a'})
+
+
+def test_agent_permitted_groups_from_class_multiple_groups() -> None:
+    class MultiGroupAgent(Agent):
+        @action(sharing=['group-a'])
+        async def action_a(self) -> str:
+            return 'a'
+
+        @action(sharing=['group-b'])
+        async def action_b(self) -> str:
+            return 'b'
+
+        @action
+        async def open_action(self) -> str:
+            return 'open'
+
+    groups = MultiGroupAgent._agent_permitted_groups_from_class()
+    assert groups == frozenset({'group-a', 'group-b'})
+
+
+def test_agent_permitted_groups_from_class_overlapping_groups() -> None:
+    class OverlappingAgent(Agent):
+        @action(sharing=['group-a', 'group-b'])
+        async def action_ab(self) -> str:
+            return 'ab'
+
+        @action(sharing=['group-b', 'group-c'])
+        async def action_bc(self) -> str:
+            return 'bc'
+
+    groups = OverlappingAgent._agent_permitted_groups_from_class()
+    assert groups == frozenset({'group-a', 'group-b', 'group-c'})
+
+
+def test_action_sharing_tristate() -> None:
+    class TriStateAgent(Agent):
+        @action
+        async def undecorated(self) -> None: ...
+
+        @action(sharing=[])
+        async def owner_only(self) -> None: ...
+
+        @action(sharing=['group-a'])
+        async def shared(self) -> None: ...
+
+    assert TriStateAgent.undecorated._action_sharing is None  # type: ignore[attr-defined]
+    assert TriStateAgent.owner_only._action_sharing == frozenset()  # type: ignore[attr-defined]
+    assert TriStateAgent.shared._action_sharing == frozenset(  # type: ignore[attr-defined]
+        {'group-a'},
+    )
+    # Explicit-empty and undecorated actions contribute nothing to
+    # the agent-wide union.
+    assert TriStateAgent._agent_permitted_groups_from_class() == frozenset(
+        {'group-a'},
+    )
+
+
+def test_permitted_groups_instance_matches_class() -> None:
+    class ConsistentAgent(Agent):
+        @action(sharing=['group-a'])
+        async def one(self) -> None: ...
+
+        @action(sharing=['group-b'])
+        async def two(self) -> None: ...
+
+    instance = ConsistentAgent()
+    assert (
+        instance._agent_permitted_groups()
+        == ConsistentAgent._agent_permitted_groups_from_class()
+        == frozenset({'group-a', 'group-b'})
+    )

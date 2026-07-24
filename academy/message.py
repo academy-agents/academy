@@ -32,6 +32,7 @@ from academy.exception import ExceptionSerializationError
 from academy.exception import IncompatibleNetworkProtocolError
 from academy.exception import MailboxTerminatedError
 from academy.exception import PingCancelledError
+from academy.exception import RequestForbiddenError
 from academy.identifier import EntityId
 from academy.serialize import deserialize
 from academy.serialize import SerializationStrategy
@@ -257,6 +258,7 @@ class ErrorCode(IntEnum):
     ACTION_CANCELLED = 3
     INVALID_CLIENT = 4
     INCOMPATIBLE_PROTOCOL = 5
+    FORBIDDEN = 6
 
 
 class AcademyErrorResponse(BaseModel):
@@ -274,7 +276,7 @@ class AcademyErrorResponse(BaseModel):
         repr=False,
     )
 
-    def get_exception(self) -> Exception:
+    def get_exception(self) -> Exception:  # noqa: PLR0911
         """Get the exception.
 
         Returns:
@@ -296,7 +298,9 @@ class AcademyErrorResponse(BaseModel):
             case ErrorCode.INVALID_CLIENT:
                 return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
             case ErrorCode.INCOMPATIBLE_PROTOCOL:
-                return IncompatibleNetworkProtocolError(None, PROTOCOL_VERSION)
+                return IncompatibleNetworkProtocolError()
+            case ErrorCode.FORBIDDEN:
+                return RequestForbiddenError(self.mailbox_id)
         raise AssertionError('Unreachable.')
 
 
@@ -383,6 +387,9 @@ class Header(BaseModel):
     tag: uuid.UUID = Field(
         description='Unique message tag used to match requests and responses.',
     )
+    kind: Literal['request', 'response'] = Field(
+        description='Whether this is a request or response message.',
+    )
     label: uuid.UUID | None = Field(
         None,
         description=(
@@ -391,7 +398,15 @@ class Header(BaseModel):
             'This is a different usage from the `tag`.'
         ),
     )
-    kind: Literal['request', 'response']
+    groups: frozenset[str] = Field(
+        default_factory=frozenset,
+        description=(
+            'Globus group IDs the sender belongs to, intersected with the '
+            "receiver mailbox's permitted groups. Populated by the "
+            'exchange when the message is delivered; never self-reported '
+            'by the sender.'
+        ),
+    )
     protocol_version: str | None = Field(
         str(PROTOCOL_VERSION),
         description=(
@@ -425,6 +440,7 @@ class Header(BaseModel):
             src=self.dest,
             dest=self.src,
             label=self.label,
+            groups=self.groups,
             kind='response',
         )
 

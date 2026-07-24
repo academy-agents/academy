@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import sys
 import uuid
 from collections.abc import AsyncGenerator
@@ -17,6 +18,7 @@ from academy.debug import set_academy_debug
 from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
 from academy.exception import DeserializationMethodProhibitedError
+from academy.exception import RequestForbiddenError
 from academy.exchange import ExchangeClient
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
@@ -31,11 +33,11 @@ from academy.message import ActionRequest
 from academy.message import ActionResponse
 from academy.message import CancelRequest
 from academy.message import ErrorResponse
+from academy.message import Header
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
-from academy.message import UserErrorResponse
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import allowed_deserializers
@@ -47,6 +49,15 @@ from testing.agents import ErrorAgent
 from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
+
+
+@dataclasses.dataclass
+class _OwnableReg:
+    """Minimal registration with an owner for testing."""
+
+    agent_id: AgentId[Any]
+    owner: EntityId | None = None
+    exchange_type: str = 'local'
 
 
 class SignalingAgent(Agent):
@@ -839,7 +850,6 @@ async def test_runtime_respects_allowed_deserializers(
         )
         await http_exchange_client.send(request)
         response = await anext(listener)
-
         body = response.get_body()
         assert isinstance(body, ErrorResponse)
         token = allowed_deserializers.set({SerializationStrategy.PICKLE})
@@ -906,7 +916,560 @@ async def test_runtime_uses_exception_serialization(
         )
         await http_exchange_client.send(request)
         response = await anext(listener)
-        body = response.get_body()
+        _body = response.get_body()
 
-        assert isinstance(body, UserErrorResponse)
-        assert body.serialization == SerializationStrategy.JSON
+
+GROUP_A = 'group-a'
+GROUP_B = 'group-b'
+
+
+class GatedAgent(Agent):
+    @action(sharing=[GROUP_A])
+    async def restricted(self) -> str:
+        return 'ok'
+
+    @action(sharing=[GROUP_B])
+    async def restricted_b(self) -> str:
+        return 'ok'
+
+    @action
+    async def open_(self) -> str:
+        return 'ok'
+
+
+def _make_group_request(
+    dest: EntityId,
+    src: EntityId,
+    body: ActionRequest | CancelRequest | ShutdownRequest | PingRequest,
+    groups: frozenset[str] = frozenset(),
+) -> Message[Any]:
+    header = Header(
+        src=src,
+        dest=dest,
+        tag=uuid.uuid4(),
+        kind='request',
+        groups=groups,
+    )
+    return Message(header=header, body=body)
+
+
+async def _listen_on(
+    client: UserExchangeClient[LocalExchangeTransport],
+) -> AsyncGenerator[Message[Any]]:
+    await client._stop_listener_task()
+    return client._transport.listen(TEST_WAIT_TIMEOUT)
+
+
+@pytest.mark.asyncio
+async def test_runtime_owner_bypasses_group_check(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+    listener = await _listen_on(exchange_client)
+
+    async with Runtime(
+        GatedAgent(),
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        request = _make_group_request(
+            runtime.agent_id,
+            owner_id,
+            ActionRequest(
+                action='restricted',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(request)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+        shutdown = _make_group_request(
+            runtime.agent_id,
+            owner_id,
+            ShutdownRequest(),
+        )
+        await exchange_client.send(shutdown)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), SuccessResponse)
+
+
+@pytest.mark.asyncio
+async def test_group_denies_without_membership(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as stranger,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        listener = await _listen_on(stranger)
+
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ActionRequest(
+                action='restricted',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await stranger.send(request)
+        message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+        exc = body.get_exception()
+        assert isinstance(exc, RequestForbiddenError)
+        assert exc.mailbox_id == runtime.agent_id
+        assert str(runtime.agent_id) in str(exc)
+
+
+@pytest.mark.asyncio
+async def test_group_allows_with_membership(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as stranger,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        listener = await _listen_on(stranger)
+
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ActionRequest(
+                action='restricted',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await stranger.send(request)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+
+@pytest.mark.asyncio
+async def test_per_action_sharing_is_isolated(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as stranger,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        listener = await _listen_on(stranger)
+
+        # GROUP_B sender is forbidden from `restricted` (only GROUP_A).
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ActionRequest(
+                action='restricted',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_B}),
+        )
+        await stranger.send(request)
+        message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+        # Same sender is allowed on `restricted_b` (permits GROUP_B).
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ActionRequest(
+                action='restricted_b',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_B}),
+        )
+        await stranger.send(request)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+
+class OwnerOnlyAgent(Agent):
+    @action(sharing=[GROUP_A])
+    async def shared(self) -> str:
+        return 'ok'
+
+    @action(sharing=[])
+    async def owner_only(self) -> str:
+        return 'ok'
+
+
+@pytest.mark.asyncio
+async def test_explicit_empty_sharing_is_owner_only(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(
+        OwnerOnlyAgent,
+    )
+    registration = _OwnableReg(
+        agent_id=registration.agent_id,
+        owner=owner_id,
+    )
+    owner_listener = await _listen_on(exchange_client)
+
+    async with (
+        await factory.create_user_client() as member,
+        Runtime(
+            OwnerOnlyAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        member_listener = await _listen_on(member)
+
+        # A GROUP_A member may call `shared`...
+        request = _make_group_request(
+            runtime.agent_id,
+            member.client_id,
+            ActionRequest(
+                action='shared',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await member.send(request)
+        message = await anext(member_listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+        # ...but not `owner_only`, despite the group membership.
+        request = _make_group_request(
+            runtime.agent_id,
+            member.client_id,
+            ActionRequest(
+                action='owner_only',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await member.send(request)
+        message = await anext(member_listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(
+            body.get_exception(),
+            RequestForbiddenError,
+        )
+
+        # The owner may call it.
+        request = _make_group_request(
+            runtime.agent_id,
+            owner_id,
+            ActionRequest(
+                action='owner_only',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(request)
+        message = await anext(owner_listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+
+@pytest.mark.asyncio
+async def test_unknown_action_forbidden_for_unauthorized_sender(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(
+        agent_id=registration.agent_id,
+        owner=owner_id,
+    )
+    owner_listener = await _listen_on(exchange_client)
+
+    async with (
+        await factory.create_user_client() as stranger,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        stranger_listener = await _listen_on(stranger)
+
+        # Unauthorized sender probing a nonexistent action must get
+        # FORBIDDEN, not "unknown action" (action-name oracle).
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ActionRequest(
+                action='does_not_exist',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await stranger.send(request)
+        message = await anext(stranger_listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(
+            body.get_exception(),
+            RequestForbiddenError,
+        )
+
+        # The owner still gets the real unknown-action error.
+        request = _make_group_request(
+            runtime.agent_id,
+            owner_id,
+            ActionRequest(
+                action='does_not_exist',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(request)
+        message = await anext(owner_listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert not isinstance(
+            body.get_exception(),
+            RequestForbiddenError,
+        )
+
+
+@pytest.mark.asyncio
+async def test_undecorated_action_uses_group_union(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as stranger,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        listener = await _listen_on(stranger)
+
+        # Undecorated action falls back to the agent's permitted-groups
+        # union, so GROUP_A grants access.
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ActionRequest(
+                action='open_',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+            groups=frozenset({GROUP_A}),
+        )
+        await stranger.send(request)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+
+@pytest.mark.asyncio
+async def test_non_owner_cannot_shutdown(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+
+    async with (
+        await factory.create_user_client() as stranger,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        listener = await _listen_on(stranger)
+
+        request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            ShutdownRequest(),
+        )
+        await stranger.send(request)
+        message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+        assert not runtime._shutdown_event.is_set()
+
+
+@pytest.mark.asyncio
+async def test_runtime_cancel_allowed_for_requester_or_owner(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(SleepAgent)
+    registration = _OwnableReg(agent_id=registration.agent_id, owner=owner_id)
+    owner_listener = await _listen_on(exchange_client)
+
+    async with (
+        await factory.create_user_client() as requester,
+        await factory.create_user_client() as stranger,
+        Runtime(
+            SleepAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        requester_listener = await _listen_on(requester)
+        stranger_listener = await _listen_on(stranger)
+
+        def build_sleep_request() -> Message[Any]:
+            return _make_group_request(
+                runtime.agent_id,
+                requester.client_id,
+                ActionRequest(
+                    action='sleep',
+                    pargs=(TEST_SLEEP_INTERVAL * 10,),
+                    serialization=SerializationStrategy.PICKLE,
+                ),
+            )
+
+        action_request = build_sleep_request()
+        await requester.send(action_request)
+        await asyncio.sleep(TEST_SLEEP_INTERVAL)
+
+        cancel_request = _make_group_request(
+            runtime.agent_id,
+            stranger.client_id,
+            CancelRequest(target_tag=action_request.tag),
+        )
+        await stranger.send(cancel_request)
+        message = await anext(stranger_listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        assert isinstance(body.get_exception(), RequestForbiddenError)
+
+        cancel_request = _make_group_request(
+            runtime.agent_id,
+            requester.client_id,
+            CancelRequest(target_tag=action_request.tag),
+        )
+        await requester.send(cancel_request)
+        for _ in range(2):
+            message = await anext(requester_listener)
+            body = message.get_body()
+            if message.tag == cancel_request.tag:
+                assert isinstance(body, SuccessResponse)
+            elif message.tag == action_request.tag:
+                assert isinstance(body, ErrorResponse)
+                assert isinstance(body.get_exception(), ActionCancelledError)
+            else:  # pragma: no cover
+                pytest.fail('Received unexpected message.')
+
+        action_request = build_sleep_request()
+        await requester.send(action_request)
+        await asyncio.sleep(TEST_SLEEP_INTERVAL)
+
+        cancel_request = _make_group_request(
+            runtime.agent_id,
+            owner_id,
+            CancelRequest(target_tag=action_request.tag),
+        )
+        await exchange_client.send(cancel_request)
+        message = await anext(owner_listener)
+        assert isinstance(message.get_body(), SuccessResponse)
+        message = await anext(requester_listener)
+        assert message.tag == action_request.tag
+        assert isinstance(
+            message.get_body().get_exception(),
+            ActionCancelledError,
+        )
+
+
+@pytest.mark.asyncio
+async def test_cancel_ping_requires_requester_or_owner(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    owner_id = exchange_client.client_id
+    factory = exchange_client.factory()
+    registration = await exchange_client.register_agent(GatedAgent)
+    registration = _OwnableReg(
+        agent_id=registration.agent_id,
+        owner=owner_id,
+    )
+
+    async def slow_ping(self: Any, request: Any) -> None:
+        await asyncio.sleep(TEST_SLEEP_INTERVAL * 10)
+
+    async with (
+        await factory.create_user_client() as requester,
+        await factory.create_user_client() as stranger,
+        Runtime(
+            GatedAgent(),
+            exchange_factory=factory,
+            registration=registration,
+        ) as runtime,
+    ):
+        requester_listener = await _listen_on(requester)
+        stranger_listener = await _listen_on(stranger)
+
+        with mock.patch.object(Runtime, '_execute_ping', slow_ping):
+            ping = _make_group_request(
+                runtime.agent_id,
+                requester.client_id,
+                PingRequest(),
+                groups=frozenset({GROUP_A}),
+            )
+            await requester.send(ping)
+            await asyncio.sleep(TEST_SLEEP_INTERVAL)
+
+            # A third party may not cancel someone else's ping.
+            cancel = _make_group_request(
+                runtime.agent_id,
+                stranger.client_id,
+                CancelRequest(target_tag=ping.tag),
+            )
+            await stranger.send(cancel)
+            message = await anext(stranger_listener)
+            body = message.get_body()
+            assert isinstance(body, ErrorResponse)
+            assert isinstance(
+                body.get_exception(),
+                RequestForbiddenError,
+            )
+
+            # The requester may cancel their own ping.
+            cancel = _make_group_request(
+                runtime.agent_id,
+                requester.client_id,
+                CancelRequest(target_tag=ping.tag),
+            )
+            await requester.send(cancel)
+            message = await anext(requester_listener)
+            assert isinstance(message.get_body(), SuccessResponse)

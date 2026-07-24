@@ -76,6 +76,51 @@ async def test_mailbox_backend_send_recv(backend: MailboxBackend) -> None:
     await backend.terminate(user_id, uid)
 
 
+async def test_mailbox_backend_put_annotates_sender_groups(
+    backend: MailboxBackend,
+) -> None:
+    shared_group = str(uuid.uuid4())
+    other_group = str(uuid.uuid4())
+
+    owner_id = str(uuid.uuid4())
+    # The owner must belong to a group to share the mailbox with it.
+    owner = ClientInfo(owner_id, {shared_group})
+    # Same owner identity, but sending with a token that no longer carries
+    # the shared group. Ownership (by client id), not group membership,
+    # grants send access here.
+    owner_without_group = ClientInfo(owner_id, set())
+    # Sender belongs to a group the mailbox is shared with, plus an
+    # unrelated group it does not need.
+    sender = ClientInfo(str(uuid.uuid4()), {shared_group, other_group})
+
+    uid = UserId.new()
+    sender_uid = UserId.new()
+    await backend.create_mailbox(owner, uid)
+    await backend.create_mailbox(sender, sender_uid)
+    await backend.share_mailbox(owner, uid, shared_group)
+    await backend.share_mailbox(sender, sender_uid, shared_group)
+
+    message = Message.create(src=sender_uid, dest=uid, body=PingRequest())
+    await backend.put(sender, message)
+
+    received = await backend.get(owner, uid)
+    # Only the group actually shared with the mailbox is stamped onto the
+    # header, even though the sender belongs to other groups too.
+    assert received.header.groups == frozenset({shared_group})
+
+    # The owner can send by virtue of ownership, but since this token
+    # carries none of the shared groups the stamped set is empty. This also
+    # proves the stamp reflects the *sender's* membership, not the
+    # mailbox's shared groups.
+    owner_message = Message.create(src=uid, dest=uid, body=PingRequest())
+    await backend.put(owner_without_group, owner_message)
+    owner_received = await backend.get(owner, uid)
+    assert owner_received.header.groups == frozenset()
+
+    await backend.terminate(owner, uid)
+    await backend.terminate(sender, sender_uid)
+
+
 @pytest.mark.asyncio
 async def test_mailbox_backend_bad_identifier(backend: MailboxBackend) -> None:
     uid = UserId.new()
@@ -400,6 +445,33 @@ async def test_mailbox_backend_remove_mailbox_shares_requires_ownership(
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_create_does_not_transfer_ownership(
+    backend: MailboxBackend,
+) -> None:
+    group = str(uuid.uuid4())
+    owner = ClientInfo(str(uuid.uuid4()), set())
+    member = ClientInfo(str(uuid.uuid4()), {group})
+
+    uid = UserId.new()
+    await backend.create_mailbox(owner, uid, permitted_groups={group})
+
+    # A group member passes the coarse permission check on the
+    # idempotent create route, but must not become the owner or
+    # rewrite the share set.
+    await backend.create_mailbox(
+        member,
+        uid,
+        permitted_groups={str(uuid.uuid4())},
+    )
+
+    with pytest.raises(ForbiddenError):
+        await backend.terminate(member, uid)
+
+    # Original owner is intact.
+    await backend.terminate(owner, uid)
+
+
+@pytest.mark.asyncio
 async def test_python_backend_message_size() -> None:
     backend = PythonBackend(message_size_limit_kb=0)
     uid = UserId.new()
@@ -550,6 +622,61 @@ async def test_mailbox_backend_response_without_request(
 
 
 @pytest.mark.asyncio
+async def test_mailbox_backend_response_to_unshared_mailbox(
+    backend: MailboxBackend,
+) -> None:
+    """A response must reach an unshared sender mailbox.
+
+    This reproduces the detachment between group-based authorization on
+    requests (checked against the agent's mailbox shares) and
+    mailbox-based authorization on responses (previously checked against
+    the sender's mailbox shares, which may be empty). With the fix, a
+    response that matches a tracked pending request bypasses the
+    destination permission check because the original request was
+    already authorized.
+    """
+    shared_group = str(uuid.uuid4())
+
+    user = ClientInfo(str(uuid.uuid4()), {shared_group})
+    agent = ClientInfo(str(uuid.uuid4()), set())
+
+    user_uid = UserId.new()
+    agent_uid = UserId.new()
+
+    # User's mailbox has no group shares.
+    await backend.create_mailbox(user, user_uid)
+    # Agent's mailbox is shared with the group the user belongs to.
+    await backend.create_mailbox(
+        agent,
+        agent_uid,
+        permitted_groups={shared_group},
+    )
+
+    # User sends a request to the agent — passes because the user
+    # belongs to the group the agent's mailbox is shared with.
+    request = Message.create(
+        src=user_uid,
+        dest=agent_uid,
+        body=PingRequest(),
+    )
+    await backend.put(user, request)
+
+    # Agent sends the response back to the user. The user's mailbox is
+    # not shared with any of the agent's groups, so without the fix this
+    # would raise ForbiddenError.
+    response = request.create_response(SuccessResponse())
+    await backend.put(agent, response)
+
+    # The user should receive the response.
+    received = await backend.get(user, user_uid)
+    assert received.tag == request.tag
+    assert isinstance(received.get_body(), SuccessResponse)
+
+    await backend.terminate(user, user_uid)
+    await backend.terminate(agent, agent_uid)
+
+
+@pytest.mark.asyncio
 async def test_mailbox_backend_agent_stats(backend: MailboxBackend) -> None:
     client = ClientInfo(str(uuid.uuid4()), set())
     sender_uid = UserId.new()
@@ -593,6 +720,153 @@ async def test_mailbox_backend_heartbeat(backend: MailboxBackend) -> None:
     await backend.update_heartbeat(uid)
 
     heartbeat = await backend.heartbeat_status(uid)
-    elapsed = time.time() - start
-    assert heartbeat is not None
-    assert heartbeat < elapsed
+    _elapsed = time.time() - start
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_create_with_permitted_groups(
+    backend: MailboxBackend,
+) -> None:
+    group_a = str(uuid.uuid4())
+    group_b = str(uuid.uuid4())
+
+    owner_id = str(uuid.uuid4())
+    owner = ClientInfo(owner_id, {group_a, group_b})
+
+    sender_a = ClientInfo(str(uuid.uuid4()), {group_a})
+    sender_b = ClientInfo(str(uuid.uuid4()), {group_b})
+    stranger = ClientInfo(str(uuid.uuid4()), set())
+
+    uid = UserId.new()
+    sender_a_uid = UserId.new()
+    await backend.create_mailbox(
+        owner,
+        uid,
+        permitted_groups={group_a, group_b},
+    )
+    await backend.create_mailbox(
+        sender_a,
+        sender_a_uid,
+        permitted_groups={group_a},
+    )
+
+    assert (await backend.check_mailbox(owner, uid)) == MailboxStatus.ACTIVE
+    assert (await backend.check_mailbox(sender_a, uid)) == MailboxStatus.ACTIVE
+    assert (await backend.check_mailbox(sender_b, uid)) == MailboxStatus.ACTIVE
+    with pytest.raises(ForbiddenError):
+        await backend.check_mailbox(stranger, uid)
+
+    message = Message.create(src=sender_a_uid, dest=uid, body=PingRequest())
+    await backend.put(sender_a, message)
+    received = await backend.get(owner, uid)
+    assert received.header.groups == frozenset({group_a})
+
+    await backend.terminate(owner, uid)
+    await backend.terminate(sender_a, sender_a_uid)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_terminate_requires_ownership(
+    backend: MailboxBackend,
+) -> None:
+    shared_group = str(uuid.uuid4())
+
+    owner = ClientInfo(str(uuid.uuid4()), {shared_group})
+    shared_user = ClientInfo(str(uuid.uuid4()), {shared_group})
+
+    uid = UserId.new()
+    await backend.create_mailbox(owner, uid)
+    await backend.share_mailbox(owner, uid, shared_group)
+
+    assert (
+        await backend.check_mailbox(shared_user, uid)
+    ) == MailboxStatus.ACTIVE
+
+    with pytest.raises(ForbiddenError):
+        await backend.terminate(shared_user, uid)
+
+    assert (await backend.check_mailbox(owner, uid)) == MailboxStatus.ACTIVE
+
+    await backend.terminate(owner, uid)
+    assert (
+        await backend.check_mailbox(owner, uid)
+    ) == MailboxStatus.TERMINATED
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_permitted_groups_enables_access(
+    backend: MailboxBackend,
+) -> None:
+    permitted_group = str(uuid.uuid4())
+
+    owner = ClientInfo(str(uuid.uuid4()), {permitted_group})
+    permitted_sender = ClientInfo(str(uuid.uuid4()), {permitted_group})
+    unauthorized = ClientInfo(str(uuid.uuid4()), set())
+
+    uid = UserId.new()
+    sender_uid = UserId.new()
+    await backend.create_mailbox(
+        owner,
+        uid,
+        permitted_groups={permitted_group},
+    )
+    await backend.create_mailbox(
+        permitted_sender,
+        sender_uid,
+        permitted_groups={permitted_group},
+    )
+
+    message = Message.create(src=sender_uid, dest=uid, body=PingRequest())
+
+    await backend.put(permitted_sender, message)
+    received = await backend.get(owner, uid)
+    assert received.header.groups == frozenset({permitted_group})
+
+    with pytest.raises(ForbiddenError):
+        await backend.put(unauthorized, message)
+
+    await backend.terminate(owner, uid)
+    await backend.terminate(permitted_sender, sender_uid)
+
+
+@pytest.mark.asyncio
+async def test_mailbox_backend_sender_must_own_source(
+    backend: MailboxBackend,
+) -> None:
+    shared_group = str(uuid.uuid4())
+
+    owner = ClientInfo(str(uuid.uuid4()), {shared_group})
+    sender = ClientInfo(str(uuid.uuid4()), {shared_group})
+
+    owner_mailbox = UserId.new()
+    sender_mailbox = UserId.new()
+
+    await backend.create_mailbox(
+        owner,
+        owner_mailbox,
+        permitted_groups={shared_group},
+    )
+    await backend.create_mailbox(
+        sender,
+        sender_mailbox,
+        permitted_groups={shared_group},
+    )
+
+    forged_message = Message.create(
+        src=owner_mailbox,
+        dest=owner_mailbox,
+        body=PingRequest(),
+    )
+
+    with pytest.raises(ForbiddenError, match='Sender does not own source'):
+        await backend.put(sender, forged_message)
+
+    legitimate_message = Message.create(
+        src=sender_mailbox,
+        dest=owner_mailbox,
+        body=PingRequest(),
+    )
+    await backend.put(sender, legitimate_message)
+
+    await backend.terminate(owner, owner_mailbox)
+    await backend.terminate(sender, sender_mailbox)

@@ -66,7 +66,7 @@ async def test_host_shutdown_submit(
     factory = exchange_client.factory()
     executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
 
-    def test_fn() -> None:
+    def test_fn() -> None:  # pragma: no cover
         pass
 
     executor.shutdown()
@@ -86,12 +86,7 @@ async def test_aclose_with_no_launch(
     factory = exchange_client.factory()
     executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
 
-    resolved_future: Future[None] = Future()
-    resolved_future.set_result(None)
-    executor._host_future = resolved_future
-
     await executor.aclose()
-
     assert executor._shutdown is True
 
 
@@ -99,7 +94,7 @@ def test_no_event_loop_submit() -> None:
     factory = LocalExchangeFactory()
     executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
 
-    def test_fn() -> None:
+    def test_fn() -> None:  # pragma: no cover
         pass
 
     with pytest.raises(
@@ -119,7 +114,7 @@ async def test_cancel_future(
     factory = exchange_client.factory()
     executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
 
-    def test_fn() -> None:
+    def test_fn() -> None:  # pragma: no cover
         pass
 
     future: Future[None] = Future()
@@ -139,7 +134,7 @@ async def test_submit_base_exception(
     factory = exchange_client.factory()
     executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
 
-    def test_fn() -> None:
+    def test_fn() -> None:  # pragma: no cover
         pass
 
     first = executor.submit(test_fn)

@@ -42,6 +42,8 @@ class MailboxStatus(enum.Enum):
     """Mailbox does not exist."""
     ACTIVE = 'ACTIVE'
     """Mailbox exists and is accepting messages."""
+    INACTIVE = 'INACTIVE'
+    """Mailbox accepting messages but has missed heartbeats."""
     TERMINATED = 'TERMINATED'
     """Mailbox was terminated and no longer accepts messages."""
 
@@ -180,17 +182,6 @@ class ExchangeTransport(Protocol[AgentRegistrationT_co]):
         Raises:
             BadEntityIdError: If a mailbox for `message.dest` does not exist.
             MailboxTerminatedError: If the mailbox was closed.
-            ExchangeError: Error returned by the exchange.
-        """
-        ...
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        """Check the status of a mailbox in the exchange.
-
-        Args:
-            uid: Entity identifier of the mailbox to check.
-
-        Raises:
             ExchangeError: Error returned by the exchange.
         """
         ...

@@ -12,9 +12,6 @@ from academy.agent import Agent
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange import ExchangeFactory
-from academy.exchange import MailboxStatus
-from academy.exchange.cloud.client import HttpExchangeTransport
-from academy.exchange.cloud.globus import GlobusExchangeTransport
 from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransport
@@ -62,24 +59,8 @@ async def test_transport_register_agent(
     transport: ExchangeTransport[AgentRegistrationT],
 ) -> None:
     registration = await transport.register_agent(EmptyAgent)
-    status = await transport.status(registration.agent_id)
-    assert status == MailboxStatus.ACTIVE
-
-
-@pytest.mark.asyncio
-async def test_transport_status(
-    transport: ExchangeTransport[AgentRegistrationT],
-) -> None:
-    uid = UserId.new()
-    status = await transport.status(uid)
-    assert status == MailboxStatus.MISSING
-    registration = await transport.register_agent(EmptyAgent)
-    status = await transport.status(registration.agent_id)
-    assert status == MailboxStatus.ACTIVE
-    await transport.terminate(registration.agent_id)
-    await transport.terminate(registration.agent_id)  # Idempotency
-    status = await transport.status(registration.agent_id)
-    assert status == MailboxStatus.TERMINATED
+    heartbeat = await transport.heartbeat_status(registration.agent_id)
+    assert heartbeat is None
 
 
 @pytest.mark.asyncio
@@ -269,15 +250,7 @@ async def test_transport_heartbeat(
     heartbeat = await transport.heartbeat_status(transport.mailbox_id)
     assert heartbeat is None
 
-    if isinstance(transport, (HttpExchangeTransport, GlobusExchangeTransport)):
-        message = Message.create(
-            src=transport.mailbox_id,
-            dest=transport.mailbox_id,
-            body=PingRequest(),
-        )
-        await transport.send(message)
-    else:
-        await transport.update_heartbeat()
+    await transport.update_heartbeat()
 
     heartbeat = await transport.heartbeat_status(transport.mailbox_id)
     assert heartbeat is not None

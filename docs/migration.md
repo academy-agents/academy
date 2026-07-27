@@ -10,6 +10,12 @@ All future changes—including breaking changes and deprecations—will be docum
 
 Please refer to our [Version Policy](version-policy.md) for more details on when we make breaking changes.
 
+## Academy v0.6
+
+## Changes to Mailbox Status
+
+The [`status()`][academy.exchange.client.ExchangeClient.status] method has been changed to add `MailboxStatus.INACTIVE` to give a specific status to agents which are still accepting messages but have missed a set number of heartbeats. You can adjust [`ExchangeClientConfig`][academy.exchange.client.ExchangeClientConfig] to change the heartbeat interval and the number of heartbeats until an agent is considered inactive. `ExchangeTransport.status` has been removed --- internally status is implemented by querying the heartbeat of the mailbox.
+
 ## Academy v0.5
 
 ## Message Protocol Change
@@ -176,7 +182,7 @@ Some of the exchange operations have have been changed:
 
 * `register_client()` has been removed
 * [`send()`][academy.exchange.transport.ExchangeTransport.send] no longer takes a `dest` parameter
-* [`status()`][academy.exchange.transport.ExchangeTransport.status] has been added
+* [`status()`][academy.exchange.client.ExchangeClient.status] has been added
 
 Exchange clients are created using a factory pattern:
 

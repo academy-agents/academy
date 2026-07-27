@@ -18,8 +18,7 @@ from academy.exchange import ExchangeFactory
 from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
 from academy.exchange.client import ExchangeClient
-from academy.exchange.cloud.client import HttpExchangeTransport
-from academy.exchange.cloud.globus import GlobusExchangeTransport
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.local import LocalExchangeFactory
 from academy.handle import Handle
 from academy.identifier import AgentId
@@ -30,6 +29,8 @@ from academy.message import PingRequest
 from academy.message import Request
 from academy.message import SuccessResponse
 from testing.agents import EmptyAgent
+from testing.constant import TEST_HEARTBEAT_INTERVAL
+from testing.constant import TEST_HEARTBEAT_STALE
 from testing.constant import TEST_WAIT_TIMEOUT
 from testing.fixture import EXCHANGE_FACTORY_TYPES
 
@@ -106,8 +107,8 @@ async def test_register_agents(
     )
     assert len(registrations) == 2  # noqa: PLR2004
     for reg in registrations:
-        status = await client._transport.status(reg.agent_id)
-        assert status == MailboxStatus.ACTIVE
+        status = await client.status(reg.agent_id)
+        assert status == MailboxStatus.INACTIVE
 
 
 @pytest.mark.asyncio
@@ -173,7 +174,7 @@ async def test_client_get_status(client: UserExchangeClient[Any]) -> None:
     assert await client.status(uid) == MailboxStatus.MISSING
     registration = await client.register_agent(EmptyAgent)
     agent_id = registration.agent_id
-    assert await client.status(agent_id) == MailboxStatus.ACTIVE
+    assert await client.status(agent_id) == MailboxStatus.INACTIVE
     await client.terminate(agent_id)
     assert await client.status(agent_id) == MailboxStatus.TERMINATED
 
@@ -392,36 +393,11 @@ def test_client_background_error(
 async def test_client_heartbeat_status(
     client: UserExchangeClient[Any],
 ) -> None:
-
-    if isinstance(
-        client._transport,
-        (HttpExchangeTransport, GlobusExchangeTransport),
-    ):
-        heartbeat = await client.heartbeat_status(client.client_id)
-        # Heartbeat is handled by server send, so no client init means None.
-        assert heartbeat is None
-
-        # Server tracks heartbeat automatically via send/listen.
-        # So we send a message to trigger heartbeat update.
-        registration = await client.register_agent(EmptyAgent)
-        aid = registration.agent_id
-
-        message = Message.create(
-            src=client.client_id,
-            dest=aid,
-            body=PingRequest(),
-        )
-
-        start = time.time()
-        await client.send(message)
-
-    else:
-        heartbeat = await client.heartbeat_status(client.client_id)
-        # initial heartbeat comes from client init, so has a small float.
-        assert heartbeat is not None
-        assert heartbeat < 1.0
-        start = time.time()
-        await client._transport.update_heartbeat()
+    await asyncio.sleep(TEST_HEARTBEAT_INTERVAL)
+    heartbeat = await client.heartbeat_status(client.client_id)
+    assert heartbeat is not None
+    start = time.time()
+    await client._transport.update_heartbeat()
 
     heartbeat = await client.heartbeat_status(client.client_id)
     elapsed = time.time() - start
@@ -439,3 +415,21 @@ async def test_heartbeat_status_bad_entity(
     uid = UserId.new()
     with pytest.raises(BadEntityIdError):
         await client.heartbeat_status(uid)
+
+
+@pytest.mark.asyncio
+async def test_client_exchange_config(client: UserExchangeClient[Any]) -> None:
+
+    config = ExchangeClientConfig(
+        heartbeat_interval=TEST_HEARTBEAT_INTERVAL,
+        stale_heartbeat_threshold=TEST_HEARTBEAT_STALE,
+    )
+
+    factory = LocalExchangeFactory(config=config)
+
+    client = await factory.create_user_client(start_listener=False)
+
+    assert client.config.heartbeat_interval == TEST_HEARTBEAT_INTERVAL
+    assert client.config.stale_heartbeat_threshold == TEST_HEARTBEAT_STALE
+
+    await client.close()

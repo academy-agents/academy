@@ -20,8 +20,6 @@ from typing import Literal
 from typing import NamedTuple
 from typing import TYPE_CHECKING
 
-from academy.exchange.cloud.client import DEFAULT_EXCHANGE_URL
-
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     from typing import Self
 else:  # pragma: <3.11 cover
@@ -45,13 +43,14 @@ from pydantic import Field
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.cloud.app import StatusCode
+from academy.exchange.cloud.client import DEFAULT_EXCHANGE_URL
 from academy.exchange.cloud.login import get_globus_app
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_scope_id
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -165,13 +164,6 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             data={'message': message.model_dump_json()},
         )
 
-    def status(self, uid: EntityId) -> GlobusHTTPResponse:
-        return self.request(
-            'GET',
-            self._mailbox_url,
-            data={'mailbox': uid.model_dump_json()},
-        )
-
     def terminate(self, uid: EntityId) -> GlobusHTTPResponse:
         return self.request(
             'DELETE',
@@ -182,6 +174,13 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
     def get_heartbeat(self, uid: EntityId) -> GlobusHTTPResponse:
         return self.request(
             'GET',
+            self._heartbeat_url,
+            data={'mailbox': uid.model_dump_json()},
+        )
+
+    def update_heartbeat(self, uid: EntityId) -> GlobusHTTPResponse:
+        return self.request(
+            'POST',
             self._heartbeat_url,
             data={'mailbox': uid.model_dump_json()},
         )
@@ -755,19 +754,6 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 raise MailboxTerminatedError(message.dest) from e
             raise e  # pragma: no cover
 
-    def _status(self, uid: EntityId) -> MailboxStatus:
-        response = self.exchange_client.status(uid)
-        status = response['status']
-        return MailboxStatus(status)
-
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            self.executor,
-            self._status,
-            uid,
-        )
-
     def _terminate(self, uid: EntityId) -> None:
         self.exchange_client.terminate(uid)
 
@@ -780,13 +766,14 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     def _get_heartbeat(self, uid: EntityId) -> float | None:
-        missing_code = 404
         try:
             response = self.exchange_client.get_heartbeat(uid)
             return response.get('heartbeat')
         except AcademyAPIError as e:
-            if e.http_status == missing_code:
+            if e.http_status == StatusCode.NOT_FOUND.value:
                 raise BadEntityIdError(uid) from e
+            elif e.http_status == StatusCode.TERMINATED.value:
+                raise MailboxTerminatedError(uid) from e
             raise
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
@@ -797,16 +784,22 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             uid,
         )
 
+    def _update_heartbeat(self) -> None:
+        self.exchange_client.update_heartbeat(self.mailbox_id)
+
     async def update_heartbeat(self) -> None:
-        pass  # Server tracks this automatically via listen/send
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            self._update_heartbeat,
+        )
 
     def _get_agent_stats(self, uid: EntityId) -> AgentStats:
-        missing_code = 404
         try:
             response = self.exchange_client.get_agent_stats(uid)
             return AgentStats(**response.data)
         except AcademyAPIError as e:
-            if e.http_status == missing_code:
+            if e.http_status == StatusCode.NOT_FOUND.value:
                 raise BadEntityIdError(uid) from e
             raise
 
@@ -835,7 +828,10 @@ class GlobusExchangeFactory(ExchangeFactory[GlobusExchangeTransport]):
         project_id: uuid.UUID,
         client_params: dict[str, Any] | None = None,
         request_timeout_s: float = 60,
+        *,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
+        super().__init__(config)
         self.info = _AcademyConnectionInfo(
             project_id=project_id,
             client_params=client_params,

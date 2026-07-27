@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 
-from academy.exchange import MailboxStatus
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.proxystore import ProxyStoreExchangeFactory
 from academy.message import ActionRequest
@@ -72,7 +71,6 @@ async def test_wrap_basic_transport_functionality(
 
         src = wrapped_transport1.mailbox_id
         dest = (await wrapped_transport1.register_agent(EmptyAgent)).agent_id
-        assert await wrapped_transport1.status(dest) == MailboxStatus.ACTIVE
 
         wrapped_transport2 = await wrapped_factory._create_transport(
             mailbox_id=dest,

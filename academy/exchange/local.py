@@ -26,10 +26,10 @@ from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -263,14 +263,6 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             except QueueShutDown:
                 raise MailboxTerminatedError(message.dest) from None
 
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        if uid not in self._state.queues:
-            return MailboxStatus.MISSING
-        async with self._state.locks[uid]:
-            if self._state.queues[uid].is_shutdown:
-                return MailboxStatus.TERMINATED
-            return MailboxStatus.ACTIVE
-
     async def terminate(self, uid: EntityId) -> None:
         queue = self._state.queues.get(uid, None)
         if queue is None:
@@ -298,6 +290,9 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if uid not in self._state.queues:
             raise BadEntityIdError(uid)
 
+        if self._state.queues[uid].is_shutdown:
+            raise MailboxTerminatedError(uid)
+
         if self._state.last_active.get(uid) is None:
             return None
         else:
@@ -318,7 +313,9 @@ class LocalExchangeFactory(
         self,
         *,
         _state: _LocalExchangeState | None = None,
+        config: ExchangeClientConfig | None = None,
     ):
+        super().__init__(config)
         self._state = _LocalExchangeState() if _state is None else _state
 
     async def _create_transport(

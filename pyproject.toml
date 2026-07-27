@@ -27,6 +27,7 @@ dependencies = [
     "pydantic>=2,<3",
     "redis",
     "tomli ; python_version<'3.11'",
+    "tomli-w>=1.2.0",
     "typing-extensions>=4.3.0 ; python_version<'3.11'",
 ]
 

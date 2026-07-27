@@ -38,12 +38,12 @@ from pydantic import Field
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.redis import _MailboxState
 from academy.exchange.redis import _RedisConnectionInfo
 from academy.exchange.transport import _respond_pending_requests_on_terminate
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -390,15 +390,6 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 extra=message.log_extra(),
             )
 
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        status = await self._redis_client.get(self._status_key(uid))
-        if status is None:
-            return MailboxStatus.MISSING
-        elif status.decode() == _MailboxState.INACTIVE.value:
-            return MailboxStatus.TERMINATED
-        else:
-            return MailboxStatus.ACTIVE
-
     async def terminate(self, uid: EntityId) -> None:
         # Warning: terminating a hybrid exchange mailbox is not guaranteed
         # to respond to all pending requests with a MailboxTerminatedError
@@ -455,10 +446,12 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
-
         status = await self._redis_client.get(self._status_key(uid))
         if status is None:
             raise BadEntityIdError(uid)
+
+        if status.decode() == _MailboxState.INACTIVE.value:
+            raise MailboxTerminatedError(uid)
 
         heartbeat_time = await self._redis_client.get(self._heartbeat_key(uid))
 
@@ -591,7 +584,10 @@ class HybridExchangeFactory(ExchangeFactory[HybridExchangeTransport]):
         interface: str | None = None,
         namespace: str | None = 'default',
         ports: Iterable[int] | None = None,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
+        super().__init__(config)
+
         self._namespace = (
             namespace
             if namespace is not None

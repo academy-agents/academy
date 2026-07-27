@@ -31,6 +31,7 @@ from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
+from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.cloud.app import _run
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.config import ExchangeServingConfig
@@ -38,7 +39,6 @@ from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.login import get_auth_headers
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -306,15 +306,6 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         ) as response:
             _raise_for_status(response, self.mailbox_id, message.dest)
 
-    async def status(self, uid: EntityId) -> MailboxStatus:
-        async with self._session.get(
-            self._mailbox_url,
-            json={'mailbox': uid.model_dump_json()},
-        ) as response:
-            _raise_for_status(response, self.mailbox_id, uid)
-            status = (await response.json())['status']
-            return MailboxStatus(status)
-
     async def terminate(self, uid: EntityId) -> None:
         async with self._session.delete(
             self._mailbox_url,
@@ -323,7 +314,11 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, uid)
 
     async def update_heartbeat(self) -> None:
-        pass  # Server tracks this automatically via listen/send
+        async with self._session.post(
+            self._heartbeat_url,
+            json={'mailbox': self.mailbox_id.model_dump_json()},
+        ) as response:
+            _raise_for_status(response, self.mailbox_id)
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
         async with self._session.get(
@@ -497,7 +492,11 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         request_timeout_s: float = 60,
         ssl_verify: bool | None = None,
         client_timeout: aiohttp.ClientTimeout | None = None,
+        *,
+        config: ExchangeClientConfig | None = None,
     ) -> None:
+        super().__init__(config)
+
         if additional_headers is None:
             additional_headers = {}
 

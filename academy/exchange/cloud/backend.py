@@ -228,27 +228,47 @@ class MailboxBackend(Protocol):
         """
         ...
 
-    async def update_heartbeat(self, uid: EntityId) -> None:
+    async def update_heartbeat(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> None:
         """Update the heartbeat timestamp for a mailbox.
 
         Args:
             uid: Mailbox id to update.
+            client: Client Info to verify.
         """
         ...
 
-    async def heartbeat_status(self, uid: EntityId) -> float | None:
+    async def heartbeat_status(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> float | None:
         """Get the last heartbeat timestamp of a mailbox.
 
         Args:
             uid: Mailbox id to check.
+            client: Client Info to verify.
 
         Returns:
             Unix timestamp of the last heartbeat, or None if never recorded.
         """
         ...
 
-    async def agent_stats(self, uid: EntityId) -> AgentStats:
-        """Return live exchange-level metrics for an agent."""
+    async def agent_stats(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> AgentStats:
+        """Return live exchange-level metrics for an agent.
+
+        Args:
+               uid: Mailbox id to check.
+               client: Client Info to verify.
+
+        """
         ...
 
 
@@ -415,22 +435,51 @@ class PythonBackend:
             send,
         )
 
-    async def update_heartbeat(self, uid: EntityId) -> None:
+    async def update_heartbeat(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> None:
         """Update the heartbeat timestamp for a mailbox."""
+        if not self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
         self.last_active[uid] = time.time()
 
-    async def heartbeat_status(self, uid: EntityId) -> float | None:
+    async def heartbeat_status(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> float | None:
         """Get the last heartbeat timestamp for a mailbox."""
+        if not self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
         if uid not in self._mailboxes:
             raise BadEntityIdError(uid)
+
+        if uid in self._terminated:
+            raise MailboxTerminatedError(uid)
 
         if self.last_active.get(uid) is None:
             return None
 
         return time.time() - self.last_active[uid]
 
-    async def agent_stats(self, uid: EntityId) -> AgentStats:
+    async def agent_stats(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> AgentStats:
         """Return live exchange-level metrics for an agent."""
+        if not self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
         queue = self._mailboxes.get(uid)
         queued = queue.qsize() if queue is not None else 0
         pending = len(self._requests.get(uid, {}))
@@ -991,18 +1040,39 @@ class RedisBackend:
 
         return now
 
-    async def update_heartbeat(self, uid: EntityId) -> None:
+    async def update_heartbeat(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> None:
         """Update the heartbeat timestamp for a mailbox."""
+        if not await self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
         now = await self._redis_current_time()
 
         await self._client.set(self._heartbeat_key(uid), str(now))
         await self._update_expirations(uid)
 
-    async def heartbeat_status(self, uid: EntityId) -> float | None:
+    async def heartbeat_status(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> float | None:
         """Get the time since last heartbeat timestamp for a mailbox."""
+        if not await self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
         status = await self._client.get(self._active_key(uid))
         if status is None:
             raise BadEntityIdError(uid)
+
+        if status.decode() == MailboxStatus.TERMINATED.value:
+            raise MailboxTerminatedError(uid)
 
         heartbeat_time = await self._client.get(self._heartbeat_key(uid))
 
@@ -1013,8 +1083,17 @@ class RedisBackend:
 
         return now - float(heartbeat_time.decode())
 
-    async def agent_stats(self, uid: EntityId) -> AgentStats:
+    async def agent_stats(
+        self,
+        client: ClientInfo,
+        uid: EntityId,
+    ) -> AgentStats:
         """Return live exchange-level metrics for an agent."""
+        if not await self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
         queued = await self._client.llen(self._queue_key(uid))
         pending = 0
         async for _ in self._client.scan_iter(

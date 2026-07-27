@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#academy-v05" class="md-skip">
+        <a href="#academy-v06" class="md-skip">
           Skip to content
         </a>
       
@@ -606,6 +606,24 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#academy-v06" class="md-nav__link">
+    <span class="md-ellipsis">
+      Academy v0.6
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changes-to-mailbox-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changes to Mailbox Status
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#academy-v05" class="md-nav__link">
@@ -1409,6 +1427,29 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../api/exchange/client_config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    client_config
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
     
@@ -1423,7 +1464,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_7_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_7_3" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1440,14 +1481,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_1_7_2" id="__nav_5_1_7_2_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_1_7_3" id="__nav_5_1_7_3_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_1_7_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_1_7_2">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_1_7_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1_7_3">
             <span class="md-nav__icon md-icon"></span>
             cloud
           </label>
@@ -2475,6 +2516,24 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#academy-v06" class="md-nav__link">
+    <span class="md-ellipsis">
+      Academy v0.6
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changes-to-mailbox-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changes to Mailbox Status
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#academy-v05" class="md-nav__link">
     <span class="md-ellipsis">
       Academy v0.5
@@ -2703,6 +2762,14 @@
 After v1.0, this guide will be retired.
 All future changes—including breaking changes and deprecations—will be documented in the project changelog.</p>
 <p>Please refer to our <a href="../version-policy/">Version Policy</a> for more details on when we make breaking changes.</p>
+<h2 id="academy-v06">Academy v0.6<a class="headerlink" href="#academy-v06" title="Permanent link">&para;</a></h2>
+<h2 id="changes-to-mailbox-status">Changes to Mailbox Status<a class="headerlink" href="#changes-to-mailbox-status" title="Permanent link">&para;</a></h2>
+<p>The <a class="autorefs autorefs-internal" title="            status
+
+
+  
+      async
+  " href="../api/exchange/client/#academy.exchange.client.ExchangeClient.status"><code>status()</code></a> method has been changed to add <code>MailboxStatus.INACTIVE</code> to give a specific status to agents which are still accepting messages but have missed a set number of heartbeats. You can adjust <a class="autorefs autorefs-internal" title="            ExchangeClientConfig" href="../api/exchange/client_config/#academy.exchange.client_config.ExchangeClientConfig"><code>ExchangeClientConfig</code></a> to change the heartbeat interval and the number of heartbeats until an agent is considered inactive. <code>ExchangeTransport.status</code> has been removed --- internally status is implemented by querying the heartbeat of the mailbox.</p>
 <h2 id="academy-v05">Academy v0.5<a class="headerlink" href="#academy-v05" title="Permanent link">&para;</a></h2>
 <h2 id="message-protocol-change">Message Protocol Change<a class="headerlink" href="#message-protocol-change" title="Permanent link">&para;</a></h2>
 <p>Between version v0.4 and v0.5 we made breaking changes to the format of the communication between agents.
@@ -2850,7 +2917,7 @@ Some of the exchange operations have have been changed:</p>
 
   
       async
-  " href="../api/exchange/transport/#academy.exchange.transport.ExchangeTransport.status"><code>status()</code></a> has been added</li>
+  " href="../api/exchange/client/#academy.exchange.client.ExchangeClient.status"><code>status()</code></a> has been added</li>
 </ul>
 <p>Exchange clients are created using a factory pattern:</p>
 <ul>

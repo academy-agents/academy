@@ -12,13 +12,13 @@
         <meta name="author" content="Globus Labs">
       
       
-        <link rel="canonical" href="https://docs.academy-agents.org/stable/api/logging/configs/">
+        <link rel="canonical" href="https://docs.academy-agents.org/stable/api/exchange/client_config/">
       
       
-        <link rel="prev" href="../">
+        <link rel="prev" href="../client/">
       
       
-        <link rel="next" href="base/">
+        <link rel="next" href="../cloud/">
       
       
       <link rel="icon" href="../../../static/favicon.png">
@@ -26,7 +26,7 @@
     
     
       
-        <title>configs - Academy</title>
+        <title>client_config - Academy</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#academyloggingconfigs" class="md-skip">
+        <a href="#academyexchangeclient_config" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              configs
+              client_config
             
           </span>
         </div>
@@ -1105,8 +1105,10 @@
                 
   
   
+    
   
   
+  
     
     
     
@@ -1117,15 +1119,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_7" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../exchange/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1144,7 +1146,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_1_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_1_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_1_7">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
@@ -1158,7 +1160,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/client/" class="md-nav__link">
+      <a href="../client/" class="md-nav__link">
         
   
   
@@ -1178,10 +1180,32 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../exchange/client_config/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    client_config
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1192,6 +1216,44 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#academy.exchange.client_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;client_config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#academy.exchange.client_config.ExchangeClientConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ExchangeClientConfig
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1221,7 +1283,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../exchange/cloud/" class="md-nav__link ">
+            <a href="../cloud/" class="md-nav__link ">
               
   
   
@@ -1254,7 +1316,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/app/" class="md-nav__link">
+      <a href="../cloud/app/" class="md-nav__link">
         
   
   
@@ -1277,7 +1339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/authenticate/" class="md-nav__link">
+      <a href="../cloud/authenticate/" class="md-nav__link">
         
   
   
@@ -1300,7 +1362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/backend/" class="md-nav__link">
+      <a href="../cloud/backend/" class="md-nav__link">
         
   
   
@@ -1323,7 +1385,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/client/" class="md-nav__link">
+      <a href="../cloud/client/" class="md-nav__link">
         
   
   
@@ -1346,7 +1408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/client_info/" class="md-nav__link">
+      <a href="../cloud/client_info/" class="md-nav__link">
         
   
   
@@ -1369,7 +1431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/config/" class="md-nav__link">
+      <a href="../cloud/config/" class="md-nav__link">
         
   
   
@@ -1392,7 +1454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/globus/" class="md-nav__link">
+      <a href="../cloud/globus/" class="md-nav__link">
         
   
   
@@ -1415,7 +1477,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/login/" class="md-nav__link">
+      <a href="../cloud/login/" class="md-nav__link">
         
   
   
@@ -1438,7 +1500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/scopes/" class="md-nav__link">
+      <a href="../cloud/scopes/" class="md-nav__link">
         
   
   
@@ -1461,7 +1523,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/cloud/token_store/" class="md-nav__link">
+      <a href="../cloud/token_store/" class="md-nav__link">
         
   
   
@@ -1492,7 +1554,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/factory/" class="md-nav__link">
+      <a href="../factory/" class="md-nav__link">
         
   
   
@@ -1515,7 +1577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/hybrid/" class="md-nav__link">
+      <a href="../hybrid/" class="md-nav__link">
         
   
   
@@ -1538,7 +1600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/local/" class="md-nav__link">
+      <a href="../local/" class="md-nav__link">
         
   
   
@@ -1561,7 +1623,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/proxystore/" class="md-nav__link">
+      <a href="../proxystore/" class="md-nav__link">
         
   
   
@@ -1584,7 +1646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/redis/" class="md-nav__link">
+      <a href="../redis/" class="md-nav__link">
         
   
   
@@ -1607,7 +1669,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../exchange/transport/" class="md-nav__link">
+      <a href="../transport/" class="md-nav__link">
         
   
   
@@ -1704,8 +1766,6 @@
                 
   
   
-    
-  
   
   
     
@@ -1718,15 +1778,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_11" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_11" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../logging/" class="md-nav__link ">
               
   
   
@@ -1745,7 +1805,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_1_11_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_1_11_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_1_11">
             <span class="md-nav__icon md-icon"></span>
             academy.logging
@@ -1756,8 +1816,6 @@
                 
   
   
-    
-  
   
   
     
@@ -1770,15 +1828,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_11_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_11_1" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../../logging/configs/" class="md-nav__link ">
               
   
   
@@ -1791,13 +1849,13 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_5_1_11_1" id="__nav_5_1_11_1_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_1_11_1" id="__nav_5_1_11_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_1_11_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_5_1_11_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_1_11_1">
             <span class="md-nav__icon md-icon"></span>
             configs
@@ -1811,7 +1869,7 @@
   
   
     <li class="md-nav__item">
-      <a href="base/" class="md-nav__link">
+      <a href="../../logging/configs/base/" class="md-nav__link">
         
   
   
@@ -1834,7 +1892,7 @@
   
   
     <li class="md-nav__item">
-      <a href="console/" class="md-nav__link">
+      <a href="../../logging/configs/console/" class="md-nav__link">
         
   
   
@@ -1857,7 +1915,7 @@
   
   
     <li class="md-nav__item">
-      <a href="file/" class="md-nav__link">
+      <a href="../../logging/configs/file/" class="md-nav__link">
         
   
   
@@ -1880,7 +1938,7 @@
   
   
     <li class="md-nav__item">
-      <a href="jsonpool/" class="md-nav__link">
+      <a href="../../logging/configs/jsonpool/" class="md-nav__link">
         
   
   
@@ -1903,7 +1961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="multi/" class="md-nav__link">
+      <a href="../../logging/configs/multi/" class="md-nav__link">
         
   
   
@@ -1934,7 +1992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../helpers/" class="md-nav__link">
+      <a href="../../logging/helpers/" class="md-nav__link">
         
   
   
@@ -1957,7 +2015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../recommended/" class="md-nav__link">
+      <a href="../../logging/recommended/" class="md-nav__link">
         
   
   
@@ -2275,9 +2333,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#academy.logging.configs" class="md-nav__link">
+  <a href="#academy.exchange.client_config" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;configs
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;client_config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#academy.exchange.client_config.ExchangeClientConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ExchangeClientConfig
     </span>
   </a>
   
@@ -2302,21 +2369,21 @@
   
 
 
-<h1 id="academyloggingconfigs">academy.logging.configs<a class="headerlink" href="#academyloggingconfigs" title="Permanent link">&para;</a></h1>
+<h1 id="academyexchangeclient_config">academy.exchange.client_config<a class="headerlink" href="#academyexchangeclient_config" title="Permanent link">&para;</a></h1>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<a id="academy.logging.configs"></a>
+<a id="academy.exchange.client_config"></a>
     <div class="doc doc-contents first">
   <div style="display:flex; align-items: center">
   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16" style="padding-right: 8px">
     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
   </svg>
-  <a target="_blank" href="https://github.com/academy-agents/academy/blob/main/academy/logging/configs/__init__.py">
-      <code>academy/logging/configs/__init__.py</code>
+  <a target="_blank" href="https://github.com/academy-agents/academy/blob/main/academy/exchange/client_config.py">
+      <code>academy/exchange/client_config.py</code>
   </a>
   </div>
   
@@ -2336,6 +2403,51 @@
 
 
 
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="academy.exchange.client_config.ExchangeClientConfig" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ExchangeClientConfig</span>
+
+
+<a href="#academy.exchange.client_config.ExchangeClientConfig" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
+
+
+        <p>Common runtime parameters for exchange clients.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
+import threading
 from collections.abc import Callable
 from concurrent.futures import Executor
 from concurrent.futures import Future
+from threading import Thread
 from typing import Any
 
 import academy.exchange as ae
 from academy.agent import action
 from academy.agent import Agent
-from academy.exception import AgentTerminatedError
 from academy.handle import Handle
 from academy.manager import _run_agent_async
 from academy.manager import _run_agent_on_worker
@@ -54,23 +54,33 @@ class EventLoopExecutor(Executor):
     runs every subsequent Agent submission onto that host's own event loop.
 
     Args:
-        inner: Executor used to run the host agent.
         factory: Factory for the same exchange the the manager uses.
     """
 
     def __init__(
         self,
-        inner: Executor,
         factory: ae.ExchangeFactory[Any],
     ):
-        self._inner = inner
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._loop_ready: threading.Event = threading.Event()
         self._factory = factory
         self._client: ae.UserExchangeClient[Any] | None = None
         self._host: Handle[Any] | None = None
-        self._host_future: Future[Any] | None = None
         self._shutdown = False
         self._host_lock: asyncio.Lock = asyncio.Lock()
-        self._pending_tasks: set[asyncio.Task[None]] = set()
+        self._pending_futures: set[Future[Any]] = set()
+        self._host_task: asyncio.Task[None] | None = None
+
+        self._thread: threading.Thread = Thread(target=self._thread_main)
+        self._thread.start()
+        self._loop_ready.wait()
+
+    def _thread_main(self) -> None:
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+        self._loop_ready.set()
+        self._loop.run_forever()
+        self._loop.close()
 
     def submit(
         self,
@@ -94,52 +104,37 @@ class EventLoopExecutor(Executor):
         if self._shutdown:
             raise RuntimeError('Cannot submit after host shutdown')
 
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            raise RuntimeError(
-                'EventloopExecutor submit requires a running event loop to be '
-                'used for collecting multiple agent runtimes',
-            ) from None
-
-        future: Future[Any] = Future()
-
-        # Since host agent already gives us a event loop, we run the
-        # non-wrapper _run_agent_async in the agent instead
-
         if fn is _run_agent_on_worker:
             spec = args[0]
             fn, args, kwargs = _run_agent_async, (spec,), {}
-        task = asyncio.ensure_future(
-            self._submit_async(fn, args, kwargs, future),
+
+        assert self._loop is not None
+        task_future = asyncio.run_coroutine_threadsafe(
+            self._submit_async(fn, args, kwargs),
+            self._loop,
         )
-        self._pending_tasks.add(task)
-        task.add_done_callback(self._pending_tasks.discard)
-        return future
+        self._pending_futures.add(task_future)
+        task_future.add_done_callback(self._pending_futures.discard)
+
+        return task_future
 
     async def _submit_async(
         self,
         fn: Callable[..., Any],
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        future: Future[Any],
-    ) -> None:
-        try:
-            if self._host is None:
-                async with self._host_lock:
-                    if self._host is None:  # pragma: no branch
-                        await self._launch_host()
+    ) -> Any:
 
-            assert self._host is not None
+        if self._host is None:
+            async with self._host_lock:
+                if self._host is None:  # pragma: no branch
+                    await self._launch_host()
 
-            if not future.set_running_or_notify_cancel():
-                return
+        assert self._host is not None
 
-            result = await self._host.submit(fn, args, kwargs)
-        except BaseException as e:
-            future.set_exception(e)
-        else:
-            future.set_result(result)
+        result = await self._host.submit(fn, args, kwargs)
+
+        return result
 
     async def _launch_host(self) -> None:
         self._client = await self._factory.create_user_client(
@@ -160,10 +155,7 @@ class EventLoopExecutor(Executor):
             submit_kwargs={},
         )
 
-        self._host_future = self._inner.submit(
-            _run_agent_on_worker,
-            host_spec,
-        )
+        self._host_task = asyncio.create_task(_run_agent_async(host_spec))
 
         self._host = Handle(
             registration.agent_id,
@@ -174,28 +166,36 @@ class EventLoopExecutor(Executor):
     def shutdown(
         self,
         wait: bool = True,
-        *,
-        cancel_futures: bool = False,
+        cancel_futures: bool = True,
     ) -> None:
-        """Shut down the inner executor.
+        """Shut down the owned thread and the host agent.
 
         Args:
         wait: Wait for the inner executor to finish before returning.
-        cancel_futures: Cancel futures in the inner executor.
+        cancel_futures: Cancel pending futures before shutting down.
         """
         self._shutdown = True
-        self._inner.shutdown(wait=wait, cancel_futures=cancel_futures)
+        assert self._loop is not None
 
-    async def aclose(self) -> None:
-        """Used to shutdown the host agent since it does not exist on acb."""
-        self._shutdown = True
+        if cancel_futures:
+            for future in self._pending_futures:
+                future.cancel()
 
         if self._host is not None:
-            with contextlib.suppress(AgentTerminatedError):
-                await self._host.shutdown()
-
-        if self._host_future is not None:
-            await asyncio.wrap_future(self._host_future)
+            future_host = asyncio.run_coroutine_threadsafe(
+                self._host.shutdown(),
+                self._loop,
+            )
+            future_host.result()
 
         if self._client is not None:
-            await self._client.close()
+            future_client = asyncio.run_coroutine_threadsafe(
+                self._client.close(),
+                self._loop,
+            )
+            future_client.result()
+
+        self._loop.call_soon_threadsafe(self._loop.stop)
+
+        if wait:
+            self._thread.join()

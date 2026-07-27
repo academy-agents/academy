@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import re
-from concurrent.futures import Future
-from concurrent.futures import ThreadPoolExecutor
 from unittest import mock
 
 import pytest
 
-from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.executor import _EventLoopHost
@@ -43,7 +39,7 @@ async def test_event_loop_pack_agents(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     factory = exchange_client.factory()
-    executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
+    executor = EventLoopExecutor(factory)
 
     async with await Manager.from_exchange_factory(
         factory=factory,
@@ -64,7 +60,7 @@ async def test_host_shutdown_submit(
 ) -> None:
 
     factory = exchange_client.factory()
-    executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
+    executor = EventLoopExecutor(factory)
 
     def test_fn() -> None:  # pragma: no cover
         pass
@@ -79,60 +75,12 @@ async def test_host_shutdown_submit(
 
 
 @pytest.mark.asyncio
-async def test_aclose_with_no_launch(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-
-    factory = exchange_client.factory()
-    executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
-
-    await executor.aclose()
-    assert executor._shutdown is True
-
-
-def test_no_event_loop_submit() -> None:
-    factory = LocalExchangeFactory()
-    executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
-
-    def test_fn() -> None:  # pragma: no cover
-        pass
-
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape(
-            'EventloopExecutor submit requires a running event loop to be '
-            'used for collecting multiple agent runtimes',
-        ),
-    ):
-        executor.submit(test_fn)
-
-
-@pytest.mark.asyncio
-async def test_cancel_future(
-    exchange_client: UserExchangeClient[LocalExchangeTransport],
-) -> None:
-    factory = exchange_client.factory()
-    executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
-
-    def test_fn() -> None:  # pragma: no cover
-        pass
-
-    future: Future[None] = Future()
-    assert future.cancel()
-
-    await executor._submit_async(test_fn, (), {}, future)
-
-    assert future.cancelled()
-    await executor.aclose()
-
-
-@pytest.mark.asyncio
 async def test_submit_base_exception(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
 
     factory = exchange_client.factory()
-    executor = EventLoopExecutor(ThreadPoolExecutor(max_workers=1), factory)
+    executor = EventLoopExecutor(factory)
 
     def test_fn() -> None:  # pragma: no cover
         pass
@@ -155,4 +103,4 @@ async def test_submit_base_exception(
         test = executor.submit(test_fn)
         await asyncio.wrap_future(test)
 
-    await executor.aclose()
+    executor.shutdown()

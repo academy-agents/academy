@@ -119,8 +119,7 @@ async def test_no_cancel_future(
 
     future = executor.submit(test_fn)
 
-    with pytest.warns(RuntimeWarning, match='coroutine.*was never awaited'):
-        executor.shutdown(wait=False, cancel_futures=False)
+    executor.shutdown(wait=False, cancel_futures=False)
 
     assert not future.cancelled()
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from unittest import mock
 
 import pytest
@@ -115,7 +114,7 @@ async def test_no_cancel_future(
     executor = EventLoopExecutor(factory)
 
     def test_fn() -> None:
-        time.sleep(2)
+        pass
 
     future = executor.submit(test_fn)
 
@@ -124,3 +123,22 @@ async def test_no_cancel_future(
     assert not future.cancelled()
 
     executor._thread.join()
+
+
+async def test_cancel_future(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+
+    factory = exchange_client.factory()
+    executor = EventLoopExecutor(factory)
+
+    async def test_fn() -> None:
+        await asyncio.sleep(10)
+
+    future = executor.submit(test_fn)
+
+    assert future in executor._pending_futures
+
+    executor.shutdown(wait=True, cancel_futures=True)
+
+    assert future.cancelled()

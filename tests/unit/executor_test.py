@@ -107,7 +107,7 @@ async def test_submit_base_exception(
     executor.shutdown()
 
 
-async def test_cancel_future(
+async def test_no_cancel_future(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
 
@@ -119,6 +119,9 @@ async def test_cancel_future(
 
     future = executor.submit(test_fn)
 
-    executor.shutdown(wait=True, cancel_futures=True)
+    with pytest.warns(RuntimeWarning, match='coroutine.*was never awaited'):
+        executor.shutdown(wait=False, cancel_futures=False)
 
-    assert future.cancelled()
+    assert not future.cancelled()
+
+    executor._thread.join()

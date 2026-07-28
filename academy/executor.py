@@ -178,7 +178,7 @@ class EventLoopExecutor(Executor):
         assert self._loop is not None
 
         if cancel_futures:
-            for future in self._pending_futures:
+            for future in list(self._pending_futures):
                 future.cancel()
 
         if self._host is not None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from unittest import mock
 
 import pytest
@@ -104,3 +105,20 @@ async def test_submit_base_exception(
         await asyncio.wrap_future(test)
 
     executor.shutdown()
+
+
+async def test_cancel_future(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+
+    factory = exchange_client.factory()
+    executor = EventLoopExecutor(factory)
+
+    def test_fn() -> None:
+        time.sleep(2)
+
+    future = executor.submit(test_fn)
+
+    executor.shutdown(wait=True, cancel_futures=True)
+
+    assert future.cancelled()

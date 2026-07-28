@@ -113,7 +113,7 @@ async def test_no_cancel_future(
     factory = exchange_client.factory()
     executor = EventLoopExecutor(factory)
 
-    def test_fn() -> None:
+    def test_fn() -> None:  # pragma: no cover
         pass
 
     future = executor.submit(test_fn)
@@ -132,7 +132,7 @@ async def test_cancel_future(
     factory = exchange_client.factory()
     executor = EventLoopExecutor(factory)
 
-    async def test_fn() -> None:
+    async def test_fn() -> None:  # pragma: no cover
         await asyncio.sleep(10)
 
     future = executor.submit(test_fn)

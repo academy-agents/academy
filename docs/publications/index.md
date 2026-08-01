@@ -1,24 +1,23 @@
 ## Citing Academy
 
-If you use Academy in your work, please cite our preprint: [**Empowering Scientific Workflows with Federated Agents**](https://arxiv.org/abs/2505.05428).
+If you use Academy in your work, please cite our IPDPS 2026 paper: [**Empowering Scientific Workflows with Federated Agents**](https://doi.org/10.1109/IPDPS65963.2026.00114) (also accessible on [arXiv](https://arxiv.org/abs/2505.05428)).
 
-> Pauloski, J. Gregory, Yadu Babuji, Ryan Chard, Mansi Sakarvadia, Kyle Chard, and Ian Foster. "Empowering Scientific Workflows with Federated Agents." arXiv preprint arXiv:2505.05428 (2025).
+> Kamatar, Alok, J. Gregory Pauloski, Yadu Babuji, Ryan Chard, Mansi Sakarvadia, Daniel Babnigg, Kyle Chard, and Ian Foster. "Empowering Scientific Workflows with Federated Agents." In 2026 IEEE International Parallel and Distributed Processing Symposium (IPDPS), pp. 1403-1418, 2026.
 
 ```bib
-@misc{pauloski2026academy,
-    title={Empowering Scientific Workflows with Federated Agents},
-    author={Alok Kamatar and J. Gregory Pauloski and Yadu Babuji and Ryan Chard and Mansi Sakarvadia and Daniel Babnigg and Kyle Chard and Ian Foster},
-    archiveprefix = {arXiv},
-    eprint = {2505.05428},
-    primaryclass = {cs.MA},
-    url = {https://arxiv.org/abs/2505.05428},
+@inproceedings{kamatar2026academy,
+    title = {Empowering Scientific Workflows with Federated Agents},
+    author = {Alok Kamatar and J. Gregory Pauloski and Yadu Babuji and Ryan Chard and Mansi Sakarvadia and Daniel Babnigg and Kyle Chard and Ian Foster},
+    booktitle = {2026 IEEE International Parallel and Distributed Processing Symposium (IPDPS)},
+    doi = {10.1109/IPDPS65963.2026.00114},
+    pages = {1403-1418},
     year = {2026}
 }
 ```
 
 ## Featured Publications
 
-*If you use Academy in your work and would like to be featured on this page, [open an issue](https://github.com/academy-agents/academy/issues){target=_blank} or [propose a pull request](https://github.com/academy-agents/academy/pulls){target=_blank} on GitHub.*
+*If you use Academy in your work and would like to be featured on this page, [open a pull request](https://github.com/academy-agents/academy/pulls){target=_blank}.*
 
 <!-- Use IEEE format here (bibtex to IEEE: https://bibtex.online/) -->
 

@@ -84,6 +84,7 @@ class MockRedis:
         self,
         key: bytes | str,
         time: int,
+        *,
         nx: bool = False,
         xx: bool = False,
         gt: bool = False,

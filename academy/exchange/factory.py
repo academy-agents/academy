@@ -51,7 +51,7 @@ class ExchangeFactory(abc.ABC, Generic[ExchangeTransportT]):
         config: Configuration for exchange client.
     """
 
-    def __init__(self, config: None | ExchangeClientConfig) -> None:
+    def __init__(self, config: ExchangeClientConfig | None) -> None:
         self.config = config
 
     @abc.abstractmethod

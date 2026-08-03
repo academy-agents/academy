@@ -163,6 +163,7 @@ class RoundRobinGroupChatManager(Agent):
     def __init__(  # noqa: PLR0913
         self,
         participants: list[Handle[GroupChatAgent]],
+        *,
         llm: Any,
         max_rounds: int = 3,
         stopping_prompt: str = DEFAULT_STOPPING_PROMPT,

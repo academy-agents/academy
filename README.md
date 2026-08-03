@@ -105,16 +105,15 @@ Here's what makes Academy valuable:
 
 ## Citation
 
-The Academy preprint is available on [arXiv](https://arxiv.org/abs/2505.05428).
+The Academy paper is available in the proceedings of [IPDPS 2026](https://doi.org/10.1109/IPDPS65963.2026.00114) and a preprint is accessible on [arXiv](https://arxiv.org/abs/2505.05428).
 
 ```bibtex
-@misc{pauloski2026academy,
-    title={Empowering Scientific Workflows with Federated Agents},
-    author={Alok Kamatar and J. Gregory Pauloski and Yadu Babuji and Ryan Chard and Mansi Sakarvadia and Daniel Babnigg and Kyle Chard and Ian Foster},
-    archiveprefix = {arXiv},
-    eprint = {2505.05428},
-    primaryclass = {cs.MA},
-    url = {https://arxiv.org/abs/2505.05428},
+@inproceedings{kamatar2026academy,
+    title = {Empowering Scientific Workflows with Federated Agents},
+    author = {Alok Kamatar and J. Gregory Pauloski and Yadu Babuji and Ryan Chard and Mansi Sakarvadia and Daniel Babnigg and Kyle Chard and Ian Foster},
+    booktitle = {2026 IEEE International Parallel and Distributed Processing Symposium (IPDPS)},
+    doi = {10.1109/IPDPS65963.2026.00114},
+    pages = {1403-1418},
     year = {2026}
 }
 ```

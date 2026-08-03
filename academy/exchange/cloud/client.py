@@ -487,12 +487,12 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
     def __init__(  # noqa: PLR0913
         self,
         url: str = DEFAULT_EXCHANGE_URL,
+        *,
         auth_method: Literal['globus'] | None = None,
         additional_headers: dict[str, str] | None = None,
         request_timeout_s: float = 60,
         ssl_verify: bool | None = None,
         client_timeout: aiohttp.ClientTimeout | None = None,
-        *,
         config: ExchangeClientConfig | None = None,
     ) -> None:
         super().__init__(config)

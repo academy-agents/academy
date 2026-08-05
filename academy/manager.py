@@ -86,6 +86,7 @@ def _run_agent_on_worker(
     academy_debug_mode: bool = False,
     **kwargs: Any,
 ) -> None:
+
     with log_context(spec.log_config):
         set_academy_debug(academy_debug_mode)
         asyncio.run(_run_agent_async(spec))

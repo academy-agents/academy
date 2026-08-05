@@ -107,7 +107,8 @@ class EventLoopExecutor(Executor):
 
         else:
             raise ValueError(
-                'Only functions of the type _run_agent_on_worker are allowed to be submitted',  # noqa: E501
+                'Only functions of the type _run_agent_on_worker '
+                'are allowed to be submitted.',
             )
 
         assert self._loop is not None

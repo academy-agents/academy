@@ -91,9 +91,6 @@ class EventLoopExecutor(Executor):
     ) -> Future[Any]:
         """Run a callable on the host agent's event loop.
 
-        First call will launch the host onto the inner executor, and subsequent
-        calls will send submissions into the hosts event loop.
-
         Args:
             fn: Callable to run on the host.
             *args: Positional arguments for submitted function.
@@ -107,6 +104,11 @@ class EventLoopExecutor(Executor):
         if fn is _run_agent_on_worker:
             spec = args[0]
             fn, args, kwargs = _run_agent_async, (spec,), {}
+
+        else:
+            raise ValueError(
+                'Only functions of the type _run_agent_on_worker are allowed to be submitted',  # noqa: E501
+            )
 
         assert self._loop is not None
         task_future = asyncio.run_coroutine_threadsafe(
@@ -124,7 +126,6 @@ class EventLoopExecutor(Executor):
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
     ) -> Any:
-
         if self._host is None:
             async with self._host_lock:
                 if self._host is None:  # pragma: no branch

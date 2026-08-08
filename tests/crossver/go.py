@@ -2,6 +2,7 @@ import random
 
 import os
 import pathlib
+import signal
 import subprocess
 
 # this can run in a fairly arbitrary python
@@ -115,13 +116,13 @@ p1 = subprocess.Popen(f"set -ex; cd {v1_env}; python3 -m academy.exchange.cloud.
 import time
 time.sleep(5)
 
-p2 = subprocess.Popen(f"curl --verbose http://localhost:1234/", shell=True, process_group=0)
+p2 = subprocess.Popen(f"set -ex; cd {v2_env}; curl --verbose http://localhost:1234/", shell=True, process_group=0)
 
 # p2 should exit when tests finished -- no need to terminate it, or have a time based wait.
 p2.wait()
 
-print("terminating p1")
-p1.terminate()
+print("terminating p1 group")
+os.killpg(p1.pid, signal.SIGTERM)
 
 print("waiting on p1")
 p1.wait()

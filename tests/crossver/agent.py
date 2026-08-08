@@ -18,6 +18,7 @@ async def async_main():
         factory=factory,
         ) as manager:
             agent_h = await manager.launch(TestAgent)
+            print(f"Agent handle is: {agent_h}")
             await agent_h.ping()
             while True:
                 print("looping forever")

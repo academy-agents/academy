@@ -124,13 +124,22 @@ base = os.getcwd()
 p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/agent.py", shell=True, process_group=0)
 
 time.sleep(10)
+
+# need some time ^ for the agent to get started and write out its agent handle file
+
+print("copying agent handle")
+os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
+
+p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/client.py", shell=True, process_group=0)
+
+# p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
+p3.wait()
+
 print("terminating p2 group")
 os.killpg(p2.pid, signal.SIGTERM)
 print("waiting on p2")
 p2.wait()
 
-# the client p3 ...
-# p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
 
 print("terminating p1 group")
 os.killpg(p1.pid, signal.SIGTERM)

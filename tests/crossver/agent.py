@@ -1,4 +1,5 @@
 import asyncio
+import pickle
 
 from academy.agent import Agent
 from academy.exchange import HttpExchangeFactory
@@ -19,6 +20,11 @@ async def async_main():
         ) as manager:
             agent_h = await manager.launch(TestAgent)
             print(f"Agent handle is: {agent_h}")
+
+            # TODO: are handles expected to be pickleable across minor versions?
+            with open("agent.handle", "wb") as f:
+                pickle.dump(agent_h, f)
+
             await agent_h.ping()
             while True:
                 print("looping forever")

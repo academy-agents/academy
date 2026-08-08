@@ -109,12 +109,16 @@ with open(v1_env / "exchange_config.json", "w") as f:
 # now run some kind of process group that is async wrt rest of program and can be shut down
 # entirely at the end (not just the process but all children)
 
+p1 = subprocess.Popen(f"set -ex; cd {v1_env}; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
 
-# p1 = subprocess.Popen(["cd", v1_env, ";", "ls"], shell=True, process_group=0)
-p1 = subprocess.Popen("echo hello", shell=True, process_group=0)
-
+# a bit of startup time... probs could be done by probing?
 import time
-time.sleep(10)
+time.sleep(5)
+
+p2 = subprocess.Popen(f"curl --verbose http://localhost:1234/", shell=True, process_group=0)
+
+# p2 should exit when tests finished -- no need to terminate it, or have a time based wait.
+p2.wait()
 
 print("terminating p1")
 p1.terminate()

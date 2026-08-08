@@ -4,6 +4,9 @@ This directory contains all automated tests for the project, organized into thre
 
 We follow a clean separation between these types to ensure fast feedback during development and reliable end-to-end validation during continuous integration.
 
+
+TODO: crossver tests - a form of integration test
+
 ---
 
 ## Unit Tests (`tests/unit/`)

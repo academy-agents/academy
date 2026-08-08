@@ -43,9 +43,9 @@ import time
 # are all these versioned by the same version (the pypi package version) or is there more interesting stuff
 # going on that users (and academy code) needs to understand?
 
-V1={"academy": "HERE"}
-V2=V1
-V3=V1
+V1={"academy": "packaging academy-py==0.5.0"}
+V2={"academy": "packaging academy-py==0.5.0"}
+V3={"academy": "packaging academy-py==0.5.0"}
 
 # basic test model is:
 # a submitter/client

@@ -43,7 +43,7 @@ import time
 # are all these versioned by the same version (the pypi package version) or is there more interesting stuff
 # going on that users (and academy code) needs to understand?
 
-V1={"academy": "origin/main"}
+V1={"academy": "HERE"}
 V2=V1
 V3=V1
 
@@ -59,21 +59,22 @@ V3=V1
 # academy-like has to happen in the relevant environments.
 
 def create_env(descr: dict) -> pathlib.Path:
-    path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)))
+    env_path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)))
 
-    print(f"creating env for {descr} at {path}")
+    print(f"creating env for {descr} at {env_path}")
 
-    dir = path.mkdir()
+    dir = env_path.mkdir()
 
-    p1 = os.getcwd()
+    here_path = os.getcwd()
 
-    os.chdir(path)
 
-    os.system(f"virtualenv ./venv; pwd; ls; . ./venv/bin/activate; which python; pip install {p1}")
+    install_target = descr['academy']
+    if install_target == "HERE":
+        install_target = here_path
 
-    os.chdir(p1)
+    os.system(f"cd {env_path}; virtualenv ./venv; pwd; ls; . ./venv/bin/activate; which python; pip install {install_target}")
 
-    return path
+    return env_path
     
 
 v1_env = create_env(V1)

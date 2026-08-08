@@ -4,6 +4,7 @@ import os
 import pathlib
 import signal
 import subprocess
+import time
 
 # this can run in a fairly arbitrary python
 
@@ -110,16 +111,26 @@ with open(v1_env / "exchange_config.json", "w") as f:
 # now run some kind of process group that is async wrt rest of program and can be shut down
 # entirely at the end (not just the process but all children)
 
-p1 = subprocess.Popen(f"set -ex; cd {v1_env}; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+p1 = subprocess.Popen(f"set -ex; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
 
 # a bit of startup time... probs could be done by probing?
 import time
 time.sleep(5)
 
-p2 = subprocess.Popen(f"set -ex; cd {v2_env}; curl --verbose http://localhost:1234/", shell=True, process_group=0)
+base = os.getcwd()
 
-# p2 should exit when tests finished -- no need to terminate it, or have a time based wait.
+# V2 should be an agent (against the major-version-consistent API, with no new minor version features)
+# run in the V2 environment.
+p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/agent.py", shell=True, process_group=0)
+
+time.sleep(10)
+print("terminating p2 group")
+os.killpg(p2.pid, signal.SIGTERM)
+print("waiting on p2")
 p2.wait()
+
+# the client p3 ...
+# p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
 
 print("terminating p1 group")
 os.killpg(p1.pid, signal.SIGTERM)

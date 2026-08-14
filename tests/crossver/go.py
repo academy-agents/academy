@@ -299,4 +299,5 @@ this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
 run_test_1(this_version_set)
 
-
+# test_1 doesn't work against all 0.3.0, because:
+#   TypeError: Manager.from_exchange_factory() missing 1 required positional argument: 'executors'

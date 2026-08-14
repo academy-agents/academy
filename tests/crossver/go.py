@@ -62,7 +62,7 @@ def create_env(descr: dict) -> pathlib.Path:
     return env_path
 
 
-def run_with_version_set(version_set: dict):
+def run_test_1(version_set: dict):
   # given where we are now, (aka HERE and CURRENT_ERA),
   # what academy versions should be compatible?
 
@@ -141,7 +141,7 @@ port = 1234
 
   # V2 should be an agent (against the major-version-consistent API, with no new minor version features)
   # run in the V2 environment.
-  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/agent.py", shell=True, process_group=0)
+  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py", shell=True, process_group=0)
 
   time.sleep(10)
 
@@ -150,9 +150,63 @@ port = 1234
   print("copying agent handle")
   os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
 
-  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/client.py", shell=True, process_group=0)
+  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py", shell=True, process_group=0)
 
   # p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
+  p3.wait()
+
+  print("terminating p2 group")
+  os.killpg(p2.pid, signal.SIGTERM)
+  print("waiting on p2")
+  p2.wait()
+
+
+  print("terminating p1 group")
+  os.killpg(p1.pid, signal.SIGTERM)
+
+  print("waiting on p1")
+  p1.wait()
+
+  print(f"return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}")
+
+  assert p1.returncode == -15, "p1 should have been terminated by SIGTERM"
+  assert p2.returncode == -15, "p2 should have been terminated by SIGTERM"
+  assert p3.returncode == 0, "p3 should have exited succesfully"
+
+
+
+def run_test_2(version_set: dict):
+  for k, v in version_set.items():
+    v['name'] = k
+
+  v1_env = create_env(version_set['exchange'])
+  v2_env = create_env(version_set['agent'])
+  v3_env = create_env(version_set['client'])
+
+  exchange_config = """
+host = "localhost"
+port = 1234
+"""
+
+  with open(v1_env / "exchange_config.json", "w") as f:
+    f.write(exchange_config)
+
+  p1 = subprocess.Popen(f"set -ex; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+
+  import time
+  time.sleep(5)
+
+  base = os.getcwd()
+
+  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_2/agent.py", shell=True, process_group=0)
+
+  time.sleep(10)
+
+  print("copying agent handle")
+  os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
+
+  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_2/client.py", shell=True, process_group=0)
+
   p3.wait()
 
   print("terminating p2 group")
@@ -197,7 +251,7 @@ _V3={"academy": "packaging academy-py==0.5.0"}
 
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
-run_with_version_set(this_version_set)
+run_test_1(this_version_set)
 
 _V1={"academy": "HERE"}
 _V2={"academy": "HERE"}
@@ -205,7 +259,8 @@ _V3={"academy": "HERE"}
 
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
-run_with_version_set(this_version_set)
+run_test_1(this_version_set)
+run_test_2(this_version_set)
 
 # we've got 8 possibilities here of HERE vs dff0...
 # dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1
@@ -217,16 +272,16 @@ _V3={"academy": "packaging git+https://github.com/academy-agents/academy@dff06fc
 
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
-run_with_version_set(this_version_set)
+run_test_1(this_version_set)
 
 # I'm a bit unclear if this should work or not? It does pass for me but
 # I should investigate timeout behaviour...
 # Constraint-wise, the constraint being tested is that:
 # for agent or client >= dff0...  we need the http exchange to be >= dff0
 
-_V1={"academy": "HERE"}
-_V2={"academy": "packaging academy-py==0.5.0"}
+_V1={"academy": "HERE"} # must be at least dff0... for protocol
+_V2={"academy": "HERE"} # must be at least dff0... for agent client heartbeat settings
 _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
-run_with_version_set(this_version_set)
-
+run_test_1(this_version_set)
+run_test_2(this_version_set)

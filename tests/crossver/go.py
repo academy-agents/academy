@@ -285,3 +285,18 @@ _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 run_test_1(this_version_set)
 run_test_2(this_version_set)
+
+
+# superficially this might not seem like retesting: but the test cases can change
+# (which is a description of a supposedly unchanged API surface) so it is interesting
+# to know that it really is unchanged in the sense of still working against old
+# versions.
+_V1={"academy": "packaging academy-py==0.4.0"}
+_V2={"academy": "packaging academy-py==0.4.0"}
+_V3={"academy": "packaging academy-py==0.4.0"}
+
+this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+run_test_1(this_version_set)
+
+

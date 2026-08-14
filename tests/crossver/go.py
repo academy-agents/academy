@@ -47,6 +47,15 @@ _V1={"academy": "packaging academy-py==0.5.0"}
 _V2={"academy": "packaging academy-py==0.5.0"}
 _V3={"academy": "packaging academy-py==0.5.0"}
 
+# given where we are now, (aka HERE and CURRENT_ERA),
+# what academy versions should be compatible?
+
+# HERE is always compatible
+
+# there might be one or more academy releases that are
+# compatible, and installable from pypi to validate that
+# packaged path.
+
 version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
 
@@ -171,3 +180,4 @@ port = 1234
   print("waiting on p1")
   p1.wait()
 
+  print(f"return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}")

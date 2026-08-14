@@ -60,7 +60,7 @@ version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
 
 def create_env(descr: dict) -> pathlib.Path:
-    env_path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)))
+    env_path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)) + descr['name'])
 
     print(f"creating env for {descr} at {env_path}")
 

@@ -63,7 +63,7 @@ from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeServingConfig
-from academy.exchange.transport import MailboxStatus
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.identifier import EntityId
 from academy.message import Message
 

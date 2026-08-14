@@ -6,7 +6,6 @@ import functools
 import logging
 import time
 import uuid
-from contextvars import ContextVar
 from pickle import PicklingError
 from typing import Any
 from typing import Generic
@@ -18,7 +17,8 @@ from weakref import WeakSet
 from academy.exception import AgentInactiveError
 from academy.exception import AgentTerminatedError
 from academy.exception import ExchangeClientNotFoundError
-from academy.exchange.transport import MailboxStatus
+from academy.exchange.client import exchange_context
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.identifier import AgentId
 from academy.message import ActionRequest
 from academy.message import ActionResponse
@@ -49,10 +49,6 @@ logger = logging.getLogger(__name__)
 K = TypeVar('K')
 P = ParamSpec('P')
 R = TypeVar('R')
-
-exchange_context: ContextVar[ExchangeClient[Any]] = ContextVar(
-    'exchange_context',
-)
 
 
 class Handle(Generic[AgentT_co]):
@@ -334,7 +330,9 @@ class Handle(Generic[AgentT_co]):
 
     async def _check_status(self) -> None:
         """Check if agent is inactive."""
-        if self._status_task.done() and self._status_task.exception():
+        if (
+            self._status_task.done() and self._status_task.exception()
+        ):  # pragma: no cover
             raise RuntimeError(
                 'Error polling status of agent',
             ) from self._status_task.exception()

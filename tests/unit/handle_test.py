@@ -18,10 +18,10 @@ from academy.exception import ExchangeClientNotFoundError
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
+from academy.exchange.client import exchange_context
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.factory import ExchangeFactory
-from academy.exchange.transport import MailboxStatus
-from academy.handle import exchange_context
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId
@@ -783,7 +783,7 @@ async def test_handle_agent_status_sets_active_status(
         await handle.identity(1)
 
     status = await handle.agent_status()
-    while status != MailboxStatus.ACTIVE:
+    while status != MailboxStatus.ACTIVE:  # pragma: no cover
         await asyncio.sleep(TEST_SLEEP_INTERVAL)
         status = await handle.agent_status()
 
@@ -818,7 +818,7 @@ async def test_handle_notifies_pending_messages_when_status_changes(
                 TEST_SLEEP_INTERVAL * 2,
             )  # Agent becomes inactive
             assert task.done()  # Task was notified
-            with pytest.raises(AgentInactiveError):
+            with pytest.raises(AgentInactiveError):  # pragma: no cover
                 await task
 
 

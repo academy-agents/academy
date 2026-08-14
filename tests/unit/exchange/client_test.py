@@ -15,11 +15,11 @@ from academy.debug import set_academy_debug
 from academy.exception import BadEntityIdError
 from academy.exception import IncompatibleNetworkProtocolError
 from academy.exchange import ExchangeFactory
-from academy.exchange import MailboxStatus
 from academy.exchange import UserExchangeClient
 from academy.exchange.client import ExchangeClient
 from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.local import LocalExchangeFactory
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import UserId

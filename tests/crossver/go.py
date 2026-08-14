@@ -174,6 +174,13 @@ port = 1234
   assert p3.returncode == 0, "p3 should have exited succesfully"
 
 
+# although 0.5.0 is outside the current-era, this is testing that code written
+# to the HERE API will also run against 0.5.0, which is a different style of
+# era that is maybe still worth testing - it's a Python API era.
+# so maybe develop the eras code with an eye to expecting there to be two or
+# more era parameters/concepts?
+# the testing for API eras is different to testing HERE tests vs three different
+# in-current-era package versions.
 
 _V1={"academy": "packaging academy-py==0.5.0"}
 _V2={"academy": "packaging academy-py==0.5.0"}
@@ -192,11 +199,33 @@ this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
 run_with_version_set(this_version_set)
 
-_V1={"academy": "packaging academy-py==0.5.0"}
-_V2={"academy": "packaging academy-py==0.5.0"}
+_V1={"academy": "HERE"}
+_V2={"academy": "HERE"}
 _V3={"academy": "HERE"}
 
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
 run_with_version_set(this_version_set)
+
+# we've got 8 possibilities here of HERE vs dff0...
+# dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1
+# but probably should test a random subset? (e.g. one each time?)
+
+_V1={"academy": "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"}
+_V2={"academy": "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"}
+_V3={"academy": "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"}
+
+this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+run_with_version_set(this_version_set)
+
+# this combination is expected to fail:
+# _V1={"academy": "packaging academy-py==0.5.0"}
+# _V2={"academy": "packaging academy-py==0.5.0"}
+# _V3={"academy": "HERE"}
+#
+# this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+#
+# 
+# run_with_version_set(this_version_set)
 

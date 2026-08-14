@@ -191,3 +191,12 @@ _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
 run_with_version_set(this_version_set)
+
+_V1={"academy": "packaging academy-py==0.5.0"}
+_V2={"academy": "packaging academy-py==0.5.0"}
+_V3={"academy": "HERE"}
+
+this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+run_with_version_set(this_version_set)
+

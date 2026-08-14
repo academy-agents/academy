@@ -219,13 +219,14 @@ this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
 run_with_version_set(this_version_set)
 
-# this combination is expected to fail:
-# _V1={"academy": "packaging academy-py==0.5.0"}
-# _V2={"academy": "packaging academy-py==0.5.0"}
-# _V3={"academy": "HERE"}
-#
-# this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
-#
-# 
-# run_with_version_set(this_version_set)
+# I'm a bit unclear if this should work or not? It does pass for me but
+# I should investigate timeout behaviour...
+# Constraint-wise, the constraint being tested is that:
+# for agent or client >= dff0...  we need the http exchange to be >= dff0
+
+_V1={"academy": "HERE"}
+_V2={"academy": "packaging academy-py==0.5.0"}
+_V3={"academy": "packaging academy-py==0.5.0"}
+this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+run_with_version_set(this_version_set)
 

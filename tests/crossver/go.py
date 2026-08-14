@@ -43,22 +43,6 @@ import time
 # are all these versioned by the same version (the pypi package version) or is there more interesting stuff
 # going on that users (and academy code) needs to understand?
 
-_V1={"academy": "packaging academy-py==0.5.0"}
-_V2={"academy": "packaging academy-py==0.5.0"}
-_V3={"academy": "packaging academy-py==0.5.0"}
-
-# given where we are now, (aka HERE and CURRENT_ERA),
-# what academy versions should be compatible?
-
-# HERE is always compatible
-
-# there might be one or more academy releases that are
-# compatible, and installable from pypi to validate that
-# packaged path.
-
-version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
-
-
 def create_env(descr: dict) -> pathlib.Path:
     env_path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)) + descr['name'])
 
@@ -108,6 +92,9 @@ def run_with_version_set(version_set: dict):
   # In this level, we should not be expecting any academy to be installed
   # because there's no meaningful version to be active - there are 3. Anything
   # academy-like has to happen in the relevant environments.
+
+  for k, v in version_set.items():
+    v['name'] = k
 
   v1_env = create_env(version_set['exchange'])
   v2_env = create_env(version_set['agent'])
@@ -181,3 +168,26 @@ port = 1234
   p1.wait()
 
   print(f"return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}")
+
+  assert p1.returncode == -15, "p1 should have been terminated by SIGTERM"
+  assert p2.returncode == -15, "p2 should have been terminated by SIGTERM"
+  assert p3.returncode == 0, "p3 should have exited succesfully"
+
+
+
+_V1={"academy": "packaging academy-py==0.5.0"}
+_V2={"academy": "packaging academy-py==0.5.0"}
+_V3={"academy": "packaging academy-py==0.5.0"}
+
+# given where we are now, (aka HERE and CURRENT_ERA),
+# what academy versions should be compatible?
+
+# HERE is always compatible
+
+# there might be one or more academy releases that are
+# compatible, and installable from pypi to validate that
+# packaged path.
+
+this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+run_with_version_set(this_version_set)

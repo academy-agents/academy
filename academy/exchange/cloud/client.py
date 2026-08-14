@@ -417,7 +417,7 @@ class HttpExchangeConsole:
     Args:
         session: Http session.
         connection_info: Exchange connection info.
-        auth_method: Authenticataion method used by exchange.
+        auth_method: Authentication method used by exchange.
     """
 
     def __init__(

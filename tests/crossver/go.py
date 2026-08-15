@@ -274,4 +274,5 @@ _V1={"academy": "HERE"} # must be at least dff0... for protocol
 _V2={"academy": "HERE"} # must be at least dff0... for agent client heartbeat settings
 _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+run_test_1(this_version_set)
 run_test_2(this_version_set)

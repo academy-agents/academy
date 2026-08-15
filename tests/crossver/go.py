@@ -236,22 +236,26 @@ port = 1234
 # the testing for API eras is different to testing HERE tests vs three different
 # in-current-era package versions.
 
-_V1={"academy": "packaging academy-py==0.5.0"}
-_V2={"academy": "packaging academy-py==0.5.0"}
-_V3={"academy": "packaging academy-py==0.5.0"}
 
-# given where we are now, (aka HERE and CURRENT_ERA),
-# what academy versions should be compatible?
+# unfolded constraint: all three component versions are identical, version >= 0.4.0
+test1_samevers = ["HERE",
+                  "packaging git+https://github.com/academy-agents/academy@main",
+                  "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1",
+                  "packaging academy-py==0.5.0",
+                  "packaging academy-py==0.4.0"
+                  ]
 
-# HERE is always compatible
+# test_1 doesn't work against all 0.3.0, because:
+#   TypeError: Manager.from_exchange_factory() missing 1 required positional argument: 'executors'
+for test1_samever in test1_samevers:
 
-# there might be one or more academy releases that are
-# compatible, and installable from pypi to validate that
-# packaged path.
+  _V1={"academy": test1_samever}
+  _V2={"academy": test1_samever}
+  _V3={"academy": test1_samever}
 
-this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
-run_test_1(this_version_set)
+  run_test_1(this_version_set)
 
 _V1={"academy": "HERE"}
 _V2={"academy": "HERE"}
@@ -259,20 +263,7 @@ _V3={"academy": "HERE"}
 
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
-run_test_1(this_version_set)
 run_test_2(this_version_set)
-
-# we've got 8 possibilities here of HERE vs dff0...
-# dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1
-# but probably should test a random subset? (e.g. one each time?)
-
-_V1={"academy": "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"}
-_V2={"academy": "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"}
-_V3={"academy": "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"}
-
-this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
-
-run_test_1(this_version_set)
 
 # I'm a bit unclear if this should work or not? It does pass for me but
 # I should investigate timeout behaviour...
@@ -283,21 +274,4 @@ _V1={"academy": "HERE"} # must be at least dff0... for protocol
 _V2={"academy": "HERE"} # must be at least dff0... for agent client heartbeat settings
 _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
-run_test_1(this_version_set)
 run_test_2(this_version_set)
-
-
-# superficially this might not seem like retesting: but the test cases can change
-# (which is a description of a supposedly unchanged API surface) so it is interesting
-# to know that it really is unchanged in the sense of still working against old
-# versions.
-_V1={"academy": "packaging academy-py==0.4.0"}
-_V2={"academy": "packaging academy-py==0.4.0"}
-_V3={"academy": "packaging academy-py==0.4.0"}
-
-this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
-
-run_test_1(this_version_set)
-
-# test_1 doesn't work against all 0.3.0, because:
-#   TypeError: Manager.from_exchange_factory() missing 1 required positional argument: 'executors'

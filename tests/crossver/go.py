@@ -228,6 +228,59 @@ port = 1234
   assert p3.returncode == 0, "p3 should have exited succesfully"
 
 
+def run_test_entity_status_client(version_set: dict):
+  for k, v in version_set.items():
+    v['name'] = k
+
+  v1_env = create_env(version_set['exchange'])
+  v2_env = create_env(version_set['agent'])
+  v3_env = create_env(version_set['client'])
+
+  exchange_config = """
+host = "localhost"
+port = 1234
+"""
+
+  with open(v1_env / "exchange_config.json", "w") as f:
+    f.write(exchange_config)
+
+  p1 = subprocess.Popen(f"set -ex; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+
+  import time
+  time.sleep(5)
+
+  base = os.getcwd()
+
+  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/agent.py", shell=True, process_group=0)
+
+  time.sleep(10)
+
+  print("copying agent handle")
+  os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
+
+  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/client.py", shell=True, process_group=0)
+
+  p3.wait()
+
+  print("terminating p2 group")
+  os.killpg(p2.pid, signal.SIGTERM)
+  print("waiting on p2")
+  p2.wait()
+
+
+  print("terminating p1 group")
+  os.killpg(p1.pid, signal.SIGTERM)
+
+  print("waiting on p1")
+  p1.wait()
+
+  print(f"return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}")
+
+  assert p1.returncode == -15, "p1 should have been terminated by SIGTERM"
+  assert p2.returncode == -15, "p2 should have been terminated by SIGTERM"
+  assert p3.returncode == 0, "p3 should have exited succesfully"
+
+
 # although 0.5.0 is outside the current-era, this is testing that code written
 # to the HERE API will also run against 0.5.0, which is a different style of
 # era that is maybe still worth testing - it's a Python API era.
@@ -256,6 +309,7 @@ for test1_samever in test1_samevers:
   this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
   run_test_1(this_version_set)
+  run_test_entity_status_client(this_version_set)
 
 # like test1_samevers but with additional constraint that version >= dff0...
 # because that's where the API was introduced
@@ -263,7 +317,7 @@ test2_samevers = ["HERE",
                   "packaging git+https://github.com/academy-agents/academy@main",
                   "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"
                   ]
-  
+
 for test2_samever in test2_samevers:
 
   _V1={"academy": test2_samever}
@@ -279,9 +333,20 @@ for test2_samever in test2_samevers:
 # Constraint-wise, the constraint being tested is that:
 # for agent or client >= dff0...  we need the http exchange to be >= dff0
 
-_V1={"academy": "HERE"} # must be at least dff0... for protocol
+_V1={"academy": "HERE"} # must be at least dff0... for heartbeat protocol
 _V2={"academy": "HERE"} # must be at least dff0... for agent client heartbeat settings
 _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 run_test_1(this_version_set)
 run_test_heartbeat(this_version_set)
+run_test_entity_status_client(this_version_set)
+
+
+# this tests an agent which doesn't do heartbeats against a client and exchange
+# from the heartbeat era.
+# This combo fails, but alok has said he'd like it to work.
+_V1={"academy": "HERE"} # must be at least dff0... for heartbeat protocol
+_V2={"academy": "packaging academy-py==0.5.0"}
+_V3={"academy": "HERE"}
+this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+# run_test_entity_status_client(this_version_set)

@@ -142,26 +142,26 @@ port = 1234
   # now run some kind of process group that is async wrt rest of program and can be shut down
   # entirely at the end (not just the process but all children)
 
-  p1 = subprocess.Popen(f"set -ex; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
 
   # a bit of startup time... probs could be done by probing?
   import time
-  time.sleep(5)
+  time.sleep(1)
 
   base = os.getcwd()
 
   # V2 should be an agent (against the major-version-consistent API, with no new minor version features)
   # run in the V2 environment.
-  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py", shell=True, process_group=0)
+  p2 = subprocess.Popen(f"set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py", shell=True, process_group=0)
 
-  time.sleep(10)
+  time.sleep(3)
 
   # need some time ^ for the agent to get started and write out its agent handle file
 
   print("copying agent handle")
   os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
 
-  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py", shell=True, process_group=0)
+  p3 = subprocess.Popen(f"set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py", shell=True, process_group=0)
 
   # p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
   p3.wait()
@@ -202,21 +202,21 @@ port = 1234
   with open(v1_env / "exchange_config.json", "w") as f:
     f.write(exchange_config)
 
-  p1 = subprocess.Popen(f"set -ex; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
 
   import time
-  time.sleep(5)
+  time.sleep(1)
 
   base = os.getcwd()
 
-  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/agent.py", shell=True, process_group=0)
+  p2 = subprocess.Popen(f"set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/agent.py", shell=True, process_group=0)
 
-  time.sleep(10)
+  time.sleep(3)
 
   print("copying agent handle")
   os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
 
-  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/client.py", shell=True, process_group=0)
+  p3 = subprocess.Popen(f"set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/client.py", shell=True, process_group=0)
 
   p3.wait()
 
@@ -255,21 +255,21 @@ port = 1234
   with open(v1_env / "exchange_config.json", "w") as f:
     f.write(exchange_config)
 
-  p1 = subprocess.Popen(f"set -ex; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
 
   import time
-  time.sleep(5)
+  time.sleep(1)
 
   base = os.getcwd()
 
-  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/agent.py", shell=True, process_group=0)
+  p2 = subprocess.Popen(f"set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/agent.py", shell=True, process_group=0)
 
-  time.sleep(10)
+  time.sleep(3)
 
   print("copying agent handle")
   os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
 
-  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/client.py", shell=True, process_group=0)
+  p3 = subprocess.Popen(f"set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/client.py", shell=True, process_group=0)
 
   p3.wait()
 

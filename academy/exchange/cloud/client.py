@@ -23,6 +23,7 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 import aiohttp
+import aiohttp.web
 from aiohttp import ClientResponse
 from aiohttp import hdrs
 from pydantic import BaseModel
@@ -34,10 +35,10 @@ from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
 from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.cloud.app import _run
-from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.login import get_auth_headers
+from academy.exchange.cloud.status import StatusCode
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.identifier import AgentId
@@ -65,6 +66,8 @@ class _HttpConnectionInfo(NamedTuple):
     ssl_verify: bool | None = None
     request_timeout_s: float = 60
     client_timeout: aiohttp.ClientTimeout | None = None
+    retries: int = 0
+    initial_retry_backoff: float = 1.0
 
 
 class HttpAgentRegistration(BaseModel, Generic[AgentT]):
@@ -185,13 +188,16 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return self._mailbox_id
 
     @contextlib.asynccontextmanager
-    async def _request_with_refresh(
+    async def _request_with_retry(
         self,
         method: str,
         url: str,
         **kwargs: Any,
     ) -> AsyncGenerator[ClientResponse]:
-        """Make request, refreshing token if ForbiddenError is returned.
+        """Make request with retries.
+
+        This retries on a transient error, or if there is a forbidden error,
+        attempts to reauth, then performs the request.
 
         Note:
             This is to simplify the case where users are running on a shared
@@ -208,20 +214,46 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             url: Destination of request
             **kwargs: Additional arguments to aiohttp.ClientSession.request
         """
-        retry = True
-        while True:
-            async with self._session.request(
-                method,
-                url,
-                **kwargs,
-            ) as response:
-                if response.status == StatusCode.FORBIDDEN.value and retry:
-                    retry = False
+        n_attempts = self._info.retries + 1
+        retry_backoff = self._info.initial_retry_backoff
+        have_reauthenticated = False
+        while n_attempts > 0:
+            n_attempts -= 1
+            try:
+                response = await self._session.request(
+                    method,
+                    url,
+                    **kwargs,
+                )
+            except BaseException as exc:
+                logger.exception(exc)
+                if n_attempts > 0 and _is_transient_error(exc):
+                    await asyncio.sleep(retry_backoff)
+                    retry_backoff *= 2
+                    continue
+                raise exc
+
+            try:
+                response.raise_for_status()
+            except BaseException as exc:
+                if (
+                    isinstance(exc, aiohttp.ClientResponseError)
+                    and exc.status == StatusCode.FORBIDDEN.value
+                ) and not have_reauthenticated:
                     auth_headers = get_auth_headers(self._auth_method)
                     self._info.additional_headers.update(auth_headers)
                     self._session = self.create_session(self._info)
+                    n_attempts = self._info.retries + 1
+                    retry_backoff = self._info.initial_retry_backoff
+                    have_reauthenticated = True
                     continue
-                yield response
+
+                if n_attempts > 0 and _is_transient_error(exc):
+                    await asyncio.sleep(retry_backoff)
+                    retry_backoff *= 2
+                    continue
+
+            yield response
             break
 
     async def close(self) -> None:
@@ -239,7 +271,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         else:
             agent_str = f'{agent.__module__}.{agent.__name__}'
 
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'get',
             self._discover_url,
             json={
@@ -262,6 +294,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ssl_verify=self._info.ssl_verify,
             request_timeout_s=self._info.request_timeout_s,
             client_timeout=self._info.client_timeout,
+            retries=self._info.retries,
+            initial_retry_backoff=self._info.initial_retry_backoff,
         )
 
     async def parse(self, raw_lines: list[str]) -> Message[Any] | None:
@@ -318,7 +352,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if internal_timeout <= 0:
                 raise TimeoutError()
 
-            async with self._request_with_refresh(
+            async with self._request_with_retry(
                 'get',
                 self._listen_url,
                 json={
@@ -356,7 +390,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         name: str | None = None,
     ) -> HttpAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'post',
             self._mailbox_url,
             json={
@@ -368,7 +402,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return HttpAgentRegistration(agent_id=aid)
 
     async def send(self, message: Message[Any]) -> None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'put',
             self._message_url,
             json={'message': message.model_dump_json()},
@@ -376,7 +410,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, message.dest)
 
     async def terminate(self, uid: EntityId) -> None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'delete',
             self._mailbox_url,
             json={'mailbox': uid.model_dump_json()},
@@ -384,7 +418,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, uid)
 
     async def update_heartbeat(self) -> None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'post',
             self._heartbeat_url,
             json={'mailbox': self.mailbox_id.model_dump_json()},
@@ -392,7 +426,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id)
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'get',
             self._heartbeat_url,
             json={'mailbox': uid.model_dump_json()},
@@ -401,7 +435,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             return (await response.json())['heartbeat']
 
     async def agent_stats(self, uid: EntityId) -> AgentStats:
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'get',
             f'{self._info.url}/mailbox/stats',
             json={'mailbox': uid.model_dump_json()},
@@ -475,13 +509,16 @@ class HttpExchangeConsole:
         return cls(session, connection_info, auth_method)
 
     @contextlib.asynccontextmanager
-    async def _request_with_refresh(
+    async def _request_with_retry(
         self,
         method: str,
         url: str,
         **kwargs: Any,
     ) -> AsyncGenerator[ClientResponse]:
-        """Make request, refreshing token if ForbiddenError is returned.
+        """Make request with retries.
+
+        This retries on a transient error, or if there is a forbidden error,
+        attempts to reauth, then performs the request.
 
         Note:
             This is to simplify the case where users are running on a shared
@@ -498,21 +535,47 @@ class HttpExchangeConsole:
             url: Destination of request
             **kwargs: Additional arguments to aiohttp.ClientSession.request
         """
-        retry = True
-        while True:
-            async with self._session.request(
-                method,
-                url,
-                **kwargs,
-            ) as response:
-                if response.status == StatusCode.FORBIDDEN.value and retry:
-                    retry = False
+        n_attempts = self._info.retries + 1
+        retry_backoff = self._info.initial_retry_backoff
+        have_reauthenticated = False
+        while n_attempts > 0:
+            n_attempts -= 1
+            try:
+                response = await self._session.request(
+                    method,
+                    url,
+                    **kwargs,
+                )
+            except BaseException as exc:
+                logger.exception(exc)
+                if n_attempts > 0 and _is_transient_error(exc):
+                    await asyncio.sleep(retry_backoff)
+                    retry_backoff *= 2
+                    continue
+                raise exc
+
+            try:
+                response.raise_for_status()
+            except BaseException as exc:
+                if (
+                    isinstance(exc, aiohttp.ClientResponseError)
+                    and exc.status == StatusCode.FORBIDDEN.value
+                ) and not have_reauthenticated:
                     auth_headers = get_auth_headers(self._auth_method)
                     self._info.additional_headers.update(auth_headers)
                     self._session = self.create_session(self._info)
+                    n_attempts = self._info.retries + 1
+                    retry_backoff = self._info.initial_retry_backoff
+                    have_reauthenticated = True
                     continue
-                yield response
-                break
+
+                if n_attempts > 0 and _is_transient_error(exc):
+                    await asyncio.sleep(retry_backoff)
+                    retry_backoff *= 2
+                    continue
+
+            yield response
+            break
 
     def factory(self) -> HttpExchangeFactory:
         # Note: When getting factory, auth method is not preserved
@@ -524,6 +587,8 @@ class HttpExchangeConsole:
             ssl_verify=self._info.ssl_verify,
             request_timeout_s=self._info.request_timeout_s,
             client_timeout=self._info.client_timeout,
+            retries=self._info.retries,
+            initial_retry_backoff=self._info.initial_retry_backoff,
         )
 
     async def share_mailbox(
@@ -538,7 +603,7 @@ class HttpExchangeConsole:
             group_id: Id of globus group. User must be part of group to share
                 mailbox.
         """
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'post',
             self._share_url,
             json={
@@ -554,7 +619,7 @@ class HttpExchangeConsole:
         Args:
             mailbox_id: Either AgentId or UserId of mailbox
         """
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'get',
             self._share_url,
             json={
@@ -577,7 +642,7 @@ class HttpExchangeConsole:
             group_id: Id of globus group. User must be part of group to share
                 mailbox.
         """
-        async with self._request_with_refresh(
+        async with self._request_with_retry(
             'delete',
             self._share_url,
             json={
@@ -612,6 +677,10 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             long-lived SSE listen connections are not severed mid-stream.
             Pass a custom [`aiohttp.ClientTimeout`][aiohttp.ClientTimeout] to
             override.
+        retries: Number of times to retry transient error messages received
+            from the exchange server.
+        initial_retry_backoff: Seconds to wait before retrying. Retry is
+            exponential from the initial amount.
     """
 
     def __init__(  # noqa: PLR0913
@@ -624,6 +693,8 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         ssl_verify: bool | None = None,
         client_timeout: aiohttp.ClientTimeout | None = None,
         config: ExchangeClientConfig | None = None,
+        retries: int = 1,
+        initial_retry_backoff: float = 1,
     ) -> None:
         super().__init__(config)
 
@@ -649,6 +720,8 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             ssl_verify=ssl_verify,
             request_timeout_s=request_timeout_s,
             client_timeout=client_timeout,
+            retries=retries,
+            initial_retry_backoff=initial_retry_backoff,
         )
         self._auth_method = auth_method
 
@@ -671,6 +744,29 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             connection_info=self._info,
             auth_method=self._auth_method,
         )
+
+
+TRANSIENT_STATUSES = frozenset({429, 500, 502, 503, 504})
+
+
+def _is_transient_error(exc: BaseException) -> bool:
+    if isinstance(
+        exc,
+        (
+            aiohttp.ClientConnectionError,
+            aiohttp.ClientPayloadError,
+            OSError,
+            # ``asyncio.TimeoutError`` is an alias of the builtin
+            # ``TimeoutError`` on Python >= 3.11 which is covered in
+            # OSError; list both so the predicate behaves the same
+            # on 3.10.
+            asyncio.TimeoutError,
+        ),
+    ):
+        return True
+    elif isinstance(exc, aiohttp.ClientResponseError):
+        return exc.status in TRANSIENT_STATUSES
+    return False
 
 
 def _raise_for_status(

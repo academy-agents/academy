@@ -366,11 +366,10 @@ this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 solver = z3.Solver()
 
 # TODO: add v030
-AcademyVersion, (v040, v050, v_dff0, v_main, v_here) = z3.EnumSort("AcademyVersion",
+AcademyVersion, (v040, v050, v_dff0, v_here) = z3.EnumSort("AcademyVersion",
   ["packaging academy-py==0.4.0",
    "packaging academy-py==0.5.0",
    "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1",
-   "git+https://github.com/academy-agents/academy@main",
    "HERE",
   ] 
   )
@@ -395,7 +394,7 @@ v3 = z3.Const('v3', AcademyVersion)
 # in semver in the presence of other similar constraints, I think.
 
 def has_heartbeats(v):
-  return z3.Or(v == v_dff0, v == v_main, v == v_here)
+  return z3.Or(v == v_dff0, v == v_here)
 
 solver.add(z3.Implies(has_heartbeats(v2), has_heartbeats(v1)))
 solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
@@ -407,7 +406,7 @@ solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
 
 def speaks_post_050_protocol(v):
   # speaks the post-050 protocol (with or without heartbeats)
-  return z3.Or(v == v050, v == v_dff0, v == v_main, v == v_here)
+  return z3.Or(v == v050, v == v_dff0, v == v_here)
 
 solver.add(z3.Implies(speaks_post_050_protocol(v2), speaks_post_050_protocol(v1)))
 solver.add(z3.Implies(speaks_post_050_protocol(v1), speaks_post_050_protocol(v2)))

@@ -295,8 +295,10 @@ port = 1234
 solver = z3.Solver()
 
 # TODO: add v030
-AcademyVersion, (v040, v050, v_dff0, v_here) = z3.EnumSort("AcademyVersion",
-  ["packaging academy-py==0.4.0",
+AcademyVersion, (v030, v031, v040, v050, v_dff0, v_here) = z3.EnumSort("AcademyVersion",
+  ["packaging academy-py==0.3.0",
+   "packaging academy-py==0.3.1",
+   "packaging academy-py==0.4.0",
    "packaging academy-py==0.5.0",
    "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1",
    "HERE",

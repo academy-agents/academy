@@ -175,7 +175,7 @@ port = 1234
 
 
 
-def run_test_2(version_set: dict):
+def run_test_heartbeat(version_set: dict):
   for k, v in version_set.items():
     v['name'] = k
 
@@ -198,14 +198,14 @@ port = 1234
 
   base = os.getcwd()
 
-  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_2/agent.py", shell=True, process_group=0)
+  p2 = subprocess.Popen(f"set -ex; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/agent.py", shell=True, process_group=0)
 
   time.sleep(10)
 
   print("copying agent handle")
   os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
 
-  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_2/client.py", shell=True, process_group=0)
+  p3 = subprocess.Popen(f"set -ex; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/client.py", shell=True, process_group=0)
 
   p3.wait()
 
@@ -257,13 +257,22 @@ for test1_samever in test1_samevers:
 
   run_test_1(this_version_set)
 
-_V1={"academy": "HERE"}
-_V2={"academy": "HERE"}
-_V3={"academy": "HERE"}
+# like test1_samevers but with additional constraint that version >= dff0...
+# because that's where the API was introduced
+test2_samevers = ["HERE",
+                  "packaging git+https://github.com/academy-agents/academy@main",
+                  "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1"
+                  ]
+  
+for test2_samever in test2_samevers:
 
-this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+  _V1={"academy": test2_samever}
+  _V2={"academy": test2_samever}
+  _V3={"academy": test2_samever}
 
-run_test_2(this_version_set)
+  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+  run_test_heartbeat(this_version_set)
 
 # I'm a bit unclear if this should work or not? It does pass for me but
 # I should investigate timeout behaviour...
@@ -275,4 +284,4 @@ _V2={"academy": "HERE"} # must be at least dff0... for agent client heartbeat se
 _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 run_test_1(this_version_set)
-run_test_2(this_version_set)
+run_test_heartbeat(this_version_set)

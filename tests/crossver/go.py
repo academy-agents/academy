@@ -6,6 +6,8 @@ import signal
 import subprocess
 import time
 
+import z3
+
 # this can run in a fairly arbitrary python
 
 # There should be several versions available.
@@ -43,8 +45,15 @@ import time
 # are all these versioned by the same version (the pypi package version) or is there more interesting stuff
 # going on that users (and academy code) needs to understand?
 
+
+envs = {}
+
 def create_env(descr: dict) -> pathlib.Path:
-    env_path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)) + descr['name'])
+    if str(descr) in envs: # this is a bit denormalised so will result in false negatives but not false positives?
+        print(f"Using cached environment: {str(descr)}")
+        return envs[str(descr)]
+ 
+    env_path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)) + "_" + descr['name'])
 
     print(f"creating env for {descr} at {env_path}")
 
@@ -59,6 +68,8 @@ def create_env(descr: dict) -> pathlib.Path:
 
     os.system(f"cd {env_path}; virtualenv ./venv; pwd; ls; . ./venv/bin/activate; which python; pip install {install_target}")
 
+
+    envs[str(descr)] = env_path
     return env_path
 
 
@@ -94,7 +105,7 @@ def run_test_1(version_set: dict):
   # academy-like has to happen in the relevant environments.
 
   for k, v in version_set.items():
-    v['name'] = k
+    v['name'] = "shared"
 
   v1_env = create_env(version_set['exchange'])
   v2_env = create_env(version_set['agent'])
@@ -177,7 +188,7 @@ port = 1234
 
 def run_test_heartbeat(version_set: dict):
   for k, v in version_set.items():
-    v['name'] = k
+    v['name'] = "shared"
 
   v1_env = create_env(version_set['exchange'])
   v2_env = create_env(version_set['agent'])
@@ -230,7 +241,7 @@ port = 1234
 
 def run_test_entity_status_client(version_set: dict):
   for k, v in version_set.items():
-    v['name'] = k
+    v['name'] = "shared"
 
   v1_env = create_env(version_set['exchange'])
   v2_env = create_env(version_set['agent'])
@@ -308,8 +319,8 @@ for test1_samever in test1_samevers:
 
   this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
-  run_test_1(this_version_set)
-  run_test_entity_status_client(this_version_set)
+  # run_test_1(this_version_set)
+  # run_test_entity_status_client(this_version_set)
 
 # like test1_samevers but with additional constraint that version >= dff0...
 # because that's where the API was introduced
@@ -326,7 +337,7 @@ for test2_samever in test2_samevers:
 
   this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 
-  run_test_heartbeat(this_version_set)
+  # run_test_heartbeat(this_version_set)
 
 # I'm a bit unclear if this should work or not? It does pass for me but
 # I should investigate timeout behaviour...
@@ -337,9 +348,9 @@ _V1={"academy": "HERE"} # must be at least dff0... for heartbeat protocol
 _V2={"academy": "HERE"} # must be at least dff0... for agent client heartbeat settings
 _V3={"academy": "packaging academy-py==0.5.0"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
-run_test_1(this_version_set)
-run_test_heartbeat(this_version_set)
-run_test_entity_status_client(this_version_set)
+#run_test_1(this_version_set)
+#run_test_heartbeat(this_version_set)
+#run_test_entity_status_client(this_version_set)
 
 
 # this tests an agent which doesn't do heartbeats against a client and exchange
@@ -350,3 +361,148 @@ _V2={"academy": "packaging academy-py==0.5.0"}
 _V3={"academy": "HERE"}
 this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
 # run_test_entity_status_client(this_version_set)
+
+
+solver = z3.Solver()
+
+# TODO: add v030
+AcademyVersion, (v040, v050, v_dff0, v_main, v_here) = z3.EnumSort("AcademyVersion",
+  ["packaging academy-py==0.4.0",
+   "packaging academy-py==0.5.0",
+   "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1",
+   "git+https://github.com/academy-agents/academy@main",
+   "HERE",
+  ] 
+  )
+
+v1 = z3.Const('v1', AcademyVersion)
+v2 = z3.Const('v2', AcademyVersion)
+v3 = z3.Const('v3', AcademyVersion)
+
+# here-relevancy constraint, which will be one kind of mode I want to use this in -- for developing new code rather than checking history - that latter mode might be when adding a new test or changing constraint descriptions.
+# solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
+
+
+# This combination causes test 1 to fail, because the 0.5.0 exchange
+# doesn't recognise heartbeats: the agent outputs background error
+# (but maybe still functions) and the client fails with a unix error,
+# which is actually what is detected.
+# [v2 = HERE, v1 = packaging academy-py==0.5.0, v3 = HERE]
+# So what is the broader constraint here?
+# probably an implication: agent or client being >= dff0
+# implies that the exchange must be >= dff0
+# that's quite subtle and not something that can be expressed
+# in semver in the presence of other similar constraints, I think.
+
+def has_heartbeats(v):
+  return z3.Or(v == v_dff0, v == v_main, v == v_here)
+
+solver.add(z3.Implies(has_heartbeats(v2), has_heartbeats(v1)))
+solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
+
+
+# This combination fails because the wire protocol for http exchange
+# changed from 0.4.0 to 0.5.0
+# [v2 = packaging academy-py==0.5.0, v1 = packaging academy-py==0.4.0, v3 = packaging academy-py==0.4.0]
+
+def speaks_post_050_protocol(v):
+  # speaks the post-050 protocol (with or without heartbeats)
+  return z3.Or(v == v050, v == v_dff0, v == v_main, v == v_here)
+
+solver.add(z3.Implies(speaks_post_050_protocol(v2), speaks_post_050_protocol(v1)))
+solver.add(z3.Implies(speaks_post_050_protocol(v1), speaks_post_050_protocol(v2)))
+
+solver.add(z3.Implies(speaks_post_050_protocol(v3), speaks_post_050_protocol(v1)))
+solver.add(z3.Implies(speaks_post_050_protocol(v1), speaks_post_050_protocol(v3)))
+# this will interact with the has_heartbeats protocol constraint above too
+# which is not bi-directional...
+
+solver.push()
+
+count = 0
+while solver.check() == z3.sat:
+  count += 1
+  m = solver.model()
+  print(f"=== test_1: solution {count} ===")
+  print(m)
+  # when a v is not bound, force a choice. it doesn't matter what.
+  chosen_v1 = m[v1] if m[v1] is not None else v040
+  chosen_v2 = m[v2] if m[v2] is not None else v040
+  chosen_v3 = m[v3] if m[v3] is not None else v040
+  solver.add(z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)))#
+
+  _V1={"academy": str(chosen_v1)}
+  _V2={"academy": str(chosen_v2)}
+  _V3={"academy": str(chosen_v3)}
+
+  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+  run_test_1(this_version_set)
+
+# pops the iteration-forcing constraints and anything that is specific
+# to particular test case (nothing in this case, but different later).
+solver.pop()
+
+# TODO - test these with different constraint sets.
+
+solver.push()
+
+# all the above constraints, plus a constraint that
+# the agent definitely has heartbeat support.
+
+solver.add(has_heartbeats(v2))
+count = 0
+while solver.check() == z3.sat:
+  count += 1
+  m = solver.model()
+  print(f"=== test_heartbeat: solution {count} ===")
+  print(m)
+  # when a v is not bound, force a choice. it doesn't matter what.
+  chosen_v1 = m[v1] if m[v1] is not None else v040
+  chosen_v2 = m[v2] if m[v2] is not None else v040
+  chosen_v3 = m[v3] if m[v3] is not None else v040
+  solver.add(z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)))#
+
+  _V1={"academy": str(chosen_v1)}
+  _V2={"academy": str(chosen_v2)}
+  _V3={"academy": str(chosen_v3)}
+
+  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+  run_test_heartbeat(this_version_set)
+solver.pop()
+
+solver.push()
+# same as the base compatibility rules
+# although I'll probably need to add in an exclusion for an undesired incompatibility
+
+# BUG:
+# This combination reports that the agent is inactive.
+# v1 = git+https://github.com/academy-agents/academy@main]
+# v2 = packaging academy-py==0.5.0,
+# v3 = packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1,
+# Here's a workaround, but it's not entirely desirable: it means, for example,
+# 0.5.0 can't talk to 0.6.0 for agent status.
+solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v2)))
+
+count = 0
+while solver.check() == z3.sat:
+  count += 1
+  m = solver.model()
+  print(f"=== test_entity_status_client: solution {count} ===")
+  print(m)
+  # when a v is not bound, force a choice. it doesn't matter what.
+  chosen_v1 = m[v1] if m[v1] is not None else v040
+  chosen_v2 = m[v2] if m[v2] is not None else v040
+  chosen_v3 = m[v3] if m[v3] is not None else v040
+  solver.add(z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)))#
+
+  _V1={"academy": str(chosen_v1)}
+  _V2={"academy": str(chosen_v2)}
+  _V3={"academy": str(chosen_v3)}
+
+  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+
+  run_test_entity_status_client(this_version_set)
+solver.pop()
+

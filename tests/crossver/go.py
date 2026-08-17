@@ -1,7 +1,8 @@
-import random
+from __future__ import annotations
 
 import os
 import pathlib
+import random
 import signal
 import subprocess
 import time
@@ -48,300 +49,349 @@ import z3
 
 envs = {}
 
-def create_env(descr: dict) -> pathlib.Path:
-    if str(descr) in envs: # this is a bit denormalised so will result in false negatives but not false positives?
-        print(f"Using cached environment: {str(descr)}")
-        return envs[str(descr)]
- 
-    env_path = pathlib.Path(".") / ("crossver-env-" + str(random.randint(0,999999999)) + "_" + descr['name'])
 
-    print(f"creating env for {descr} at {env_path}")
+def create_env(descr: dict) -> pathlib.Path:
+    if (
+        str(descr) in envs
+    ):  # this is a bit denormalised so will result in false negatives but not false positives?
+        print(f'Using cached environment: {descr!s}')
+        return envs[str(descr)]
+
+    env_path = pathlib.Path('.') / (
+        'crossver-env-'
+        + str(random.randint(0, 999999999))
+        + '_'
+        + descr['name']
+    )
+
+    print(f'creating env for {descr} at {env_path}')
 
     dir = env_path.mkdir()
 
     here_path = os.getcwd()
 
-
     install_target = descr['academy']
-    if install_target == "HERE":
+    if install_target == 'HERE':
         install_target = here_path
 
-    os.system(f"cd {env_path}; virtualenv ./venv; pwd; ls; . ./venv/bin/activate; which python; pip install {install_target}")
-
+    os.system(
+        f'cd {env_path}; virtualenv ./venv; pwd; ls; . ./venv/bin/activate; which python; pip install {install_target}',
+    )
 
     envs[str(descr)] = env_path
     return env_path
 
 
 def run_test_1(version_set: dict):
-  # given where we are now, (aka HERE and CURRENT_ERA),
-  # what academy versions should be compatible?
+    # given where we are now, (aka HERE and CURRENT_ERA),
+    # what academy versions should be compatible?
 
-  # HERE is always compatible
+    # HERE is always compatible
 
-  # there might be one or more academy releases that are
-  # compatible, and installable from pypi to validate that
-  # packaged path.
+    # there might be one or more academy releases that are
+    # compatible, and installable from pypi to validate that
+    # packaged path.
 
-  # there might be one or more git commits that are compatible.
-  # some probably interesting ones are:
-  #  the commit that changed the current era to its current value
-  #  the most recent main
-  #  the most recent merge based of HEAD and main
-  # For inspecting these, it probably makes sense to move current era into
-  # its own non-python file, so that git commands can dump it out without
-  # doing a whole checkout (or doing a checkout at all, with suitable
-  # git magic)
+    # there might be one or more git commits that are compatible.
+    # some probably interesting ones are:
+    #  the commit that changed the current era to its current value
+    #  the most recent main
+    #  the most recent merge based of HEAD and main
+    # For inspecting these, it probably makes sense to move current era into
+    # its own non-python file, so that git commands can dump it out without
+    # doing a whole checkout (or doing a checkout at all, with suitable
+    # git magic)
 
-  # basic test model is:
-  # a submitter/client
-  # an exchange process
-  # an agent process
+    # basic test model is:
+    # a submitter/client
+    # an exchange process
+    # an agent process
 
-  # we are going to test that we can do a ping to the agent.
+    # we are going to test that we can do a ping to the agent.
 
-  # In this level, we should not be expecting any academy to be installed
-  # because there's no meaningful version to be active - there are 3. Anything
-  # academy-like has to happen in the relevant environments.
+    # In this level, we should not be expecting any academy to be installed
+    # because there's no meaningful version to be active - there are 3. Anything
+    # academy-like has to happen in the relevant environments.
 
-  for k, v in version_set.items():
-    v['name'] = "shared"
+    for k, v in version_set.items():
+        v['name'] = 'shared'
 
-  v1_env = create_env(version_set['exchange'])
-  v2_env = create_env(version_set['agent'])
-  v3_env = create_env(version_set['client'])
+    v1_env = create_env(version_set['exchange'])
+    v2_env = create_env(version_set['agent'])
+    v3_env = create_env(version_set['client'])
 
-  # now i need something like an integration test, but clearly split into three environments...
-  # and to separately and concurrently run the three components.
-  # (rather than the in-python test fixture starting up an agent inside the same Python function
-  # as the client)
+    # now i need something like an integration test, but clearly split into three environments...
+    # and to separately and concurrently run the three components.
+    # (rather than the in-python test fixture starting up an agent inside the same Python function
+    # as the client)
 
+    # first startup an exchange
+    # type of exchange could be parametrizable but it needs to be at least cross process accessible -
+    # so redis and http?
+    # a redis exchange has no active process and no active code - it's a shared redis instance. so it
+    # wont' need its own environment to be installed.
 
-  # first startup an exchange
-  # type of exchange could be parametrizable but it needs to be at least cross process accessible - 
-  # so redis and http?
-  # a redis exchange has no active process and no active code - it's a shared redis instance. so it
-  # wont' need its own environment to be installed.
+    # V1 is the http exchange environment
 
-  # V1 is the http exchange environment
+    # the config file is generated by HERE, not by the V1 environment,
+    # because I expect a config file for the http exchange to be compatible across versions.
+    # This config was originally sourced from tests/unit/exchange/cloud/app_test.py
 
-  # the config file is generated by HERE, not by the V1 environment,
-  # because I expect a config file for the http exchange to be compatible across versions.
-  # This config was originally sourced from tests/unit/exchange/cloud/app_test.py 
-
-
-  exchange_config = """
+    exchange_config = """
 host = "localhost"
 port = 1234
 """
 
-  with open(v1_env / "exchange_config.json", "w") as f:
-    f.write(exchange_config)
+    with open(v1_env / 'exchange_config.json', 'w') as f:
+        f.write(exchange_config)
 
+    # now run some kind of process group that is async wrt rest of program and can be shut down
+    # entirely at the end (not just the process but all children)
 
-  # now run some kind of process group that is async wrt rest of program and can be shut down
-  # entirely at the end (not just the process but all children)
+    p1 = subprocess.Popen(
+        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
+        shell=True,
+        process_group=0,
+    )
 
-  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+    # a bit of startup time... probs could be done by probing?
+    time.sleep(1)
 
-  # a bit of startup time... probs could be done by probing?
-  import time
-  time.sleep(1)
+    base = os.getcwd()
 
-  base = os.getcwd()
+    # V2 should be an agent (against the major-version-consistent API, with no new minor version features)
+    # run in the V2 environment.
+    p2 = subprocess.Popen(
+        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py',
+        shell=True,
+        process_group=0,
+    )
 
-  # V2 should be an agent (against the major-version-consistent API, with no new minor version features)
-  # run in the V2 environment.
-  p2 = subprocess.Popen(f"set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py", shell=True, process_group=0)
+    time.sleep(3)
 
-  time.sleep(3)
+    # need some time ^ for the agent to get started and write out its agent handle file
 
-  # need some time ^ for the agent to get started and write out its agent handle file
+    print('copying agent handle')
+    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-  print("copying agent handle")
-  os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
+    p3 = subprocess.Popen(
+        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py',
+        shell=True,
+        process_group=0,
+    )
 
-  p3 = subprocess.Popen(f"set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py", shell=True, process_group=0)
+    # p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
+    p3.wait()
 
-  # p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
-  p3.wait()
+    print('terminating p2 group')
+    os.killpg(p2.pid, signal.SIGTERM)
+    print('waiting on p2')
+    p2.wait()
 
-  print("terminating p2 group")
-  os.killpg(p2.pid, signal.SIGTERM)
-  print("waiting on p2")
-  p2.wait()
+    print('terminating p1 group')
+    os.killpg(p1.pid, signal.SIGTERM)
 
+    print('waiting on p1')
+    p1.wait()
 
-  print("terminating p1 group")
-  os.killpg(p1.pid, signal.SIGTERM)
+    print(
+        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
+    )
 
-  print("waiting on p1")
-  p1.wait()
-
-  print(f"return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}")
-
-  assert p1.returncode == -15, "p1 should have been terminated by SIGTERM"
-  assert p2.returncode == -15, "p2 should have been terminated by SIGTERM"
-  assert p3.returncode == 0, "p3 should have exited succesfully"
-
+    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
+    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
+    assert p3.returncode == 0, 'p3 should have exited succesfully'
 
 
 def run_test_heartbeat(version_set: dict):
-  for k, v in version_set.items():
-    v['name'] = "shared"
+    for k, v in version_set.items():
+        v['name'] = 'shared'
 
-  v1_env = create_env(version_set['exchange'])
-  v2_env = create_env(version_set['agent'])
-  v3_env = create_env(version_set['client'])
+    v1_env = create_env(version_set['exchange'])
+    v2_env = create_env(version_set['agent'])
+    v3_env = create_env(version_set['client'])
 
-  exchange_config = """
+    exchange_config = """
 host = "localhost"
 port = 1234
 """
 
-  with open(v1_env / "exchange_config.json", "w") as f:
-    f.write(exchange_config)
+    with open(v1_env / 'exchange_config.json', 'w') as f:
+        f.write(exchange_config)
 
-  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+    p1 = subprocess.Popen(
+        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
+        shell=True,
+        process_group=0,
+    )
 
-  import time
-  time.sleep(1)
+    time.sleep(1)
 
-  base = os.getcwd()
+    base = os.getcwd()
 
-  p2 = subprocess.Popen(f"set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/agent.py", shell=True, process_group=0)
+    p2 = subprocess.Popen(
+        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/agent.py',
+        shell=True,
+        process_group=0,
+    )
 
-  time.sleep(3)
+    time.sleep(3)
 
-  print("copying agent handle")
-  os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
+    print('copying agent handle')
+    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-  p3 = subprocess.Popen(f"set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/client.py", shell=True, process_group=0)
+    p3 = subprocess.Popen(
+        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/client.py',
+        shell=True,
+        process_group=0,
+    )
 
-  p3.wait()
+    p3.wait()
 
-  print("terminating p2 group")
-  os.killpg(p2.pid, signal.SIGTERM)
-  print("waiting on p2")
-  p2.wait()
+    print('terminating p2 group')
+    os.killpg(p2.pid, signal.SIGTERM)
+    print('waiting on p2')
+    p2.wait()
 
+    print('terminating p1 group')
+    os.killpg(p1.pid, signal.SIGTERM)
 
-  print("terminating p1 group")
-  os.killpg(p1.pid, signal.SIGTERM)
+    print('waiting on p1')
+    p1.wait()
 
-  print("waiting on p1")
-  p1.wait()
+    print(
+        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
+    )
 
-  print(f"return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}")
-
-  assert p1.returncode == -15, "p1 should have been terminated by SIGTERM"
-  assert p2.returncode == -15, "p2 should have been terminated by SIGTERM"
-  assert p3.returncode == 0, "p3 should have exited succesfully"
+    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
+    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
+    assert p3.returncode == 0, 'p3 should have exited succesfully'
 
 
 def run_test_entity_status_client(version_set: dict):
-  for k, v in version_set.items():
-    v['name'] = "shared"
+    for k, v in version_set.items():
+        v['name'] = 'shared'
 
-  v1_env = create_env(version_set['exchange'])
-  v2_env = create_env(version_set['agent'])
-  v3_env = create_env(version_set['client'])
+    v1_env = create_env(version_set['exchange'])
+    v2_env = create_env(version_set['agent'])
+    v3_env = create_env(version_set['client'])
 
-  exchange_config = """
+    exchange_config = """
 host = "localhost"
 port = 1234
 """
 
-  with open(v1_env / "exchange_config.json", "w") as f:
-    f.write(exchange_config)
+    with open(v1_env / 'exchange_config.json', 'w') as f:
+        f.write(exchange_config)
 
-  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json", shell=True, process_group=0)
+    p1 = subprocess.Popen(
+        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
+        shell=True,
+        process_group=0,
+    )
 
-  import time
-  time.sleep(1)
+    time.sleep(1)
 
-  base = os.getcwd()
+    base = os.getcwd()
 
-  p2 = subprocess.Popen(f"set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/agent.py", shell=True, process_group=0)
+    p2 = subprocess.Popen(
+        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/agent.py',
+        shell=True,
+        process_group=0,
+    )
 
-  time.sleep(3)
+    time.sleep(3)
 
-  print("copying agent handle")
-  os.system(f"cp {v2_env}/agent.handle {v3_env}/agent.handle")
+    print('copying agent handle')
+    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-  p3 = subprocess.Popen(f"set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/client.py", shell=True, process_group=0)
+    p3 = subprocess.Popen(
+        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/client.py',
+        shell=True,
+        process_group=0,
+    )
 
-  p3.wait()
+    p3.wait()
 
-  print("terminating p2 group")
-  os.killpg(p2.pid, signal.SIGTERM)
-  print("waiting on p2")
-  p2.wait()
+    print('terminating p2 group')
+    os.killpg(p2.pid, signal.SIGTERM)
+    print('waiting on p2')
+    p2.wait()
 
+    print('terminating p1 group')
+    os.killpg(p1.pid, signal.SIGTERM)
 
-  print("terminating p1 group")
-  os.killpg(p1.pid, signal.SIGTERM)
+    print('waiting on p1')
+    p1.wait()
 
-  print("waiting on p1")
-  p1.wait()
+    print(
+        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
+    )
 
-  print(f"return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}")
-
-  assert p1.returncode == -15, "p1 should have been terminated by SIGTERM"
-  assert p2.returncode == -15, "p2 should have been terminated by SIGTERM"
-  assert p3.returncode == 0, "p3 should have exited succesfully"
+    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
+    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
+    assert p3.returncode == 0, 'p3 should have exited succesfully'
 
 
 def run_test_api_thread_executor_logconfig(version_set: dict):
-  for k, v in version_set.items():
-    v['name'] = "shared"
+    for k, v in version_set.items():
+        v['name'] = 'shared'
 
-  v1_env = create_env(version_set['program'])
+    v1_env = create_env(version_set['program'])
 
-  base = os.getcwd()
+    base = os.getcwd()
 
-  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor_logconfig/clientagent.py", shell=True, process_group=0)
+    p1 = subprocess.Popen(
+        f'set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor_logconfig/clientagent.py',
+        shell=True,
+        process_group=0,
+    )
 
-  p1.wait()
+    p1.wait()
 
-  print("waiting on p1")
-  p1.wait()
+    print('waiting on p1')
+    p1.wait()
 
-  print(f"return codes: p1={p1.returncode}")
+    print(f'return codes: p1={p1.returncode}')
 
-  assert p1.returncode == 0, "p1 should have exited successfully"
+    assert p1.returncode == 0, 'p1 should have exited successfully'
 
 
 def run_test_api_thread_executor_nolog(version_set: dict):
-  for k, v in version_set.items():
-    v['name'] = "shared"
+    for k, v in version_set.items():
+        v['name'] = 'shared'
 
-  v1_env = create_env(version_set['program'])
+    v1_env = create_env(version_set['program'])
 
-  base = os.getcwd()
+    base = os.getcwd()
 
-  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor_nolog/clientagent.py", shell=True, process_group=0)
+    p1 = subprocess.Popen(
+        f'set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor_nolog/clientagent.py',
+        shell=True,
+        process_group=0,
+    )
 
-  p1.wait()
+    p1.wait()
 
-  print("waiting on p1")
-  p1.wait()
+    print('waiting on p1')
+    p1.wait()
 
-  print(f"return codes: p1={p1.returncode}")
+    print(f'return codes: p1={p1.returncode}')
 
-  assert p1.returncode == 0, "p1 should have exited successfully"
+    assert p1.returncode == 0, 'p1 should have exited successfully'
 
 
-
-AcademyVersion, (v030, v031, v040, v050, v_dff0, v_here) = z3.EnumSort("AcademyVersion",
-  ["academy-py==0.3.0",
-   "academy-py==0.3.1",
-   "academy-py==0.4.0",
-   "packaging academy-py==0.5.0",
-   "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1",
-   "HERE",
-  ] 
-  )
+AcademyVersion, (v030, v031, v040, v050, v_dff0, v_here) = z3.EnumSort(
+    'AcademyVersion',
+    [
+        'academy-py==0.3.0',
+        'academy-py==0.3.1',
+        'academy-py==0.4.0',
+        'packaging academy-py==0.5.0',
+        'packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1',
+        'HERE',
+    ],
+)
 
 v1 = z3.Const('v1', AcademyVersion)
 v2 = z3.Const('v2', AcademyVersion)
@@ -366,8 +416,10 @@ solver = z3.Solver()
 # that's quite subtle and not something that can be expressed
 # in semver in the presence of other similar constraints, I think.
 
+
 def has_heartbeats(v):
-  return z3.Or(v == v_dff0, v == v_here)
+    return z3.Or(v == v_dff0, v == v_here)
+
 
 solver.add(z3.Implies(has_heartbeats(v2), has_heartbeats(v1)))
 solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
@@ -377,9 +429,11 @@ solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
 # changed from 0.4.0 to 0.5.0
 # [v2 = packaging academy-py==0.5.0, v1 = packaging academy-py==0.4.0, v3 = packaging academy-py==0.4.0]
 
+
 def post_050(v):
-  # speaks the post-050 protocol
-  return z3.Or(v == v050, v == v_dff0, v == v_here)
+    # speaks the post-050 protocol
+    return z3.Or(v == v050, v == v_dff0, v == v_here)
+
 
 # this is needed for the HTTP exchange protocol which changed
 # incompatibly from 0.4.0 to 0.5.0
@@ -395,29 +449,32 @@ solver.push()
 
 
 def post_040(v):
-  return z3.Or(v == v040, v == v050, v == v_dff0, v == v_here)
+    return z3.Or(v == v040, v == v050, v == v_dff0, v == v_here)
+
 
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 
 count = 0
 while solver.check() == z3.sat:
-  count += 1
-  m = solver.model()
-  print(f"=== test_1: solution {count} ===")
-  print(m)
-  # when a v is not bound, force a choice. it doesn't matter what.
-  chosen_v1 = m[v1] if m[v1] is not None else v040
-  chosen_v2 = m[v2] if m[v2] is not None else v040
-  chosen_v3 = m[v3] if m[v3] is not None else v040
-  solver.add(z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)))#
+    count += 1
+    m = solver.model()
+    print(f'=== test_1: solution {count} ===')
+    print(m)
+    # when a v is not bound, force a choice. it doesn't matter what.
+    chosen_v1 = m[v1] if m[v1] is not None else v040
+    chosen_v2 = m[v2] if m[v2] is not None else v040
+    chosen_v3 = m[v3] if m[v3] is not None else v040
+    solver.add(
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+    )
 
-  _V1={"academy": str(chosen_v1)}
-  _V2={"academy": str(chosen_v2)}
-  _V3={"academy": str(chosen_v3)}
+    _V1 = {'academy': str(chosen_v1)}
+    _V2 = {'academy': str(chosen_v2)}
+    _V3 = {'academy': str(chosen_v3)}
 
-  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+    this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-  run_test_1(this_version_set)
+    run_test_1(this_version_set)
 
 # pops the iteration-forcing constraints and anything that is specific
 # to particular test case (nothing in this case, but different later).
@@ -434,23 +491,25 @@ solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 solver.add(has_heartbeats(v2))
 count = 0
 while solver.check() == z3.sat:
-  count += 1
-  m = solver.model()
-  print(f"=== test_heartbeat: solution {count} ===")
-  print(m)
-  # when a v is not bound, force a choice. it doesn't matter what.
-  chosen_v1 = m[v1] if m[v1] is not None else v040
-  chosen_v2 = m[v2] if m[v2] is not None else v040
-  chosen_v3 = m[v3] if m[v3] is not None else v040
-  solver.add(z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)))#
+    count += 1
+    m = solver.model()
+    print(f'=== test_heartbeat: solution {count} ===')
+    print(m)
+    # when a v is not bound, force a choice. it doesn't matter what.
+    chosen_v1 = m[v1] if m[v1] is not None else v040
+    chosen_v2 = m[v2] if m[v2] is not None else v040
+    chosen_v3 = m[v3] if m[v3] is not None else v040
+    solver.add(
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+    )
 
-  _V1={"academy": str(chosen_v1)}
-  _V2={"academy": str(chosen_v2)}
-  _V3={"academy": str(chosen_v3)}
+    _V1 = {'academy': str(chosen_v1)}
+    _V2 = {'academy': str(chosen_v2)}
+    _V3 = {'academy': str(chosen_v3)}
 
-  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+    this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-  run_test_heartbeat(this_version_set)
+    run_test_heartbeat(this_version_set)
 solver.pop()
 
 solver.push()
@@ -472,23 +531,25 @@ solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v2)))
 
 count = 0
 while solver.check() == z3.sat:
-  count += 1
-  m = solver.model()
-  print(f"=== test_entity_status_client: solution {count} ===")
-  print(m)
-  # when a v is not bound, force a choice. it doesn't matter what.
-  chosen_v1 = m[v1] if m[v1] is not None else v040
-  chosen_v2 = m[v2] if m[v2] is not None else v040
-  chosen_v3 = m[v3] if m[v3] is not None else v040
-  solver.add(z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)))#
+    count += 1
+    m = solver.model()
+    print(f'=== test_entity_status_client: solution {count} ===')
+    print(m)
+    # when a v is not bound, force a choice. it doesn't matter what.
+    chosen_v1 = m[v1] if m[v1] is not None else v040
+    chosen_v2 = m[v2] if m[v2] is not None else v040
+    chosen_v3 = m[v3] if m[v3] is not None else v040
+    solver.add(
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+    )
 
-  _V1={"academy": str(chosen_v1)}
-  _V2={"academy": str(chosen_v2)}
-  _V3={"academy": str(chosen_v3)}
+    _V1 = {'academy': str(chosen_v1)}
+    _V2 = {'academy': str(chosen_v2)}
+    _V3 = {'academy': str(chosen_v3)}
 
-  this_version_set = {"exchange": _V1, "agent": _V2, "client": _V3}
+    this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-  run_test_entity_status_client(this_version_set)
+    run_test_entity_status_client(this_version_set)
 solver.pop()
 
 
@@ -503,28 +564,28 @@ solver.add(post_050(v1))
 
 count = 0
 while solver.check() == z3.sat:
-  count += 1
-  m = solver.model()
-  print(f"=== test_api_thread_executor_logconfig: solution {count} ===")
-  print(m)
-  chosen_v1 = m[v1] if m[v1] is not None else v040
-  solver.add(z3.Not(v1 == chosen_v1))
-  _V1={"academy": str(chosen_v1)}
-  this_version_set = {"program": _V1}
-  run_test_api_thread_executor_logconfig(this_version_set)
+    count += 1
+    m = solver.model()
+    print(f'=== test_api_thread_executor_logconfig: solution {count} ===')
+    print(m)
+    chosen_v1 = m[v1] if m[v1] is not None else v040
+    solver.add(z3.Not(v1 == chosen_v1))
+    _V1 = {'academy': str(chosen_v1)}
+    this_version_set = {'program': _V1}
+    run_test_api_thread_executor_logconfig(this_version_set)
 solver.pop()
 
 solver.push()
 
 count = 0
 while solver.check() == z3.sat:
-  count += 1
-  m = solver.model()
-  print(f"=== test_api_thread_executor_nolog: solution {count} ===")
-  print(m)
-  chosen_v1 = m[v1] if m[v1] is not None else v040
-  solver.add(z3.Not(v1 == chosen_v1))
-  _V1={"academy": str(chosen_v1)}
-  this_version_set = {"program": _V1}
-  run_test_api_thread_executor_nolog(this_version_set)
+    count += 1
+    m = solver.model()
+    print(f'=== test_api_thread_executor_nolog: solution {count} ===')
+    print(m)
+    chosen_v1 = m[v1] if m[v1] is not None else v040
+    solver.add(z3.Not(v1 == chosen_v1))
+    _V1 = {'academy': str(chosen_v1)}
+    this_version_set = {'program': _V1}
+    run_test_api_thread_executor_nolog(this_version_set)
 solver.pop()

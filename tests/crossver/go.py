@@ -377,15 +377,17 @@ solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
 # changed from 0.4.0 to 0.5.0
 # [v2 = packaging academy-py==0.5.0, v1 = packaging academy-py==0.4.0, v3 = packaging academy-py==0.4.0]
 
-def speaks_post_050_protocol(v):
-  # speaks the post-050 protocol (with or without heartbeats)
+def post_050(v):
+  # speaks the post-050 protocol
   return z3.Or(v == v050, v == v_dff0, v == v_here)
 
-solver.add(z3.Implies(speaks_post_050_protocol(v2), speaks_post_050_protocol(v1)))
-solver.add(z3.Implies(speaks_post_050_protocol(v1), speaks_post_050_protocol(v2)))
+# this is needed for the HTTP exchange protocol which changed
+# incompatibly from 0.4.0 to 0.5.0
+solver.add(z3.Implies(post_050(v2), post_050(v1)))
+solver.add(z3.Implies(post_050(v1), post_050(v2)))
 
-solver.add(z3.Implies(speaks_post_050_protocol(v3), speaks_post_050_protocol(v1)))
-solver.add(z3.Implies(speaks_post_050_protocol(v1), speaks_post_050_protocol(v3)))
+solver.add(z3.Implies(post_050(v3), post_050(v1)))
+solver.add(z3.Implies(post_050(v1), post_050(v3)))
 # this will interact with the has_heartbeats protocol constraint above too
 # which is not bi-directional...
 
@@ -497,7 +499,7 @@ solver = z3.Solver()
 solver.push()
 
 # this test uses logging API changes introduced in v0.5.0
-solver.add(speaks_post_050_protocol(v1))
+solver.add(post_050(v1))
 
 count = 0
 while solver.check() == z3.sat:

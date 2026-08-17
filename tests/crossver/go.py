@@ -294,11 +294,10 @@ port = 1234
 
 solver = z3.Solver()
 
-# TODO: add v030
 AcademyVersion, (v030, v031, v040, v050, v_dff0, v_here) = z3.EnumSort("AcademyVersion",
-  ["packaging academy-py==0.3.0",
-   "packaging academy-py==0.3.1",
-   "packaging academy-py==0.4.0",
+  ["academy-py==0.3.0",
+   "academy-py==0.3.1",
+   "academy-py==0.4.0",
    "packaging academy-py==0.5.0",
    "packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1",
    "HERE",
@@ -349,6 +348,12 @@ solver.add(z3.Implies(speaks_post_050_protocol(v1), speaks_post_050_protocol(v3)
 
 solver.push()
 
+
+def post_040(v):
+  return z3.Or(v == v040, v == v050, v == v_dff0, v == v_here)
+
+solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+
 count = 0
 while solver.check() == z3.sat:
   count += 1
@@ -380,6 +385,7 @@ solver.push()
 # all the above constraints, plus a constraint that
 # the agent definitely has heartbeat support.
 
+solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 solver.add(has_heartbeats(v2))
 count = 0
 while solver.check() == z3.sat:
@@ -403,6 +409,8 @@ while solver.check() == z3.sat:
 solver.pop()
 
 solver.push()
+solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+
 # same as the base compatibility rules
 # although I'll probably need to add in an exclusion for an undesired incompatibility
 

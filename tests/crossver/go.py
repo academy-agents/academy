@@ -292,7 +292,25 @@ port = 1234
   assert p3.returncode == 0, "p3 should have exited succesfully"
 
 
-solver = z3.Solver()
+def run_test_api_thread_executor(version_set: dict):
+  for k, v in version_set.items():
+    v['name'] = "shared"
+
+  v1_env = create_env(version_set['program'])
+
+  base = os.getcwd()
+
+  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor/clientagent.py", shell=True, process_group=0)
+
+  p1.wait()
+
+  print("waiting on p1")
+  p1.wait()
+
+  print(f"return codes: p1={p1.returncode}")
+
+  assert p1.returncode == 0, "p1 should have exited successfully"
+
 
 AcademyVersion, (v030, v031, v040, v050, v_dff0, v_here) = z3.EnumSort("AcademyVersion",
   ["academy-py==0.3.0",
@@ -307,6 +325,11 @@ AcademyVersion, (v030, v031, v040, v050, v_dff0, v_here) = z3.EnumSort("AcademyV
 v1 = z3.Const('v1', AcademyVersion)
 v2 = z3.Const('v2', AcademyVersion)
 v3 = z3.Const('v3', AcademyVersion)
+
+# Three-environment tests (exchange, agent, client)
+
+solver = z3.Solver()
+solver.add(False) # make this solver solve nothing
 
 # here-relevancy constraint, which will be one kind of mode I want to use this in -- for developing new code rather than checking history - that latter mode might be when adding a new test or changing constraint descriptions.
 # solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
@@ -444,3 +467,25 @@ while solver.check() == z3.sat:
   run_test_entity_status_client(this_version_set)
 solver.pop()
 
+
+# One-environment tests (for example, Python API regression tests)
+
+solver = z3.Solver()
+
+solver.push()
+
+# this test uses logging API changes introduced in v0.5.0
+solver.add(speaks_post_050_protocol(v1))
+
+count = 0
+while solver.check() == z3.sat:
+  count += 1
+  m = solver.model()
+  print(f"=== test_api_thread_executor: solution {count} ===")
+  print(m)
+  chosen_v1 = m[v1] if m[v1] is not None else v040
+  solver.add(z3.Not(v1 == chosen_v1))
+  _V1={"academy": str(chosen_v1)}
+  this_version_set = {"program": _V1}
+  run_test_api_thread_executor(this_version_set)
+solver.pop()

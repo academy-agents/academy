@@ -799,7 +799,9 @@ async def test_handle_notifies_pending_messages_when_status_changes(
             mock_status.side_effect = [
                 MailboxStatus.ACTIVE,
                 MailboxStatus.INACTIVE,
+                MailboxStatus.ACTIVE,
                 MailboxStatus.INACTIVE,
+                MailboxStatus.ACTIVE,
                 MailboxStatus.INACTIVE,
             ]
             registration = await client.register_agent(SleepAgent)
@@ -808,7 +810,7 @@ async def test_handle_notifies_pending_messages_when_status_changes(
                 polling_interval=TEST_SLEEP_INTERVAL,
             )
             handle.reject_on_inactive = True
-            await handle._handle_ready.wait()
+            await handle._agent_status_set.wait()
             task = asyncio.create_task(handle.sleep(TEST_SLEEP_INTERVAL))
             await asyncio.sleep(0)
             assert len(handle._pending_actions) == 1  # Action was accepted
@@ -820,6 +822,12 @@ async def test_handle_notifies_pending_messages_when_status_changes(
             assert task.done()  # Task was notified
             with pytest.raises(AgentInactiveError):  # pragma: no cover
                 await task
+
+            await asyncio.sleep(
+                TEST_SLEEP_INTERVAL * 2,
+            )
+            # Toggling back and forth does not kill status loop
+            assert not handle._status_task.done()
 
 
 @pytest.mark.asyncio

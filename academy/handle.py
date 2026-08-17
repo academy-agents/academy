@@ -78,8 +78,6 @@ class Handle(Generic[AgentT_co]):
     Args:
         agent_id: ID of the remote agent, or ``None`` to defer
             binding (used by ``batch.queue()``).
-        reject_on_inactive: Return an error when target agent is inactive.
-            Needs to be a positional argument for serialization.
         exchange: A default exchange client to be used if an exchange client
             is not configured in the current context.
         ignore_context: Ignore the current context and force use of `exchange`
@@ -92,6 +90,7 @@ class Handle(Generic[AgentT_co]):
         exception_serializer: Strategy used to serialize results. If false-y,
             use the same strategy as the result serializer.
         polling_interval: Interval to poll exchange to see if agent is active.
+        reject_on_inactive: Return an error when target agent is inactive.
 
     Raises:
         ValueError: If `ignore_context=True` but `exchange` is not provided.
@@ -100,7 +99,6 @@ class Handle(Generic[AgentT_co]):
     def __init__(  # noqa: PLR0913
         self,
         agent_id: AgentId[AgentT_co] | None = None,
-        reject_on_inactive: bool = False,
         *,
         exchange: ExchangeClient[Any] | None = None,
         ignore_context: bool = False,
@@ -108,6 +106,7 @@ class Handle(Generic[AgentT_co]):
         result_serializer: SerializationStrategy | None = None,
         exception_serializer: SerializationStrategy | None = None,
         polling_interval: float = 60,
+        reject_on_inactive: bool = False,
     ) -> None:
         self._agent_id: AgentId[AgentT_co] | None = agent_id
         self._exchange = exchange
@@ -139,7 +138,7 @@ class Handle(Generic[AgentT_co]):
         # _agent_status is the private variable to keep track of the mailbox
         # status in the polling loop --- it is not always current (based on
         # when the last poll was), and is only updated if reject_on_inactive
-        # is true. For live mailbox stuts use `agent_status`
+        # is true. For live mailbox status use `agent_status`
         self._agent_status: MailboxStatus | None = None
         self.polling_interval = polling_interval
         self._reject_on_inactive: bool = False
@@ -175,7 +174,7 @@ class Handle(Generic[AgentT_co]):
         old = self._reject_on_inactive
         if not old and value:
             # Start loop if needed
-            self._handle_ready = asyncio.Event()
+            self._agent_status_set = asyncio.Event()
             self._reject_on_inactive = value  # Set after event to avoid race
             self._status_task: asyncio.Task[None] = asyncio.create_task(
                 self._status_loop(),
@@ -183,7 +182,7 @@ class Handle(Generic[AgentT_co]):
             )
         elif old and not value:
             # Stop loop if not needed
-            self._reject_on_inactive = value  # Set before canel to avoid race
+            self._reject_on_inactive = value  # Set before cancel to avoid race
             self._status_task.cancel()
             self._agent_status = None
 
@@ -227,12 +226,13 @@ class Handle(Generic[AgentT_co]):
 
         return (
             Handle,
-            (self._agent_id, self.reject_on_inactive),
+            (self._agent_id,),
             {
                 'request_serializer': self.request_serializer,
                 'result_serializer': self.result_serializer,
                 'exception_serializer': self.exception_serializer,
                 'polling_interval': self.polling_interval,
+                'reject_on_inactive': self.reject_on_inactive,
             },
         )
 
@@ -242,7 +242,9 @@ class Handle(Generic[AgentT_co]):
         This is necessary for unpickling to not treat set state as a
         remote action.
         """
+        reject_on_inactive: bool = state.pop('reject_on_inactive', False)
         self.__dict__.update(state)
+        self.reject_on_inactive = reject_on_inactive
 
     def __repr__(self) -> str:
         return (
@@ -279,7 +281,7 @@ class Handle(Generic[AgentT_co]):
         """Update _agent_status, notifying pending actions if needed."""
         old_status = self._agent_status
         self._agent_status = status
-        self._handle_ready.set()
+        self._agent_status_set.set()
         if (
             self._agent_status == MailboxStatus.INACTIVE
             and self._agent_status != old_status
@@ -304,16 +306,22 @@ class Handle(Generic[AgentT_co]):
         # while we are rejecting actions, the agent could become active
         # and new actions could be added to the pending_actions set.
         async with self._pending_actions_lock:
-            for response_tag in self._pending_actions:
+            for request_tag in self._pending_actions:
+                future = self._pending_response_futures[request_tag]
+                # If agents toggle back and forth between ACTIVE and INACTIVE
+                # the future might already be cancelled.
+                if future.done():
+                    continue
+
                 cancel_request = Message.create(
                     src=self.exchange.client_id,
                     dest=self.agent_id,
                     label=self.handle_id,
-                    body=CancelRequest(target_tag=response_tag),
+                    body=CancelRequest(target_tag=request_tag),
                 )
                 logger.debug(
                     'Cancelling action tag id %s',
-                    response_tag,
+                    request_tag,
                     extra=cancel_request.log_extra()
                     | {
                         'academy.action_state': 'cancelled',
@@ -324,8 +332,6 @@ class Handle(Generic[AgentT_co]):
                     cancel_future
                 )
                 await self.exchange.send(cancel_request)
-
-                future = self._pending_response_futures[response_tag]
                 future.set_exception(AgentInactiveError(self.agent_id))
 
     async def _check_status(self) -> None:
@@ -337,7 +343,7 @@ class Handle(Generic[AgentT_co]):
                 'Error polling status of agent',
             ) from self._status_task.exception()
 
-        await self._handle_ready.wait()
+        await self._agent_status_set.wait()
         if self._agent_status == MailboxStatus.INACTIVE:
             raise AgentInactiveError(self.agent_id)
 
@@ -552,7 +558,7 @@ class Handle(Generic[AgentT_co]):
             raise body.get_exception()
 
         if self.reject_on_inactive:
-            # A successful ping indicates active regaurdless of
+            # A successful ping indicates active regardless of
             # heartbeat, so we can use ping to wait for an agent
             # to become active.
             await self._update_agent_status(MailboxStatus.ACTIVE)
@@ -655,6 +661,7 @@ class ProxyHandle(Handle[AgentT]):
         self.agent = agent
         self._agent_id: AgentId[AgentT] = AgentId.new()
         self._agent_closed = False
+        self._reject_on_inactive = False
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}(agent={self.agent!r})'

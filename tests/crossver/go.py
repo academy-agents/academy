@@ -9,7 +9,7 @@ import time
 
 import z3
 
-here_mode = True
+here_mode = False
 
 # this can run in a fairly arbitrary python
 
@@ -270,7 +270,7 @@ port = 1234
     assert p3.returncode == 0, 'p3 should have exited succesfully'
 
 
-def run_test_entity_status_client(version_set: dict):
+def run_test_entity_status_client_0_5_0(version_set: dict):
     for k, v in version_set.items():
         v['name'] = 'shared'
 
@@ -297,7 +297,7 @@ port = 1234
     base = os.getcwd()
 
     p2 = subprocess.Popen(
-        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/agent.py',
+        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_5_0/agent.py',
         shell=True,
         process_group=0,
     )
@@ -308,7 +308,72 @@ port = 1234
     os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
     p3 = subprocess.Popen(
-        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client/client.py',
+        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_5_0/client.py',
+        shell=True,
+        process_group=0,
+    )
+
+    p3.wait()
+
+    print('terminating p2 group')
+    os.killpg(p2.pid, signal.SIGTERM)
+    print('waiting on p2')
+    p2.wait()
+
+    print('terminating p1 group')
+    os.killpg(p1.pid, signal.SIGTERM)
+
+    print('waiting on p1')
+    p1.wait()
+
+    print(
+        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
+    )
+
+    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
+    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
+    assert p3.returncode == 0, 'p3 should have exited succesfully'
+
+
+def run_test_entity_status_client_0_6_0(version_set: dict):
+    for k, v in version_set.items():
+        v['name'] = 'shared'
+
+    v1_env = create_env(version_set['exchange'])
+    v2_env = create_env(version_set['agent'])
+    v3_env = create_env(version_set['client'])
+
+    exchange_config = """
+host = "localhost"
+port = 1234
+"""
+
+    with open(v1_env / 'exchange_config.json', 'w') as f:
+        f.write(exchange_config)
+
+    p1 = subprocess.Popen(
+        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
+        shell=True,
+        process_group=0,
+    )
+
+    time.sleep(1)
+
+    base = os.getcwd()
+
+    p2 = subprocess.Popen(
+        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_6_0/agent.py',
+        shell=True,
+        process_group=0,
+    )
+
+    time.sleep(3)
+
+    print('copying agent handle')
+    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
+
+    p3 = subprocess.Popen(
+        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_6_0/client.py',
         shell=True,
         process_group=0,
     )
@@ -408,6 +473,16 @@ if here_mode:
     solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
 
 
+def post_050(v):
+    # speaks the post-050 protocol
+    return z3.Or(v == v050, v == v_dff0, v == v_here)
+
+def post_060(v):
+    return v == v_here
+
+def pre_060(v):
+    return z3.Or(v == v030, v == v031, v == v040, v == v050)
+
 # This combination causes test 1 to fail, because the 0.5.0 exchange
 # doesn't recognise heartbeats: the agent outputs background error
 # (but maybe still functions) and the client fails with a unix error,
@@ -421,7 +496,13 @@ if here_mode:
 
 
 def has_heartbeats(v):
-    return z3.Or(v == v_dff0, v == v_here)
+    # alias for post_060, in the semantic version world
+    # but we have some more nuance because v_dff0 is a non-semver-tagged
+    # commit that is still interesting to test against so maybe it can
+    # be semvered with a negative minor number? or maybe a later one
+    # breaks things?
+    # dff0 is the "pre-release" of heartbeats, before 0.6.0
+    return z3.Or(post_060(v), v == v_dff0)
 
 
 solver.add(z3.Implies(has_heartbeats(v2), has_heartbeats(v1)))
@@ -431,22 +512,31 @@ solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
 # This combination fails because the wire protocol for http exchange
 # changed from 0.4.0 to 0.5.0
 # [v2 = packaging academy-py==0.5.0, v1 = packaging academy-py==0.4.0, v3 = packaging academy-py==0.4.0]
-
-
-def post_050(v):
-    # speaks the post-050 protocol
-    return z3.Or(v == v050, v == v_dff0, v == v_here)
-
-
 # this is needed for the HTTP exchange protocol which changed
 # incompatibly from 0.4.0 to 0.5.0
-solver.add(z3.Implies(post_050(v2), post_050(v1)))
+# but it's only needed for tests that use the HTTP exchange.
+# How to represent that?
+# "all or none" constraint between multiple versions:
 solver.add(z3.Implies(post_050(v1), post_050(v2)))
-
+solver.add(z3.Implies(post_050(v2), post_050(v3)))
 solver.add(z3.Implies(post_050(v3), post_050(v1)))
-solver.add(z3.Implies(post_050(v1), post_050(v3)))
 # this will interact with the has_heartbeats protocol constraint above too
 # which is not bi-directional...
+
+
+# OLD NEWS: (#447 was updated)
+# pickle-of-handle protocol changed from 0.5.0 to HERE
+# (in PR #447)
+# This patch assumes that v_here is the only version with
+# latest pickle-of-handle protocol.
+# I should probably express this as a 0.5.0 != 0.6.0
+# style constraint?
+# This constraint is needed for all separated client/agent tests
+# because the pickle-of-handle protocol is how they move their
+# handles between each other.
+# solver.add(z3.Or(z3.And(v2 == v_here, v3 == v_here),
+#                 z3.And(v2 != v_here, v3 != v_here)))
+
 
 solver.push()
 
@@ -530,13 +620,20 @@ solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 # v3 = packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1,
 # Here's a workaround, but it's not entirely desirable: it means, for example,
 # 0.5.0 can't talk to 0.6.0 for agent status.
+
+# Is this a wire protocol or API or exchange related constraint?
 solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v2)))
+
+# This test breaks in 0.6.0 post-PR#447 because of movement of
+# MailboxStatus structure to different module.
+solver.add(pre_060(v2))
+solver.add(pre_060(v3))
 
 count = 0
 while solver.check() == z3.sat:
     count += 1
     m = solver.model()
-    print(f'=== test_entity_status_client: solution {count} ===')
+    print(f'=== test_entity_status_client_0_5_0: solution {count} ===')
     print(m)
     # when a v is not bound, force a choice. it doesn't matter what.
     chosen_v1 = m[v1] if m[v1] is not None else v040
@@ -552,7 +649,51 @@ while solver.check() == z3.sat:
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-    run_test_entity_status_client(this_version_set)
+    run_test_entity_status_client_0_5_0(this_version_set)
+solver.pop()
+
+
+solver.push()
+
+# because of http exchange protocol
+solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+
+# because of status Python API changes
+solver.add(post_060(v3))
+
+# same as the base compatibility rules
+# although I'll probably need to add in an exclusion for an undesired incompatibility
+
+# BUG:
+# This combination reports that the agent is inactive.
+# v1 = git+https://github.com/academy-agents/academy@main]
+# v2 = packaging academy-py==0.5.0,
+# v3 = packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1,
+# Here's a workaround, but it's not entirely desirable: it means, for example,
+# 0.5.0 can't talk to 0.6.0 for agent status.
+solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v2)))
+
+count = 0
+while solver.check() == z3.sat:
+    count += 1
+    m = solver.model()
+    print(f'=== test_entity_status_client_0_6_0: solution {count} ===')
+    print(m)
+    # when a v is not bound, force a choice. it doesn't matter what.
+    chosen_v1 = m[v1] if m[v1] is not None else v040
+    chosen_v2 = m[v2] if m[v2] is not None else v040
+    chosen_v3 = m[v3] if m[v3] is not None else v040
+    solver.add(
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+    )
+
+    _V1 = {'academy': str(chosen_v1)}
+    _V2 = {'academy': str(chosen_v2)}
+    _V3 = {'academy': str(chosen_v3)}
+
+    this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
+
+    run_test_entity_status_client_0_6_0(this_version_set)
 solver.pop()
 
 

@@ -9,6 +9,8 @@ import time
 
 import z3
 
+here_mode = True
+
 # this can run in a fairly arbitrary python
 
 # There should be several versions available.
@@ -402,7 +404,8 @@ v3 = z3.Const('v3', AcademyVersion)
 solver = z3.Solver()
 
 # here-relevancy constraint, which will be one kind of mode I want to use this in -- for developing new code rather than checking history - that latter mode might be when adding a new test or changing constraint descriptions.
-# solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
+if here_mode:
+    solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
 
 
 # This combination causes test 1 to fail, because the 0.5.0 exchange
@@ -556,6 +559,9 @@ solver.pop()
 # One-environment tests (for example, Python API regression tests)
 
 solver = z3.Solver()
+
+if here_mode:
+    solver.add(v1 == v_here)
 
 solver.push()
 

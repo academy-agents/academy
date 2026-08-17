@@ -292,7 +292,7 @@ port = 1234
   assert p3.returncode == 0, "p3 should have exited succesfully"
 
 
-def run_test_api_thread_executor(version_set: dict):
+def run_test_api_thread_executor_logconfig(version_set: dict):
   for k, v in version_set.items():
     v['name'] = "shared"
 
@@ -300,7 +300,7 @@ def run_test_api_thread_executor(version_set: dict):
 
   base = os.getcwd()
 
-  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor/clientagent.py", shell=True, process_group=0)
+  p1 = subprocess.Popen(f"set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor_logconfig/clientagent.py", shell=True, process_group=0)
 
   p1.wait()
 
@@ -502,18 +502,16 @@ count = 0
 while solver.check() == z3.sat:
   count += 1
   m = solver.model()
-  print(f"=== test_api_thread_executor: solution {count} ===")
+  print(f"=== test_api_thread_executor_logconfig: solution {count} ===")
   print(m)
   chosen_v1 = m[v1] if m[v1] is not None else v040
   solver.add(z3.Not(v1 == chosen_v1))
   _V1={"academy": str(chosen_v1)}
   this_version_set = {"program": _V1}
-  run_test_api_thread_executor(this_version_set)
+  run_test_api_thread_executor_logconfig(this_version_set)
 solver.pop()
 
 solver.push()
-
-# solver.add(speaks_post_050_protocol(v1))
 
 count = 0
 while solver.check() == z3.sat:
@@ -527,5 +525,3 @@ while solver.check() == z3.sat:
   this_version_set = {"program": _V1}
   run_test_api_thread_executor_nolog(this_version_set)
 solver.pop()
-
-

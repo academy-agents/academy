@@ -23,6 +23,7 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 import aiohttp
+from aiohttp import ClientResponse
 from aiohttp import hdrs
 from pydantic import BaseModel
 from pydantic import Field
@@ -60,7 +61,7 @@ DEFAULT_EXCHANGE_URL = 'https://exchange.academy-agents.org/v1'
 
 class _HttpConnectionInfo(NamedTuple):
     url: str
-    additional_headers: dict[str, str] | None = None
+    additional_headers: dict[str, str]
     ssl_verify: bool | None = None
     request_timeout_s: float = 60
     client_timeout: aiohttp.ClientTimeout | None = None
@@ -83,6 +84,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             not an id provided, the exchange will create a new client mailbox.
         session: Http session.
         connection_info: Exchange connection info.
+        auth_method: Authentication method for exchange.
     """
 
     def __init__(
@@ -90,12 +92,14 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         mailbox_id: EntityId,
         session: aiohttp.ClientSession,
         connection_info: _HttpConnectionInfo,
+        auth_method: Literal['globus'] | None,
     ) -> None:
         self._mailbox_id = mailbox_id
         self._session = session
         self._info = connection_info
         self._retry_time_ms: float = 1000
         self._last_event_id: int | None = None
+        self._auth_method = auth_method
 
         base_url = self._info.url
         self._mailbox_url = f'{base_url}/mailbox'
@@ -105,26 +109,10 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         self._heartbeat_url = f'{base_url}/mailbox/heartbeat'
 
     @classmethod
-    async def new(
+    def create_session(
         cls,
-        *,
         connection_info: _HttpConnectionInfo,
-        mailbox_id: EntityId | None = None,
-        name: str | None = None,
-    ) -> Self:
-        """Instantiate a new transport.
-
-        Args:
-            connection_info: Exchange connection information.
-            mailbox_id: Bind the transport to the specific mailbox. If `None`,
-                a new user entity will be registered and the transport will be
-                bound to that mailbox.
-            name: Display name of the registered entity if `mailbox_id` is
-                `None`.
-
-        Returns:
-            An instantiated transport bound to a specific mailbox.
-        """
+    ) -> aiohttp.ClientSession:
         ssl_verify = connection_info.ssl_verify
         if ssl_verify is None:  # pragma: no branch
             scheme = urlparse(connection_info.url).scheme
@@ -140,25 +128,101 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             trust_env=True,
             **session_kwargs,
         )
+        return session
 
+    @classmethod
+    async def new(
+        cls,
+        *,
+        connection_info: _HttpConnectionInfo,
+        auth_method: Literal['globus'] | None,
+        mailbox_id: EntityId | None = None,
+        name: str | None = None,
+    ) -> Self:
+        """Instantiate a new transport.
+
+        Args:
+            connection_info: Exchange connection information.
+            mailbox_id: Bind the transport to the specific mailbox. If `None`,
+                a new user entity will be registered and the transport will be
+                bound to that mailbox.
+            name: Display name of the registered entity if `mailbox_id` is
+                `None`.
+            auth_method: Authentication method for exchange.
+
+        Returns:
+            An instantiated transport bound to a specific mailbox.
+        """
+        session = cls.create_session(connection_info)
         if mailbox_id is None:
             mailbox_id = UserId.new(name=name)
-            async with session.post(
-                f'{connection_info.url}/mailbox',
-                json={'mailbox': mailbox_id.model_dump_json()},
-            ) as response:
-                _raise_for_status(response, mailbox_id)
+            retry = True
+            while True:
+                async with session.post(
+                    f'{connection_info.url}/mailbox',
+                    json={'mailbox': mailbox_id.model_dump_json()},
+                ) as response:
+                    if response.status == StatusCode.FORBIDDEN.value and retry:
+                        retry = False
+                        auth_headers = get_auth_headers(auth_method)
+                        connection_info.additional_headers.update(auth_headers)
+                        session = cls.create_session(connection_info)
+                        continue
+                    break
+
+            _raise_for_status(response, mailbox_id)
+
             logger.info(
                 'Registered %s in exchange',
                 mailbox_id,
                 extra={'academy.mailbox_id': mailbox_id},
             )
 
-        return cls(mailbox_id, session, connection_info)
+        return cls(mailbox_id, session, connection_info, auth_method)
 
     @property
     def mailbox_id(self) -> EntityId:
         return self._mailbox_id
+
+    @contextlib.asynccontextmanager
+    async def _request_with_refresh(
+        self,
+        method: str,
+        url: str,
+        **kwargs: Any,
+    ) -> AsyncGenerator[ClientResponse]:
+        """Make request, refreshing token if ForbiddenError is returned.
+
+        Note:
+            This is to simplify the case where users are running on a shared
+            filesystem, or on a system where they have manually authenticated
+            (either by setting the correct environment variables or using a
+            login flow that stored a refresh token.) In these cases, naively
+            calling `get_auth_headers` will succeed. In the case of remote
+            deployment on a system without a refresh token, we do not send the
+            refresh token over the wire, so this will trigger a login-flow
+            that fails.
+
+        Args:
+            method: Http method to call
+            url: Destination of request
+            **kwargs: Additional arguments to aiohttp.ClientSession.request
+        """
+        retry = True
+        while True:
+            async with self._session.request(
+                method,
+                url,
+                **kwargs,
+            ) as response:
+                if response.status == StatusCode.FORBIDDEN.value and retry:
+                    retry = False
+                    auth_headers = get_auth_headers(self._auth_method)
+                    self._info.additional_headers.update(auth_headers)
+                    self._session = self.create_session(self._info)
+                    continue
+                yield response
+            break
 
     async def close(self) -> None:
         await self._session.close()
@@ -175,7 +239,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         else:
             agent_str = f'{agent.__module__}.{agent.__name__}'
 
-        async with self._session.get(
+        async with self._request_with_refresh(
+            'get',
             self._discover_url,
             json={
                 'agent': agent_str,
@@ -192,6 +257,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         # but auth headers (i.e. the bearer token) is.
         return HttpExchangeFactory(
             url=self._info.url,
+            auth_method=self._auth_method,
             additional_headers=self._info.additional_headers,
             ssl_verify=self._info.ssl_verify,
             request_timeout_s=self._info.request_timeout_s,
@@ -252,30 +318,31 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if internal_timeout <= 0:
                 raise TimeoutError()
 
-            response = await self._session.get(
+            async with self._request_with_refresh(
+                'get',
                 self._listen_url,
                 json={
                     'mailbox': self.mailbox_id.model_dump_json(),
                     'timeout': internal_timeout,
                 },
                 headers=headers,
-            )
-            _raise_for_status(response, self.mailbox_id)
+            ) as response:
+                _raise_for_status(response, self.mailbox_id)
 
-            current_message_lines: list[str] = []
-            async for line_in_bytes in response.content:
-                line = line_in_bytes.decode('utf8')  # type: str
-                line = line.rstrip('\n').rstrip('\r')
-                if line == '':
-                    message = await self.parse(current_message_lines)
-                    current_message_lines = []
-                    if message is None:
+                current_message_lines: list[str] = []
+                async for line_in_bytes in response.content:
+                    line = line_in_bytes.decode('utf8')  # type: str
+                    line = line.rstrip('\n').rstrip('\r')
+                    if line == '':
+                        message = await self.parse(current_message_lines)
+                        current_message_lines = []
+                        if message is None:
+                            continue
+                        prev_time = time.time()
+                        yield message
                         continue
-                    prev_time = time.time()
-                    yield message
-                    continue
 
-                current_message_lines.append(line)
+                    current_message_lines.append(line)
 
             current_time = time.time()
             if timeout and current_time - prev_time > timeout:
@@ -289,7 +356,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         name: str | None = None,
     ) -> HttpAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
-        async with self._session.post(
+        async with self._request_with_refresh(
+            'post',
             self._mailbox_url,
             json={
                 'mailbox': aid.model_dump_json(),
@@ -300,28 +368,32 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return HttpAgentRegistration(agent_id=aid)
 
     async def send(self, message: Message[Any]) -> None:
-        async with self._session.put(
+        async with self._request_with_refresh(
+            'put',
             self._message_url,
             json={'message': message.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id, message.dest)
 
     async def terminate(self, uid: EntityId) -> None:
-        async with self._session.delete(
+        async with self._request_with_refresh(
+            'delete',
             self._mailbox_url,
             json={'mailbox': uid.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id, uid)
 
     async def update_heartbeat(self) -> None:
-        async with self._session.post(
+        async with self._request_with_refresh(
+            'post',
             self._heartbeat_url,
             json={'mailbox': self.mailbox_id.model_dump_json()},
         ) as response:
             _raise_for_status(response, self.mailbox_id)
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
-        async with self._session.get(
+        async with self._request_with_refresh(
+            'get',
             self._heartbeat_url,
             json={'mailbox': uid.model_dump_json()},
         ) as response:
@@ -329,7 +401,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             return (await response.json())['heartbeat']
 
     async def agent_stats(self, uid: EntityId) -> AgentStats:
-        async with self._session.get(
+        async with self._request_with_refresh(
+            'get',
             f'{self._info.url}/mailbox/stats',
             json={'mailbox': uid.model_dump_json()},
         ) as response:
@@ -344,33 +417,27 @@ class HttpExchangeConsole:
     Args:
         session: Http session.
         connection_info: Exchange connection info.
+        auth_method: Authentication method used by exchange.
     """
 
     def __init__(
         self,
         session: aiohttp.ClientSession,
         connection_info: _HttpConnectionInfo,
+        auth_method: Literal['globus'] | None,
     ) -> None:
         self._session = session
         self._info = connection_info
+        self._auth_method = auth_method
 
         base_url = self._info.url
         self._share_url = f'{base_url}/mailbox/share'
 
     @classmethod
-    async def new(
+    def create_session(
         cls,
-        *,
         connection_info: _HttpConnectionInfo,
-    ) -> Self:
-        """Instantiate a new console.
-
-        Args:
-            connection_info: Exchange connection information.
-
-        Returns:
-            An instantiated transport bound to a specific mailbox.
-        """
+    ) -> aiohttp.ClientSession:
         ssl_verify = connection_info.ssl_verify
         if ssl_verify is None:  # pragma: no branch
             scheme = urlparse(connection_info.url).scheme
@@ -386,13 +453,73 @@ class HttpExchangeConsole:
             trust_env=True,
             **session_kwargs,
         )
-        return cls(session, connection_info)
+        return session
+
+    @classmethod
+    async def new(
+        cls,
+        *,
+        connection_info: _HttpConnectionInfo,
+        auth_method: Literal['globus'] | None,
+    ) -> Self:
+        """Instantiate a new console.
+
+        Args:
+            connection_info: Exchange connection information.
+            auth_method: Authentication method used by exchange.
+
+        Returns:
+            An instantiated transport bound to a specific mailbox.
+        """
+        session = cls.create_session(connection_info)
+        return cls(session, connection_info, auth_method)
+
+    @contextlib.asynccontextmanager
+    async def _request_with_refresh(
+        self,
+        method: str,
+        url: str,
+        **kwargs: Any,
+    ) -> AsyncGenerator[ClientResponse]:
+        """Make request, refreshing token if ForbiddenError is returned.
+
+        Note:
+            This is to simplify the case where users are running on a shared
+            filesystem, or on a system where they have manually authenticated
+            (either by setting the correct environment variables or using a
+            login flow that stored a refresh token.) In these cases, naively
+            calling `get_auth_headers` will succeed. In the case of remote
+            deployment on a system without a refresh token, we do not send the
+            refresh token over the wire, so this will trigger a login-flow
+            that fails.
+
+        Args:
+            method: Http method to call
+            url: Destination of request
+            **kwargs: Additional arguments to aiohttp.ClientSession.request
+        """
+        retry = True
+        while True:
+            async with self._session.request(
+                method,
+                url,
+                **kwargs,
+            ) as response:
+                if response.status == StatusCode.FORBIDDEN.value and retry:
+                    retry = False
+                    auth_headers = get_auth_headers(self._auth_method)
+                    self._info.additional_headers.update(auth_headers)
+                    self._session = self.create_session(self._info)
+                    continue
+                yield response
+                break
 
     def factory(self) -> HttpExchangeFactory:
         # Note: When getting factory, auth method is not preserved
         # but auth headers (i.e. the bearer token) is.
         return HttpExchangeFactory(
             url=self._info.url,
+            auth_method=self._auth_method,
             additional_headers=self._info.additional_headers,
             ssl_verify=self._info.ssl_verify,
             request_timeout_s=self._info.request_timeout_s,
@@ -411,7 +538,8 @@ class HttpExchangeConsole:
             group_id: Id of globus group. User must be part of group to share
                 mailbox.
         """
-        async with self._session.post(
+        async with self._request_with_refresh(
+            'post',
             self._share_url,
             json={
                 'mailbox': mailbox_id.model_dump_json(),
@@ -426,7 +554,8 @@ class HttpExchangeConsole:
         Args:
             mailbox_id: Either AgentId or UserId of mailbox
         """
-        async with self._session.get(
+        async with self._request_with_refresh(
+            'get',
             self._share_url,
             json={
                 'mailbox': mailbox_id.model_dump_json(),
@@ -448,7 +577,8 @@ class HttpExchangeConsole:
             group_id: Id of globus group. User must be part of group to share
                 mailbox.
         """
-        async with self._session.delete(
+        async with self._request_with_refresh(
+            'delete',
             self._share_url,
             json={
                 'mailbox': mailbox_id.model_dump_json(),
@@ -500,13 +630,11 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         if additional_headers is None:
             additional_headers = {}
 
-        if (
-            url == DEFAULT_EXCHANGE_URL
-            and 'Authorization' not in additional_headers
-        ):
+        if url == DEFAULT_EXCHANGE_URL:
             auth_method = 'globus'
 
-        additional_headers |= get_auth_headers(auth_method)
+        if 'Authorization' not in additional_headers:
+            additional_headers |= get_auth_headers(auth_method)
 
         if client_timeout is None:
             # aiohttp's default ClientTimeout(total=300) closes SSE listen
@@ -522,6 +650,7 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             request_timeout_s=request_timeout_s,
             client_timeout=client_timeout,
         )
+        self._auth_method = auth_method
 
     async def _create_transport(
         self,
@@ -534,11 +663,13 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             connection_info=self._info,
             mailbox_id=mailbox_id,
             name=name,
+            auth_method=self._auth_method,
         )
 
     async def console(self) -> HttpExchangeConsole:
         return await HttpExchangeConsole.new(
             connection_info=self._info,
+            auth_method=self._auth_method,
         )
 
 

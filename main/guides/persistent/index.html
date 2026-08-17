@@ -2536,18 +2536,18 @@ In the code, the <a class="autorefs autorefs-internal" title="            Runtim
 <p>Academy also provides a commandline tool to run an agent from a <code>toml</code> file.
 The <code>toml</code> file contains two required fields: <code>exchange</code> and <code>agent</code>. The <code>exchange</code> field specifies the type of exchange and arguments needed to construct the exchange factory. These are equivalent to the arguments that the <code>ExchangeFactory</code> type accepts. For instance, for the <a class="autorefs autorefs-internal" title="            RedisExchangeFactory" href="../../api/exchange/redis/#academy.exchange.redis.RedisExchangeFactory"><code>RedisExchangeFactory</code></a>:
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[exchange]
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>exchange_type = &#39;redis&#39;
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>hostname = &#39;127.0.0.1&#39;
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>port = &#39;6789&#39;
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>exchange_type = 'redis'
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>hostname = '127.0.0.1'
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>port = '6789'
 </span></code></pre></div></p>
 <p>The agent field can either specify the fully qualifed path to an <code>Agent</code> constructor and the arguments the constructor accepts:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[agent]
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>constructor = &#39;testing.agents.SleepAgent&#39;
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>constructor = 'testing.agents.SleepAgent'
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>loop_sleep = 1
 </span></code></pre></div>
 <p>or it can point to a pickle file of an Agent
 <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>[agent]
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>pickle = &#39;~/agents/my_agent.pkl&#39;
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>pickle = '~/agents/my_agent.pkl'
 </span></code></pre></div></p>
 <p>Then you run the agent using <code>academy.run</code>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python -m academy.run --config ~/agents/my_agent_config.toml

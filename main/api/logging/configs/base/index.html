@@ -2557,7 +2557,7 @@ by this call. <code>log_context</code> will call that callback when appropriate.
 <span class="normal"><a href="#__codelineno-0-40">40</a></span>
 <span class="normal"><a href="#__codelineno-0-41">41</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
 </span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="k">def</span><span class="w"> </span><span class="nf">init_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]:</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize logging in current process.</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="w">    </span><span class="sd">"""Initialize logging in current process.</span>
 </span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>
 </span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">    This should not be called by end users. Instead, users should use</span>
 </span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    `with log_context(config)` to ensure that the configuration is</span>
@@ -2566,7 +2566,7 @@ by this call. <code>log_context</code> will call that callback when appropriate.
 </span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>
 </span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">    This should return a callback to uninitialize the logging initialized</span>
 </span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    by this call. `log_context` will call that callback when appropriate.</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">    """</span>
 </span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>    <span class="o">...</span>
 </span></code></pre></div></td></tr></table></div>
             </details>

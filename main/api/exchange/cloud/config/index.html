@@ -2871,7 +2871,7 @@
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
 <span class="normal"><a href="#__codelineno-0-114">114</a></span>
 <span class="normal"><a href="#__codelineno-0-115">115</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="k">def</span><span class="w"> </span><span class="nf">init_logger</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">:</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize logger from this configuration.&quot;&quot;&quot;</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="w">    </span><span class="sd">"""Initialize logger from this configuration."""</span>
 </span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>    <span class="n">stdout_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
 </span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>    <span class="n">stdout_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">_Formatter</span><span class="p">())</span>
 </span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="n">stdout_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">)</span>
@@ -2889,7 +2889,7 @@
 </span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate</span><span class="p">:</span>
 </span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>            <span class="n">file_handler</span> <span class="o">=</span> <span class="n">TimedRotatingFileHandler</span><span class="p">(</span>
 </span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>                <span class="n">path</span><span class="p">,</span>
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>                <span class="n">when</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>                <span class="n">when</span><span class="o">=</span><span class="s1">'d'</span><span class="p">,</span>
 </span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>                <span class="n">interval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rotation_interval_days</span><span class="p">,</span>
 </span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>                <span class="n">backupCount</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">backup_count</span><span class="p">,</span>
 </span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>            <span class="p">)</span>
@@ -2902,20 +2902,20 @@
 </span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_handler</span><span class="p">)</span>
 </span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a>
 </span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
-</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a>        <span class="n">datefmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">,</span>
+</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a>        <span class="n">datefmt</span><span class="o">=</span><span class="s1">'%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S'</span><span class="p">,</span>
 </span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">NOTSET</span><span class="p">,</span>
 </span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a>        <span class="n">handlers</span><span class="o">=</span><span class="n">handlers</span><span class="p">,</span>
 </span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="p">)</span>
 </span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a>
 </span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a>    <span class="c1"># This needs to be after the configuration of the root logger because</span>
-</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="c1"># warnings get logged to a &#39;py.warnings&#39; logger.</span>
+</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="c1"># warnings get logged to a 'py.warnings' logger.</span>
 </span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="n">logging</span><span class="o">.</span><span class="n">captureWarnings</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
 </span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="p">(</span>
-</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>            <span class="s1">&#39;Configured logger (stdout-level=</span><span class="si">%s</span><span class="s1">, &#39;</span>
-</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="s1">&#39;logfile=</span><span class="si">%s</span><span class="s1">, logfile-level=</span><span class="si">%s</span><span class="s1">)&#39;</span>
+</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>            <span class="s1">'Configured logger (stdout-level=</span><span class="si">%s</span><span class="s1">, '</span>
+</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="s1">'logfile=</span><span class="si">%s</span><span class="s1">, logfile-level=</span><span class="si">%s</span><span class="s1">)'</span>
 </span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>        <span class="p">),</span>
 </span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="n">logging</span><span class="o">.</span><span class="n">getLevelName</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">)</span>
 </span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
@@ -3072,7 +3072,7 @@ class because they often contain secrets.</p>
 <span class="normal"><a href="#__codelineno-0-139">139</a></span>
 <span class="normal"><a href="#__codelineno-0-140">140</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-137"><a id="__codelineno-0-137" name="__codelineno-0-137"></a><span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
 </span><span id="__span-0-138"><a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MailboxBackend</span><span class="p">:</span>
-</span><span id="__span-0-139"><a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Construct an instance of the backend from the config.&quot;&quot;&quot;</span>
+</span><span id="__span-0-139"><a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="w">    </span><span class="sd">"""Construct an instance of the backend from the config."""</span>
 </span><span id="__span-0-140"><a id="__codelineno-0-140" name="__codelineno-0-140"></a>    <span class="o">...</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -3146,7 +3146,7 @@ class because they often contain secrets.</p>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-151">151</a></span>
 <span class="normal"><a href="#__codelineno-0-152">152</a></span>
 <span class="normal"><a href="#__codelineno-0-153">153</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MailboxBackend</span><span class="p">:</span>
-</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Construct an instance of the backend from the config.&quot;&quot;&quot;</span>
+</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="w">    </span><span class="sd">"""Construct an instance of the backend from the config."""</span>
 </span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a>    <span class="k">return</span> <span class="n">PythonBackend</span><span class="p">()</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -3258,7 +3258,7 @@ class because they often contain secrets.</p>
 <span class="normal"><a href="#__codelineno-0-184">184</a></span>
 <span class="normal"><a href="#__codelineno-0-185">185</a></span>
 <span class="normal"><a href="#__codelineno-0-186">186</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MailboxBackend</span><span class="p">:</span>
-</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Construct an instance of the backend from the config.&quot;&quot;&quot;</span>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="w">    </span><span class="sd">"""Construct an instance of the backend from the config."""</span>
 </span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a>    <span class="k">return</span> <span class="n">RedisBackend</span><span class="p">(</span>
 </span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">hostname</span><span class="p">,</span>
 </span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
@@ -3417,24 +3417,24 @@ taken from the certfile.</p>
 </span></code></pre></div></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy_exchange.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExchangeServingConfig</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ExchangeServingConfig</span><span class="o">.</span><span class="n">from_toml</span><span class="p">(</span><span class="s1">&#39;exchange.toml&#39;</span><span class="p">)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ExchangeServingConfig</span><span class="o">.</span><span class="n">from_toml</span><span class="p">(</span><span class="s1">'exchange.toml'</span><span class="p">)</span>
 </span></code></pre></div>
 </details>
 
 <details class="example" open>
   <summary>Example</summary>
   <p>Serve with SSL and Globus Auth.
-<div class="language-toml highlight"><span class="filename">relay.toml</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.0.0&quot;</span>
+<div class="language-toml highlight"><span class="filename">relay.toml</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"0.0.0.0"</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8700</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">certfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/path/to/cert.pem&quot;</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">keyfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/path/to/privkey.pem&quot;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">certfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/path/to/cert.pem"</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">keyfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/path/to/privkey.pem"</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">[auth]</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;globus&quot;</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"globus"</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">[auth.kwargs]</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;...&quot;</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">client_secret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;...&quot;</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">client_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"..."</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">client_secret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"..."</span>
 </span></code></pre></div></p>
 </details>
 
@@ -3443,12 +3443,12 @@ taken from the certfile.</p>
   <p>Omitted values will be set to their defaults (if they are an
 optional value with a default).
 <div class="language-toml highlight"><span class="filename">relay.toml</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[serving]</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">certfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/path/to/cert.pem&quot;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">certfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/path/to/cert.pem"</span>
 </span></code></pre></div></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">academy_exchange.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExchangeServingConfig</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ExchangeServingConfig</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="s1">&#39;relay.toml&#39;</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">assert</span> <span class="n">config</span><span class="o">.</span><span class="n">certfile</span> <span class="o">==</span> <span class="s1">&#39;/path/to/cert.pem&#39;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ExchangeServingConfig</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="s1">'relay.toml'</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">assert</span> <span class="n">config</span><span class="o">.</span><span class="n">certfile</span> <span class="o">==</span> <span class="s1">'/path/to/cert.pem'</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">assert</span> <span class="n">config</span><span class="o">.</span><span class="n">keyfile</span> <span class="ow">is</span> <span class="kc">None</span>
 </span></code></pre></div>
 </details>
@@ -3506,53 +3506,53 @@ optional value with a default).
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
 <span class="normal"><a href="#__codelineno-0-267">267</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="nd">@classmethod</span>
 </span><span id="__span-0-219"><a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_toml</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-</span><span id="__span-0-220"><a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse an TOML config file.</span>
+</span><span id="__span-0-220"><a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="w">    </span><span class="sd">"""Parse an TOML config file.</span>
 </span><span id="__span-0-221"><a id="__codelineno-0-221" name="__codelineno-0-221"></a>
 </span><span id="__span-0-222"><a id="__codelineno-0-222" name="__codelineno-0-222"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-223"><a id="__codelineno-0-223" name="__codelineno-0-223"></a><span class="sd">        Minimal config without SSL and without authentication.</span>
-</span><span id="__span-0-224"><a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">        ```toml title=&quot;exchange.toml&quot;</span>
+</span><span id="__span-0-224"><a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">        ```toml title="exchange.toml"</span>
 </span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">        port = 8700</span>
 </span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">        ```</span>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a>
 </span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">        ```python</span>
 </span><span id="__span-0-229"><a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">        from academy_exchange.config import ExchangeServingConfig</span>
 </span><span id="__span-0-230"><a id="__codelineno-0-230" name="__codelineno-0-230"></a>
-</span><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">        config = ExchangeServingConfig.from_toml(&#39;exchange.toml&#39;)</span>
+</span><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">        config = ExchangeServingConfig.from_toml('exchange.toml')</span>
 </span><span id="__span-0-232"><a id="__codelineno-0-232" name="__codelineno-0-232"></a><span class="sd">        ```</span>
 </span><span id="__span-0-233"><a id="__codelineno-0-233" name="__codelineno-0-233"></a>
 </span><span id="__span-0-234"><a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-235"><a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="sd">        Serve with SSL and Globus Auth.</span>
-</span><span id="__span-0-236"><a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">        ```toml title=&quot;relay.toml&quot;</span>
-</span><span id="__span-0-237"><a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">        host = &quot;0.0.0.0&quot;</span>
+</span><span id="__span-0-236"><a id="__codelineno-0-236" name="__codelineno-0-236"></a><span class="sd">        ```toml title="relay.toml"</span>
+</span><span id="__span-0-237"><a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">        host = "0.0.0.0"</span>
 </span><span id="__span-0-238"><a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">        port = 8700</span>
-</span><span id="__span-0-239"><a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">        certfile = &quot;/path/to/cert.pem&quot;</span>
-</span><span id="__span-0-240"><a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">        keyfile = &quot;/path/to/privkey.pem&quot;</span>
+</span><span id="__span-0-239"><a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">        certfile = "/path/to/cert.pem"</span>
+</span><span id="__span-0-240"><a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="sd">        keyfile = "/path/to/privkey.pem"</span>
 </span><span id="__span-0-241"><a id="__codelineno-0-241" name="__codelineno-0-241"></a>
 </span><span id="__span-0-242"><a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">        [auth]</span>
-</span><span id="__span-0-243"><a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">        method = &quot;globus&quot;</span>
+</span><span id="__span-0-243"><a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">        method = "globus"</span>
 </span><span id="__span-0-244"><a id="__codelineno-0-244" name="__codelineno-0-244"></a>
 </span><span id="__span-0-245"><a id="__codelineno-0-245" name="__codelineno-0-245"></a><span class="sd">        [auth.kwargs]</span>
-</span><span id="__span-0-246"><a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">        client_id = &quot;...&quot;</span>
-</span><span id="__span-0-247"><a id="__codelineno-0-247" name="__codelineno-0-247"></a><span class="sd">        client_secret = &quot;...&quot;</span>
+</span><span id="__span-0-246"><a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="sd">        client_id = "..."</span>
+</span><span id="__span-0-247"><a id="__codelineno-0-247" name="__codelineno-0-247"></a><span class="sd">        client_secret = "..."</span>
 </span><span id="__span-0-248"><a id="__codelineno-0-248" name="__codelineno-0-248"></a><span class="sd">        ```</span>
 </span><span id="__span-0-249"><a id="__codelineno-0-249" name="__codelineno-0-249"></a>
 </span><span id="__span-0-250"><a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="sd">    Note:</span>
 </span><span id="__span-0-251"><a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">        Omitted values will be set to their defaults (if they are an</span>
 </span><span id="__span-0-252"><a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">        optional value with a default).</span>
-</span><span id="__span-0-253"><a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">        ```toml title=&quot;relay.toml&quot;</span>
+</span><span id="__span-0-253"><a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">        ```toml title="relay.toml"</span>
 </span><span id="__span-0-254"><a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="sd">        [serving]</span>
-</span><span id="__span-0-255"><a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">        certfile = &quot;/path/to/cert.pem&quot;</span>
+</span><span id="__span-0-255"><a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">        certfile = "/path/to/cert.pem"</span>
 </span><span id="__span-0-256"><a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">        ```</span>
 </span><span id="__span-0-257"><a id="__codelineno-0-257" name="__codelineno-0-257"></a>
 </span><span id="__span-0-258"><a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">        ```python</span>
 </span><span id="__span-0-259"><a id="__codelineno-0-259" name="__codelineno-0-259"></a><span class="sd">        from academy_exchange.config import ExchangeServingConfig</span>
 </span><span id="__span-0-260"><a id="__codelineno-0-260" name="__codelineno-0-260"></a>
-</span><span id="__span-0-261"><a id="__codelineno-0-261" name="__codelineno-0-261"></a><span class="sd">        config = ExchangeServingConfig.from_config(&#39;relay.toml&#39;)</span>
-</span><span id="__span-0-262"><a id="__codelineno-0-262" name="__codelineno-0-262"></a><span class="sd">        assert config.certfile == &#39;/path/to/cert.pem&#39;</span>
+</span><span id="__span-0-261"><a id="__codelineno-0-261" name="__codelineno-0-261"></a><span class="sd">        config = ExchangeServingConfig.from_config('relay.toml')</span>
+</span><span id="__span-0-262"><a id="__codelineno-0-262" name="__codelineno-0-262"></a><span class="sd">        assert config.certfile == '/path/to/cert.pem'</span>
 </span><span id="__span-0-263"><a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="sd">        assert config.keyfile is None</span>
 </span><span id="__span-0-264"><a id="__codelineno-0-264" name="__codelineno-0-264"></a><span class="sd">        ```</span>
-</span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">    """</span>
+</span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">'rb'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 </span><span id="__span-0-267"><a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="k">return</span> <span class="n">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -3631,7 +3631,7 @@ optional value with a default).
 <span class="normal"><a href="#__codelineno-0-278">278</a></span>
 <span class="normal"><a href="#__codelineno-0-279">279</a></span>
 <span class="normal"><a href="#__codelineno-0-280">280</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-270"><a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModelT</span><span class="p">],</span> <span class="n">fp</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseModelT</span><span class="p">:</span>
-</span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse TOML from a binary file to a data class.</span>
+</span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="w">    </span><span class="sd">"""Parse TOML from a binary file to a data class.</span>
 </span><span id="__span-0-272"><a id="__codelineno-0-272" name="__codelineno-0-272"></a>
 </span><span id="__span-0-273"><a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-274"><a id="__codelineno-0-274" name="__codelineno-0-274"></a><span class="sd">        model: Config model type to parse TOML using.</span>
@@ -3639,7 +3639,7 @@ optional value with a default).
 </span><span id="__span-0-276"><a id="__codelineno-0-276" name="__codelineno-0-276"></a>
 </span><span id="__span-0-277"><a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">        Model initialized from TOML file.</span>
-</span><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">    """</span>
 </span><span id="__span-0-280"><a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="k">return</span> <span class="n">loads</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -3710,7 +3710,7 @@ optional value with a default).
 <span class="normal"><a href="#__codelineno-0-292">292</a></span>
 <span class="normal"><a href="#__codelineno-0-293">293</a></span>
 <span class="normal"><a href="#__codelineno-0-294">294</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-283"><a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="k">def</span><span class="w"> </span><span class="nf">loads</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModelT</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseModelT</span><span class="p">:</span>
-</span><span id="__span-0-284"><a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse TOML string to data class.</span>
+</span><span id="__span-0-284"><a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="w">    </span><span class="sd">"""Parse TOML string to data class.</span>
 </span><span id="__span-0-285"><a id="__codelineno-0-285" name="__codelineno-0-285"></a>
 </span><span id="__span-0-286"><a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-287"><a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">        model: Config model type to parse TOML using.</span>
@@ -3718,7 +3718,7 @@ optional value with a default).
 </span><span id="__span-0-289"><a id="__codelineno-0-289" name="__codelineno-0-289"></a>
 </span><span id="__span-0-290"><a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-291"><a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">        Model initialized from TOML file.</span>
-</span><span id="__span-0-292"><a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-292"><a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">    """</span>
 </span><span id="__span-0-293"><a id="__codelineno-0-293" name="__codelineno-0-293"></a>    <span class="n">data_dict</span> <span class="o">=</span> <span class="n">tomllib</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </span><span id="__span-0-294"><a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">data_dict</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>

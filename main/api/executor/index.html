@@ -2661,7 +2661,7 @@ runs every subsequent Agent submission onto that host's own event loop.</p>
 </span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 </span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 </span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Future</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a callable on the host agent&#39;s event loop.</span>
+</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="w">    </span><span class="sd">"""Run a callable on the host agent's event loop.</span>
 </span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a>
 </span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">        fn: Callable to run on the host.</span>
@@ -2669,9 +2669,9 @@ runs every subsequent Agent submission onto that host's own event loop.</p>
 </span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">        **kwargs: Keyword arguments for submitted function.</span>
 </span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>
 </span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">    Returns: Future resolving when fn finishes on host.</span>
-</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">    """</span>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown</span><span class="p">:</span>
-</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Cannot submit after host shutdown&#39;</span><span class="p">)</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">'Cannot submit after host shutdown'</span><span class="p">)</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="n">_run_agent_on_worker</span><span class="p">:</span>
 </span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>        <span class="n">spec</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -2679,8 +2679,8 @@ runs every subsequent Agent submission onto that host's own event loop.</p>
 </span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>
 </span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>    <span class="k">else</span><span class="p">:</span>
 </span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>            <span class="s1">&#39;Only functions of the type _run_agent_on_worker &#39;</span>
-</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>            <span class="s1">&#39;are allowed to be submitted.&#39;</span><span class="p">,</span>
+</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>            <span class="s1">'Only functions of the type _run_agent_on_worker '</span>
+</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>            <span class="s1">'are allowed to be submitted.'</span><span class="p">,</span>
 </span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a>        <span class="p">)</span>
 </span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a>
 </span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2761,12 +2761,12 @@ cancel_futures: Cancel pending futures before shutting down.</p>
 </span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="n">wait</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a>    <span class="n">cancel_futures</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Shut down the owned thread and the host agent.</span>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="w">    </span><span class="sd">"""Shut down the owned thread and the host agent.</span>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">    wait: Wait for the inner executor to finish before returning.</span>
 </span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">    cancel_futures: Cancel pending futures before shutting down.</span>
-</span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">    """</span>
 </span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown</span> <span class="o">=</span> <span class="kc">True</span>
 </span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a>    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 </span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a>

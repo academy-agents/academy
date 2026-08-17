@@ -2403,7 +2403,7 @@
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">handle</span><span class="p">:</span> <span class="n">Handle</span><span class="p">[</span><span class="n">Example</span><span class="p">]</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">reveal_type</span><span class="p">(</span><span class="k">await</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># note: Revealed type is &quot;int&quot;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># note: Revealed type is "int"</span>
 </span></code></pre></div>
 Without the plugin, mypy will default to <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/typing.html#typing.Any"><code>Any</code></a>.</p>
 
@@ -2422,7 +2422,7 @@ in your
 <ul>
 <li><code>pyproject.toml</code>
   <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[tools.mypy]</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;academy.mypy_plugin&quot;</span><span class="p">]</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">plugins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"academy.mypy_plugin"</span><span class="p">]</span>
 </span></code></pre></div></li>
 <li><code>mypy.ini</code> and <code>setup.cfg</code>
   <div class="language-ini highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[mypy]</span>

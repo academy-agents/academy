@@ -2587,7 +2587,7 @@ are already logged by coro.</p>
 </span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 </span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>    <span class="n">log_exception</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Run a coroutine safely in the background.</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="w">    </span><span class="sd">"""Run a coroutine safely in the background.</span>
 </span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>
 </span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">    Launches the coroutine as an asyncio task. Optionally attaches logging</span>
 </span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">    to any exception raised, and/or exiting on any exception raised.</span>
@@ -2605,7 +2605,7 @@ are already logged by coro.</p>
 </span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>
 </span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="sd">        Asyncio task.</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    """</span>
 </span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="k">if</span> <span class="n">log_exception</span><span class="p">:</span>
 </span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>        <span class="n">fut</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">ensure_future</span><span class="p">(</span><span class="n">coro</span><span class="p">)</span>
 </span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>        <span class="n">coro</span> <span class="o">=</span> <span class="n">execute_and_log_traceback</span><span class="p">(</span><span class="n">fut</span><span class="p">)</span>

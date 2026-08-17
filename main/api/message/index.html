@@ -3719,14 +3719,14 @@ Caches the result to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-135">135</a></span>
 <span class="normal"><a href="#__codelineno-0-136">136</a></span>
 <span class="normal"><a href="#__codelineno-0-137">137</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_args</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-</span><span id="__span-0-127"><a id="__codelineno-0-127" name="__codelineno-0-127"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the positional arguments.</span>
+</span><span id="__span-0-127"><a id="__codelineno-0-127" name="__codelineno-0-127"></a><span class="w">    </span><span class="sd">"""Get the positional arguments.</span>
 </span><span id="__span-0-128"><a id="__codelineno-0-128" name="__codelineno-0-128"></a>
 </span><span id="__span-0-129"><a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="sd">    Lazily deserializes and returns the positional arguments.</span>
 </span><span id="__span-0-130"><a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">    Caches the result to avoid redundant decoding.</span>
 </span><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a>
 </span><span id="__span-0-132"><a id="__codelineno-0-132" name="__codelineno-0-132"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="sd">        The deserialized tuple of positional arguments.</span>
-</span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="sd">    """</span>
 </span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pargs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 </span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">pargs</span> <span class="o">=</span> <span class="n">deserialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pargs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialization</span><span class="p">)</span>
 </span><span id="__span-0-137"><a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pargs</span>
@@ -3780,14 +3780,14 @@ Caches the result to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-148">148</a></span>
 <span class="normal"><a href="#__codelineno-0-149">149</a></span>
 <span class="normal"><a href="#__codelineno-0-150">150</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-139"><a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span id="__span-0-140"><a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the keyword arguments.</span>
+</span><span id="__span-0-140"><a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="w">    </span><span class="sd">"""Get the keyword arguments.</span>
 </span><span id="__span-0-141"><a id="__codelineno-0-141" name="__codelineno-0-141"></a>
 </span><span id="__span-0-142"><a id="__codelineno-0-142" name="__codelineno-0-142"></a><span class="sd">    Lazily deserializes and returns the keyword arguments.</span>
 </span><span id="__span-0-143"><a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">    Caches the result to avoid redundant decoding.</span>
 </span><span id="__span-0-144"><a id="__codelineno-0-144" name="__codelineno-0-144"></a>
 </span><span id="__span-0-145"><a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-146"><a id="__codelineno-0-146" name="__codelineno-0-146"></a><span class="sd">        The deserialized dictionary of keyword arguments.</span>
-</span><span id="__span-0-147"><a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-147"><a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    """</span>
 </span><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kargs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 </span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">kargs</span> <span class="o">=</span> <span class="n">deserialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kargs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialization</span><span class="p">)</span>
 </span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kargs</span>
@@ -4179,18 +4179,18 @@ Caches the result to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-230">230</a></span>
 <span class="normal"><a href="#__codelineno-0-231">231</a></span>
 <span class="normal"><a href="#__codelineno-0-232">232</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-217"><a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_result</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the result.</span>
+</span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="w">    </span><span class="sd">"""Get the result.</span>
 </span><span id="__span-0-219"><a id="__codelineno-0-219" name="__codelineno-0-219"></a>
 </span><span id="__span-0-220"><a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="sd">    Lazily deserializes and returns the result of the action.</span>
 </span><span id="__span-0-221"><a id="__codelineno-0-221" name="__codelineno-0-221"></a><span class="sd">    Caches the result to avoid redundant decoding.</span>
 </span><span id="__span-0-222"><a id="__codelineno-0-222" name="__codelineno-0-222"></a>
 </span><span id="__span-0-223"><a id="__codelineno-0-223" name="__codelineno-0-223"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-224"><a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">        The deserialized result of the action.</span>
-</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">    """</span>
 </span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a>    <span class="k">if</span> <span class="p">(</span>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a>        <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
 </span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>  <span class="c1"># noqa PLR2004</span>
-</span><span id="__span-0-229"><a id="__codelineno-0-229" name="__codelineno-0-229"></a>        <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;__serialized__&#39;</span>
+</span><span id="__span-0-229"><a id="__codelineno-0-229" name="__codelineno-0-229"></a>        <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'__serialized__'</span>
 </span><span id="__span-0-230"><a id="__codelineno-0-230" name="__codelineno-0-230"></a>    <span class="p">):</span>
 </span><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">deserialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialization</span><span class="p">)</span>
 </span><span id="__span-0-232"><a id="__codelineno-0-232" name="__codelineno-0-232"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span>
@@ -4282,11 +4282,11 @@ Caches the result to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-243">243</a></span>
 <span class="normal"><a href="#__codelineno-0-244">244</a></span>
 <span class="normal"><a href="#__codelineno-0-245">245</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-239"><a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span id="__span-0-240"><a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the exception.</span>
+</span><span id="__span-0-240"><a id="__codelineno-0-240" name="__codelineno-0-240"></a><span class="w">    </span><span class="sd">"""Get the exception.</span>
 </span><span id="__span-0-241"><a id="__codelineno-0-241" name="__codelineno-0-241"></a>
 </span><span id="__span-0-242"><a id="__codelineno-0-242" name="__codelineno-0-242"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-243"><a id="__codelineno-0-243" name="__codelineno-0-243"></a><span class="sd">        The exception.</span>
-</span><span id="__span-0-244"><a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-244"><a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="sd">    """</span>
 </span><span id="__span-0-245"><a id="__codelineno-0-245" name="__codelineno-0-245"></a>    <span class="o">...</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -4522,16 +4522,16 @@ Caches the result to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-298">298</a></span>
 <span class="normal"><a href="#__codelineno-0-299">299</a></span>
 <span class="normal"><a href="#__codelineno-0-300">300</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-277"><a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the exception.</span>
+</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="w">    </span><span class="sd">"""Get the exception.</span>
 </span><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a>
 </span><span id="__span-0-280"><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-281"><a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">        The exception.</span>
-</span><span id="__span-0-282"><a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-282"><a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">    """</span>
 </span><span id="__span-0-283"><a id="__codelineno-0-283" name="__codelineno-0-283"></a>    <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_code</span><span class="p">:</span>
 </span><span id="__span-0-284"><a id="__codelineno-0-284" name="__codelineno-0-284"></a>        <span class="k">case</span> <span class="n">ErrorCode</span><span class="o">.</span><span class="n">MAILBOX_TERMINATED</span><span class="p">:</span>
 </span><span id="__span-0-285"><a id="__codelineno-0-285" name="__codelineno-0-285"></a>            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mailbox_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-0-286"><a id="__codelineno-0-286" name="__codelineno-0-286"></a>                <span class="s1">&#39;Improper error response while decoding exception. &#39;</span>
-</span><span id="__span-0-287"><a id="__codelineno-0-287" name="__codelineno-0-287"></a>                <span class="s1">&#39;Missing mailbox_id field in MailboxTerminatedError.&#39;</span>
+</span><span id="__span-0-286"><a id="__codelineno-0-286" name="__codelineno-0-286"></a>                <span class="s1">'Improper error response while decoding exception. '</span>
+</span><span id="__span-0-287"><a id="__codelineno-0-287" name="__codelineno-0-287"></a>                <span class="s1">'Missing mailbox_id field in MailboxTerminatedError.'</span>
 </span><span id="__span-0-288"><a id="__codelineno-0-288" name="__codelineno-0-288"></a>            <span class="p">)</span>
 </span><span id="__span-0-289"><a id="__codelineno-0-289" name="__codelineno-0-289"></a>            <span class="k">return</span> <span class="n">MailboxTerminatedError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mailbox_id</span><span class="p">)</span>
 </span><span id="__span-0-290"><a id="__codelineno-0-290" name="__codelineno-0-290"></a>        <span class="k">case</span> <span class="n">ErrorCode</span><span class="o">.</span><span class="n">PING_CANCELLED</span><span class="p">:</span>
@@ -4541,10 +4541,10 @@ Caches the result to avoid redundant decoding.</p>
 </span><span id="__span-0-294"><a id="__codelineno-0-294" name="__codelineno-0-294"></a>        <span class="k">case</span> <span class="n">ErrorCode</span><span class="o">.</span><span class="n">ACTION_CANCELLED</span><span class="p">:</span>
 </span><span id="__span-0-295"><a id="__codelineno-0-295" name="__codelineno-0-295"></a>            <span class="k">return</span> <span class="n">ActionCancelledError</span><span class="p">()</span>
 </span><span id="__span-0-296"><a id="__codelineno-0-296" name="__codelineno-0-296"></a>        <span class="k">case</span> <span class="n">ErrorCode</span><span class="o">.</span><span class="n">INVALID_CLIENT</span><span class="p">:</span>
-</span><span id="__span-0-297"><a id="__codelineno-0-297" name="__codelineno-0-297"></a>            <span class="k">return</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mailbox_id</span><span class="si">}</span><span class="s1"> cannot fulfill requests.&#39;</span><span class="p">)</span>
+</span><span id="__span-0-297"><a id="__codelineno-0-297" name="__codelineno-0-297"></a>            <span class="k">return</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mailbox_id</span><span class="si">}</span><span class="s1"> cannot fulfill requests.'</span><span class="p">)</span>
 </span><span id="__span-0-298"><a id="__codelineno-0-298" name="__codelineno-0-298"></a>        <span class="k">case</span> <span class="n">ErrorCode</span><span class="o">.</span><span class="n">INCOMPATIBLE_PROTOCOL</span><span class="p">:</span>
 </span><span id="__span-0-299"><a id="__codelineno-0-299" name="__codelineno-0-299"></a>            <span class="k">return</span> <span class="n">IncompatibleNetworkProtocolError</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">PROTOCOL_VERSION</span><span class="p">)</span>
-</span><span id="__span-0-300"><a id="__codelineno-0-300" name="__codelineno-0-300"></a>    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s1">&#39;Unreachable.&#39;</span><span class="p">)</span>
+</span><span id="__span-0-300"><a id="__codelineno-0-300" name="__codelineno-0-300"></a>    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s1">'Unreachable.'</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4718,14 +4718,14 @@ Caches the result to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-349">349</a></span>
 <span class="normal"><a href="#__codelineno-0-350">350</a></span>
 <span class="normal"><a href="#__codelineno-0-351">351</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-340"><a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the exception.</span>
+</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="w">    </span><span class="sd">"""Get the exception.</span>
 </span><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a>
 </span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">    Lazily deserializes and returns the exception object.</span>
 </span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    Caches the result to avoid redundant decoding.</span>
 </span><span id="__span-0-345"><a id="__codelineno-0-345" name="__codelineno-0-345"></a>
 </span><span id="__span-0-346"><a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-347"><a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="sd">        The deserialized exception.</span>
-</span><span id="__span-0-348"><a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-348"><a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">    """</span>
 </span><span id="__span-0-349"><a id="__codelineno-0-349" name="__codelineno-0-349"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exception</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
 </span><span id="__span-0-350"><a id="__codelineno-0-350" name="__codelineno-0-350"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">exception</span> <span class="o">=</span> <span class="n">deserialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exception</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialization</span><span class="p">)</span>
 </span><span id="__span-0-351"><a id="__codelineno-0-351" name="__codelineno-0-351"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exception</span>
@@ -5100,27 +5100,27 @@ and sets the kind to 'response'.</p>
 <span class="normal"><a href="#__codelineno-0-427">427</a></span>
 <span class="normal"><a href="#__codelineno-0-428">428</a></span>
 <span class="normal"><a href="#__codelineno-0-429">429</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_response_header</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a response header based on the current request header.</span>
+</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="w">    </span><span class="sd">"""Create a response header based on the current request header.</span>
 </span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a>
 </span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">    Swaps the source and destination, retains the tag and label,</span>
-</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">    and sets the kind to &#39;response&#39;.</span>
+</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">    and sets the kind to 'response'.</span>
 </span><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a>
 </span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">        A new header instance with reversed roles.</span>
 </span><span id="__span-0-415"><a id="__codelineno-0-415" name="__codelineno-0-415"></a>
 </span><span id="__span-0-416"><a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-417"><a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">        ValueError: If the current header is already a response.</span>
-</span><span id="__span-0-418"><a id="__codelineno-0-418" name="__codelineno-0-418"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-419"><a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;response&#39;</span><span class="p">:</span>
+</span><span id="__span-0-418"><a id="__codelineno-0-418" name="__codelineno-0-418"></a><span class="sd">    """</span>
+</span><span id="__span-0-419"><a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">'response'</span><span class="p">:</span>
 </span><span id="__span-0-420"><a id="__codelineno-0-420" name="__codelineno-0-420"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-421"><a id="__codelineno-0-421" name="__codelineno-0-421"></a>            <span class="s1">&#39;Cannot create response header from another response header&#39;</span><span class="p">,</span>
+</span><span id="__span-0-421"><a id="__codelineno-0-421" name="__codelineno-0-421"></a>            <span class="s1">'Cannot create response header from another response header'</span><span class="p">,</span>
 </span><span id="__span-0-422"><a id="__codelineno-0-422" name="__codelineno-0-422"></a>        <span class="p">)</span>
 </span><span id="__span-0-423"><a id="__codelineno-0-423" name="__codelineno-0-423"></a>    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
 </span><span id="__span-0-424"><a id="__codelineno-0-424" name="__codelineno-0-424"></a>        <span class="n">tag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
 </span><span id="__span-0-425"><a id="__codelineno-0-425" name="__codelineno-0-425"></a>        <span class="n">src</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
 </span><span id="__span-0-426"><a id="__codelineno-0-426" name="__codelineno-0-426"></a>        <span class="n">dest</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">src</span><span class="p">,</span>
 </span><span id="__span-0-427"><a id="__codelineno-0-427" name="__codelineno-0-427"></a>        <span class="n">label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
-</span><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a>        <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;response&#39;</span><span class="p">,</span>
+</span><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a>        <span class="n">kind</span><span class="o">=</span><span class="s1">'response'</span><span class="p">,</span>
 </span><span id="__span-0-429"><a id="__codelineno-0-429" name="__codelineno-0-429"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -5498,7 +5498,7 @@ deserialized state until
 </span><span id="__span-0-493"><a id="__codelineno-0-493" name="__codelineno-0-493"></a>    <span class="n">label</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-494"><a id="__codelineno-0-494" name="__codelineno-0-494"></a>    <span class="n">tag</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-495"><a id="__codelineno-0-495" name="__codelineno-0-495"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">[</span><span class="n">BodyT</span><span class="p">]:</span>
-</span><span id="__span-0-496"><a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new message with the specified header and body.</span>
+</span><span id="__span-0-496"><a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="w">    </span><span class="sd">"""Create a new message with the specified header and body.</span>
 </span><span id="__span-0-497"><a id="__codelineno-0-497" name="__codelineno-0-497"></a>
 </span><span id="__span-0-498"><a id="__codelineno-0-498" name="__codelineno-0-498"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-499"><a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="sd">        src: Source entity ID.</span>
@@ -5509,13 +5509,13 @@ deserialized state until
 </span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a>
 </span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="sd">        A new message instance.</span>
-</span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">    """</span>
 </span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">get_args</span><span class="p">(</span><span class="n">Request</span><span class="p">)):</span>
-</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a>        <span class="n">kind</span> <span class="o">=</span> <span class="s1">&#39;request&#39;</span>
+</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a>        <span class="n">kind</span> <span class="o">=</span> <span class="s1">'request'</span>
 </span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a>    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">get_args</span><span class="p">(</span><span class="n">Response</span><span class="p">)):</span>
-</span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a>        <span class="n">kind</span> <span class="o">=</span> <span class="s1">&#39;response&#39;</span>
+</span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a>        <span class="n">kind</span> <span class="o">=</span> <span class="s1">'response'</span>
 </span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a>        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s1">&#39;Unreachable.&#39;</span><span class="p">)</span>
+</span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a>        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s1">'Unreachable.'</span><span class="p">)</span>
 </span><span id="__span-0-514"><a id="__codelineno-0-514" name="__codelineno-0-514"></a>
 </span><span id="__span-0-515"><a id="__codelineno-0-515" name="__codelineno-0-515"></a>    <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-0-516"><a id="__codelineno-0-516" name="__codelineno-0-516"></a>        <span class="n">tag</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
@@ -5609,7 +5609,7 @@ deserialized state until
 <span class="normal"><a href="#__codelineno-0-534">534</a></span>
 <span class="normal"><a href="#__codelineno-0-535">535</a></span>
 <span class="normal"><a href="#__codelineno-0-536">536</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-522"><a id="__codelineno-0-522" name="__codelineno-0-522"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">ResponseT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">[</span><span class="n">ResponseT</span><span class="p">]:</span>
-</span><span id="__span-0-523"><a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a response message from this request message.</span>
+</span><span id="__span-0-523"><a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="w">    </span><span class="sd">"""Create a response message from this request message.</span>
 </span><span id="__span-0-524"><a id="__codelineno-0-524" name="__codelineno-0-524"></a>
 </span><span id="__span-0-525"><a id="__codelineno-0-525" name="__codelineno-0-525"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-526"><a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="sd">        body: Response message body.</span>
@@ -5619,7 +5619,7 @@ deserialized state until
 </span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a>
 </span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">        ValueError: If this message is already a response.</span>
-</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">    """</span>
 </span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>    <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">create_response_header</span><span class="p">()</span>
 </span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a>    <span class="n">response</span><span class="p">:</span> <span class="n">Message</span><span class="p">[</span><span class="n">ResponseT</span><span class="p">]</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
 </span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a>    <span class="k">return</span> <span class="n">response</span>
@@ -5690,14 +5690,14 @@ Caches the body to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-564">564</a></span>
 <span class="normal"><a href="#__codelineno-0-565">565</a></span>
 <span class="normal"><a href="#__codelineno-0-566">566</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_body</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BodyT</span><span class="p">:</span>
-</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the message body, deserializing if needed.</span>
+</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="w">    </span><span class="sd">"""Return the message body, deserializing if needed.</span>
 </span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a>
 </span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">    Lazily deserializes and returns the body object.</span>
 </span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">    Caches the body to avoid redundant decoding.</span>
 </span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a>
 </span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">        The deserialized body.</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">    """</span>
 </span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">get_args</span><span class="p">(</span><span class="n">Body</span><span class="p">)):</span>
 </span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span>
 </span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a>
@@ -5745,8 +5745,8 @@ Caches the body to avoid redundant decoding.</p>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-568">568</a></span>
 <span class="normal"><a href="#__codelineno-0-569">569</a></span>
 <span class="normal"><a href="#__codelineno-0-570">570</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-568"><a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_request</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-0-569"><a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the message is a request.&quot;&quot;&quot;</span>
-</span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;request&#39;</span>
+</span><span id="__span-0-569"><a id="__codelineno-0-569" name="__codelineno-0-569"></a><span class="w">    </span><span class="sd">"""Check if the message is a request."""</span>
+</span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">'request'</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5774,8 +5774,8 @@ Caches the body to avoid redundant decoding.</p>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-572">572</a></span>
 <span class="normal"><a href="#__codelineno-0-573">573</a></span>
 <span class="normal"><a href="#__codelineno-0-574">574</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-572"><a id="__codelineno-0-572" name="__codelineno-0-572"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_response</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the message is a response.&quot;&quot;&quot;</span>
-</span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;response&#39;</span>
+</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="w">    </span><span class="sd">"""Check if the message is a response."""</span>
+</span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">'response'</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5852,15 +5852,15 @@ Caches the body to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-586">586</a></span>
 <span class="normal"><a href="#__codelineno-0-587">587</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="nd">@classmethod</span>
 </span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="k">def</span><span class="w"> </span><span class="nf">model_deserialize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">[</span><span class="n">BodyT</span><span class="p">]:</span>
-</span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Deserialize a message from bytes.</span>
+</span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="w">    </span><span class="sd">"""Deserialize a message from bytes.</span>
 </span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a>
 </span><span id="__span-0-580"><a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-581"><a id="__codelineno-0-581" name="__codelineno-0-581"></a><span class="sd">        data: The serialized message as bytes.</span>
 </span><span id="__span-0-582"><a id="__codelineno-0-582" name="__codelineno-0-582"></a>
 </span><span id="__span-0-583"><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-584"><a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">        The deserialized message instance.</span>
-</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a>    <span class="n">message</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">    """</span>
+</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a>    <span class="n">message</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">))</span>
 </span><span id="__span-0-587"><a id="__codelineno-0-587" name="__codelineno-0-587"></a>    <span class="k">return</span> <span class="n">message</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -5905,12 +5905,12 @@ Caches the body to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-593">593</a></span>
 <span class="normal"><a href="#__codelineno-0-594">594</a></span>
 <span class="normal"><a href="#__codelineno-0-595">595</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-589"><a id="__codelineno-0-589" name="__codelineno-0-589"></a><span class="k">def</span><span class="w"> </span><span class="nf">model_serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
-</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Serialize the message to bytes.</span>
+</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="w">    </span><span class="sd">"""Serialize the message to bytes.</span>
 </span><span id="__span-0-591"><a id="__codelineno-0-591" name="__codelineno-0-591"></a>
 </span><span id="__span-0-592"><a id="__codelineno-0-592" name="__codelineno-0-592"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-593"><a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">        The serialized message as bytes.</span>
-</span><span id="__span-0-594"><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-595"><a id="__codelineno-0-595" name="__codelineno-0-595"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+</span><span id="__span-0-594"><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="sd">    """</span>
+</span><span id="__span-0-595"><a id="__codelineno-0-595" name="__codelineno-0-595"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5944,13 +5944,13 @@ Caches the body to avoid redundant decoding.</p>
 <span class="normal"><a href="#__codelineno-0-603">603</a></span>
 <span class="normal"><a href="#__codelineno-0-604">604</a></span>
 <span class="normal"><a href="#__codelineno-0-605">605</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="k">def</span><span class="w"> </span><span class="nf">log_extra</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
-</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns extra info useful in logs about this Message.&quot;&quot;&quot;</span>
+</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="w">    </span><span class="sd">"""Returns extra info useful in logs about this Message."""</span>
 </span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a>    <span class="k">return</span> <span class="p">{</span>
-</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a>        <span class="s1">&#39;academy.message_type&#39;</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a>        <span class="s1">&#39;academy.src&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">src</span><span class="p">,</span>
-</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a>        <span class="s1">&#39;academy.dest&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
-</span><span id="__span-0-603"><a id="__codelineno-0-603" name="__codelineno-0-603"></a>        <span class="s1">&#39;academy.message_tag&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
-</span><span id="__span-0-604"><a id="__codelineno-0-604" name="__codelineno-0-604"></a>        <span class="s1">&#39;academy.message_label&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a>        <span class="s1">'academy.message_type'</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a>        <span class="s1">'academy.src'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">src</span><span class="p">,</span>
+</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a>        <span class="s1">'academy.dest'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span>
+</span><span id="__span-0-603"><a id="__codelineno-0-603" name="__codelineno-0-603"></a>        <span class="s1">'academy.message_tag'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
+</span><span id="__span-0-604"><a id="__codelineno-0-604" name="__codelineno-0-604"></a>        <span class="s1">'academy.message_label'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
 </span><span id="__span-0-605"><a id="__codelineno-0-605" name="__codelineno-0-605"></a>    <span class="p">}</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
@@ -6035,7 +6035,7 @@ and must match exactly.</p>
 <span class="normal"><a href="#__codelineno-0-75">75</a></span>
 <span class="normal"><a href="#__codelineno-0-76">76</a></span>
 <span class="normal"><a href="#__codelineno-0-77">77</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="k">def</span><span class="w"> </span><span class="nf">check_version</span><span class="p">(</span><span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Checks if a `protocol_version` is compatible.</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="w">    </span><span class="sd">"""Checks if a `protocol_version` is compatible.</span>
 </span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>
 </span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">    Messages within a major version are intended to be mutually</span>
 </span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">    compatible, while minor version changes might introduce</span>
@@ -6048,7 +6048,7 @@ and must match exactly.</p>
 </span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>
 </span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">        True if the version is compatible.</span>
-</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">    """</span>
 </span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="k">return</span> <span class="p">(</span>
 </span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>        <span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 </span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="ow">and</span> <span class="n">parse</span><span class="p">(</span><span class="n">version</span><span class="p">)</span><span class="o">.</span><span class="n">major</span> <span class="o">==</span> <span class="n">PROTOCOL_VERSION</span><span class="o">.</span><span class="n">major</span>

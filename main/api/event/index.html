@@ -2539,7 +2539,7 @@
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a>    <span class="o">*</span><span class="n">events</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">:</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Wait for the first async event to be set.</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="w">    </span><span class="sd">"""Wait for the first async event to be set.</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">        events: One or more events to wait on.</span>
@@ -2550,11 +2550,11 @@
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        TimeoutError: If no event finished within `timeout` seconds.</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    """</span>
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>    <span class="n">tasks</span> <span class="o">=</span> <span class="p">{</span>
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>        <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span>
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>            <span class="n">event</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;or-event-waiter-</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s1">'or-event-waiter-</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">'</span><span class="p">,</span>
 </span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>        <span class="p">):</span> <span class="n">event</span>
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">event</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="p">}</span>
@@ -2569,7 +2569,7 @@
 </span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>            <span class="k">await</span> <span class="n">task</span>
 </span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>
 </span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">done</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>        <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No events were set within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s1"> seconds.&#39;</span><span class="p">)</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>        <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="sa">f</span><span class="s1">'No events were set within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s1"> seconds.'</span><span class="p">)</span>
 </span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>
 </span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="k">return</span> <span class="n">tasks</span><span class="p">[</span><span class="n">done</span><span class="o">.</span><span class="n">pop</span><span class="p">()]</span>
 </span></code></pre></div></td></tr></table></div>

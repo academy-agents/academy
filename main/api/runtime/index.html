@@ -2895,7 +2895,7 @@ to shutdown if <code>shutdown_on_loop_error</code> is set in the <code>config</c
 </span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_sync_concurrency</span><span class="p">,</span>
-</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>        <span class="n">thread_name_prefix</span><span class="o">=</span><span class="s1">&#39;agent-sync-executor-thread&#39;</span><span class="p">,</span>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>        <span class="n">thread_name_prefix</span><span class="o">=</span><span class="s1">'agent-sync-executor-thread'</span><span class="p">,</span>
 </span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a>    <span class="p">)</span>
 </span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a>
 </span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_client</span><span class="p">:</span> <span class="p">(</span>
@@ -3077,7 +3077,7 @@ the agent's agent.</p>
 </span><span id="__span-0-439"><a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 </span><span id="__span-0-440"><a id="__codelineno-0-440" name="__codelineno-0-440"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 </span><span id="__span-0-441"><a id="__codelineno-0-441" name="__codelineno-0-441"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span id="__span-0-442"><a id="__codelineno-0-442" name="__codelineno-0-442"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Invoke an action of the agent&#39;s agent.</span>
+</span><span id="__span-0-442"><a id="__codelineno-0-442" name="__codelineno-0-442"></a><span class="w">    </span><span class="sd">"""Invoke an action of the agent's agent.</span>
 </span><span id="__span-0-443"><a id="__codelineno-0-443" name="__codelineno-0-443"></a>
 </span><span id="__span-0-444"><a id="__codelineno-0-444" name="__codelineno-0-444"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-445"><a id="__codelineno-0-445" name="__codelineno-0-445"></a><span class="sd">        action: Name of action to invoke.</span>
@@ -3090,20 +3090,20 @@ the agent's agent.</p>
 </span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a>
 </span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">        AttributeError: If an action with this name is not implemented by</span>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">            the agent&#39;s agent.</span>
-</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">            the agent's agent.</span>
+</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">    """</span>
 </span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-</span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a>        <span class="s1">&#39;Invoking &quot;</span><span class="si">%s</span><span class="s1">&quot; action on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+</span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a>        <span class="s1">'Invoking "</span><span class="si">%s</span><span class="s1">" action on </span><span class="si">%s</span><span class="s1">'</span><span class="p">,</span>
 </span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a>        <span class="n">action</span><span class="p">,</span>
 </span><span id="__span-0-460"><a id="__codelineno-0-460" name="__codelineno-0-460"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
 </span><span id="__span-0-461"><a id="__codelineno-0-461" name="__codelineno-0-461"></a>        <span class="n">extra</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a>            <span class="s1">&#39;academy.action&#39;</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
-</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a>            <span class="s1">&#39;academy.agent_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a>            <span class="s1">'academy.action'</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
+</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a>            <span class="s1">'academy.agent_id'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
 </span><span id="__span-0-464"><a id="__codelineno-0-464" name="__codelineno-0-464"></a>        <span class="p">},</span>
 </span><span id="__span-0-465"><a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="p">)</span>
 </span><span id="__span-0-466"><a id="__codelineno-0-466" name="__codelineno-0-466"></a>    <span class="k">if</span> <span class="n">action</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="p">:</span>
 </span><span id="__span-0-467"><a id="__codelineno-0-467" name="__codelineno-0-467"></a>        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
-</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a>            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="si">}</span><span class="s1"> does not have an action named &quot;</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s1">&quot;.&#39;</span><span class="p">,</span>
+</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a>            <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="si">}</span><span class="s1"> does not have an action named "</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s1">".'</span><span class="p">,</span>
 </span><span id="__span-0-469"><a id="__codelineno-0-469" name="__codelineno-0-469"></a>        <span class="p">)</span>
 </span><span id="__span-0-470"><a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">action_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="p">[</span><span class="n">action</span><span class="p">]</span>
 </span><span id="__span-0-471"><a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="k">if</span> <span class="n">action_method</span><span class="o">.</span><span class="n">_action_method_context</span><span class="p">:</span>
@@ -3239,16 +3239,16 @@ inside of control loops.</p>
 <span class="normal"><a href="#__codelineno-0-515">515</a></span>
 <span class="normal"><a href="#__codelineno-0-516">516</a></span>
 <span class="normal"><a href="#__codelineno-0-517">517</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-478"><a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_until_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-479"><a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the agent until shutdown.</span>
+</span><span id="__span-0-479"><a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="w">    </span><span class="sd">"""Run the agent until shutdown.</span>
 </span><span id="__span-0-480"><a id="__codelineno-0-480" name="__codelineno-0-480"></a>
 </span><span id="__span-0-481"><a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">    Agent startup involves:</span>
 </span><span id="__span-0-482"><a id="__codelineno-0-482" name="__codelineno-0-482"></a>
 </span><span id="__span-0-483"><a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">    1. Creates a new exchange client for the agent, and sets the exchange</span>
-</span><span id="__span-0-484"><a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">       context to this agent&#39;s client for all handles.</span>
+</span><span id="__span-0-484"><a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">       context to this agent's client for all handles.</span>
 </span><span id="__span-0-485"><a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    1. Sets the runtime context on the agent.</span>
-</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">    1. Binds all handles of the agent to this agent&#39;s exchange client.</span>
+</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">    1. Binds all handles of the agent to this agent's exchange client.</span>
 </span><span id="__span-0-487"><a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">    1. Schedules a [`Task`][asyncio.Task] to listen for messages in the</span>
-</span><span id="__span-0-488"><a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">       agent&#39;s mailbox in the exchange. Agent requests will not start</span>
+</span><span id="__span-0-488"><a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">       agent's mailbox in the exchange. Agent requests will not start</span>
 </span><span id="__span-0-489"><a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="sd">       processing until the end of the startup sequence.</span>
 </span><span id="__span-0-490"><a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">    1. Schedules a [`Task`][asyncio.Task] for all control loops defined on</span>
 </span><span id="__span-0-491"><a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">       the agent. Each task will block until the end of the startup</span>
@@ -3268,14 +3268,14 @@ inside of control loops.</p>
 </span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">    1. Cancels the mailbox message listener task so no new requests are</span>
 </span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="sd">       received.</span>
 </span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">    1. Waits for any currently executing actions to complete.</span>
-</span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">    1. Terminates the agent&#39;s mailbox in the exchange if configured.</span>
+</span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">    1. Terminates the agent's mailbox in the exchange if configured.</span>
 </span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="sd">    1. Restores the exchange context and closes the exchange client.</span>
 </span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a>
 </span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">        RuntimeError: If the agent has already been shutdown.</span>
 </span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">        Exception: Any exceptions raised during startup, shutdown, or</span>
 </span><span id="__span-0-514"><a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">            inside of control loops.</span>
-</span><span id="__span-0-515"><a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-515"><a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">    """</span>
 </span><span id="__span-0-516"><a id="__codelineno-0-516" name="__codelineno-0-516"></a>    <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="p">:</span>
 </span><span id="__span-0-517"><a id="__codelineno-0-517" name="__codelineno-0-517"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_shutdown</span><span class="p">()</span>
 </span></code></pre></div></td></tr></table></div>
@@ -3362,7 +3362,7 @@ in the run config.</p>
 </span><span id="__span-0-698"><a id="__codelineno-0-698" name="__codelineno-0-698"></a>    <span class="n">expected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-699"><a id="__codelineno-0-699" name="__codelineno-0-699"></a>    <span class="n">terminate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-700"><a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-701"><a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal that the agent should exit.</span>
+</span><span id="__span-0-701"><a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="w">    </span><span class="sd">"""Signal that the agent should exit.</span>
 </span><span id="__span-0-702"><a id="__codelineno-0-702" name="__codelineno-0-702"></a>
 </span><span id="__span-0-703"><a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="sd">    If the agent has not started, this will cause the agent to immediately</span>
 </span><span id="__span-0-704"><a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="sd">    shutdown when next started. If the agent is shutdown, this has no</span>
@@ -3373,7 +3373,7 @@ in the run config.</p>
 </span><span id="__span-0-709"><a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">            expected reasons or due to unexpected errors.</span>
 </span><span id="__span-0-710"><a id="__codelineno-0-710" name="__codelineno-0-710"></a><span class="sd">        terminate: Optionally override the mailbox termination settings</span>
 </span><span id="__span-0-711"><a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="sd">            in the run config.</span>
-</span><span id="__span-0-712"><a id="__codelineno-0-712" name="__codelineno-0-712"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-712"><a id="__codelineno-0-712" name="__codelineno-0-712"></a><span class="sd">    """</span>
 </span><span id="__span-0-713"><a id="__codelineno-0-713" name="__codelineno-0-713"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_options</span> <span class="o">=</span> <span class="n">_ShutdownState</span><span class="p">(</span>
 </span><span id="__span-0-714"><a id="__codelineno-0-714" name="__codelineno-0-714"></a>        <span class="n">expected_shutdown</span><span class="o">=</span><span class="n">expected</span><span class="p">,</span>
 </span><span id="__span-0-715"><a id="__codelineno-0-715" name="__codelineno-0-715"></a>        <span class="n">terminate_override</span><span class="o">=</span><span class="n">terminate</span><span class="p">,</span>
@@ -3454,14 +3454,14 @@ in the run config.</p>
 <span class="normal"><a href="#__codelineno-0-736">736</a></span>
 <span class="normal"><a href="#__codelineno-0-737">737</a></span>
 <span class="normal"><a href="#__codelineno-0-738">738</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-719"><a id="__codelineno-0-719" name="__codelineno-0-719"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-720"><a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Wait for agent shutdown to be signalled.</span>
+</span><span id="__span-0-720"><a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="w">    </span><span class="sd">"""Wait for agent shutdown to be signalled.</span>
 </span><span id="__span-0-721"><a id="__codelineno-0-721" name="__codelineno-0-721"></a>
 </span><span id="__span-0-722"><a id="__codelineno-0-722" name="__codelineno-0-722"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-723"><a id="__codelineno-0-723" name="__codelineno-0-723"></a><span class="sd">        timeout: Optional timeout in seconds to wait for a shutdown event.</span>
 </span><span id="__span-0-724"><a id="__codelineno-0-724" name="__codelineno-0-724"></a>
 </span><span id="__span-0-725"><a id="__codelineno-0-725" name="__codelineno-0-725"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-726"><a id="__codelineno-0-726" name="__codelineno-0-726"></a><span class="sd">        TimeoutError: If `timeout` was exceeded while waiting for agents.</span>
-</span><span id="__span-0-727"><a id="__codelineno-0-727" name="__codelineno-0-727"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-727"><a id="__codelineno-0-727" name="__codelineno-0-727"></a><span class="sd">    """</span>
 </span><span id="__span-0-728"><a id="__codelineno-0-728" name="__codelineno-0-728"></a>    <span class="k">try</span><span class="p">:</span>
 </span><span id="__span-0-729"><a id="__codelineno-0-729" name="__codelineno-0-729"></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
 </span><span id="__span-0-730"><a id="__codelineno-0-730" name="__codelineno-0-730"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_event</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span>
@@ -3471,7 +3471,7 @@ in the run config.</p>
 </span><span id="__span-0-734"><a id="__codelineno-0-734" name="__codelineno-0-734"></a>        <span class="c1"># In Python 3.10 and older, asyncio.TimeoutError and TimeoutError</span>
 </span><span id="__span-0-735"><a id="__codelineno-0-735" name="__codelineno-0-735"></a>        <span class="c1"># are different error types.</span>
 </span><span id="__span-0-736"><a id="__codelineno-0-736" name="__codelineno-0-736"></a>        <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span>
-</span><span id="__span-0-737"><a id="__codelineno-0-737" name="__codelineno-0-737"></a>            <span class="sa">f</span><span class="s1">&#39;Agent shutdown was not signalled within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s1"> seconds.&#39;</span><span class="p">,</span>
+</span><span id="__span-0-737"><a id="__codelineno-0-737" name="__codelineno-0-737"></a>            <span class="sa">f</span><span class="s1">'Agent shutdown was not signalled within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s1"> seconds.'</span><span class="p">,</span>
 </span><span id="__span-0-738"><a id="__codelineno-0-738" name="__codelineno-0-738"></a>        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
 </span></code></pre></div></td></tr></table></div>
             </details>

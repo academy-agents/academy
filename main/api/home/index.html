@@ -2473,7 +2473,7 @@ Callers are responsible for creating the directory as needed.</p>
 <span class="normal"><a href="#__codelineno-0-18">18</a></span>
 <span class="normal"><a href="#__codelineno-0-19">19</a></span>
 <span class="normal"><a href="#__codelineno-0-20">20</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_academy_home</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve the Academy data directory.</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="w">    </span><span class="sd">"""Resolve the Academy data directory.</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="sd">    Resolves the Academy data directory from the `ACADEMY_HOME`</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">    environment variable if set, otherwise `~/.local/share/academy`.</span>
@@ -2481,9 +2481,9 @@ Callers are responsible for creating the directory as needed.</p>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        Path to the Academy data directory.</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="n">default</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;.local&#39;</span> <span class="o">/</span> <span class="s1">&#39;share&#39;</span> <span class="o">/</span> <span class="s1">&#39;academy&#39;</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ACADEMY_HOME&#39;</span><span class="p">,</span> <span class="n">default</span><span class="p">))</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    """</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="n">default</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s1">'.local'</span> <span class="o">/</span> <span class="s1">'share'</span> <span class="o">/</span> <span class="s1">'academy'</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'ACADEMY_HOME'</span><span class="p">,</span> <span class="n">default</span><span class="p">))</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>

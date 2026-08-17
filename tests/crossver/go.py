@@ -350,7 +350,6 @@ v3 = z3.Const('v3', AcademyVersion)
 # Three-environment tests (exchange, agent, client)
 
 solver = z3.Solver()
-solver.add(False) # make this solver solve nothing
 
 # here-relevancy constraint, which will be one kind of mode I want to use this in -- for developing new code rather than checking history - that latter mode might be when adding a new test or changing constraint descriptions.
 # solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))

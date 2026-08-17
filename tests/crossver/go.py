@@ -452,6 +452,8 @@ while solver.check() == z3.sat:
 solver.pop()
 
 solver.push()
+
+# this is a requirement because... using the HTTP exchange?
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 
 # same as the base compatibility rules

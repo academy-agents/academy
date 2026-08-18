@@ -26,6 +26,7 @@ from academy.message import Message
 from academy.message import PingRequest
 from academy.socket import open_port
 from testing.constant import TEST_CONNECTION_TIMEOUT
+from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
 
 
@@ -103,19 +104,21 @@ def test_default_exchange_from_transport():
     ) as get_auth_headers:
         get_auth_headers.return_value = {'Authorization': '<token>'}
         factory = HttpExchangeFactory()
+        get_auth_headers.assert_called_once_with('globus')
+
         transport = HttpExchangeTransport(
             uid,
             mock.Mock(),
             factory._info,
+            auth_method='globus',
         )
-        get_auth_headers.assert_called_once_with('globus')
 
     with mock.patch(
         'academy.exchange.cloud.client.get_auth_headers',
     ) as get_auth_headers:
         # Check recreating the factory does not cause reauthentication
         recreated_factory = transport.factory()
-        get_auth_headers.assert_called_once_with(None)
+        get_auth_headers.assert_not_called()
         assert recreated_factory._info == factory._info
 
 
@@ -130,8 +133,14 @@ def test_transport_factory_round_trip_preserves_non_default_info():
         'http://example',
         request_timeout_s=11,
         client_timeout=custom_timeout,
+        auth_method=None,
     )
-    transport = HttpExchangeTransport(uid, mock.Mock(), factory._info)
+    transport = HttpExchangeTransport(
+        uid,
+        mock.Mock(),
+        factory._info,
+        auth_method=None,
+    )
     recreated_factory = transport.factory()
     assert recreated_factory._info == factory._info
     assert recreated_factory._info.request_timeout_s == 11  # noqa: PLR2004
@@ -165,6 +174,64 @@ def test_raise_for_status_error_conversion() -> None:
     response = _MockResponse(StatusCode.TIMEOUT.value)
     with pytest.raises(TimeoutError):
         _raise_for_status(response, UserId.new())
+
+
+@pytest.mark.asyncio
+async def test_transport_new_reauthenticates_on_forbidden(
+    http_exchange_server: tuple[str, int],
+) -> None:
+    host, port = http_exchange_server
+    url = f'http://{host}:{port}'
+    with mock.patch(
+        'academy.exchange.cloud.authenticate.NullAuthenticator.authenticate_user',
+    ) as authenticate:
+        authenticate.side_effect = [
+            ForbiddenError(),
+            ClientInfo(client_id='', group_memberships=set()),
+            ClientInfo(client_id='', group_memberships=set()),
+            ClientInfo(client_id='', group_memberships=set()),
+        ]
+
+        with mock.patch(
+            'academy.exchange.cloud.client.get_auth_headers',
+        ) as get_auth_headers:
+            factory = HttpExchangeFactory(url)
+            async with await factory.create_user_client(
+                start_listener=False,
+            ):  # pragma: no branch
+                assert get_auth_headers.call_count == 2  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_transport_listen_reauthenticates_on_forbidden(
+    http_exchange_server: tuple[str, int],
+) -> None:
+    host, port = http_exchange_server
+    url = f'http://{host}:{port}'
+    with mock.patch(
+        'academy.exchange.cloud.authenticate.NullAuthenticator.authenticate_user',
+    ) as authenticate:
+        authenticate.side_effect = [
+            ClientInfo(client_id='', group_memberships=set()),
+            ForbiddenError(),
+            ClientInfo(client_id='', group_memberships=set()),
+            ClientInfo(client_id='', group_memberships=set()),
+            ClientInfo(client_id='', group_memberships=set()),
+        ]
+
+        with mock.patch(
+            'academy.exchange.cloud.client.get_auth_headers',
+        ) as get_auth_headers:
+            factory = HttpExchangeFactory(url)
+            async with await factory.create_user_client(
+                start_listener=False,
+            ) as client:  # pragma: no branch
+                with pytest.raises(TimeoutError):
+                    await client._transport.listen(
+                        TEST_SLEEP_INTERVAL,
+                    ).__anext__()
+
+                assert get_auth_headers.call_count == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -213,6 +280,34 @@ async def test_console_share_mailbox_forbidden(
         with pytest.raises(ForbiddenError):
             await console.share_mailbox(client.client_id, group_id)
         await console.close()
+
+
+@pytest.mark.asyncio
+async def test_console_reauthenticates_on_forbidden(
+    http_exchange_server: tuple[str, int],
+) -> None:
+    host, port = http_exchange_server
+    url = f'http://{host}:{port}'
+
+    group_id = uuid.uuid1()
+    client_info = ClientInfo(client_id='', group_memberships={str(group_id)})
+    factory = HttpExchangeFactory(url)
+    client = await factory.create_user_client(start_listener=False)
+
+    with mock.patch(
+        'academy.exchange.cloud.authenticate.NullAuthenticator.authenticate_user',
+    ) as authenticate:
+        authenticate.side_effect = [
+            ForbiddenError(),
+            client_info,
+        ]
+        with mock.patch(
+            'academy.exchange.cloud.client.get_auth_headers',
+        ) as get_auth_headers:
+            factory = HttpExchangeFactory(url)
+            console = await factory.console()
+            await console.share_mailbox(client.client_id, group_id)
+            assert get_auth_headers.call_count == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
@@ -306,16 +401,19 @@ async def test_listen_receive_event(
             ],
         )
 
-    mock_response = mock.MagicMock()
-    mock_response.content.__aiter__.return_value = event_stream
+    response = mock.MagicMock()
+    response.content.__aiter__.return_value = event_stream
+    ctx_manager = mock.MagicMock()
+    ctx_manager.__aenter__.return_value = response
 
     async with await http_exchange_factory._create_transport() as transport:
         with mock.patch.object(
-            transport._session,
-            'get',
-            new=mock.AsyncMock(),
-        ) as mock_get:
-            mock_get.return_value = mock_response
+            transport,
+            '_request_with_refresh',
+            new=mock.MagicMock(),
+        ) as mock_request:
+            mock_request.return_value = ctx_manager
+
             listener = transport.listen(timeout=TEST_WAIT_TIMEOUT)
             for _ in range(3):
                 received = await anext(listener)

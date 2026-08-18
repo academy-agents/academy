@@ -12,28 +12,28 @@
         <meta name="author" content="Globus Labs">
       
       
-        <link rel="canonical" href="https://docs.academy-agents.org/stable/best-practices/">
+        <link rel="canonical" href="https://docs.academy-agents.org/stable/api/exchange/mailbox_status/">
       
       
-        <link rel="prev" href="../get-started/">
+        <link rel="prev" href="../local/">
       
       
-        <link rel="next" href="../faq/">
+        <link rel="next" href="../proxystore/">
       
       
-      <link rel="icon" href="../static/favicon.png">
+      <link rel="icon" href="../../../static/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
     
     
       
-        <title>Best Practices - Academy</title>
+        <title>mailbox_status - Academy</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.2afb09e1.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -52,13 +52,13 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../css/extra.css">
+      <link rel="stylesheet" href="../../../css/extra.css">
     
-      <link rel="stylesheet" href="../css/mkdocstrings.css">
+      <link rel="stylesheet" href="../../../css/mkdocstrings.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#avoid-blocking-calls-in-async-agent-methods" class="md-skip">
+        <a href="#academyexchangemailbox_status" class="md-skip">
           Skip to content
         </a>
       
@@ -102,9 +102,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Academy" class="md-header__button md-logo" aria-label="Academy" data-md-component="logo">
+    <a href="../../.." title="Academy" class="md-header__button md-logo" aria-label="Academy" data-md-component="logo">
       
-  <img src="../static/favicon.png" alt="logo">
+  <img src="../../../static/favicon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Best Practices
+              mailbox_status
             
           </span>
         </div>
@@ -247,13 +247,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href=".." class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
           
   
   
@@ -271,7 +269,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../concepts/" class="md-tabs__link">
+      <a href="../../../concepts/" class="md-tabs__link">
         
   
   
@@ -290,7 +288,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../case-studies/" class="md-tabs__link">
+      <a href="../../../case-studies/" class="md-tabs__link">
         
   
   
@@ -309,7 +307,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../guides/" class="md-tabs__link">
+      <a href="../../../guides/" class="md-tabs__link">
         
   
   
@@ -326,6 +324,8 @@
   
   
   
+    
+  
   
     
     
@@ -333,11 +333,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../api/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
           
   
   
@@ -358,7 +360,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../publications/" class="md-tabs__link">
+      <a href="../../../publications/" class="md-tabs__link">
         
   
   
@@ -393,9 +395,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Academy" class="md-nav__button md-logo" aria-label="Academy" data-md-component="logo">
+    <a href="../../.." title="Academy" class="md-nav__button md-logo" aria-label="Academy" data-md-component="logo">
       
-  <img src="../static/favicon.png" alt="logo">
+  <img src="../../../static/favicon.png" alt="logo">
 
     </a>
     Academy
@@ -419,31 +421,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
         
           
-          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
             
   
   
@@ -456,7 +453,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_1">
             <span class="md-nav__icon md-icon"></span>
             Home
@@ -470,7 +467,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -493,7 +490,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../get-started/" class="md-nav__link">
+      <a href="../../../get-started/" class="md-nav__link">
         
   
   
@@ -513,30 +510,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Best Practices
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../best-practices/" class="md-nav__link">
         
   
   
@@ -547,42 +524,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#avoid-blocking-calls-in-async-agent-methods" class="md-nav__link">
-    <span class="md-ellipsis">
-      Avoid blocking calls in async agent methods
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#avoid-communication-operations-during-agent-initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      Avoid communication operations during agent initialization
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -595,7 +536,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
+      <a href="../../../faq/" class="md-nav__link">
         
   
   
@@ -618,7 +559,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../migration/" class="md-nav__link">
+      <a href="../../../migration/" class="md-nav__link">
         
   
   
@@ -641,7 +582,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../version-policy/" class="md-nav__link">
+      <a href="../../../version-policy/" class="md-nav__link">
         
   
   
@@ -664,7 +605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../../contributing/" class="md-nav__link">
         
   
   
@@ -740,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/" class="md-nav__link">
+      <a href="../../../concepts/" class="md-nav__link">
         
   
   
@@ -762,7 +703,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../case-studies/" class="md-nav__link">
+      <a href="../../../case-studies/" class="md-nav__link">
         
   
   
@@ -801,7 +742,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../guides/" class="md-nav__link ">
+            <a href="../../../guides/" class="md-nav__link ">
               
   
   
@@ -834,7 +775,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/tutorial/" class="md-nav__link">
+      <a href="../../../guides/tutorial/" class="md-nav__link">
         
   
   
@@ -857,7 +798,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/hpc/" class="md-nav__link">
+      <a href="../../../guides/hpc/" class="md-nav__link">
         
   
   
@@ -880,7 +821,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/llm/" class="md-nav__link">
+      <a href="../../../guides/llm/" class="md-nav__link">
         
   
   
@@ -903,7 +844,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides/persistent/" class="md-nav__link">
+      <a href="../../../guides/persistent/" class="md-nav__link">
         
   
   
@@ -930,26 +871,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -962,7 +908,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             API Reference
@@ -973,26 +919,31 @@
                 
   
   
+    
   
   
+  
     
     
     
     
       
       
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
         
           
-          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="">
             
   
   
@@ -1005,7 +956,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_1">
             <span class="md-nav__icon md-icon"></span>
             Academy
@@ -1019,7 +970,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/" class="md-nav__link">
+      <a href="../../" class="md-nav__link">
         
   
   
@@ -1042,7 +993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/agent/" class="md-nav__link">
+      <a href="../../agent/" class="md-nav__link">
         
   
   
@@ -1065,7 +1016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/context/" class="md-nav__link">
+      <a href="../../context/" class="md-nav__link">
         
   
   
@@ -1088,7 +1039,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/debug/" class="md-nav__link">
+      <a href="../../debug/" class="md-nav__link">
         
   
   
@@ -1111,7 +1062,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/event/" class="md-nav__link">
+      <a href="../../event/" class="md-nav__link">
         
   
   
@@ -1134,7 +1085,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exception/" class="md-nav__link">
+      <a href="../../exception/" class="md-nav__link">
         
   
   
@@ -1154,8 +1105,10 @@
                 
   
   
+    
   
   
+  
     
     
     
@@ -1166,15 +1119,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1_7" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../api/exchange/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1193,7 +1146,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_1_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_1_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_1_7">
             <span class="md-nav__icon md-icon"></span>
             academy.exchange
@@ -1207,7 +1160,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/client/" class="md-nav__link">
+      <a href="../client/" class="md-nav__link">
         
   
   
@@ -1230,7 +1183,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/client_config/" class="md-nav__link">
+      <a href="../client_config/" class="md-nav__link">
         
   
   
@@ -1270,7 +1223,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../api/exchange/cloud/" class="md-nav__link ">
+            <a href="../cloud/" class="md-nav__link ">
               
   
   
@@ -1303,7 +1256,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/app/" class="md-nav__link">
+      <a href="../cloud/app/" class="md-nav__link">
         
   
   
@@ -1326,7 +1279,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/authenticate/" class="md-nav__link">
+      <a href="../cloud/authenticate/" class="md-nav__link">
         
   
   
@@ -1349,7 +1302,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/backend/" class="md-nav__link">
+      <a href="../cloud/backend/" class="md-nav__link">
         
   
   
@@ -1372,7 +1325,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/client/" class="md-nav__link">
+      <a href="../cloud/client/" class="md-nav__link">
         
   
   
@@ -1395,7 +1348,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/client_info/" class="md-nav__link">
+      <a href="../cloud/client_info/" class="md-nav__link">
         
   
   
@@ -1418,7 +1371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/config/" class="md-nav__link">
+      <a href="../cloud/config/" class="md-nav__link">
         
   
   
@@ -1441,7 +1394,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/globus/" class="md-nav__link">
+      <a href="../cloud/globus/" class="md-nav__link">
         
   
   
@@ -1464,7 +1417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/login/" class="md-nav__link">
+      <a href="../cloud/login/" class="md-nav__link">
         
   
   
@@ -1487,7 +1440,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/scopes/" class="md-nav__link">
+      <a href="../cloud/scopes/" class="md-nav__link">
         
   
   
@@ -1510,7 +1463,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/cloud/token_store/" class="md-nav__link">
+      <a href="../cloud/token_store/" class="md-nav__link">
         
   
   
@@ -1541,7 +1494,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/factory/" class="md-nav__link">
+      <a href="../factory/" class="md-nav__link">
         
   
   
@@ -1564,7 +1517,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/hybrid/" class="md-nav__link">
+      <a href="../hybrid/" class="md-nav__link">
         
   
   
@@ -1587,7 +1540,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/local/" class="md-nav__link">
+      <a href="../local/" class="md-nav__link">
         
   
   
@@ -1607,10 +1560,32 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../api/exchange/mailbox_status/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    mailbox_status
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1621,6 +1596,86 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;mailbox_status
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;MailboxStatus
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" MailboxStatus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.MISSING" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MISSING
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.ACTIVE" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ACTIVE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.INACTIVE" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;INACTIVE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.TERMINATED" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;TERMINATED
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1633,7 +1688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/proxystore/" class="md-nav__link">
+      <a href="../proxystore/" class="md-nav__link">
         
   
   
@@ -1656,7 +1711,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/redis/" class="md-nav__link">
+      <a href="../redis/" class="md-nav__link">
         
   
   
@@ -1679,7 +1734,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/exchange/transport/" class="md-nav__link">
+      <a href="../transport/" class="md-nav__link">
         
   
   
@@ -1710,7 +1765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/executor/" class="md-nav__link">
+      <a href="../../executor/" class="md-nav__link">
         
   
   
@@ -1733,7 +1788,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/handle/" class="md-nav__link">
+      <a href="../../handle/" class="md-nav__link">
         
   
   
@@ -1756,7 +1811,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/home/" class="md-nav__link">
+      <a href="../../home/" class="md-nav__link">
         
   
   
@@ -1779,7 +1834,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/identifier/" class="md-nav__link">
+      <a href="../../identifier/" class="md-nav__link">
         
   
   
@@ -1819,7 +1874,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../api/logging/" class="md-nav__link ">
+            <a href="../../logging/" class="md-nav__link ">
               
   
   
@@ -1869,7 +1924,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../api/logging/configs/" class="md-nav__link ">
+            <a href="../../logging/configs/" class="md-nav__link ">
               
   
   
@@ -1902,7 +1957,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/logging/configs/base/" class="md-nav__link">
+      <a href="../../logging/configs/base/" class="md-nav__link">
         
   
   
@@ -1925,7 +1980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/logging/configs/console/" class="md-nav__link">
+      <a href="../../logging/configs/console/" class="md-nav__link">
         
   
   
@@ -1948,7 +2003,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/logging/configs/file/" class="md-nav__link">
+      <a href="../../logging/configs/file/" class="md-nav__link">
         
   
   
@@ -1971,7 +2026,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/logging/configs/jsonpool/" class="md-nav__link">
+      <a href="../../logging/configs/jsonpool/" class="md-nav__link">
         
   
   
@@ -1994,7 +2049,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/logging/configs/multi/" class="md-nav__link">
+      <a href="../../logging/configs/multi/" class="md-nav__link">
         
   
   
@@ -2025,7 +2080,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/logging/helpers/" class="md-nav__link">
+      <a href="../../logging/helpers/" class="md-nav__link">
         
   
   
@@ -2048,7 +2103,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/logging/recommended/" class="md-nav__link">
+      <a href="../../logging/recommended/" class="md-nav__link">
         
   
   
@@ -2079,7 +2134,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/manager/" class="md-nav__link">
+      <a href="../../manager/" class="md-nav__link">
         
   
   
@@ -2102,7 +2157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/message/" class="md-nav__link">
+      <a href="../../message/" class="md-nav__link">
         
   
   
@@ -2125,7 +2180,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/mypy_plugin/" class="md-nav__link">
+      <a href="../../mypy_plugin/" class="md-nav__link">
         
   
   
@@ -2148,7 +2203,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/run/" class="md-nav__link">
+      <a href="../../run/" class="md-nav__link">
         
   
   
@@ -2171,7 +2226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/runtime/" class="md-nav__link">
+      <a href="../../runtime/" class="md-nav__link">
         
   
   
@@ -2194,7 +2249,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/serialize/" class="md-nav__link">
+      <a href="../../serialize/" class="md-nav__link">
         
   
   
@@ -2217,7 +2272,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/socket/" class="md-nav__link">
+      <a href="../../socket/" class="md-nav__link">
         
   
   
@@ -2240,7 +2295,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/state/" class="md-nav__link">
+      <a href="../../state/" class="md-nav__link">
         
   
   
@@ -2263,7 +2318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/stats/" class="md-nav__link">
+      <a href="../../stats/" class="md-nav__link">
         
   
   
@@ -2286,7 +2341,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/task/" class="md-nav__link">
+      <a href="../../task/" class="md-nav__link">
         
   
   
@@ -2324,7 +2379,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../publications/" class="md-nav__link">
+      <a href="../../../publications/" class="md-nav__link">
         
   
   
@@ -2356,6 +2411,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -2364,20 +2421,62 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#avoid-blocking-calls-in-async-agent-methods" class="md-nav__link">
+  <a href="#academy.exchange.mailbox_status" class="md-nav__link">
     <span class="md-ellipsis">
-      Avoid blocking calls in async agent methods
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;mailbox_status
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#avoid-communication-operations-during-agent-initialization" class="md-nav__link">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus" class="md-nav__link">
     <span class="md-ellipsis">
-      Avoid communication operations during agent initialization
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;MailboxStatus
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label=" MailboxStatus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.MISSING" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;MISSING
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.ACTIVE" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ACTIVE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.INACTIVE" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;INACTIVE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.mailbox_status.MailboxStatus.TERMINATED" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;TERMINATED
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2400,45 +2499,194 @@
   
 
 
-  <h1>Best Practices</h1>
-
-<h3 id="avoid-blocking-calls-in-async-agent-methods">Avoid blocking calls in async agent methods<a class="headerlink" href="#avoid-blocking-calls-in-async-agent-methods" title="Permanent link">&para;</a></h3>
-<p>When writing methods on an <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> that use <code>async def</code>, such as <a class="autorefs autorefs-internal" title="            action" href="../api/agent/#academy.agent.action"><code>@action</code></a> and <a class="autorefs autorefs-internal" title="            loop" href="../api/agent/#academy.agent.loop"><code>@loop</code></a> methods, avoid calling long-running or blocking synchronous functions directly.
-Doing so will block the entire asyncio event loop, degrading the responsiveness and concurrency of your agent.</p>
-<p>To safely run synchronous (blocking) code inside async methods, use <a class="autorefs autorefs-internal" title="            agent_run_sync
+<h1 id="academyexchangemailbox_status">academy.exchange.mailbox_status<a class="headerlink" href="#academyexchangemailbox_status" title="Permanent link">&para;</a></h1>
 
 
+<div class="doc doc-object doc-module">
+
+
+
+<a id="academy.exchange.mailbox_status"></a>
+    <div class="doc doc-contents first">
+  <div style="display:flex; align-items: center">
+  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16" style="padding-right: 8px">
+    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+  </svg>
+  <a target="_blank" href="https://github.com/academy-agents/academy/blob/main/academy/exchange/mailbox_status.py">
+      <code>academy/exchange/mailbox_status.py</code>
+  </a>
+  </div>
   
-      async
-  " href="../api/agent/#academy.agent.Agent.agent_run_sync"><code>Agent.agent_run_sync()</code></a> which runs the function in a separate thread, keeping the event loop free to do other work.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@action</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">do_work</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_run_sync</span><span class="p">(</span><span class="n">expensive_sync_func</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">...</span>
-</span></code></pre></div></p>
-<h3 id="avoid-communication-operations-during-agent-initialization">Avoid communication operations during agent initialization<a class="headerlink" href="#avoid-communication-operations-during-agent-initialization" title="Permanent link">&para;</a></h3>
-<p>The <code>__init__</code> method of an <a class="autorefs autorefs-internal" title="            Agent" href="../api/agent/#academy.agent.Agent"><code>Agent</code></a> is called in one of two places:</p>
-<ol>
-<li>On the client when submitting an agent to be executed.</li>
-<li>On the worker when agent instantiation is deferred.</li>
-</ol>
-<p>In both scenarios, it is unsafe to perform communication operations (i.e., invoking an action on a remote agent) in <code>__init__</code> because connection resources and background tasks have not yet been initialized.</p>
-<p>The <a class="autorefs autorefs-internal" title="            agent_on_startup
 
 
-  
-      async
-  " href="../api/agent/#academy.agent.Agent.agent_on_startup"><code>Agent.agent_on_startup()</code></a> callback can be used instead to perform communication once the agent is in a running state.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Be careful when invoking actions on remote agents from the on startup callback.
-An agent will not process incoming action requests until after <a class="autorefs autorefs-internal" title="            agent_on_startup
 
 
-  
-      async
-  " href="../api/agent/#academy.agent.Agent.agent_on_startup"><code>Agent.agent_on_startup()</code></a> has completed.
-This can cause deadlocks when Agent A's startup callback makes a request to Agent B and then Agent B makes a request back to Agent A.</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="academy.exchange.mailbox_status.MailboxStatus" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">MailboxStatus</span>
+
+
+<a href="#academy.exchange.mailbox_status.MailboxStatus" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
+
+        <p>Exchange mailbox status.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.exchange.mailbox_status.MailboxStatus.MISSING" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">MISSING</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#academy.exchange.mailbox_status.MailboxStatus.MISSING" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">MISSING</span> <span class="o">=</span> <span class="s1">'MISSING'</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Mailbox does not exist.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.exchange.mailbox_status.MailboxStatus.ACTIVE" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">ACTIVE</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#academy.exchange.mailbox_status.MailboxStatus.ACTIVE" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ACTIVE</span> <span class="o">=</span> <span class="s1">'ACTIVE'</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Mailbox exists and is accepting messages.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.exchange.mailbox_status.MailboxStatus.INACTIVE" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">INACTIVE</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#academy.exchange.mailbox_status.MailboxStatus.INACTIVE" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">INACTIVE</span> <span class="o">=</span> <span class="s1">'INACTIVE'</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Mailbox accepting messages but has missed heartbeats.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.exchange.mailbox_status.MailboxStatus.TERMINATED" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">TERMINATED</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#academy.exchange.mailbox_status.MailboxStatus.TERMINATED" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">TERMINATED</span> <span class="o">=</span> <span class="s1">'TERMINATED'</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Mailbox was terminated and no longer accepts messages.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+
+    </div>
+
 </div>
 
 
@@ -2498,12 +2746,12 @@ This can cause deadlocks when Agent A's startup callback makes a request to Agen
     
     
       
-      <script id="__config" type="application/json">{"base": "..", "features": ["content.code.annotate", "content.code.copy", "content.code.select", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "stable", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.annotate", "content.code.copy", "content.code.select", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "default": "stable", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.c8b220af.min.js"></script>
       
-        <script src="../javascripts/mathjax.js"></script>
+        <script src="../../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

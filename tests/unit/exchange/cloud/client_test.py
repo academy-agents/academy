@@ -405,16 +405,14 @@ async def test_listen_receive_event(
 
     response = mock.MagicMock()
     response.content.__aiter__.return_value = event_stream
-    ctx_manager = mock.MagicMock()
-    ctx_manager.__aenter__.return_value = response
 
     async with await http_exchange_factory._create_transport() as transport:
         with mock.patch.object(
-            transport,
-            '_request_with_retry',
-            new=mock.MagicMock(),
+            transport._session,
+            'request',
+            new=mock.AsyncMock(),
         ) as mock_request:
-            mock_request.return_value = ctx_manager
+            mock_request.return_value = response
 
             listener = transport.listen(timeout=TEST_WAIT_TIMEOUT)
             for _ in range(3):

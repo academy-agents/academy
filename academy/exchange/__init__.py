@@ -12,12 +12,12 @@ from academy.exchange.hybrid import HybridExchangeFactory
 from academy.exchange.hybrid import HybridExchangeTransport
 from academy.exchange.local import LocalExchangeFactory
 from academy.exchange.local import LocalExchangeTransport
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.exchange.proxystore import ProxyStoreExchangeFactory
 from academy.exchange.proxystore import ProxyStoreExchangeTransport
 from academy.exchange.redis import RedisExchangeFactory
 from academy.exchange.redis import RedisExchangeTransport
 from academy.exchange.transport import ExchangeTransport
-from academy.exchange.transport import MailboxStatus
 
 __all__ = [
     'AgentExchangeClient',

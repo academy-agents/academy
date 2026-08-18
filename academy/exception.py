@@ -72,6 +72,17 @@ class PingCancelledError(Exception):
         return type(self), ()
 
 
+class AgentInactiveError(Exception):
+    """Agent is inactive."""
+
+    def __init__(self, uid: AgentId[Any]) -> None:
+        super().__init__(
+            f'Agent {uid} is inactive; handle is configured to reject '
+            'actions when agent is inactive.',
+        )
+        self.uid = uid
+
+
 class ExchangeError(Exception):
     """Base type for exchange related errors."""
 

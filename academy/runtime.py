@@ -31,9 +31,9 @@ from academy.context import AgentContext
 from academy.exception import ExchangeError
 from academy.exception import MailboxTerminatedError
 from academy.exception import raise_exceptions
+from academy.exchange.client import exchange_context
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
-from academy.handle import exchange_context
 from academy.identifier import EntityId
 from academy.message import AcademyErrorResponse
 from academy.message import ActionRequest

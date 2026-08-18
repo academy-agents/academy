@@ -24,9 +24,9 @@ from academy.debug import set_academy_debug
 from academy.exception import AgentTerminatedError
 from academy.exception import BadEntityIdError
 from academy.exception import raise_exceptions
+from academy.exchange.client import exchange_context
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
-from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId

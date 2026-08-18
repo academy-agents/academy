@@ -8,6 +8,7 @@ import sys
 import uuid
 from collections.abc import Callable
 from collections.abc import Coroutine
+from contextvars import ContextVar
 from types import TracebackType
 from typing import Any
 from typing import Generic
@@ -25,11 +26,9 @@ else:  # pragma: <3.11 cover
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exchange.client_config import ExchangeClientConfig
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.exchange.transport import AgentRegistration
 from academy.exchange.transport import ExchangeTransportT
-from academy.exchange.transport import MailboxStatus
-from academy.handle import exchange_context
-from academy.handle import Handle
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.identifier import UserId
@@ -45,6 +44,7 @@ if TYPE_CHECKING:
     from academy.agent import Agent
     from academy.agent import AgentT
     from academy.exchange.factory import ExchangeFactory
+    from academy.handle import Handle
 else:
     AgentT = TypeVar('AgentT')
 
@@ -55,6 +55,9 @@ RequestHandler: TypeAlias = Callable[
     [Message[RequestT_co]],
     Coroutine[None, None, None],
 ]
+exchange_context: ContextVar[ExchangeClient[Any]] = ContextVar(
+    'exchange_context',
+)
 
 
 class ExchangeClient(abc.ABC, Generic[ExchangeTransportT]):

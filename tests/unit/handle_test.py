@@ -11,16 +11,17 @@ from unittest import mock
 import pytest
 import pytest_asyncio
 
+from academy.exception import AgentInactiveError
 from academy.exception import AgentTerminatedError
 from academy.exception import DeserializationMethodProhibitedError
 from academy.exception import ExchangeClientNotFoundError
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
+from academy.exchange.client import exchange_context
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.factory import ExchangeFactory
-from academy.exchange.transport import MailboxStatus
-from academy.handle import exchange_context
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId
@@ -40,6 +41,7 @@ from academy.stats import AgentStats
 from testing.agents import CounterAgent
 from testing.agents import EmptyAgent
 from testing.agents import ErrorAgent
+from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP_INTERVAL
 
@@ -687,3 +689,173 @@ async def test_handle_exception_serializer(
         with pytest.raises(DeserializationMethodProhibitedError):
             await error_handle.fails()
         allowed_deserializers.reset(token)
+
+
+@pytest.mark.asyncio
+async def test_handle_agent_status(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(IdentityAgent)
+    handle = Handle(registration.agent_id)
+    assert await handle.agent_status() == MailboxStatus.INACTIVE
+
+
+@pytest.mark.asyncio
+async def test_handle_rejects_action_on_inactive(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(IdentityAgent)
+    handle = Handle(
+        registration.agent_id,
+        request_serializer=SerializationStrategy.PICKLE,
+        reject_on_inactive=True,
+    )
+
+    with pytest.raises(AgentInactiveError):
+        await handle.identity(1)
+
+
+@pytest.mark.asyncio
+async def test_handle_reject_on_inactive_setter(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    hdl = await manager.launch(IdentityAgent)
+    hdl.reject_on_inactive = True
+    assert not hdl._status_task.done()
+
+    hdl.reject_on_inactive = False
+    await asyncio.sleep(0)
+    assert hdl._status_task.cancelled()
+
+
+@pytest.mark.asyncio
+async def test_handle_rejct_on_inactive_allows_on_active(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    hdl = await manager.launch(IdentityAgent)
+    hdl.polling_interval = TEST_SLEEP_INTERVAL
+    hdl.reject_on_inactive = True  # Start fast polling loop
+
+    await asyncio.sleep(2 * TEST_SLEEP_INTERVAL)
+    assert await hdl.identity(1) == 1
+
+
+@pytest.mark.asyncio
+async def test_handle_ping_sets_active_status(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    registration = await manager.register_agent(IdentityAgent)
+    handle = Handle(
+        registration.agent_id,
+        reject_on_inactive=True,
+        polling_interval=100000,
+    )
+    with pytest.raises(AgentInactiveError):
+        await handle.identity(1)
+
+    await manager.launch(IdentityAgent, registration=registration)
+
+    # Status should still be inactive because of long polling interval
+    with pytest.raises(AgentInactiveError):
+        await handle.identity(1)
+
+    await handle.ping()
+    assert await handle.identity(1) == 1
+
+
+@pytest.mark.asyncio
+async def test_handle_agent_status_sets_active_status(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    registration = await manager.register_agent(IdentityAgent)
+    handle = Handle(
+        registration.agent_id,
+        reject_on_inactive=True,
+        polling_interval=100000,
+    )
+    with pytest.raises(AgentInactiveError):
+        await handle.identity(1)
+
+    await manager.launch(IdentityAgent, registration=registration)
+
+    # Status should still be inactive because of long polling interval
+    with pytest.raises(AgentInactiveError):
+        await handle.identity(1)
+
+    status = await handle.agent_status()
+    while status != MailboxStatus.ACTIVE:  # pragma: no cover
+        await asyncio.sleep(TEST_SLEEP_INTERVAL)
+        status = await handle.agent_status()
+
+    assert await handle.identity(1) == 1
+
+
+@pytest.mark.asyncio
+async def test_handle_notifies_pending_messages_when_status_changes(
+    local_exchange_factory: LocalExchangeFactory,
+) -> None:
+    async with await local_exchange_factory.create_user_client() as client:
+        with mock.patch.object(client, 'status') as mock_status:
+            mock_status.side_effect = [
+                MailboxStatus.ACTIVE,
+                MailboxStatus.INACTIVE,
+                MailboxStatus.ACTIVE,
+                MailboxStatus.INACTIVE,
+                MailboxStatus.ACTIVE,
+                MailboxStatus.INACTIVE,
+            ]
+            registration = await client.register_agent(SleepAgent)
+            handle = Handle(
+                registration.agent_id,
+                polling_interval=TEST_SLEEP_INTERVAL,
+            )
+            handle.reject_on_inactive = True
+            await handle._agent_status_set.wait()
+            task = asyncio.create_task(handle.sleep(TEST_SLEEP_INTERVAL))
+            await asyncio.sleep(0)
+            assert len(handle._pending_actions) == 1  # Action was accepted
+            assert not task.done()
+
+            await asyncio.sleep(
+                TEST_SLEEP_INTERVAL * 2,
+            )  # Agent becomes inactive
+            assert task.done()  # Task was notified
+            with pytest.raises(AgentInactiveError):  # pragma: no cover
+                await task
+
+            await asyncio.sleep(
+                TEST_SLEEP_INTERVAL * 2,
+            )
+            # Toggling back and forth does not kill status loop
+            assert not handle._status_task.done()
+
+
+@pytest.mark.asyncio
+async def test_handle_status_loop_no_agent_id():
+    hdl: Handle[Any] = Handle(reject_on_inactive=True)
+    await asyncio.sleep(0)
+    assert not hdl._status_task.done()
+
+
+@pytest.mark.asyncio
+async def test_handle_status_loop_no_exchange_client():
+    hdl: Handle[Any] = Handle(AgentId.new(), reject_on_inactive=True)
+    await asyncio.sleep(0)
+    assert not hdl._status_task.done()
+
+
+@pytest.mark.asyncio
+async def test_handle_serialize_restarts_status_loop(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(EmptyAgent)
+    handle = Handle(
+        registration.agent_id,
+        reject_on_inactive=True,
+    )
+    assert handle.reject_on_inactive
+    assert not handle._status_task.done()
+
+    reconstructed = pickle.loads(pickle.dumps(handle))
+    assert reconstructed.reject_on_inactive
+    assert not reconstructed._status_task.done()

@@ -13,11 +13,11 @@ from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
-from academy.exchange import MailboxStatus
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
 from academy.exchange.cloud.client_info import ClientInfo
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import ErrorResponse

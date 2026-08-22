@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import pathlib
 import random
@@ -89,6 +90,46 @@ def create_env(descr: dict) -> pathlib.Path:
     return env_path
 
 
+@contextlib.contextmanager
+def managed_commandline(cmdline: str, *, daemon: bool, env: str):
+    """context manager for managed process execution around a block of code.
+
+    This manager will start up the process on entering the block, and
+    ensure it is shut down when leaving the block.
+
+    daemon mode specifies the shutdown expectations which will be enforced
+    on leaving the block:
+
+    a non-daemon process is expected to exit successfully itself and the
+    managed commandline block will wait when leaving the block until that
+    process has exited, and will raise an exception if the exit code is
+    not 0.
+
+    a daemon process is expected to remain alive up to the point that
+    the block is left. the manager will terminate the process tree, and
+    will raise an exception is the process exited by some other mechanism.
+    """
+
+    p = subprocess.Popen(
+        cmdline,
+        shell=True,
+        process_group=0,
+    )
+
+    try:
+        yield p
+    finally:
+        if daemon:
+            print('terminating')
+            os.killpg(p.pid, signal.SIGTERM)
+            print('waiting on process')
+            p.wait()
+            assert p.returncode == -15, 'process should have been terminated by SIGTERM'
+        else:
+            p.wait()
+            assert p.returncode == 0, 'process should have exited successfully'
+
+
 def run_test_1(version_set: dict):
     # given where we are now, (aka HERE and CURRENT_ERA),
     # what academy versions should be compatible?
@@ -152,59 +193,28 @@ port = 1234
     # now run some kind of process group that is async wrt rest of program and can be shut down
     # entirely at the end (not just the process but all children)
 
-    p1 = subprocess.Popen(
-        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
-        shell=True,
-        process_group=0,
-    )
+    with managed_commandline(f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json', daemon=True, env=v1_env) as p1:
 
-    # a bit of startup time... probs could be done by probing?
-    time.sleep(1)
+        # a bit of startup time... probs could be done by probing?
+        time.sleep(1)
 
-    base = os.getcwd()
+        base = os.getcwd()
 
-    # V2 should be an agent (against the major-version-consistent API, with no new minor version features)
-    # run in the V2 environment.
-    p2 = subprocess.Popen(
-        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py',
-        shell=True,
-        process_group=0,
-    )
+        with managed_commandline( f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py', daemon=True, env=v2_env) as p2:
 
-    time.sleep(3)
+            time.sleep(3)
 
-    # need some time ^ for the agent to get started and write out its agent handle file
+            # need some time ^ for the agent to get started and write out its agent handle file
 
-    print('copying agent handle')
-    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
+            print('copying agent handle')
+            os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-    p3 = subprocess.Popen(
-        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py',
-        shell=True,
-        process_group=0,
-    )
-
-    # p3 should exit when tests finished -- no need to terminate it, or have a time based wait.
-    p3.wait()
-
-    print('terminating p2 group')
-    os.killpg(p2.pid, signal.SIGTERM)
-    print('waiting on p2')
-    p2.wait()
-
-    print('terminating p1 group')
-    os.killpg(p1.pid, signal.SIGTERM)
-
-    print('waiting on p1')
-    p1.wait()
+            with managed_commandline(f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py', daemon=False, env=v3_env) as p3:
+                pass
 
     print(
         f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
     )
-
-    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
-    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
-    assert p3.returncode == 0, 'p3 should have exited succesfully'
 
 
 def run_test_heartbeat(version_set: dict):

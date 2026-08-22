@@ -29,8 +29,8 @@ from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
 from academy.exception import MessageTooLargeError
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.exchange.transport import _respond_pending_requests_on_terminate
-from academy.exchange.transport import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import Header

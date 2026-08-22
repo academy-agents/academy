@@ -22,7 +22,7 @@ from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.exchange.cloud.client import HttpExchangeFactory
 from academy.exchange.cloud.client import HttpExchangeTransport
-from academy.exchange.transport import MailboxStatus
+from academy.exchange.mailbox_status import MailboxStatus
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId

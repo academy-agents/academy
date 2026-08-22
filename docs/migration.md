@@ -14,6 +14,8 @@ Please refer to our [Version Policy](version-policy.md) for more details on when
 
 ## Changes to Mailbox Status
 
+`MailboxStatus` has been moved from [`academy.exchange.client`][academy.exchange.client] to it's own file [`academy.exchange.status`][academy.exchange.mailbox_status].
+
 The [`status()`][academy.exchange.client.ExchangeClient.status] method has been changed to add `MailboxStatus.INACTIVE` to give a specific status to agents which are still accepting messages but have missed a set number of heartbeats. You can adjust [`ExchangeClientConfig`][academy.exchange.client.ExchangeClientConfig] to change the heartbeat interval and the number of heartbeats until an agent is considered inactive. `ExchangeTransport.status` has been removed --- internally status is implemented by querying the heartbeat of the mailbox.
 
 ## Academy v0.5

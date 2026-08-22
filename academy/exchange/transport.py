@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import enum
 import sys
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
@@ -33,19 +32,6 @@ if TYPE_CHECKING:
     from academy.exchange.factory import ExchangeFactory
 else:
     from academy.identifier import AgentT
-
-
-class MailboxStatus(enum.Enum):
-    """Exchange mailbox status."""
-
-    MISSING = 'MISSING'
-    """Mailbox does not exist."""
-    ACTIVE = 'ACTIVE'
-    """Mailbox exists and is accepting messages."""
-    INACTIVE = 'INACTIVE'
-    """Mailbox accepting messages but has missed heartbeats."""
-    TERMINATED = 'TERMINATED'
-    """Mailbox was terminated and no longer accepts messages."""
 
 
 @runtime_checkable

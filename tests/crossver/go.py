@@ -500,7 +500,7 @@ def pre_060(v):
 # in semver in the presence of other similar constraints, I think.
 
 
-def has_heartbeats(v):
+def post_pr404(v):
     # alias for post_060, in the semantic version world
     # but we have some more nuance because v_pr404 is a non-semver-tagged
     # commit that is still interesting to test against so maybe it can
@@ -512,8 +512,8 @@ def has_heartbeats(v):
 def post_pr447(v):
     return z3.Or(post_060(v), v == v_pr447)
 
-solver.add(z3.Implies(has_heartbeats(v2), has_heartbeats(v1)))
-solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
+solver.add(z3.Implies(post_pr404(v2), post_pr404(v1)))
+solver.add(z3.Implies(post_pr404(v3), post_pr404(v1)))
 
 
 # This combination fails because the wire protocol for http exchange
@@ -527,7 +527,7 @@ solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v1)))
 solver.add(z3.Implies(post_050(v1), post_050(v2)))
 solver.add(z3.Implies(post_050(v2), post_050(v3)))
 solver.add(z3.Implies(post_050(v3), post_050(v1)))
-# this will interact with the has_heartbeats protocol constraint above too
+# this will interact with the post_pr404 protocol constraint above too
 # which is not bi-directional...
 
 
@@ -586,7 +586,7 @@ solver.push()
 # the agent definitely has heartbeat support.
 
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
-solver.add(has_heartbeats(v2))
+solver.add(post_pr404(v2))
 count = 0
 while solver.check() == z3.sat:
     count += 1
@@ -627,7 +627,7 @@ solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 # 0.5.0 can't talk to 0.6.0 for agent status.
 
 # Is this a wire protocol or API or exchange related constraint?
-solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v2)))
+solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
 
 # This test breaks in 0.6.0 post-PR#447 because of movement of
 # MailboxStatus structure to different module.
@@ -676,7 +676,7 @@ solver.add(post_pr447(v3))
 # v3 = packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1,
 # Here's a workaround, but it's not entirely desirable: it means, for example,
 # 0.5.0 can't talk to 0.6.0 for agent status.
-solver.add(z3.Implies(has_heartbeats(v3), has_heartbeats(v2)))
+solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
 
 count = 0
 while solver.check() == z3.sat:

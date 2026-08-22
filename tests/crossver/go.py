@@ -111,7 +111,7 @@ def managed_commandline(cmdline: str, *, daemon: bool, env: str):
     """
 
     p = subprocess.Popen(
-        cmdline,
+        f"set -e; cd {env}; . venv/bin/activate;" + cmdline,
         shell=True,
         process_group=0,
     )
@@ -193,14 +193,14 @@ port = 1234
     # now run some kind of process group that is async wrt rest of program and can be shut down
     # entirely at the end (not just the process but all children)
 
-    with managed_commandline(f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json', daemon=True, env=v1_env) as p1:
+    with managed_commandline(f'python3 -m academy.exchange.cloud.__main__ --config exchange_config.json', daemon=True, env=v1_env) as p1:
 
         # a bit of startup time... probs could be done by probing?
         time.sleep(1)
 
         base = os.getcwd()
 
-        with managed_commandline( f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/agent.py', daemon=True, env=v2_env) as p2:
+        with managed_commandline(f'python3 {base}/tests/crossver/test_1/agent.py', daemon=True, env=v2_env) as p2:
 
             time.sleep(3)
 
@@ -209,7 +209,7 @@ port = 1234
             print('copying agent handle')
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-            with managed_commandline(f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_1/client.py', daemon=False, env=v3_env) as p3:
+            with managed_commandline(f'python3 {base}/tests/crossver/test_1/client.py', daemon=False, env=v3_env) as p3:
                 pass
 
     print(

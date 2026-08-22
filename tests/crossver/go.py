@@ -51,24 +51,29 @@ here_mode = False
 
 envs = {}
 
+test_run_root: pathlib.Path | None = None
 
 def create_env(descr: dict) -> pathlib.Path:
+    global test_run_root
+
+    if test_run_root is None:
+        test_run_root = pathlib.Path('.') / ('crossver-' + str(random.randint(0, 999999999)))
+
+    assert test_run_root is not None
+
     if (
         str(descr) in envs
     ):  # this is a bit denormalised so will result in false negatives but not false positives?
         print(f'Using cached environment: {descr!s}')
         return envs[str(descr)]
 
-    env_path = pathlib.Path('.') / (
-        'crossver-env-'
-        + str(random.randint(0, 999999999))
-        + '_'
-        + descr['name']
+    env_path = test_run_root / (
+        'env_' + str(random.randint(0, 999999999))
     )
 
     print(f'creating env for {descr} at {env_path}')
 
-    dir = env_path.mkdir()
+    dir = env_path.mkdir(parents=True, exist_ok=True)
 
     here_path = os.getcwd()
 
@@ -114,9 +119,6 @@ def run_test_1(version_set: dict):
     # In this level, we should not be expecting any academy to be installed
     # because there's no meaningful version to be active - there are 3. Anything
     # academy-like has to happen in the relevant environments.
-
-    for k, v in version_set.items():
-        v['name'] = 'shared'
 
     v1_env = create_env(version_set['exchange'])
     v2_env = create_env(version_set['agent'])
@@ -206,8 +208,6 @@ port = 1234
 
 
 def run_test_heartbeat(version_set: dict):
-    for k, v in version_set.items():
-        v['name'] = 'shared'
 
     v1_env = create_env(version_set['exchange'])
     v2_env = create_env(version_set['agent'])
@@ -271,8 +271,6 @@ port = 1234
 
 
 def run_test_entity_status_client_0_5_0(version_set: dict):
-    for k, v in version_set.items():
-        v['name'] = 'shared'
 
     v1_env = create_env(version_set['exchange'])
     v2_env = create_env(version_set['agent'])
@@ -336,8 +334,6 @@ port = 1234
 
 
 def run_test_entity_status_client_0_6_0(version_set: dict):
-    for k, v in version_set.items():
-        v['name'] = 'shared'
 
     v1_env = create_env(version_set['exchange'])
     v2_env = create_env(version_set['agent'])
@@ -401,8 +397,6 @@ port = 1234
 
 
 def run_test_api_thread_executor_logconfig(version_set: dict):
-    for k, v in version_set.items():
-        v['name'] = 'shared'
 
     v1_env = create_env(version_set['program'])
 
@@ -425,8 +419,6 @@ def run_test_api_thread_executor_logconfig(version_set: dict):
 
 
 def run_test_api_thread_executor_nolog(version_set: dict):
-    for k, v in version_set.items():
-        v['name'] = 'shared'
 
     v1_env = create_env(version_set['program'])
 

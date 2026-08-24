@@ -141,16 +141,24 @@ class BackendConfig(Protocol):
 
 
 class PythonBackendConfig(BaseModel):
-    """Config for using PythonBackend."""
+    """Config for using PythonBackend.
+
+    Attributes:
+        message_size_limit_kb: Maximum message size that can be sent.
+            Bound by the SSE limit imposed by aiohttp.
+
+    """
 
     model_config = ConfigDict(extra='forbid')
 
-    message_size_limit_kb: int = 1024
+    message_size_limit_kb: int = Field(default=512, gt=0, le=512)
     kind: Literal['python'] = Field(default='python', repr=False)
 
     def get_backend(self) -> MailboxBackend:
         """Construct an instance of the backend from the config."""
-        return PythonBackend()
+        return PythonBackend(
+            message_size_limit_kb=self.message_size_limit_kb,
+        )
 
 
 class RedisBackendConfig(BaseModel):
@@ -159,6 +167,11 @@ class RedisBackendConfig(BaseModel):
     Attributes:
         hostname: Redis host
         port: Redis port
+        message_size_limit_kb: Maximum message size that can be sent.
+            Bound by the SSE limit imposed by aiohttp.
+        mailbox_expiration_d: Time till messages expire from mailbox.
+        gravestone_expiration_d: Time till mailbox status is removed.
+            After this, a mailbox may be recreated with the same id.
         kwargs: Any additional args to Redis
     """
 
@@ -166,7 +179,7 @@ class RedisBackendConfig(BaseModel):
 
     hostname: str = 'localhost'
     port: int = 6379
-    message_size_limit_kb: int = Field(default=1024, gt=0, le=1024 * 512)
+    message_size_limit_kb: int = Field(default=512, gt=0, le=512)
     mailbox_expiration_d: float = Field(default=7, gt=0)
     gravestone_expiration_d: float = Field(default=365, gt=0)
     kwargs: dict[str, Any] = Field(default_factory=dict, repr=False)

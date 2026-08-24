@@ -292,11 +292,10 @@ async def test_send_mailbox_message_too_large(cli) -> None:
     aid: AgentId[Any] = AgentId.new()
     cid = UserId.new()
     body = ActionResponse(
-        result=[1] * 513 * 1024,
+        result=[1] * int((512 * 1024) / 3),
         serialization=SerializationStrategy.JSON,
     )
     message = Message.create(src=cid, dest=aid, body=body)
-
     response = await cli.post(
         '/mailbox',
         json={'mailbox': aid.model_dump_json(), 'agent': 'foo'},

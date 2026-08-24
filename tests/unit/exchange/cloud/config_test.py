@@ -56,6 +56,20 @@ def test_python_backend_config() -> None:
     assert isinstance(config.get_backend(), PythonBackend)
 
 
+def test_python_backend_config_message_size() -> None:
+    with pytest.raises(ValidationError):
+        PythonBackendConfig(
+            message_size_limit_kb=513,
+        )
+
+
+def test_python_backend_enforces_params() -> None:
+    config = PythonBackendConfig(message_size_limit_kb=256)
+    backend = config.get_backend()
+    assert isinstance(backend, PythonBackend)
+    assert backend.message_size_limit == 256 * 1024
+
+
 def test_redis_backend_config_default() -> None:
     config = RedisBackendConfig()
     assert isinstance(config.get_backend(), RedisBackend)
@@ -64,8 +78,15 @@ def test_redis_backend_config_default() -> None:
 def test_redis_backend_config_message_size() -> None:
     with pytest.raises(ValidationError):
         RedisBackendConfig(
-            message_size_limit_kb=513 * 1024,
+            message_size_limit_kb=513,
         )
+
+
+def test_redis_backend_enforces_params() -> None:
+    config = RedisBackendConfig(message_size_limit_kb=256)
+    backend = config.get_backend()
+    assert isinstance(backend, RedisBackend)
+    assert backend.message_size_limit == 256 * 1024
 
 
 def test_read_from_config_file_empty(tmp_path: pathlib.Path) -> None:

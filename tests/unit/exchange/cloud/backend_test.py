@@ -20,10 +20,12 @@ from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.mailbox_status import MailboxStatus
 from academy.identifier import AgentId
 from academy.identifier import UserId
+from academy.message import ActionResponse
 from academy.message import ErrorResponse
 from academy.message import Message
 from academy.message import PingRequest
 from academy.message import SuccessResponse
+from academy.serialize import SerializationStrategy
 
 BACKEND_TYPES = (PythonBackend, RedisBackend)
 
@@ -401,22 +403,30 @@ async def test_mailbox_backend_remove_mailbox_shares_requires_ownership(
 
 @pytest.mark.asyncio
 async def test_python_backend_message_size() -> None:
-    backend = PythonBackend(message_size_limit_kb=0)
+    backend = PythonBackend(message_size_limit_kb=1)
     uid = UserId.new()
     client = ClientInfo(str(uid), set())
     await backend.create_mailbox(client, uid)
-    message = Message.create(src=uid, dest=uid, body=PingRequest())
+    body = ActionResponse(
+        result=[1] * 1024,
+        serialization=SerializationStrategy.JSON,
+    )
+    message = Message.create(src=uid, dest=uid, body=body)
     with pytest.raises(MessageTooLargeError):
         await backend.put(client, message)
 
 
 @pytest.mark.asyncio
 async def test_redis_backend_message_size(mock_redis) -> None:
-    backend = RedisBackend(message_size_limit_kb=0)
+    backend = RedisBackend(message_size_limit_kb=1)
     uid = UserId.new()
     client = ClientInfo(str(uid), set())
     await backend.create_mailbox(client, uid)
-    message = Message.create(src=uid, dest=uid, body=PingRequest())
+    body = ActionResponse(
+        result=[1] * 1024,
+        serialization=SerializationStrategy.JSON,
+    )
+    message = Message.create(src=uid, dest=uid, body=body)
     with pytest.raises(MessageTooLargeError):
         await backend.put(client, message)
 

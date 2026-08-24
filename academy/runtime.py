@@ -582,6 +582,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             self._exchange_client._listen_for_messages(),
             name=f'exchange-listener-{self.agent_id}',
         )
+        self._exchange_listener_task.add_done_callback(self._listen_monitor)
 
         for name, method in self._loops.items():
             # This guard handles errors in the `_execute_loop` function
@@ -606,6 +607,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 'academy.agent': self.agent,
             },
         )
+
+    def _listen_monitor(self, task: asyncio.Task[None]) -> None:
+        """Callback to shutdown agent if listen loop terminates."""
+        if not task.cancelled() and task.exception() is not None:
+            self.signal_shutdown(expected=False)
 
     def _should_terminate_mailbox(self) -> bool:
         # Inspects the shutdown options and the run config to determine

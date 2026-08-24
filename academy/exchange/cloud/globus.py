@@ -44,11 +44,11 @@ from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
 from academy.exchange.client_config import ExchangeClientConfig
-from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.client import DEFAULT_EXCHANGE_URL
 from academy.exchange.cloud.login import get_globus_app
 from academy.exchange.cloud.scopes import AcademyExchangeScopes
 from academy.exchange.cloud.scopes import get_academy_exchange_scope_id
+from academy.exchange.cloud.status import StatusCode
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.identifier import AgentId

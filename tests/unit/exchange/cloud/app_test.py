@@ -20,10 +20,10 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange.cloud.app import _main
 from academy.exchange.cloud.app import _run
 from academy.exchange.cloud.app import create_app
-from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.status import StatusCode
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message

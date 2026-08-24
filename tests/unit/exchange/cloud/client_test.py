@@ -15,16 +15,17 @@ from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
 from academy.exchange import HttpExchangeFactory
 from academy.exchange import HttpExchangeTransport
-from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.authenticate import NullAuthenticator
 from academy.exchange.cloud.client import _raise_for_status
 from academy.exchange.cloud.client import spawn_http_exchange
 from academy.exchange.cloud.client_info import ClientInfo
+from academy.exchange.cloud.status import StatusCode
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message
 from academy.message import PingRequest
 from academy.socket import open_port
+from testing.agents import EmptyAgent
 from testing.constant import TEST_CONNECTION_TIMEOUT
 from testing.constant import TEST_SLEEP_INTERVAL
 from testing.constant import TEST_WAIT_TIMEOUT
@@ -403,18 +404,156 @@ async def test_listen_receive_event(
 
     response = mock.MagicMock()
     response.content.__aiter__.return_value = event_stream
-    ctx_manager = mock.MagicMock()
-    ctx_manager.__aenter__.return_value = response
 
     async with await http_exchange_factory._create_transport() as transport:
         with mock.patch.object(
-            transport,
-            '_request_with_refresh',
-            new=mock.MagicMock(),
+            transport._session,
+            'request',
+            new=mock.AsyncMock(),
         ) as mock_request:
-            mock_request.return_value = ctx_manager
+            mock_request.return_value = response
 
             listener = transport.listen(timeout=TEST_WAIT_TIMEOUT)
             for _ in range(3):
                 received = await anext(listener)
                 assert received == message
+
+
+@pytest.mark.asyncio
+async def test_client_retry_on_client_error(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    async with await http_exchange_factory._create_transport() as transport:
+        registration = await transport.register_agent(EmptyAgent)
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=registration.agent_id,
+            body=PingRequest(),
+        )
+
+        with mock.patch.object(
+            transport._session,
+            'request',
+            new=mock.AsyncMock(),
+        ) as request:
+            request.side_effect = [aiohttp.ClientPayloadError(), mock.Mock()]
+            await transport.send(message)
+            assert request.call_count == 2  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_client_no_retry_non_transient_error(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    async with await http_exchange_factory._create_transport() as transport:
+        registration = await transport.register_agent(EmptyAgent)
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=registration.agent_id,
+            body=PingRequest(),
+        )
+
+        with mock.patch.object(
+            transport._session,
+            'request',
+            new=mock.AsyncMock(),
+        ) as request:
+            request.side_effect = [RuntimeError('Send failed'), mock.Mock()]
+            with pytest.raises(RuntimeError, match='Send failed'):
+                await transport.send(message)
+
+            assert request.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_client_retry_on_bad_status(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    mock_response = mock.Mock()
+    mock_response.raise_for_status.side_effect = aiohttp.ClientResponseError(
+        mock.Mock(),
+        mock.Mock(),
+        status=429,
+    )
+
+    async with await http_exchange_factory._create_transport() as transport:
+        registration = await transport.register_agent(EmptyAgent)
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=registration.agent_id,
+            body=PingRequest(),
+        )
+
+        with mock.patch.object(
+            transport._session,
+            'request',
+            new=mock.AsyncMock(),
+        ) as request:
+            request.side_effect = [mock_response, mock.Mock()]
+            await transport.send(message)
+            assert request.call_count == 2  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_client_retry_on_non_transient_status(
+    http_exchange_factory: HttpExchangeFactory,
+) -> None:
+    mock_response = mock.Mock()
+    mock_response.raise_for_status.side_effect = aiohttp.ClientResponseError(
+        mock.Mock(),
+        mock.Mock(),
+        status=400,
+    )
+
+    async with await http_exchange_factory._create_transport() as transport:
+        registration = await transport.register_agent(EmptyAgent)
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=registration.agent_id,
+            body=PingRequest(),
+        )
+
+        with mock.patch.object(
+            transport._session,
+            'request',
+            new=mock.AsyncMock(),
+        ) as request:
+            request.side_effect = [mock_response, mock.Mock()]
+            with pytest.raises(aiohttp.ClientResponseError):
+                await transport.send(message)
+            assert request.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_client_retry_parameter_respected(
+    http_exchange_server: tuple[str, int],
+) -> None:
+    host, port = http_exchange_server
+    url = f'http://{host}:{port}'
+
+    exchange_factory = HttpExchangeFactory(
+        url,
+        retries=2,
+        initial_retry_backoff=TEST_SLEEP_INTERVAL,
+    )
+
+    async with await exchange_factory._create_transport() as transport:
+        registration = await transport.register_agent(EmptyAgent)
+        message = Message.create(
+            src=transport.mailbox_id,
+            dest=registration.agent_id,
+            body=PingRequest(),
+        )
+
+        with mock.patch.object(
+            transport._session,
+            'request',
+            new=mock.AsyncMock(),
+        ) as request:
+            request.side_effect = [
+                aiohttp.ClientPayloadError,
+                aiohttp.ClientPayloadError,
+                mock.Mock(),
+            ]
+            await transport.send(message)
+            assert request.call_count == 3  # noqa: PLR2004

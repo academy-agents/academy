@@ -7,7 +7,6 @@ from typing import Any
 from unittest import mock
 
 import aiohttp
-import aiohttp.web
 import pytest
 
 from academy.exception import BadEntityIdError

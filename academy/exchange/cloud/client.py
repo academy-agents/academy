@@ -23,7 +23,6 @@ else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
 import aiohttp
-import aiohttp.web
 from aiohttp import ClientResponse
 from aiohttp import hdrs
 from pydantic import BaseModel

@@ -34,10 +34,10 @@ from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
 from academy.exchange.client_config import ExchangeClientConfig
 from academy.exchange.cloud.app import _run
-from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.config import ExchangeServingConfig
 from academy.exchange.cloud.config import LogConfig
 from academy.exchange.cloud.login import get_auth_headers
+from academy.exchange.cloud.status import StatusCode
 from academy.exchange.factory import ExchangeFactory
 from academy.exchange.transport import ExchangeTransportMixin
 from academy.identifier import AgentId
@@ -65,6 +65,8 @@ class _HttpConnectionInfo(NamedTuple):
     ssl_verify: bool | None = None
     request_timeout_s: float = 60
     client_timeout: aiohttp.ClientTimeout | None = None
+    retries: int = 0
+    initial_retry_backoff: float = 1.0
 
 
 class HttpAgentRegistration(BaseModel, Generic[AgentT]):
@@ -185,7 +187,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return self._mailbox_id
 
     @contextlib.asynccontextmanager
-    async def _request_with_refresh(
+    async def _request_with_retry_and_refresh(
         self,
         method: str,
         url: str,
@@ -210,9 +212,12 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         """
         retry = True
         while True:
-            async with self._session.request(
+            async with _request_with_retry(
+                self._session,
                 method,
                 url,
+                retries=self._info.retries,
+                retry_backoff=self._info.initial_retry_backoff,
                 **kwargs,
             ) as response:
                 if response.status == StatusCode.FORBIDDEN.value and retry:
@@ -239,7 +244,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         else:
             agent_str = f'{agent.__module__}.{agent.__name__}'
 
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'get',
             self._discover_url,
             json={
@@ -262,6 +267,8 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             ssl_verify=self._info.ssl_verify,
             request_timeout_s=self._info.request_timeout_s,
             client_timeout=self._info.client_timeout,
+            retries=self._info.retries,
+            initial_retry_backoff=self._info.initial_retry_backoff,
         )
 
     async def parse(self, raw_lines: list[str]) -> Message[Any] | None:
@@ -318,7 +325,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             if internal_timeout <= 0:
                 raise TimeoutError()
 
-            async with self._request_with_refresh(
+            async with self._request_with_retry_and_refresh(
                 'get',
                 self._listen_url,
                 json={
@@ -356,7 +363,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         name: str | None = None,
     ) -> HttpAgentRegistration[AgentT]:
         aid: AgentId[AgentT] = AgentId.new(name=name)
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'post',
             self._mailbox_url,
             json={
@@ -368,7 +375,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         return HttpAgentRegistration(agent_id=aid)
 
     async def send(self, message: Message[Any]) -> None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'put',
             self._message_url,
             json={'message': message.model_dump_json()},
@@ -376,7 +383,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, message.dest)
 
     async def terminate(self, uid: EntityId) -> None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'delete',
             self._mailbox_url,
             json={'mailbox': uid.model_dump_json()},
@@ -384,7 +391,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id, uid)
 
     async def update_heartbeat(self) -> None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'post',
             self._heartbeat_url,
             json={'mailbox': self.mailbox_id.model_dump_json()},
@@ -392,7 +399,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             _raise_for_status(response, self.mailbox_id)
 
     async def heartbeat_status(self, uid: EntityId) -> float | None:
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'get',
             self._heartbeat_url,
             json={'mailbox': uid.model_dump_json()},
@@ -401,7 +408,7 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             return (await response.json())['heartbeat']
 
     async def agent_stats(self, uid: EntityId) -> AgentStats:
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'get',
             f'{self._info.url}/mailbox/stats',
             json={'mailbox': uid.model_dump_json()},
@@ -475,7 +482,7 @@ class HttpExchangeConsole:
         return cls(session, connection_info, auth_method)
 
     @contextlib.asynccontextmanager
-    async def _request_with_refresh(
+    async def _request_with_retry_and_refresh(
         self,
         method: str,
         url: str,
@@ -500,9 +507,12 @@ class HttpExchangeConsole:
         """
         retry = True
         while True:
-            async with self._session.request(
+            async with _request_with_retry(
+                self._session,
                 method,
                 url,
+                retries=self._info.retries,
+                retry_backoff=self._info.initial_retry_backoff,
                 **kwargs,
             ) as response:
                 if response.status == StatusCode.FORBIDDEN.value and retry:
@@ -512,7 +522,7 @@ class HttpExchangeConsole:
                     self._session = self.create_session(self._info)
                     continue
                 yield response
-                break
+            break
 
     def factory(self) -> HttpExchangeFactory:
         # Note: When getting factory, auth method is not preserved
@@ -524,6 +534,8 @@ class HttpExchangeConsole:
             ssl_verify=self._info.ssl_verify,
             request_timeout_s=self._info.request_timeout_s,
             client_timeout=self._info.client_timeout,
+            retries=self._info.retries,
+            initial_retry_backoff=self._info.initial_retry_backoff,
         )
 
     async def share_mailbox(
@@ -538,7 +550,7 @@ class HttpExchangeConsole:
             group_id: Id of globus group. User must be part of group to share
                 mailbox.
         """
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'post',
             self._share_url,
             json={
@@ -554,7 +566,7 @@ class HttpExchangeConsole:
         Args:
             mailbox_id: Either AgentId or UserId of mailbox
         """
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'get',
             self._share_url,
             json={
@@ -577,7 +589,7 @@ class HttpExchangeConsole:
             group_id: Id of globus group. User must be part of group to share
                 mailbox.
         """
-        async with self._request_with_refresh(
+        async with self._request_with_retry_and_refresh(
             'delete',
             self._share_url,
             json={
@@ -612,6 +624,10 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             long-lived SSE listen connections are not severed mid-stream.
             Pass a custom [`aiohttp.ClientTimeout`][aiohttp.ClientTimeout] to
             override.
+        retries: Number of times to retry transient error messages received
+            from the exchange server.
+        initial_retry_backoff: Seconds to wait before retrying. Retry is
+            exponential from the initial amount.
     """
 
     def __init__(  # noqa: PLR0913
@@ -624,6 +640,8 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
         ssl_verify: bool | None = None,
         client_timeout: aiohttp.ClientTimeout | None = None,
         config: ExchangeClientConfig | None = None,
+        retries: int = 1,
+        initial_retry_backoff: float = 1,
     ) -> None:
         super().__init__(config)
 
@@ -649,6 +667,8 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             ssl_verify=ssl_verify,
             request_timeout_s=request_timeout_s,
             client_timeout=client_timeout,
+            retries=retries,
+            initial_retry_backoff=initial_retry_backoff,
         )
         self._auth_method = auth_method
 
@@ -671,6 +691,80 @@ class HttpExchangeFactory(ExchangeFactory[HttpExchangeTransport]):
             connection_info=self._info,
             auth_method=self._auth_method,
         )
+
+
+TRANSIENT_STATUSES = frozenset({429, 500, 502, 503, 504})
+
+
+@contextlib.asynccontextmanager
+async def _request_with_retry(
+    session: aiohttp.ClientSession,
+    method: str,
+    url: str,
+    retries: int,
+    retry_backoff: float,
+    **kwargs: Any,
+) -> AsyncGenerator[ClientResponse]:
+    """Make request with retries.
+
+    This retries on a transient error.
+
+    Args:
+        session: Session used to make requests
+        method: Http method to call
+        url: Destination of request
+        retries: Number of times to retry the request
+        retry_backoff: Time in seconds between retries. Exponential backoff
+            between retries.
+        **kwargs: Additional arguments to aiohttp.ClientSession.request
+    """
+    n_attempts = retries + 1
+    while True:
+        n_attempts -= 1
+        try:
+            response = await session.request(
+                method,
+                url,
+                **kwargs,
+            )
+        except BaseException as exc:
+            logger.exception(exc)
+            if n_attempts > 0 and _is_transient_error(exc):
+                await asyncio.sleep(retry_backoff)
+                retry_backoff *= 2
+                continue
+            raise exc
+
+        try:
+            response.raise_for_status()
+        except BaseException as exc:
+            if n_attempts > 0 and _is_transient_error(exc):
+                await asyncio.sleep(retry_backoff)
+                retry_backoff *= 2
+                continue
+
+        yield response
+        break
+
+
+def _is_transient_error(exc: BaseException) -> bool:
+    if isinstance(
+        exc,
+        (
+            aiohttp.ClientConnectionError,
+            aiohttp.ClientPayloadError,
+            OSError,
+            # ``asyncio.TimeoutError`` is an alias of the builtin
+            # ``TimeoutError`` on Python >= 3.11 which is covered in
+            # OSError; list both so the predicate behaves the same
+            # on 3.10.
+            asyncio.TimeoutError,
+        ),
+    ):
+        return True
+    elif isinstance(exc, aiohttp.ClientResponseError):
+        return exc.status in TRANSIENT_STATUSES
+    return False
 
 
 def _raise_for_status(

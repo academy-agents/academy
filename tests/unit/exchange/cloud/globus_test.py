@@ -13,13 +13,13 @@ import responses
 from globus_sdk.testing import load_response
 
 from academy.exception import BadEntityIdError
-from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.globus import _AcademyConnectionInfo
 from academy.exchange.cloud.globus import _PendingRegistration
 from academy.exchange.cloud.globus import AcademyAPIError
 from academy.exchange.cloud.globus import AcademyGlobusClient
 from academy.exchange.cloud.globus import GlobusAgentRegistration
 from academy.exchange.cloud.globus import GlobusExchangeTransport
+from academy.exchange.cloud.status import StatusCode
 from academy.identifier import AgentId
 from academy.identifier import UserId
 from academy.message import Message

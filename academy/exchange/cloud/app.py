@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import enum
 import functools
 import logging
 import ssl
@@ -63,25 +62,12 @@ from academy.exchange.cloud.authenticate import get_authenticator
 from academy.exchange.cloud.backend import MailboxBackend
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeServingConfig
+from academy.exchange.cloud.status import StatusCode
 from academy.exchange.mailbox_status import MailboxStatus
 from academy.identifier import EntityId
 from academy.message import Message
 
 logger = logging.getLogger(__name__)
-
-
-class StatusCode(enum.Enum):
-    """Http status codes."""
-
-    OKAY = 200
-    BAD_REQUEST = 400
-    UNAUTHORIZED = 401
-    FORBIDDEN = 403
-    NOT_FOUND = 404
-    TIMEOUT = 408
-    TOO_LARGE = 413
-    TERMINATED = 419
-    NO_RESPONSE = 444
 
 
 MANAGER_KEY = AppKey('manager', MailboxBackend)

@@ -581,9 +581,9 @@ class PythonBackend:
                 'Client does not have correct permissions.',
             )
 
-        if sys.getsizeof(message.body) > self.message_size_limit:
+        if len(message.model_serialize()) > self.message_size_limit:
             raise MessageTooLargeError(
-                sys.getsizeof(message.body),
+                len(message.model_serialize()),
                 self.message_size_limit,
             )
 

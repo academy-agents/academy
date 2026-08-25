@@ -330,6 +330,28 @@ async def test_runtime_cancel_loop(
 
 
 @pytest.mark.asyncio
+async def test_runtime_shutsdown_on_listen_error(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(EmptyAgent)
+
+    with mock.patch.object(
+        ExchangeClient,
+        '_listen_for_messages',
+        new_callable=mock.AsyncMock,
+    ) as listener:
+        listener.side_effect = Exception('Listen Exception')
+
+        with pytest.raises(Exception, match='Listen Exception'):
+            async with Runtime(  # pragma: no branch
+                EmptyAgent(),
+                exchange_factory=exchange_client.factory(),
+                registration=registration,
+            ) as runtime:
+                await runtime.wait_shutdown(timeout=TEST_WAIT_TIMEOUT)
+
+
+@pytest.mark.asyncio
 async def test_runtime_ping_message(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:

@@ -450,6 +450,23 @@ def run_test_api_thread_executor_nolog(version_set: dict):
     assert p1.returncode == 0, 'p1 should have exited successfully'
 
 
+def run_test_pickle_handle(version_set: dict):
+    v1_env = create_env(version_set['writer'])
+    v2_env = create_env(version_set['reader'])
+    base = os.getcwd()
+
+    # these two could be the same file
+    os.system(f'rm -f {v1_env}/pickle.handle')
+    os.system(f'rm -f {v2_env}/pickle.handle')
+    with managed_commandline(f'python3 {base}/tests/crossver/test_pickle_handle/serializer.py', daemon=False, env=v1_env):
+        pass
+
+    os.system(f'cp {v1_env}/pickle.handle {v2_env}/pickle.handle')
+
+    with managed_commandline(f'python3 {base}/tests/crossver/test_pickle_handle/deserializer.py', daemon=False, env=v2_env):
+        pass
+
+
 AcademyVersion, (v030, v031, v040, v050, v_pr404, v_pr447, v_here) = z3.EnumSort(
     'AcademyVersion',
     [
@@ -699,6 +716,35 @@ while solver.check() == z3.sat:
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
     run_test_entity_status_client_0_6_0(this_version_set)
+solver.pop()
+
+
+# Two-environment tests (for example, pickle/unpickle handle)
+
+solver = z3.Solver()
+
+if here_mode:
+  solver.add(z3.Or(v1 == v_here, v2 == v_here))
+
+solver.push()
+
+count = 0
+while solver.check() == z3.sat:
+    count += 1
+    m = solver.model()
+    print(f'=== test_pickle_handle: solution {count} ===')
+    print(m)
+    chosen_v1 = m[v1] if m[v1] is not None else v040
+    chosen_v2 = m[v2] if m[v2] is not None else v040
+    solver.add(
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2)),
+    )
+
+    _V1 = {'academy': str(chosen_v1)}
+    _V2 = {'academy': str(chosen_v2)}
+    this_version_set = {'writer': _V1, 'reader': _V2}
+    run_test_pickle_handle(this_version_set)
+
 solver.pop()
 
 

@@ -10,44 +10,11 @@ import time
 
 import z3
 
+# turn on here_mode if you want the driver to only test combinations which
+# involve the HERE version - for example, this makes sense if you are
+# contributing a pull request which does not modify the crossver tests in
+# any way.
 here_mode = False
-
-# this can run in a fairly arbitrary python
-
-# There should be several versions available.
-# Actually the number is unbounded because tests might want to be able
-# to start up arbitrary other components of arbitrary version... but
-# for now, a client-ish, and exchange-ish, and an agent-ish.
-
-# these can be chosen in various combos: earliest that matches the version constraint,
-# most recent, "pr current", random from main branch, random release that matches (a subset of random-from-main)
-
-# these envs can also contain other version constrains eventaully, not only academy version.
-# (python version, redis version, ...). python version is probably especially useful for being able to
-# deal with peoples marginal ideas on cross-python compatibility.
-
-# The notion of a current/here version is special though because that's where this driver script and the tests
-# live (probably) - and might exist only as a current filesystem artefact, unlike the other globally named
-# versions.
-
-# It makes sense to run the current version against a *later* version (as part of testing that later version)
-# which itself is a bit nuanced -- I want to know that what i am writing now is not broken by future changes.
-
-# It's also possible I want to test API consistency, not just wire protocol consistency? what does that look
-# like? Test cases from version x, but run against version y (so that if someone edits the test cases to make
-# version y work, we discover than when running the version x tests)?  Or is that covered by "do not edit these
-# tests without an API bump or untested-justification of how this isn't breaking things?"
-# Testing this API compatibility is probably interesting/useful though.
-# And at least good for modelling what version meanings are in that space, separate from wire protocols.
-# There will be testing of that a bit though -- we'll be testing that the Python test code from HERE will run
-# in an environment where we've got V1, or V2, or V3 installed.
-
-# Config file format is also a thing: if i generate a config file now, does it work across older and newer
-# versions? - for example, the config file for the http exchange. if I generate it "now" (aka from this current
-# version of the test suite), will it be accepted by future and past implementations of the http exchange?
-
-# are all these versioned by the same version (the pypi package version) or is there more interesting stuff
-# going on that users (and academy code) needs to understand?
 
 
 envs = {}

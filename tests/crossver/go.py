@@ -425,6 +425,13 @@ solver.push()
 # this is a requirement because... using the HTTP exchange?
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 
+# This test breaks in 0.6.0 post-PR#447 because of movement of
+# MailboxStatus structure to different module: this constraint
+# requires the client is not after that.
+# But is this too aggressive? We should test all the way up
+# <#447
+solver.add(pre_060(v3))
+
 # same as the base compatibility rules
 # although I'll probably need to add in an exclusion for an undesired incompatibility
 
@@ -439,10 +446,6 @@ solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 # Is this a wire protocol or API or exchange related constraint?
 solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
 
-# This test breaks in 0.6.0 post-PR#447 because of movement of
-# MailboxStatus structure to different module.
-solver.add(pre_060(v2))
-solver.add(pre_060(v3))
 
 count = 0
 while solver.check() == z3.sat:

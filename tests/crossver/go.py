@@ -159,53 +159,23 @@ port = 1234
     with open(v1_env / 'exchange_config.json', 'w') as f:
         f.write(exchange_config)
 
-    p1 = subprocess.Popen(
-        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
-        shell=True,
-        process_group=0,
-    )
+    with managed_commandline(f'python3 -m academy.exchange.cloud.__main__ --config exchange_config.json', daemon=True, env=v1_env) as p1:
+        time.sleep(1)
 
-    time.sleep(1)
+        base = os.getcwd()
 
-    base = os.getcwd()
+        with managed_commandline(f'python3 {base}/tests/crossver/test_heartbeat/agent.py', daemon=True, env=v2_env) as p2:
 
-    p2 = subprocess.Popen(
-        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/agent.py',
-        shell=True,
-        process_group=0,
-    )
+            time.sleep(3)
 
-    time.sleep(3)
+            os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-    print('copying agent handle')
-    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
-
-    p3 = subprocess.Popen(
-        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_heartbeat/client.py',
-        shell=True,
-        process_group=0,
-    )
-
-    p3.wait()
-
-    print('terminating p2 group')
-    os.killpg(p2.pid, signal.SIGTERM)
-    print('waiting on p2')
-    p2.wait()
-
-    print('terminating p1 group')
-    os.killpg(p1.pid, signal.SIGTERM)
-
-    print('waiting on p1')
-    p1.wait()
+            with managed_commandline(f'python3 {base}/tests/crossver/test_heartbeat/client.py', daemon=False, env=v3_env) as p3:
+                pass
 
     print(
         f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
     )
-
-    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
-    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
-    assert p3.returncode == 0, 'p3 should have exited succesfully'
 
 
 def run_test_entity_status_client_0_5_0(version_set: dict):
@@ -222,53 +192,20 @@ port = 1234
     with open(v1_env / 'exchange_config.json', 'w') as f:
         f.write(exchange_config)
 
-    p1 = subprocess.Popen(
-        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
-        shell=True,
-        process_group=0,
-    )
+    with managed_commandline(f'python3 -m academy.exchange.cloud.__main__ --config exchange_config.json', daemon=True, env=v1_env) as p1:
 
-    time.sleep(1)
+        time.sleep(1)
 
-    base = os.getcwd()
+        base = os.getcwd()
 
-    p2 = subprocess.Popen(
-        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_5_0/agent.py',
-        shell=True,
-        process_group=0,
-    )
+        with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_5_0/agent.py', daemon=True, env=v2_env) as p2:
 
-    time.sleep(3)
+            time.sleep(3)
 
-    print('copying agent handle')
-    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
+            os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-    p3 = subprocess.Popen(
-        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_5_0/client.py',
-        shell=True,
-        process_group=0,
-    )
-
-    p3.wait()
-
-    print('terminating p2 group')
-    os.killpg(p2.pid, signal.SIGTERM)
-    print('waiting on p2')
-    p2.wait()
-
-    print('terminating p1 group')
-    os.killpg(p1.pid, signal.SIGTERM)
-
-    print('waiting on p1')
-    p1.wait()
-
-    print(
-        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
-    )
-
-    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
-    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
-    assert p3.returncode == 0, 'p3 should have exited succesfully'
+            with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_5_0/client.py', daemon=False, env=v3_env) as p3:
+                pass
 
 
 def run_test_entity_status_client_0_6_0(version_set: dict):
@@ -285,53 +222,20 @@ port = 1234
     with open(v1_env / 'exchange_config.json', 'w') as f:
         f.write(exchange_config)
 
-    p1 = subprocess.Popen(
-        f'set -e; cd {v1_env}; . venv/bin/activate; python3 -m academy.exchange.cloud.__main__ --config exchange_config.json',
-        shell=True,
-        process_group=0,
-    )
+    with managed_commandline(f'python3 -m academy.exchange.cloud.__main__ --config exchange_config.json', daemon=True, env=v1_env) as p1:
 
-    time.sleep(1)
+        time.sleep(1)
 
-    base = os.getcwd()
+        base = os.getcwd()
 
-    p2 = subprocess.Popen(
-        f'set -e; cd {v2_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_6_0/agent.py',
-        shell=True,
-        process_group=0,
-    )
+        with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_6_0/agent.py', daemon=True, env=v2_env) as p2:
 
-    time.sleep(3)
+            time.sleep(3)
 
-    print('copying agent handle')
-    os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
+            os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-    p3 = subprocess.Popen(
-        f'set -e; cd {v3_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_entity_status_client_0_6_0/client.py',
-        shell=True,
-        process_group=0,
-    )
-
-    p3.wait()
-
-    print('terminating p2 group')
-    os.killpg(p2.pid, signal.SIGTERM)
-    print('waiting on p2')
-    p2.wait()
-
-    print('terminating p1 group')
-    os.killpg(p1.pid, signal.SIGTERM)
-
-    print('waiting on p1')
-    p1.wait()
-
-    print(
-        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
-    )
-
-    assert p1.returncode == -15, 'p1 should have been terminated by SIGTERM'
-    assert p2.returncode == -15, 'p2 should have been terminated by SIGTERM'
-    assert p3.returncode == 0, 'p3 should have exited succesfully'
+            with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_6_0/client.py', daemon=False, env=v3_env) as p3:
+                pass
 
 
 def run_test_api_thread_executor_logconfig(version_set: dict):
@@ -340,20 +244,8 @@ def run_test_api_thread_executor_logconfig(version_set: dict):
 
     base = os.getcwd()
 
-    p1 = subprocess.Popen(
-        f'set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor_logconfig/clientagent.py',
-        shell=True,
-        process_group=0,
-    )
-
-    p1.wait()
-
-    print('waiting on p1')
-    p1.wait()
-
-    print(f'return codes: p1={p1.returncode}')
-
-    assert p1.returncode == 0, 'p1 should have exited successfully'
+    with managed_commandline(f'python3 {base}/tests/crossver/test_api_thread_executor_logconfig/clientagent.py', daemon=False, env=v1_env):
+        pass
 
 
 def run_test_api_thread_executor_nolog(version_set: dict):
@@ -362,20 +254,8 @@ def run_test_api_thread_executor_nolog(version_set: dict):
 
     base = os.getcwd()
 
-    p1 = subprocess.Popen(
-        f'set -e; cd {v1_env}; . venv/bin/activate ; python3 {base}/tests/crossver/test_api_thread_executor_nolog/clientagent.py',
-        shell=True,
-        process_group=0,
-    )
-
-    p1.wait()
-
-    print('waiting on p1')
-    p1.wait()
-
-    print(f'return codes: p1={p1.returncode}')
-
-    assert p1.returncode == 0, 'p1 should have exited successfully'
+    with managed_commandline(f'python3 {base}/tests/crossver/test_api_thread_executor_nolog/clientagent.py', daemon=False, env=v1_env):
+        pass
 
 
 def run_test_pickle_handle(version_set: dict):

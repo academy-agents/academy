@@ -294,11 +294,11 @@ v3 = z3.Const('v3', AcademyVersion)
 
 # Three-environment tests (exchange, agent, client)
 
-solver = z3.Solver()
 
-# here-relevancy constraint, which will be one kind of mode I want to use this in -- for developing new code rather than checking history - that latter mode might be when adding a new test or changing constraint descriptions.
 if here_mode:
     solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
+
+# simulations of semver...
 
 def post_040(v):
     return z3.Or(v == v040, v == v050, v == v_pr404, v == v_pr447, v == v_here)
@@ -313,18 +313,6 @@ def post_060(v):
 def pre_060(v):
     return z3.Or(v == v030, v == v031, v == v040, v == v050)
 
-# This combination causes test 1 to fail, because the 0.5.0 exchange
-# doesn't recognise heartbeats: the agent outputs background error
-# (but maybe still functions) and the client fails with a unix error,
-# which is actually what is detected.
-# [v2 = HERE, v1 = packaging academy-py==0.5.0, v3 = HERE]
-# So what is the broader constraint here?
-# probably an implication: agent or client being >= dff0
-# implies that the exchange must be >= dff0
-# that's quite subtle and not something that can be expressed
-# in semver in the presence of other similar constraints, I think.
-
-
 def post_pr404(v):
     # alias for post_060, in the semantic version world
     # but we have some more nuance because v_pr404 is a non-semver-tagged
@@ -336,6 +324,20 @@ def post_pr404(v):
 
 def post_pr447(v):
     return z3.Or(post_060(v), v == v_pr447)
+
+
+solver = z3.Solver()
+
+# This combination causes test 1 to fail, because the 0.5.0 exchange
+# doesn't recognise heartbeats: the agent outputs background error
+# (but maybe still functions) and the client fails with a unix error,
+# which is actually what is detected.
+# [v2 = HERE, v1 = packaging academy-py==0.5.0, v3 = HERE]
+# So what is the broader constraint here?
+# probably an implication: agent or client being >= dff0
+# implies that the exchange must be >= dff0
+# that's quite subtle and not something that can be expressed
+# in semver in the presence of other similar constraints, I think.
 
 solver.add(z3.Implies(post_pr404(v2), post_pr404(v1)))
 solver.add(z3.Implies(post_pr404(v3), post_pr404(v1)))
@@ -356,24 +358,7 @@ solver.add(z3.Implies(post_050(v3), post_050(v1)))
 # which is not bi-directional...
 
 
-# OLD NEWS: (#447 was updated)
-# pickle-of-handle protocol changed from 0.5.0 to HERE
-# (in PR #447)
-# This patch assumes that v_here is the only version with
-# latest pickle-of-handle protocol.
-# I should probably express this as a 0.5.0 != 0.6.0
-# style constraint?
-# This constraint is needed for all separated client/agent tests
-# because the pickle-of-handle protocol is how they move their
-# handles between each other.
-# solver.add(z3.Or(z3.And(v2 == v_here, v3 == v_here),
-#                 z3.And(v2 != v_here, v3 != v_here)))
-
-
 solver.push()
-
-
-
 
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 

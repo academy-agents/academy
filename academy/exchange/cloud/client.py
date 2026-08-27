@@ -28,6 +28,7 @@ from aiohttp import hdrs
 from pydantic import BaseModel
 from pydantic import Field
 
+from academy import __version__
 from academy.exception import BadEntityIdError
 from academy.exception import ForbiddenError
 from academy.exception import MailboxTerminatedError
@@ -124,9 +125,12 @@ class HttpExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         if connection_info.client_timeout is not None:  # pragma: no branch
             session_kwargs['timeout'] = connection_info.client_timeout
 
+        additional_headers = {
+            'academy_version': __version__,
+        } | connection_info.additional_headers
         session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=ssl_verify),
-            headers=connection_info.additional_headers,
+            headers=additional_headers,
             trust_env=True,
             **session_kwargs,
         )
@@ -454,9 +458,12 @@ class HttpExchangeConsole:
         if connection_info.client_timeout is not None:  # pragma: no branch
             session_kwargs['timeout'] = connection_info.client_timeout
 
+        additional_headers = {
+            'academy_version': __version__,
+        } | connection_info.additional_headers
         session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=ssl_verify),
-            headers=connection_info.additional_headers,
+            headers=additional_headers,
             trust_env=True,
             **session_kwargs,
         )

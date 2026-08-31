@@ -34,10 +34,12 @@ from academy.exchange import LocalExchangeFactory
 from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
+
 class ExampleAgent(Agent):  # (1)!
     @action  # (2)!
     async def square(self, value: float) -> float:
         return value * value
+
 
 async def main() -> None:
 
@@ -52,6 +54,7 @@ async def main() -> None:
         assert result == 4
 
         await agent_handle.shutdown()  # (8)!
+
 
 if __name__ == '__main__':
     asyncio.run(main())
@@ -84,6 +87,7 @@ Control loops define the autonomous behavior of a running agent and are created 
 ```python
 from academy.agent import loop
 
+
 class ExampleAgent(Agent):
     @loop
     async def counter(self, shutdown: asyncio.Event) -> None:
@@ -106,6 +110,7 @@ Here, a `Coordinator` is initialized with handles to two other agents implementi
 from academy.agent import action
 from academy.agent import Agent
 from academy.handle import Handle
+
 
 class Coordinator(Agent):
     def __init__(
@@ -146,6 +151,7 @@ from academy.exchange import LocalExchangeFactory
 from academy.logging.recommended import recommended_logging
 from academy.manager import Manager
 
+
 async def main() -> None:
 
     async with await Manager.from_exchange_factory(
@@ -168,6 +174,7 @@ async def main() -> None:
         assert result == expected
         logger.info('Received result: "%s"', result)
 
+
 if __name__ == '__main__':
     asyncio.run(main())
 ```
@@ -181,6 +188,7 @@ Below, a [Redis server](https://redis.io/){target=_blank} server (via the [redis
 ```python
 from concurrent.futures import ProcessPoolExecutor
 from academy.exchange import RedisExchangeFactory
+
 
 async def main() -> None:
     async with Manager.from_exchange_factory(

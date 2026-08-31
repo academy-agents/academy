@@ -17,6 +17,7 @@ For example, see the following code from [the LLM example](https://github.com/ac
 from academy.handle import Handle
 from langchain.tools import tool, Tool
 
+
 def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
     ...
 
@@ -26,7 +27,6 @@ def make_sim_tool(handle: Handle[MySimAgent]) -> Tool:
         return await handle.compute_ionization_energy(smiles)
 
     return compute_ionization_energy
-
 ```
 
 The LLM needs to be explicitly passed a tool because internally langchain uses the doc-string and the signature, which are not available on the handle. This also means that tools must be defined dynamically or a specific wrapper is needed for each tool to specify the documentation.

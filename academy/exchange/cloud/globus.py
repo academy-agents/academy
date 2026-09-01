@@ -40,6 +40,7 @@ from globus_sdk.transport.requests import RequestsTransport
 from pydantic import BaseModel
 from pydantic import Field
 
+from academy import __version__
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError
 from academy.exception import UnauthorizedError
@@ -118,6 +119,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
                 'agent': agent_str,
                 'allow_subclasses': allow_subclasses,
             },
+            headers={'academy_version': __version__},
         )
 
     def recv(
@@ -132,6 +134,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
                 'mailbox': mailbox_id.model_dump_json(),
                 'timeout': timeout,
             },
+            headers={'academy_version': __version__},
         )
 
     def register_agent(
@@ -145,6 +148,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
                 'mailbox': agent_id.model_dump_json(),
                 'agent': ','.join(agent._agent_mro()),
             },
+            headers={'academy_version': __version__},
         )
 
     def register_client(
@@ -156,12 +160,14 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             data={
                 'mailbox': mailbox_id.model_dump_json(),
             },
+            headers={'academy_version': __version__},
         )
 
     def send(self, message: Message[Any]) -> GlobusHTTPResponse:
         return self.put(
             self._message_url,
             data={'message': message.model_dump_json()},
+            headers={'academy_version': __version__},
         )
 
     def terminate(self, uid: EntityId) -> GlobusHTTPResponse:
@@ -169,6 +175,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             'DELETE',
             self._mailbox_url,
             data={'mailbox': uid.model_dump_json()},
+            headers={'academy_version': __version__},
         )
 
     def get_heartbeat(self, uid: EntityId) -> GlobusHTTPResponse:
@@ -176,6 +183,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             'GET',
             self._heartbeat_url,
             data={'mailbox': uid.model_dump_json()},
+            headers={'academy_version': __version__},
         )
 
     def update_heartbeat(self, uid: EntityId) -> GlobusHTTPResponse:
@@ -183,6 +191,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             'POST',
             self._heartbeat_url,
             data={'mailbox': uid.model_dump_json()},
+            headers={'academy_version': __version__},
         )
 
     def get_agent_stats(self, uid: EntityId) -> GlobusHTTPResponse:
@@ -190,6 +199,7 @@ class AcademyGlobusClient(globus_sdk.BaseClient):
             'GET',
             self._agent_stats_url,
             data={'mailbox': uid.model_dump_json()},
+            headers={'academy_version': __version__},
         )
 
 

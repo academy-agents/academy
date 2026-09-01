@@ -9,6 +9,7 @@ import pydantic
 import pytest
 from pydantic import Field
 
+from academy import __version__
 from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
 from academy.exception import ExceptionSerializationError
@@ -290,7 +291,7 @@ def test_compatible_major_version() -> None:
                 'src': AgentId.new(),
                 'dest': AgentId.new(),
                 'tag': uuid.uuid4(),
-                'protocol_version': '1.1',
+                'protocol_version': '1.100',
                 'kind': 'request',
             },
             'body': NewActionRequest(
@@ -305,3 +306,28 @@ def test_compatible_major_version() -> None:
     body = message.get_body()
     assert isinstance(body, ActionRequest)
     assert not isinstance(body, NewActionRequest)
+
+
+def test_header_academy_version_default() -> None:
+    message = Message.create(
+        src=AgentId.new(),
+        dest=AgentId.new(),
+        body=SuccessResponse(),
+    )
+    assert message.academy_version == __version__
+
+
+def test_header_academy_version_missing() -> None:
+    message: Message[SuccessResponse] = Message.model_validate(
+        {
+            'header': {
+                'src': AgentId.new(),
+                'dest': AgentId.new(),
+                'tag': uuid.uuid4(),
+                'protocol_version': '1.0',
+                'kind': 'response',
+            },
+            'body': SuccessResponse().model_dump(),
+        },
+    )
+    assert message.academy_version == '0.5.0'

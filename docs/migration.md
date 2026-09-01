@@ -33,8 +33,9 @@ The once-per-process `init_logging` helper function has been removed. Instead pa
 
 
 ```python
-  from academy.logging.helpers import recommended_logging, log_context
-  with Manager.from_exchange_factory(..., log_config=recommended_logging()):
+from academy.logging.helpers import recommended_logging, log_context
+
+with Manager.from_exchange_factory(..., log_config=recommended_logging()):
     ...
 ```
 
@@ -98,6 +99,7 @@ As a result, it is now safe to instantiate new handles directly inside an agent 
 ```python
 from academy.agent import Agent, action
 from academy.handle import Handle
+
 
 class MyAgent(Agent):
     @action

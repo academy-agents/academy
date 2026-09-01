@@ -21,9 +21,7 @@ config = Config(
     executors=[
         HighThroughputExecutor(
             provider=LocalProvider(
-                worker_init=(
-                    f'cd {os.getcwd()}conda activate ./mol-design;'
-                ),
+                worker_init=(f'cd {os.getcwd()}conda activate ./mol-design;'),
             ),
             max_workers_per_node=2,
         ),

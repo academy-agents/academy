@@ -26,6 +26,7 @@ from pydantic import field_serializer
 from pydantic import SkipValidation
 from pydantic import TypeAdapter
 
+from academy import __version__
 from academy.exception import ActionCancelledError
 from academy.exception import ActionInvalidStateError
 from academy.exception import ExceptionSerializationError
@@ -52,7 +53,7 @@ DEFAULT_MUTABLE_CONFIG = ConfigDict(
     validate_default=True,
 )
 
-PROTOCOL_VERSION: Version = Version('1')
+PROTOCOL_VERSION: Version = Version('1.1')
 
 
 def check_version(version: str | None) -> bool:
@@ -401,6 +402,16 @@ class Header(BaseModel):
             'existing fields without prohibiting their existence.'
         ),
     )
+    academy_version: str = Field(
+        '0.5.0',
+        description=(
+            'Communicate the academy version so decisions can be made '
+            'based off the version number (for instance if a feature '
+            'later implemented can be invoked). Messages without a '
+            'version are assumed to be v0.5.0 (the only version using '
+            'this protocol version without the academy_version field).'
+        ),
+    )
 
     model_config = DEFAULT_FROZEN_CONFIG
 
@@ -426,6 +437,7 @@ class Header(BaseModel):
             dest=self.src,
             label=self.label,
             kind='response',
+            academy_version=__version__,
         )
 
 
@@ -483,6 +495,11 @@ class Message(BaseModel, Generic[BodyT]):
         """Message protocol version."""
         return self.header.protocol_version
 
+    @property
+    def academy_version(self) -> str:
+        """Message protocol version."""
+        return self.header.academy_version
+
     @classmethod
     def create(
         cls,
@@ -515,7 +532,14 @@ class Message(BaseModel, Generic[BodyT]):
         if tag is None:
             tag = uuid.uuid4()
 
-        header = Header(src=src, dest=dest, label=label, kind=kind, tag=tag)
+        header = Header(
+            src=src,
+            dest=dest,
+            label=label,
+            kind=kind,
+            tag=tag,
+            academy_version=__version__,
+        )
         request: Message[BodyT] = Message(header=header, body=body)
         return request
 

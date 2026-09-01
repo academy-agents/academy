@@ -59,12 +59,11 @@ def expensive_task():
     # Do expensive task
     return 42
 
+
 class SimulationAgent(Agent):
     def __init__(self):
         self.config = Config(
-            executors=[
-                HighThroughputExecutor()
-            ],
+            executors=[HighThroughputExecutor()],
         )
 
     async def agent_on_startup(self) -> None:
@@ -78,7 +77,6 @@ class SimulationAgent(Agent):
     @action
     async def run_expensive_task(self) -> None:
         return await asyncio.wrap_future(expensive_task())
-
 ```
 The configuration will submit jobs to the cluster using Slurm, and run tasks using the HighThroughputExecutor. For information on configuring Parsl, please see the Parsl [docs](https://parsl.readthedocs.io/en/stable/userguide/configuration/index.html). For a full example see the [example](https://github.com/academy-agents/academy/tree/main/examples/05-parsl) included in the repo.
 

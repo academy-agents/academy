@@ -24,6 +24,8 @@ else:  # pragma: <3.11 cover
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import field_validator
+from pydantic import ValidationInfo
 
 import academy.exchange as ae
 from academy.context import ActionContext
@@ -34,6 +36,7 @@ from academy.exception import raise_exceptions
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
 from academy.handle import exchange_context
+from academy.identifier import _validate_group_ids
 from academy.identifier import EntityId
 from academy.message import AcademyErrorResponse
 from academy.message import ActionRequest
@@ -118,6 +121,20 @@ class RuntimeConfig(BaseModel):
     access_groups: set[str] | None = None
     control_groups: set[str] | None = None
 
+    @field_validator('access_groups', 'control_groups')
+    @classmethod
+    def _validate_groups(
+        cls,
+        value: set[str] | None,
+        info: ValidationInfo,
+    ) -> set[str] | None:
+        if value is not None:
+            _validate_group_ids(
+                value,
+                source=f'RuntimeConfig.{info.field_name}',
+            )
+        return value
+
 
 class Runtime(Generic[AgentT], NoPickleMixin):
     """Agent runtime manager.
@@ -176,6 +193,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._fine_grained = any(
             m._action_sharing is not None for m in self._actions.values()
         )
+        # Union of every group named by an `@action(sharing=...)`
+        # decorator. Together with the access and control groups this is
+        # exactly the set registered with the exchange as the mailbox
+        # share set, so it is the set that may probe agent liveness.
+        self._action_groups = agent._agent_permitted_groups()
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
@@ -183,6 +205,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         self._agent_startup_called = False
         self._action_tasks: dict[uuid.UUID, asyncio.Task[None]] = {}
         self._action_requesters: dict[uuid.UUID, EntityId] = {}
+        self._response_tasks: dict[uuid.UUID, asyncio.Task[None]] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
         self._loop_exceptions: list[tuple[str, Exception]] = []
 
@@ -371,6 +394,36 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         owner = getattr(self.registration, 'owner', None)
         return owner is not None and sender == owner
 
+    def _forbidden(
+        self,
+        request: Message[Request],
+        reason: str,
+    ) -> Message[Response]:
+        """Log a denied request and build the FORBIDDEN response.
+
+        Denials are logged at warning level because a denied request is
+        the only signal an operator has that an agent's groups are
+        misconfigured. The requester only ever sees an opaque
+        `RequestForbiddenError`, so the reason is recorded here rather
+        than returned to the sender.
+        """
+        logger.warning(
+            'Denied request from %s (%s)',
+            request.src,
+            reason,
+            extra={
+                'academy.agent_id': self.agent_id,
+                'academy.denial_reason': reason,
+                **request.log_extra(),
+            },
+        )
+        return request.create_response(
+            AcademyErrorResponse(
+                error_code=ErrorCode.FORBIDDEN,
+                mailbox_id=self.agent_id,
+            ),
+        )
+
     def _authorized_for_action(
         self,
         sender: EntityId,
@@ -405,6 +458,36 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             return not self._fine_grained
         return not sender_groups.isdisjoint(permitted)
 
+    def _authorized_for_ping(
+        self,
+        sender: EntityId,
+        sender_groups: frozenset[str],
+    ) -> bool:
+        """Check if `sender` may probe this agent's liveness.
+
+        Ping is a liveness probe rather than an action, so it is not
+        gated per-action: a control-group member who cannot invoke
+        anything still needs to check the agent is alive before
+        shutting it down. Any group with a stake in the agent may ping.
+
+        The permitted set is the same union the exchange registers as
+        the mailbox share set, so this check is defence in depth and is
+        never stricter than the exchange already enforces.
+        """
+        if self._is_owner(sender):
+            return True
+        if getattr(self.registration, 'owner', None) is None:
+            # Ownerless registrations come from self-hosted (local or
+            # hybrid) exchanges, which are fully trusted and do not stamp
+            # group memberships. Authorization does not apply.
+            return True
+        permitted = (
+            self._access_groups | self._control_groups | self._action_groups
+        )
+        if not permitted:
+            return not self._fine_grained
+        return not sender_groups.isdisjoint(permitted)
+
     async def _execute_loop(
         self,
         name: str,
@@ -430,77 +513,129 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             if self.config.shutdown_on_loop_error:
                 self.signal_shutdown(expected=False)
 
-    async def _request_handler(self, request: Message[Request]) -> None:
-        body = request.get_body()
-        response: Message[Response]
-        if isinstance(body, ActionRequest):
-            authorized = self._authorized_for_action(
-                request.src,
-                request.header.groups,
-                body.action,
-            )
-            if not authorized:
-                response = request.create_response(
-                    AcademyErrorResponse(
-                        error_code=ErrorCode.FORBIDDEN,
-                        mailbox_id=self.agent_id,
-                    ),
-                )
-                task = asyncio.create_task(self._send_response(response))
-            else:
-                task = spawn_guarded_background_task(
-                    self._execute_action(request),  # type: ignore[arg-type]
-                    name=f'execute-action-{body.action}-{request.tag}',
-                )
-                logger.debug(f'Started action with tag {request.tag}')
-            self._action_requesters[request.tag] = request.src
-            self._action_tasks[request.tag] = task
-            task.add_done_callback(
-                lambda _: self._action_tasks.pop(request.tag),
-            )
-            task.add_done_callback(
-                lambda _: self._action_requesters.pop(request.tag, None),
-            )
+    def _track_request_task(
+        self,
+        request: Message[Request],
+        task: asyncio.Task[None],
+    ) -> None:
+        """Record the task and requester for a request, clearing on done."""
+        self._action_requesters[request.tag] = request.src
+        self._action_tasks[request.tag] = task
+        task.add_done_callback(
+            lambda _: self._action_tasks.pop(request.tag),
+        )
+        task.add_done_callback(
+            lambda _: self._action_requesters.pop(request.tag, None),
+        )
 
-        elif isinstance(body, CancelRequest):
-            requester = self._action_requesters.get(body.target_tag)
-            if requester is not None and not (
-                self._is_owner(request.src)
-                or request.src == requester
-                or (
-                    self._control_groups
-                    and not request.header.groups.isdisjoint(
-                        self._control_groups,
-                    )
-                )
-            ):
-                # Cancelling re-checks group permissions: a sender who
-                # requested the action, the owner, or a control-group
-                # member may cancel.
-                response = request.create_response(
-                    AcademyErrorResponse(
-                        error_code=ErrorCode.FORBIDDEN,
-                        mailbox_id=self.agent_id,
-                    ),
-                )
-            elif (
-                body.target_tag in self._action_tasks
-                and self._action_tasks[body.target_tag].cancel()
-            ):
-                logger.debug(f'Cancelled action with tag {body.target_tag}')
-                response = request.create_response(SuccessResponse())
-            else:
-                response = request.create_response(
-                    AcademyErrorResponse(
-                        error_code=ErrorCode.ACTION_INVALID_STATE,
-                    ),
-                )
-            task = asyncio.create_task(self._send_response(response))
-            self._action_tasks[request.tag] = task
-            task.add_done_callback(
-                lambda _: self._action_tasks.pop(request.tag),
+    def _track_response_task(
+        self,
+        request: Message[Request],
+        task: asyncio.Task[None],
+    ) -> None:
+        """Record a task that only sends a response, clearing on done.
+
+        Unlike `_track_request_task`, these tasks are not registered in
+        `_action_tasks` so they cannot be cancelled by a `CancelRequest`.
+        A denial or a response to a cancel must reach the requester; the
+        only bookkeeping needed is draining the task on shutdown.
+        """
+        self._response_tasks[request.tag] = task
+        task.add_done_callback(
+            lambda _: self._response_tasks.pop(request.tag, None),
+        )
+
+    def _handle_action_request(
+        self,
+        request: Message[Request],
+        body: ActionRequest,
+    ) -> None:
+        if not self._authorized_for_action(
+            request.src,
+            request.header.groups,
+            body.action,
+        ):
+            response = self._forbidden(
+                request,
+                f'not permitted to invoke action "{body.action}"',
             )
-        elif isinstance(body, PingRequest):
+            task = asyncio.create_task(self._send_response(response))
+            self._track_response_task(request, task)
+        else:
+            task = spawn_guarded_background_task(
+                self._execute_action(request),  # type: ignore[arg-type]
+                name=f'execute-action-{body.action}-{request.tag}',
+            )
+            logger.debug(f'Started action with tag {request.tag}')
+            self._track_request_task(request, task)
+
+    def _authorized_for_cancel(
+        self,
+        request: Message[Request],
+        requester: EntityId,
+    ) -> bool:
+        """Check if `request.src` may cancel an action from `requester`."""
+        if getattr(self.registration, 'owner', None) is None:
+            # Ownerless registrations come from self-hosted (local or
+            # hybrid) exchanges, which are fully trusted and do not stamp
+            # group memberships. Authorization does not apply.
+            return True
+        return (
+            self._is_owner(request.src)
+            or request.src == requester
+            or bool(
+                self._control_groups
+                and not request.header.groups.isdisjoint(
+                    self._control_groups,
+                ),
+            )
+        )
+
+    def _handle_cancel_request(
+        self,
+        request: Message[Request],
+        body: CancelRequest,
+    ) -> None:
+        response: Message[Response]
+        requester = self._action_requesters.get(body.target_tag)
+        if requester is not None and not self._authorized_for_cancel(
+            request,
+            requester,
+        ):
+            # Cancelling re-checks group permissions: a sender who
+            # requested the action, the owner, or a control-group
+            # member may cancel.
+            response = self._forbidden(
+                request,
+                f'not permitted to cancel an action requested by {requester}',
+            )
+        elif (
+            body.target_tag in self._action_tasks
+            and self._action_tasks[body.target_tag].cancel()
+        ):
+            logger.debug(f'Cancelled action with tag {body.target_tag}')
+            response = request.create_response(SuccessResponse())
+        else:
+            response = request.create_response(
+                AcademyErrorResponse(
+                    error_code=ErrorCode.ACTION_INVALID_STATE,
+                ),
+            )
+        task = asyncio.create_task(self._send_response(response))
+        self._track_response_task(request, task)
+
+    def _handle_ping_request(self, request: Message[Request]) -> None:
+        if not self._authorized_for_ping(
+            request.src,
+            request.header.groups,
+        ):
+            response = self._forbidden(
+                request,
+                'not permitted to ping this agent',
+            )
+            task = asyncio.create_task(self._send_response(response))
+            self._track_response_task(request, task)
+        else:
             logger.info(
                 'Ping request received by %s',
                 self.agent_id,
@@ -510,38 +645,42 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 self._execute_ping(request),  # type: ignore[arg-type]
                 name=f'execute-ping-{request.tag}',
             )
-            self._action_requesters[request.tag] = request.src
-            self._action_tasks[request.tag] = task
-            task.add_done_callback(
-                lambda _: self._action_tasks.pop(request.tag),
+            self._track_request_task(request, task)
+
+    async def _handle_shutdown_request(
+        self,
+        request: Message[Request],
+        body: ShutdownRequest,
+    ) -> None:
+        owner = getattr(self.registration, 'owner', None)
+        authorized = self._is_owner(request.src) or bool(
+            self._control_groups
+            and not request.header.groups.isdisjoint(self._control_groups),
+        )
+        # An ownerless registration is a self-hosted (local or hybrid)
+        # exchange, which is trusted and allows shutdown by anyone.
+        if not authorized and owner is not None:
+            response = self._forbidden(
+                request,
+                'not permitted to shut down this agent',
             )
-            task.add_done_callback(
-                lambda _: self._action_requesters.pop(request.tag, None),
-            )
-        elif isinstance(body, ShutdownRequest):
-            owner = getattr(self.registration, 'owner', None)
-            if self._is_owner(request.src) or (
-                self._control_groups
-                and not request.header.groups.isdisjoint(
-                    self._control_groups,
-                )
-            ):
-                pass
-            elif owner is not None:
-                response = request.create_response(
-                    AcademyErrorResponse(
-                        error_code=ErrorCode.FORBIDDEN,
-                        mailbox_id=self.agent_id,
-                    ),
-                )
-                await self._send_response(response)
-                return
-            # else: ownerless registration, self-hosted — allow
-            response = request.create_response(SuccessResponse())
-            # We need to block here, because if we send this async,
-            # the exchange could be closed before the message is sent
             await self._send_response(response)
-            self.signal_shutdown(expected=True, terminate=body.terminate)
+            return
+        # We need to block here, because if we send this async,
+        # the exchange could be closed before the message is sent
+        await self._send_response(request.create_response(SuccessResponse()))
+        self.signal_shutdown(expected=True, terminate=body.terminate)
+
+    async def _request_handler(self, request: Message[Request]) -> None:
+        body = request.get_body()
+        if isinstance(body, ActionRequest):
+            self._handle_action_request(request, body)
+        elif isinstance(body, CancelRequest):
+            self._handle_cancel_request(request, body)
+        elif isinstance(body, PingRequest):
+            self._handle_ping_request(request)
+        elif isinstance(body, ShutdownRequest):
+            await self._handle_shutdown_request(request, body)
         else:
             raise AssertionError('Unreachable.')
 
@@ -776,6 +915,13 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             # not begin shutdown until all the tasks have completed anyways
             if self.config.cancel_actions_on_shutdown:  # pragma: no branch
                 task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+        # Wait for pending responses (denials and cancel results) to be
+        # sent. These are not actions so they are never cancelled here;
+        # the requester is always told what happened to their request.
+        for task in tuple(self._response_tasks.values()):
             with contextlib.suppress(asyncio.CancelledError):
                 await task
 

@@ -90,11 +90,13 @@ TIMEOUT_KEY = AppKey('listen_timeout', int)
 
 def get_client_info(request: Request) -> ClientInfo:
     """Reconstitute client info from Request."""
+    # An empty header means no memberships. Splitting it unguarded
+    # would yield {''}, a phantom group shared by every group-less
+    # client.
+    raw_groups = request.headers.get('client_groups', '')
     client_info = ClientInfo(
         client_id=request.headers.get('client_id', ''),
-        group_memberships=set(
-            request.headers.get('client_groups', '').split(','),
-        ),
+        group_memberships=set(raw_groups.split(',')) if raw_groups else set(),
     )
     return client_info
 

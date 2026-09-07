@@ -14,6 +14,7 @@ import pytest_asyncio
 from academy.exception import AgentTerminatedError
 from academy.exception import DeserializationMethodProhibitedError
 from academy.exception import ExchangeClientNotFoundError
+from academy.exception import RequestForbiddenError
 from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
@@ -24,6 +25,7 @@ from academy.handle import exchange_context
 from academy.handle import Handle
 from academy.handle import ProxyHandle
 from academy.identifier import AgentId
+from academy.identifier import UserId
 from academy.manager import Manager
 from academy.message import AcademyErrorResponse
 from academy.message import ActionRequest
@@ -243,6 +245,44 @@ async def test_client_handle_shutdown_ignore_already_terminated() -> None:
     )
     future.set_result(response)
     handle._shutdown_callback(future)
+
+
+@pytest.mark.asyncio
+async def test_client_handle_shutdown_waits_for_response(
+    manager: Manager[LocalExchangeTransport],
+) -> None:
+    destination = await manager.launch(CounterAgent)
+    handle = Handle(destination.agent_id)
+    await handle.shutdown(wait_for_response=True)
+    await manager.wait({handle}, timeout=TEST_SLEEP_INTERVAL * 10)
+
+
+@pytest.mark.asyncio
+async def test_client_handle_shutdown_waits_for_response_error() -> None:
+    exchange = mock.AsyncMock()
+    exchange.client_id = UserId.new()
+    exchange.register_handle = mock.Mock()
+    handle: Handle[EmptyAgent] = Handle(
+        AgentId.new(),
+        exchange=exchange,
+        ignore_context=True,
+    )
+    task = asyncio.create_task(handle.shutdown(wait_for_response=True))
+    # The mocked exchange resolves send() synchronously, so one yield is
+    # enough for shutdown to register its pending-response future.
+    await asyncio.sleep(0)
+    future = next(iter(handle._pending_response_futures.values()))
+    response = Message.create(
+        src=handle.agent_id,
+        dest=AgentId.new(),
+        body=AcademyErrorResponse(
+            error_code=ErrorCode.FORBIDDEN,
+            mailbox_id=handle.agent_id,
+        ),
+    )
+    future.set_result(response)
+    with pytest.raises(RequestForbiddenError):
+        await task
 
 
 EXCHANGE_FACTORY_TYPES = (

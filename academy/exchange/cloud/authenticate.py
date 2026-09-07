@@ -8,6 +8,7 @@ import threading
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
+from typing import Any
 from typing import Protocol
 from typing import runtime_checkable
 
@@ -15,6 +16,7 @@ import globus_sdk
 import requests
 from cachetools import cachedmethod
 from cachetools import TTLCache
+from globus_sdk.response import GlobusHTTPResponse
 from globus_sdk.scopes import GroupsScopes
 from globus_sdk.services.auth.response import OAuthDependentTokenResponse
 
@@ -88,9 +90,20 @@ class GlobusAuthenticator:
         token_cache_limit: Maximum number of (token, identity) mappings
             to store in memory.
         token_ttl_s: Time in seconds before invalidating cached tokens.
+        resolve_groups: Resolve the Globus group memberships of each
+            authenticated client. Requires two additional Globus API calls
+            per cache miss (a dependent-token exchange and a groups query),
+            so deployments that do not use group-based sharing can set this
+            to `False` to authenticate on token introspection alone.
+
+    Warning:
+        With `resolve_groups` disabled, every client is authenticated with an
+        empty set of group memberships. Group-based sharing is therefore
+        inoperative on such a deployment: clients can only reach mailboxes
+        they own, and every group-granted permission is denied.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         client_id: str | None = None,
         client_secret: str | None = None,
@@ -98,6 +111,7 @@ class GlobusAuthenticator:
         token_cache_limit: int = 1024,
         token_ttl_s: int = 60,
         group_info_cache_ttl_s: int = 60,
+        resolve_groups: bool = True,
     ) -> None:
         self._local_data = threading.local()
         self.executor = ThreadPoolExecutor(
@@ -106,16 +120,20 @@ class GlobusAuthenticator:
         self.client_id = client_id or get_academy_exchange_client_id()
         self.client_secret = client_secret or get_academy_exchange_secret()
         self.audience = AcademyExchangeScopes.resource_server
+        self.resolve_groups = resolve_groups
 
-        self.token_cache = TTLCache(
+        self.token_cache: TTLCache[Any, GlobusHTTPResponse] = TTLCache(
             maxsize=token_cache_limit,
             ttl=token_ttl_s,
         )
-        self.dependent_token_cache = TTLCache(
+        self.dependent_token_cache: TTLCache[
+            Any,
+            OAuthDependentTokenResponse,
+        ] = TTLCache(
             maxsize=token_cache_limit,
             ttl=group_info_cache_ttl_s,
         )
-        self.groups_info_cache = TTLCache(
+        self.groups_info_cache: TTLCache[Any, list[str]] = TTLCache(
             maxsize=token_cache_limit,
             ttl=group_info_cache_ttl_s,
         )
@@ -164,6 +182,8 @@ class GlobusAuthenticator:
         Returns:
             Globus Auth identity returned via \
             [token introspection](https://docs.globus.org/api/auth/reference/#token-introspect).
+            Group memberships are resolved unless `resolve_groups` was
+            disabled on this authenticator, in which case they are empty.
 
         Raises:
             UnauthorizedError: if the authorization header is missing or
@@ -193,21 +213,23 @@ class GlobusAuthenticator:
                 'scopes are requested when the token is created.',
             )
 
-        dependent_tokens = await loop.run_in_executor(
-            self.executor,
-            self._get_dependent_tokens,
-            token,
-        )
+        groups_info: list[str] = []
+        if self.resolve_groups:
+            dependent_tokens = await loop.run_in_executor(
+                self.executor,
+                self._get_dependent_tokens,
+                token,
+            )
 
-        groups_info = await loop.run_in_executor(
-            self.executor,
-            self._get_groups_and_memberships,
-            dependent_tokens,
-        )
+            groups_info = await loop.run_in_executor(
+                self.executor,
+                self._get_groups_and_memberships,
+                dependent_tokens,
+            )
 
         client_info = ClientInfo(
             client_id=token_meta.get('username'),
-            group_memberships=groups_info,
+            group_memberships=set(groups_info),
         )
         return client_info
 

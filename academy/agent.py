@@ -33,6 +33,7 @@ import academy.manager as m
 from academy.event import wait_event_async
 from academy.exception import AgentNotInitializedError
 from academy.handle import Handle
+from academy.identifier import _validate_group_ids
 
 if TYPE_CHECKING:
     from academy.context import AgentContext
@@ -223,6 +224,12 @@ def action(
                     'The "context" argument to action method '
                     f'"{method_.__name__}" must be a keyword only argument.',
                 )
+
+        if sharing is not None:
+            _validate_group_ids(
+                sharing,
+                source=f'@action(sharing=...) on "{method_.__name__}"',
+            )
 
         method_._agent_method_type = 'action'  # type: ignore[attr-defined]
         method_._action_method_context = context  # type: ignore[attr-defined]

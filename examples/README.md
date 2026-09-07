@@ -15,3 +15,7 @@ Examples of patterns and techniques for building agents with Academy.
 **06: LLM-calling Agent**. An agent-of-agents example in which an LLM-powered orchestrator agent delegates scientific work to a simulation agent via well-defined actions, with [LangChain](https://docs.langchain.com/oss/python/langchain/overview) used to handle reasoning and tool selection.
 
 **08: LLM-Group Chat**. A group chat of agents that collaborate to solve a problem [LangChain](https://docs.langchain.com/oss/python/langchain/overview) is still used to call LLMs, but communication between agents happens over the exchange, allowing another agent to supervise the conversation.
+
+**12: Globus Exchange**. Running agents against the hosted exchange, including both authentication patterns.
+
+**13: Access Control**. Restricting who may invoke which actions using agent-wide `access_groups`, per-action `@action(sharing=...)` groups, and lifecycle-only `control_groups`.

@@ -303,14 +303,24 @@ class PythonBackend:
             self._shared_groups(uid),
         )
 
+    def _is_unclaimed(self, entity: EntityId) -> bool:
+        """Check if no owner has been recorded for this mailbox yet.
+
+        Only mailbox creation may act on an unclaimed id. Every other
+        operation fails closed when the owner record is missing.
+        """
+        return entity not in self._owners
+
     def _has_mailbox_ownership(
         self,
         client: ClientInfo,
         entity: EntityId,
     ) -> bool:
+        # Fails closed: a missing owner record grants nothing. Creating a
+        # mailbox is the only operation allowed to act on an unclaimed id,
+        # and it checks _is_unclaimed explicitly.
         return (
-            entity not in self._owners
-            or self._owners[entity] == client.client_id
+            entity in self._owners and self._owners[entity] == client.client_id
         )
 
     async def check_mailbox(
@@ -363,7 +373,10 @@ class PythonBackend:
         Raises:
             ForbiddenError: If the client does not have the right permissions.
         """
-        if not self._has_permissions(client, uid):
+        if not self._is_unclaimed(uid) and not self._has_permissions(
+            client,
+            uid,
+        ):
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
@@ -401,15 +414,21 @@ class PythonBackend:
         Raises:
             ForbiddenError: If the client does not have the right permissions.
         """
+        status = await self.check_mailbox(client, uid)
+        if status in {MailboxStatus.MISSING, MailboxStatus.TERMINATED}:
+            # Nothing exists to authorize against or to terminate. Return
+            # silently so terminate stays idempotent, but record no
+            # gravestone: otherwise any authenticated client could
+            # preemptively gravestone an id that is not yet registered.
+            return
+
         if not self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
 
+        mailbox = self._mailboxes[uid]
         self._terminated.add(uid)
-        mailbox = self._mailboxes.get(uid, None)
-        if mailbox is None:
-            return
 
         async def send(message: Message[Any]) -> None:
             await self.put(client, message)
@@ -502,15 +521,18 @@ class PythonBackend:
             MailboxTerminatedError: The mailbox is closed.
             TimeoutError: There was not message received during the timeout.
         """
-        if not self._has_permissions(client, uid):
-            raise ForbiddenError(
-                'Client does not have correct permissions.',
-            )
-
+        # Existence is checked before permissions so that an unknown
+        # mailbox still raises BadEntityIdError rather than being reported
+        # as a permissions failure now that ownership fails closed.
         try:
             queue = self._mailboxes[uid]
         except KeyError as e:
             raise BadEntityIdError(uid) from e
+
+        if not self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
         try:
             return await asyncio.wait_for(queue.get(), timeout=timeout)
         except QueueShutDown:
@@ -613,6 +635,12 @@ class PythonBackend:
         # between group-based authorization on requests and mailbox-based
         # authorization on responses.
         matched_request_header = self._match_response(message)
+
+        # Existence is checked before permissions so that an unknown
+        # destination still raises BadEntityIdError rather than being
+        # reported as a permissions failure now that ownership fails closed.
+        if message.dest not in self._mailboxes:
+            raise BadEntityIdError(message.dest)
 
         if matched_request_header is None and not self._has_permissions(
             client,
@@ -859,6 +887,17 @@ class RedisBackend:
         groups = await self._shared_groups(uid)
         return not client.group_memberships.isdisjoint(groups)
 
+    async def _is_unclaimed(self, entity: EntityId) -> bool:
+        """Check if no owner has been recorded for this mailbox yet.
+
+        Only mailbox creation may act on an unclaimed id. Every other
+        operation fails closed when the owner record is missing.
+        """
+        owner = await self._client.get(
+            self._owner_key(entity),
+        )
+        return owner is None
+
     async def _has_mailbox_ownership(
         self,
         client: ClientInfo,
@@ -867,9 +906,12 @@ class RedisBackend:
         owner = await self._client.get(
             self._owner_key(entity),
         )
+        # Fails closed: a missing owner record grants nothing. Creating a
+        # mailbox is the only operation allowed to act on an unclaimed id,
+        # and it checks _is_unclaimed explicitly.
         return (
-            owner is None
-            or owner.decode() == f'{client.client_id}{_OWNER_SUFFIX}'
+            owner is not None
+            and owner.decode() == f'{client.client_id}{_OWNER_SUFFIX}'
         )
 
     async def _update_expirations(
@@ -914,15 +956,20 @@ class RedisBackend:
         Raises:
             ForbiddenError: If the client does not have the right permissions.
         """
+        # Existence is resolved before permissions so an unknown mailbox
+        # still reports MISSING rather than raising ForbiddenError now that
+        # ownership fails closed. This matches PythonBackend and keeps the
+        # 404 path in _listen_mailbox_route working.
+        status = await self._client.get(self._active_key(uid))
+        if status is None:
+            return MailboxStatus.MISSING
+
         if not await self._has_permissions(client, uid):
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
 
-        status = await self._client.get(self._active_key(uid))
-        if status is None:
-            return MailboxStatus.MISSING
-        elif status.decode() == MailboxStatus.TERMINATED.value:
+        if status.decode() == MailboxStatus.TERMINATED.value:
             return MailboxStatus.TERMINATED
         else:
             return MailboxStatus.ACTIVE
@@ -947,10 +994,21 @@ class RedisBackend:
         Raises:
             ForbiddenError: If the client does not have the right permissions.
         """
-        if not await self._has_permissions(client, uid):
+        claimed = not await self._is_unclaimed(uid)
+        if claimed and not await self._has_permissions(client, uid):
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
+
+        # The owner is recorded *before* the mailbox is marked active so
+        # that a live mailbox always has an owner. If registration fails
+        # between these writes the residue is an owned-but-inactive record,
+        # which reads as MISSING and which only the owner can complete.
+        created = await self._client.set(
+            self._owner_key(uid),
+            f'{client.client_id}{_OWNER_SUFFIX}',
+            nx=True,
+        )
 
         await self._client.set(
             self._active_key(uid),
@@ -963,11 +1021,6 @@ class RedisBackend:
                 ','.join(agent),
             )
 
-        created = await self._client.set(
-            self._owner_key(uid),
-            f'{client.client_id}{_OWNER_SUFFIX}',
-            nx=True,
-        )
         if created and permitted_groups:
             await self._client.sadd(
                 self._share_key(uid),
@@ -988,26 +1041,30 @@ class RedisBackend:
         Raises:
             ForbiddenError: If the client does not have the right permissions.
         """
+        status = await self.check_mailbox(client, uid)
+
+        if status in {MailboxStatus.MISSING, MailboxStatus.TERMINATED}:
+            # Nothing exists to authorize against or to terminate. Return
+            # silently so terminate stays idempotent, but record no
+            # gravestone: otherwise any authenticated client could
+            # preemptively gravestone an id that is not yet registered.
+            return
+
         if not await self._has_mailbox_ownership(client, uid):
             raise ForbiddenError(
                 'Client does not have correct permissions.',
             )
-
-        status = await self.check_mailbox(client, uid)
-
-        if status in {MailboxStatus.MISSING, MailboxStatus.TERMINATED}:
-            return
 
         await self._client.set(
             self._active_key(uid),
             MailboxStatus.TERMINATED.value,
         )
 
-        if self.gravestone_expiration_s is not None:
-            await self._client.expire(
-                self._active_key(uid),
-                self.gravestone_expiration_s,
-            )
+        # Refresh every mailbox key together rather than just the
+        # gravestone. Expiring the active key alone would let the owner
+        # record lapse first, leaving an ownerless-but-present mailbox that
+        # any client could then act on.
+        await self._update_expirations(uid)
 
         await self._client.delete(self._queue_key(uid))
         # Sending a close sentinel to the queue is a quick way to force
@@ -1165,19 +1222,24 @@ class RedisBackend:
             MailboxTerminatedError: The mailbox is closed.
             TimeoutError: There was not message received during the timeout.
         """
-        if not await self._has_permissions(client, uid):
-            raise ForbiddenError(
-                'Client does not have correct permissions.',
-            )
-
-        _timeout = timeout if timeout is not None else 0
+        # Existence is checked before permissions so that an unknown
+        # mailbox still raises BadEntityIdError rather than being reported
+        # as a permissions failure now that ownership fails closed.
         status = await self._client.get(
             self._active_key(uid),
         )
         if status is None:
             raise BadEntityIdError(uid)
-        elif status.decode() == MailboxStatus.TERMINATED.value:
+
+        if not await self._has_permissions(client, uid):
+            raise ForbiddenError(
+                'Client does not have correct permissions.',
+            )
+
+        if status.decode() == MailboxStatus.TERMINATED.value:
             raise MailboxTerminatedError(uid)
+
+        _timeout = timeout if timeout is not None else 0
 
         await self._update_expirations(uid)
         if self.mailbox_expiration_s:
@@ -1298,6 +1360,12 @@ class RedisBackend:
         # between group-based authorization on requests and mailbox-based
         # authorization on responses.
         matched_request_header = await self._match_response(message)
+
+        # Existence is checked before permissions so that an unknown
+        # destination still raises BadEntityIdError rather than being
+        # reported as a permissions failure now that ownership fails closed.
+        if await self._client.get(self._active_key(message.dest)) is None:
+            raise BadEntityIdError(message.dest)
 
         if matched_request_header is None and not await self._has_permissions(
             client,

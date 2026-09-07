@@ -26,27 +26,33 @@ When any action on an agent is decorated with [`@action(sharing=[...])`][academy
 **Example — before (v0.5):**
 ```python
 class MyAgent(Agent):
-    @action(sharing=["group-a"])
+    @action(sharing=["11111111-1111-1111-1111-111111111111"])
     async def read(self) -> str: ...
 
-    @action  # undecorated, but accessible to "group-a" in v0.5
+    @action  # undecorated, but accessible to that group in v0.5
     async def health(self) -> str: ...
 ```
 
 **Example — after (v0.6):**
 ```python
 class MyAgent(Agent):
-    @action(sharing=["group-a"])
+    @action(sharing=["11111111-1111-1111-1111-111111111111"])
     async def read(self) -> str: ...
 
-    @action(sharing=["group-a"])  # explicit decoration
+    @action(sharing=["11111111-1111-1111-1111-111111111111"])  # explicit decoration
     async def health(self) -> str: ...
 ```
 
 Or, without changing the agent code:
 ```python
-config = RuntimeConfig(access_groups={"group-a"})
+config = RuntimeConfig(access_groups={"11111111-1111-1111-1111-111111111111"})
 ```
+
+Group identifiers are Globus group UUIDs and are now validated eagerly:
+`@action(sharing=...)` rejects a malformed id at decoration time and
+[`RuntimeConfig`][academy.runtime.RuntimeConfig] rejects one at construction.
+A non-UUID id can never match a membership stamped by the exchange, so before
+this it would silently deny access instead of failing.
 
 See [Access Control](concepts/access-control.md) for the full access-control model.
 

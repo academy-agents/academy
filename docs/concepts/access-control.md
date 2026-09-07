@@ -101,6 +101,38 @@ Control groups are a RuntimeConfig-only feature; there is no decorator form.
     always retains full control and can shut down the agent regardless of
     group membership.
 
+## Liveness Probes
+
+Ping is a liveness probe rather than an action, so it is not gated per-action.
+Any principal with a stake in the agent may ping it: the owner, `access_groups`
+members, `control_groups` members, and members of any group named in an
+`@action(sharing=...)` list. This is deliberate—an operator who may only shut
+the agent down still needs to check that it is alive first.
+
+Senders with no stake in the agent are denied. The permitted set is exactly the
+mailbox share set registered with the exchange, so this check never grants more
+than the exchange already allows.
+
+## Group ID Validation
+
+Group identifiers must be well-formed UUIDs, and this is checked eagerly:
+`@action(sharing=...)` validates at decoration time and
+[`RuntimeConfig`][academy.runtime.RuntimeConfig] validates at construction.
+
+This is a safety property, not a formality. An identifier that is not a valid
+UUID can never match a membership stamped by the exchange, so a typo would
+otherwise **fail closed silently**—surfacing much later as an unexplained
+permission denial rather than as an error at the point of the mistake.
+
+## Auditing Denials
+
+Denied requests are logged at `WARNING` level by the agent runtime with the
+sender, the message metadata, and a specific reason (`academy.denial_reason`).
+The sender only ever receives an opaque
+[`RequestForbiddenError`][academy.exception.RequestForbiddenError], so these
+logs are the authoritative record of why a request was refused and the first
+place to look when a group configuration is not behaving as expected.
+
 ## Registration Behavior
 
 At launch, the agent's mailbox is automatically shared with the union of:

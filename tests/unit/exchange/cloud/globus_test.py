@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import uuid
 from datetime import datetime
@@ -61,6 +62,28 @@ def test_globus_client_register_agent(academy_client: AcademyGlobusClient):
     load_response(AcademyGlobusClient.register_agent)
     response = academy_client.register_agent(AgentId.new(), EmptyAgent)
     assert response.http_status == StatusCode.OKAY.value
+
+
+def test_globus_client_register_agent_extra_permitted_groups(
+    academy_client: AcademyGlobusClient,
+):
+    load_response(AcademyGlobusClient.register_agent)
+    response = academy_client.register_agent(
+        AgentId.new(),
+        EmptyAgent,
+        extra_permitted_groups=[
+            '00000000-0000-0000-0000-00000000000a',
+            '00000000-0000-0000-0000-00000000000b',
+        ],
+    )
+    assert response.http_status == StatusCode.OKAY.value
+    body = responses.calls[-1].request.body
+    assert isinstance(body, (str, bytes))
+    sent = json.loads(body)
+    assert set(sent['permitted_groups'].split(',')) == {
+        '00000000-0000-0000-0000-00000000000a',
+        '00000000-0000-0000-0000-00000000000b',
+    }
 
 
 def test_globus_client_register_client(academy_client: AcademyGlobusClient):

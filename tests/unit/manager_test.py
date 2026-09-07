@@ -24,6 +24,7 @@ from academy.exchange import LocalExchangeFactory
 from academy.exchange import LocalExchangeTransport
 from academy.exchange import UserExchangeClient
 from academy.logging.configs.file import FileLogging
+from academy.manager import _groups_from_config
 from academy.manager import Manager
 from academy.runtime import RuntimeConfig
 from testing.agents import EmptyAgent
@@ -769,11 +770,11 @@ class _GroupsAgent(Agent):
 
 
 class _DecoratedGroupsAgent(Agent):
-    @action(sharing=['alpha'])
+    @action(sharing=['00000000-0000-0000-0000-00000000000a'])
     async def greet(self) -> str:  # pragma: no cover
         return 'hello'
 
-    @action(sharing=['beta'])
+    @action(sharing=['00000000-0000-0000-0000-00000000000b'])
     async def echo(self, msg: str) -> str:  # pragma: no cover
         return msg
 
@@ -815,8 +816,8 @@ async def test_register_agent_with_config_sends_extras(
     """
     manager = Manager(exchange_client)
     config = RuntimeConfig(
-        access_groups={'group-a'},
-        control_groups={'group-ctrl'},
+        access_groups={'00000000-0000-0000-0000-00000000000a'},
+        control_groups={'00000000-0000-0000-0000-0000000000c1'},
     )
     with mock.patch.object(
         manager.exchange_client,
@@ -825,7 +826,10 @@ async def test_register_agent_with_config_sends_extras(
     ) as spy:
         await manager.launch(_GroupsAgent, config=config)
         extras = _extras_from_spy(spy)
-        assert extras == {'group-a', 'group-ctrl'}
+        assert extras == {
+            '00000000-0000-0000-0000-00000000000a',
+            '00000000-0000-0000-0000-0000000000c1',
+        }
 
 
 @pytest.mark.asyncio
@@ -841,8 +845,8 @@ async def test_register_agent_extras_union_with_decorators(
     """
     manager = Manager(exchange_client)
     config = RuntimeConfig(
-        access_groups={'gamma'},
-        control_groups={'ctrl'},
+        access_groups={'00000000-0000-0000-0000-00000000000a'},
+        control_groups={'00000000-0000-0000-0000-0000000000c1'},
     )
     with mock.patch.object(
         manager.exchange_client,
@@ -851,7 +855,10 @@ async def test_register_agent_extras_union_with_decorators(
     ) as spy:
         await manager.launch(_DecoratedGroupsAgent, config=config)
         extras = _extras_from_spy(spy)
-        assert extras == {'gamma', 'ctrl'}
+        assert extras == {
+            '00000000-0000-0000-0000-00000000000a',
+            '00000000-0000-0000-0000-0000000000c1',
+        }
 
 
 @pytest.mark.asyncio
@@ -866,3 +873,40 @@ async def test_launch_without_config_extras_is_none(
     ) as spy:
         await manager.launch(_GroupsAgent)
         assert _extras_from_spy(spy) is None
+
+
+@pytest.mark.parametrize(
+    ('config', 'expected'),
+    (
+        (None, None),
+        (RuntimeConfig(), None),
+        (
+            RuntimeConfig(
+                access_groups={'00000000-0000-0000-0000-00000000000a'},
+            ),
+            {'00000000-0000-0000-0000-00000000000a'},
+        ),
+        (
+            RuntimeConfig(
+                control_groups={'00000000-0000-0000-0000-0000000000c1'},
+            ),
+            {'00000000-0000-0000-0000-0000000000c1'},
+        ),
+        (
+            RuntimeConfig(
+                access_groups={
+                    '00000000-0000-0000-0000-00000000000a',
+                    '00000000-0000-0000-0000-00000000000b',
+                },
+                control_groups={'00000000-0000-0000-0000-0000000000c1'},
+            ),
+            {
+                '00000000-0000-0000-0000-00000000000a',
+                '00000000-0000-0000-0000-00000000000b',
+                '00000000-0000-0000-0000-0000000000c1',
+            },
+        ),
+    ),
+)
+def test_groups_from_config(config, expected) -> None:
+    assert _groups_from_config(config) == expected

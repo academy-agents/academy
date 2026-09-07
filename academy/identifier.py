@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import uuid
+from collections.abc import Iterable
 from typing import Any
 from typing import Generic
 from typing import Literal
@@ -86,6 +87,34 @@ class UserId(BaseModel):
             name: Optional human-readable name for the entity.
         """
         return cls(uid=uuid.uuid4(), name=name)
+
+
+def _validate_group_ids(groups: Iterable[str], *, source: str) -> None:
+    """Validate that each Globus group identifier is a well-formed UUID.
+
+    Globus group identifiers are UUIDs. An identifier that is not a valid
+    UUID can never match a membership stamped by the exchange, so a typo
+    would otherwise fail closed silently and surface much later as an
+    unexplained permission denial.
+
+    Args:
+        groups: Group identifiers to validate.
+        source: Description of where the identifiers came from, included
+            in the error message to point at the offending declaration.
+
+    Raises:
+        ValueError: If any identifier is not a well-formed UUID.
+    """
+    for group in groups:
+        try:
+            uuid.UUID(group)
+        except (AttributeError, TypeError, ValueError):
+            raise ValueError(
+                f'Invalid Globus group ID {group!r} in {source}. Group IDs '
+                'must be UUIDs. An invalid ID can never match a group '
+                'membership, so it would silently deny access rather than '
+                'grant it.',
+            ) from None
 
 
 if TYPE_CHECKING:

@@ -476,19 +476,31 @@ class Handle(Generic[AgentT_co]):
             )
         return
 
-    async def shutdown(self, *, terminate: bool | None = None) -> None:
+    async def shutdown(
+        self,
+        *,
+        terminate: bool | None = None,
+        wait_for_response: bool = False,
+    ) -> None:
         """Instruct the agent to shutdown.
 
-        This is non-blocking and will only send the message.
+        By default this is non-blocking and will only send the message; any
+        error returned by the agent is logged rather than raised. Set
+        `wait_for_response` to wait for the agent's response and raise the
+        error it reports, such as when the request was denied.
 
         Args:
             terminate: Override the termination behavior of the agent defined
                 in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
+            wait_for_response: Wait for the agent to respond to the request
+                and raise any error contained in that response.
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This
                 typically indicates the agent shutdown for another reason
                 (it self terminated or via another handle).
+            RequestForbiddenError: If `wait_for_response` is `True` and the
+                agent denied the request.
         """
         exchange = self.exchange
         self._register_with_exchange(exchange)
@@ -512,7 +524,16 @@ class Handle(Generic[AgentT_co]):
             extra=request.log_extra(),
         )
 
-        future.add_done_callback(self._shutdown_callback)
+        if wait_for_response:
+            try:
+                response = await future
+            finally:
+                self._pending_response_futures.pop(request.tag, None)
+            body = response.get_body()
+            if isinstance(body, ErrorResponse):
+                raise body.get_exception()
+        else:
+            future.add_done_callback(self._shutdown_callback)
 
 
 class ProxyHandle(Handle[AgentT]):
@@ -601,14 +622,19 @@ class ProxyHandle(Handle[AgentT]):
             raise AgentTerminatedError(self.agent_id)
         return 0
 
-    async def shutdown(self, *, terminate: bool | None = None) -> None:
+    async def shutdown(
+        self,
+        *,
+        terminate: bool | None = None,
+        wait_for_response: bool = False,
+    ) -> None:
         """Instruct the agent to shutdown.
-
-        This is non-blocking and will only send the message.
 
         Args:
             terminate: Override the termination behavior of the agent defined
                 in the [`RuntimeConfig`][academy.runtime.RuntimeConfig].
+            wait_for_response: Ignored; the proxy handle shuts the agent down
+                synchronously so the outcome is always raised.
 
         Raises:
             AgentTerminatedError: If the agent's mailbox was closed. This

@@ -20,6 +20,7 @@ from academy.exchange import HttpExchangeFactory
 from academy.exchange.cloud.app import _main
 from academy.exchange.cloud.app import _run
 from academy.exchange.cloud.app import create_app
+from academy.exchange.cloud.app import get_client_info
 from academy.exchange.cloud.app import StatusCode
 from academy.exchange.cloud.client_info import ClientInfo
 from academy.exchange.cloud.config import ExchangeAuthConfig
@@ -764,3 +765,22 @@ async def test_heartbeat_validation_error(cli) -> None:
     response = await cli.get('/mailbox/heartbeat', json={'mailbox': 'test'})
     assert response.status == StatusCode.BAD_REQUEST.value
     assert 'Missing or invalid field:' in await response.text()
+
+
+@pytest.mark.parametrize(
+    ('header', 'expected'),
+    (
+        (None, set()),
+        ('', set()),
+        ('group-a', {'group-a'}),
+        ('group-a,group-b', {'group-a', 'group-b'}),
+    ),
+)
+def test_get_client_info_group_memberships(
+    header: str | None,
+    expected: set[str],
+) -> None:
+    """A missing or empty header means no groups, not a phantom {''}."""
+    headers = {} if header is None else {'client_groups': header}
+    request = mock.Mock(headers=headers)
+    assert get_client_info(request).group_memberships == expected

@@ -112,6 +112,7 @@ nav:
       - Changelog (GitHub): https://github.com/academy-agents/academy/releases
   - Concepts:
       - concepts/index.md
+      - concepts/access-control.md
   - Case Studies:
       - case-studies/index.md
   - Guides:

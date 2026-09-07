@@ -335,6 +335,7 @@ async def test_register_agent_sets_owner(
     factory = HttpExchangeFactory(url, request_timeout_s=TEST_WAIT_TIMEOUT)
     async with await factory._create_transport() as transport:
         registration = await transport.register_agent(EmptyAgent)
+        assert registration.owner is not None
         assert registration.owner == transport.mailbox_id
 
 
@@ -352,11 +353,11 @@ def deco_agent() -> type[Agent]:
     """
 
     class _Agent(Agent):
-        @action(sharing=['alpha'])
+        @action(sharing=['00000000-0000-0000-0000-00000000000a'])
         async def greet(self) -> str:  # pragma: no cover
             return 'hello'
 
-        @action(sharing=['beta'])
+        @action(sharing=['00000000-0000-0000-0000-00000000000b'])
         async def bye(self) -> str:  # pragma: no cover
             return 'goodbye'
 
@@ -367,11 +368,6 @@ def deco_agent() -> type[Agent]:
 async def test_register_agent_unions_extra_groups(
     deco_agent: type[Agent],
 ) -> None:
-    """Verify JSON payload contains union of class-derived and extra groups.
-
-    The JSON payload sent to the exchange contains the
-    union of class-derived groups and extra_permitted_groups.
-    """
     captured_payload: dict[str, Any] | None = None
 
     class _MockResponse:
@@ -383,9 +379,6 @@ async def test_register_agent_unions_extra_groups(
         async def __aexit__(self, *_: Any) -> None:
             pass
 
-        async def json(self) -> dict[str, Any]:
-            return {}
-
         def raise_for_status(self) -> None:
             pass
 
@@ -394,15 +387,6 @@ async def test_register_agent_unions_extra_groups(
             nonlocal captured_payload
             captured_payload = json
             return _MockResponse()
-
-        async def close(self) -> None:
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *_: Any) -> None:
-            pass
 
     transport = HttpExchangeTransport(
         mailbox_id=UserId.new(),
@@ -414,19 +398,26 @@ async def test_register_agent_unions_extra_groups(
 
     await transport.register_agent(
         deco_agent,
-        extra_permitted_groups={'gamma', 'delta'},
+        extra_permitted_groups={
+            '00000000-0000-0000-0000-0000000000c1',
+            '00000000-0000-0000-0000-0000000000d1',
+        },
     )
 
     assert captured_payload is not None
     groups = set(captured_payload['permitted_groups'].split(','))
-    assert groups == {'alpha', 'beta', 'gamma', 'delta'}
+    assert groups == {
+        '00000000-0000-0000-0000-00000000000a',
+        '00000000-0000-0000-0000-00000000000b',
+        '00000000-0000-0000-0000-0000000000c1',
+        '00000000-0000-0000-0000-0000000000d1',
+    }
 
 
 @pytest.mark.asyncio
 async def test_register_agent_no_extra_groups_class_only(
     deco_agent: type[Agent],
 ) -> None:
-    """Without extra_permitted_groups, only class-derived groups are sent."""
     captured_payload: dict[str, Any] | None = None
 
     class _MockResponse:
@@ -438,9 +429,6 @@ async def test_register_agent_no_extra_groups_class_only(
         async def __aexit__(self, *_: Any) -> None:
             pass
 
-        async def json(self) -> dict[str, Any]:
-            return {}
-
         def raise_for_status(self) -> None:
             pass
 
@@ -449,15 +437,6 @@ async def test_register_agent_no_extra_groups_class_only(
             nonlocal captured_payload
             captured_payload = json
             return _MockResponse()
-
-        async def close(self) -> None:
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *_: Any) -> None:
-            pass
 
     transport = HttpExchangeTransport(
         mailbox_id=UserId.new(),
@@ -471,4 +450,7 @@ async def test_register_agent_no_extra_groups_class_only(
 
     assert captured_payload is not None
     groups = set(captured_payload['permitted_groups'].split(','))
-    assert groups == {'alpha', 'beta'}
+    assert groups == {
+        '00000000-0000-0000-0000-00000000000a',
+        '00000000-0000-0000-0000-00000000000b',
+    }

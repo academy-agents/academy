@@ -219,7 +219,105 @@ async def test_authenticate_user_with_dependent_tokens(
             {'Authorization': 'Bearer <TOKEN>'},
         )
         assert user.client_id == token_meta['username']
-        assert user.group_memberships == ['group_1']
+        assert user.group_memberships == {'group_1'}
+
+
+def test_client_info_coerces_list_to_set() -> None:
+    info = ClientInfo(
+        client_id='client-id',
+        group_memberships=['group_1'],  # type: ignore[arg-type]
+    )
+    assert isinstance(info.group_memberships, set)
+    assert info.group_memberships == {'group_1'}
+
+
+@pytest.mark.asyncio
+async def test_authenticate_user_resolve_groups_disabled() -> None:
+    authenticator = GlobusAuthenticator(
+        str(uuid.uuid4()),
+        'secret',
+        resolve_groups=False,
+    )
+
+    token_meta: dict[str, Any] = {
+        'active': True,
+        'aud': [authenticator.audience],
+        'sub': authenticator.auth_client.client_id,
+        'username': 'username',
+    }
+
+    dependent_tokens = mock.MagicMock()
+    groups_query = mock.MagicMock()
+
+    with mock.patch.multiple(
+        authenticator,
+        _token_introspect=mock.MagicMock(return_value=token_meta),
+        _get_dependent_tokens=dependent_tokens,
+        _get_groups_and_memberships=groups_query,
+    ):
+        user: ClientInfo = await authenticator.authenticate_user(
+            {'Authorization': 'Bearer <TOKEN>'},
+        )
+
+    assert user.client_id == token_meta['username']
+    assert user.group_memberships == set()
+    dependent_tokens.assert_not_called()
+    groups_query.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_authenticate_user_resolve_groups_enabled_by_default(
+    dependent_token_response,
+) -> None:
+    authenticator = GlobusAuthenticator(str(uuid.uuid4()), 'secret')
+    assert authenticator.resolve_groups
+
+    token_meta: dict[str, Any] = {
+        'active': True,
+        'aud': [authenticator.audience],
+        'sub': authenticator.auth_client.client_id,
+        'username': 'username',
+    }
+
+    dependent_tokens = mock.MagicMock(return_value=dependent_token_response)
+    groups_query = mock.MagicMock(return_value=['group_1'])
+
+    with mock.patch.multiple(
+        authenticator,
+        _token_introspect=mock.MagicMock(return_value=token_meta),
+        _get_dependent_tokens=dependent_tokens,
+        _get_groups_and_memberships=groups_query,
+    ):
+        user: ClientInfo = await authenticator.authenticate_user(
+            {'Authorization': 'Bearer <TOKEN>'},
+        )
+
+    assert user.group_memberships == {'group_1'}
+    dependent_tokens.assert_called_once()
+    groups_query.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_resolve_groups_disabled_still_checks_token() -> None:
+    authenticator = GlobusAuthenticator(
+        str(uuid.uuid4()),
+        'secret',
+        resolve_groups=False,
+    )
+    with (
+        mock.patch.object(
+            authenticator,
+            '_token_introspect',
+            return_value={'active': False},
+        ),
+        pytest.raises(
+            ForbiddenError,
+            match=r'Token is expired or has been revoked\.',
+        ),
+    ):
+        await authenticator.authenticate_user(
+            {'Authorization': 'Bearer <TOKEN>'},
+        )
 
 
 @pytest.mark.asyncio
@@ -298,6 +396,23 @@ def test_get_authenticator() -> None:
     )
     authenticator = get_authenticator(config)
     assert isinstance(authenticator, GlobusAuthenticator)
+
+
+def test_get_authenticator_resolve_groups_from_kwargs() -> None:
+    # The benchmark configs set this via `[auth.kwargs] resolve_groups`
+    # in TOML; ExchangeAuthConfig.kwargs is free-form, so this asserts the
+    # value actually reaches the constructor rather than being dropped.
+    config = ExchangeAuthConfig(
+        method='globus',
+        kwargs={
+            'client_id': str(uuid.uuid4()),
+            'client_secret': 'test',
+            'resolve_groups': False,
+        },
+    )
+    authenticator = get_authenticator(config)
+    assert isinstance(authenticator, GlobusAuthenticator)
+    assert not authenticator.resolve_groups
 
 
 def test_get_authenticator_unknown() -> None:

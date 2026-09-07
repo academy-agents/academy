@@ -433,6 +433,11 @@ async def test_agent_launch_alongside(
     await manager.wait([parent])
 
 
+GROUP_A = '00000000-0000-0000-0000-00000000000a'
+GROUP_B = '00000000-0000-0000-0000-00000000000b'
+GROUP_C = '00000000-0000-0000-0000-00000000000c'
+
+
 def test_agent_permitted_groups_from_class_empty() -> None:
     class NoSharingAgent(Agent):
         @action
@@ -444,38 +449,38 @@ def test_agent_permitted_groups_from_class_empty() -> None:
 
 def test_agent_permitted_groups_from_class_single_group() -> None:
     class SingleGroupAgent(Agent):
-        @action(sharing=['group-a'])
+        @action(sharing=[GROUP_A])
         async def restricted(self) -> None: ...
 
     groups = SingleGroupAgent._agent_permitted_groups_from_class()
-    assert groups == frozenset({'group-a'})
+    assert groups == frozenset({GROUP_A})
 
 
 def test_agent_permitted_groups_from_class_multiple_groups() -> None:
     class MultiGroupAgent(Agent):
-        @action(sharing=['group-a'])
+        @action(sharing=[GROUP_A])
         async def action_a(self) -> None: ...
 
-        @action(sharing=['group-b'])
+        @action(sharing=[GROUP_B])
         async def action_b(self) -> None: ...
 
         @action
         async def open_action(self) -> None: ...
 
     groups = MultiGroupAgent._agent_permitted_groups_from_class()
-    assert groups == frozenset({'group-a', 'group-b'})
+    assert groups == frozenset({GROUP_A, GROUP_B})
 
 
 def test_agent_permitted_groups_from_class_overlapping_groups() -> None:
     class OverlappingAgent(Agent):
-        @action(sharing=['group-a', 'group-b'])
+        @action(sharing=[GROUP_A, GROUP_B])
         async def action_ab(self) -> None: ...
 
-        @action(sharing=['group-b', 'group-c'])
+        @action(sharing=[GROUP_B, GROUP_C])
         async def action_bc(self) -> None: ...
 
     groups = OverlappingAgent._agent_permitted_groups_from_class()
-    assert groups == frozenset({'group-a', 'group-b', 'group-c'})
+    assert groups == frozenset({GROUP_A, GROUP_B, GROUP_C})
 
 
 def test_action_sharing_tristate() -> None:
@@ -486,32 +491,76 @@ def test_action_sharing_tristate() -> None:
         @action(sharing=[])
         async def owner_only(self) -> None: ...
 
-        @action(sharing=['group-a'])
+        @action(sharing=[GROUP_A])
         async def shared(self) -> None: ...
 
     assert TriStateAgent.undecorated._action_sharing is None  # type: ignore[attr-defined]
     assert TriStateAgent.owner_only._action_sharing == frozenset()  # type: ignore[attr-defined]
     assert TriStateAgent.shared._action_sharing == frozenset(  # type: ignore[attr-defined]
-        {'group-a'},
+        {GROUP_A},
     )
     # Explicit-empty and undecorated actions contribute nothing to
     # the agent-wide union.
     assert TriStateAgent._agent_permitted_groups_from_class() == frozenset(
-        {'group-a'},
+        {GROUP_A},
     )
 
 
 def test_permitted_groups_instance_matches_class() -> None:
     class ConsistentAgent(Agent):
-        @action(sharing=['group-a'])
+        @action(sharing=[GROUP_A])
         async def one(self) -> None: ...
 
-        @action(sharing=['group-b'])
+        @action(sharing=[GROUP_B])
         async def two(self) -> None: ...
 
     instance = ConsistentAgent()
     assert (
         instance._agent_permitted_groups()
         == ConsistentAgent._agent_permitted_groups_from_class()
-        == frozenset({'group-a', 'group-b'})
+        == frozenset({GROUP_A, GROUP_B})
     )
+
+
+def test_action_sharing_rejects_non_uuid_group() -> None:
+    """A typo'd group ID is caught at decoration time.
+
+    An invalid ID can never match a membership stamped by the
+    exchange, so it would otherwise silently deny access to the
+    action rather than grant it.
+    """
+    with pytest.raises(ValueError, match='Invalid Globus group ID'):
+
+        class _BadAgent(Agent):
+            @action(sharing=['not-a-uuid'])
+            async def restricted(self) -> None: ...
+
+
+def test_action_sharing_error_names_the_method() -> None:
+    with pytest.raises(ValueError, match='on "restricted"'):
+
+        class _BadAgent(Agent):
+            @action(sharing=[GROUP_A, 'nope'])
+            async def restricted(self) -> None: ...
+
+
+def test_action_sharing_rejects_non_string_group() -> None:
+    with pytest.raises(ValueError, match='Invalid Globus group ID'):
+
+        class _BadAgent(Agent):
+            @action(sharing=[None])  # type: ignore[list-item]
+            async def restricted(self) -> None: ...
+
+
+def test_action_sharing_accepts_empty_and_none() -> None:
+    """Owner-only and undecorated actions bypass validation."""
+
+    class _OkAgent(Agent):
+        @action(sharing=[])
+        async def owner_only(self) -> None: ...
+
+        @action
+        async def undecorated(self) -> None: ...
+
+    assert _OkAgent.owner_only._action_sharing == frozenset()  # type: ignore[attr-defined]
+    assert _OkAgent.undecorated._action_sharing is None  # type: ignore[attr-defined]

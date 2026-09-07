@@ -298,7 +298,10 @@ class AcademyErrorResponse(BaseModel):
             case ErrorCode.INVALID_CLIENT:
                 return TypeError(f'{self.mailbox_id} cannot fulfill requests.')
             case ErrorCode.INCOMPATIBLE_PROTOCOL:
-                return IncompatibleNetworkProtocolError(None, PROTOCOL_VERSION)
+                return IncompatibleNetworkProtocolError(
+                    None,
+                    str(PROTOCOL_VERSION),
+                )
             case ErrorCode.FORBIDDEN:
                 return RequestForbiddenError(self.mailbox_id)
         raise AssertionError('Unreachable.')
@@ -569,7 +572,7 @@ class Message(BaseModel, Generic[BodyT]):
             # raise a more informative error.
             raise IncompatibleNetworkProtocolError(
                 self.protocol_version,
-                PROTOCOL_VERSION,
+                str(PROTOCOL_VERSION),
             )
 
         adapter: TypeAdapter[BodyT] = TypeAdapter(Body)

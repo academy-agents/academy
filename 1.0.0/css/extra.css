@@ -1,0 +1,67 @@
+:root > * {
+  --md-primary-fg-color: #11A579;
+  --md-primary-bg-color: #F8F8F8;
+
+  /* Symbol type colors */
+  /* https://mkdocstrings.github.io/python/usage/customization/#symbol-types */
+  --doc-symbol-function-bg-color: #BDAEE5D0;
+  --doc-symbol-parameter-bg-color: #FFEBADD0;
+  --doc-symbol-method-bg-color: #BDAEE5D0;
+  --doc-symbol-attribute-bg-color: #F6C58DD0;
+  --doc-symbol-class-bg-color: #C2D3EBD0;
+  --doc-symbol-module-bg-color: #B5F7E3D0;
+
+  --doc-symbol-function-fg-color: #2D214B;
+  --doc-symbol-paramter-fg-color: #F2B701;
+  --doc-symbol-method-fg-color: #2D214B;
+  --doc-symbol-attribute-fg-color: #99560B;
+  --doc-symbol-class-fg-color: #1F385C;
+  --doc-symbol-module-fg-color: #084937;
+}
+
+/* Based on palette: https://github.com/proxystore/graphics/ */
+[data-md-color-primary="academy-light"] {
+  --md-accent-fg-color: #084937;
+  --md-accent-bg-color: #084937;
+  --md-typeset-a-color: #11A579;
+}
+
+[data-md-color-primary="academy-dark"] {
+  --md-accent-fg-color: #11A579;
+  --md-accent-bg-color: #11A579;
+  --md-typeset-a-color: #B8E4D7;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 225;
+}
+
+.md-typeset h1 {
+  font-weight: 400;
+}
+
+.md-tabs__link {
+  font-weight: 600;
+}
+
+/* Center Markdown Tables (requires md_in_html extension) */
+/* https://github.com/squidfunk/mkdocs-material/issues/3430#issuecomment-1005973474 */
+.center-table {
+    text-align: center;
+}
+
+.md-typeset .center-table :is(td,th):not([align]) {
+    /* Reset alignment for table cells */
+    text-align: initial;
+}
+
+/* Add parentheses around version aliases in docs */
+/* https://github.com/squidfunk/mkdocs-material/issues/6436 */
+.md-version__alias::before {
+  display: inherit;
+  content: "(";
+}
+.md-version__alias::after {
+  display: inherit;
+  content: ")";
+}

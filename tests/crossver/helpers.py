@@ -95,6 +95,8 @@ Version = z3.Datatype('Version')
 Version.declare('SemVer', ('major', z3.IntSort()), ('minor', z3.IntSort()), ('patch', z3.IntSort()))
 VersionSort = Version.create()
 
+v010 = VersionSort.SemVer(0,1,0)
+v020 = VersionSort.SemVer(0,2,0)
 v030 = VersionSort.SemVer(0,3,0)
 v031 = VersionSort.SemVer(0,3,1)
 v040 = VersionSort.SemVer(0,4,0)
@@ -105,7 +107,9 @@ v100 = VersionSort.SemVer(1,0,0)
 v_here = VersionSort.SemVer(1,0,1)  # this should dynamically be the latest, incremented by a relevant "next release type" parameter
 
 def valid_academy_version(v):
-  return z3.Or(v == v030,
+  return z3.Or(v == v010,
+               v == v020,
+               v == v030,
                v == v031,
                v == v040,
                v == v050,
@@ -116,6 +120,8 @@ def valid_academy_version(v):
 
 install_deps = {}
 
+install_deps[v010] = 'academy-py==0.1.0'
+install_deps[v020] = 'academy-py==0.2.0'
 install_deps[v030] = 'academy-py==0.3.0'
 install_deps[v031] = 'academy-py==0.3.1'
 install_deps[v040] = 'academy-py==0.4.0'

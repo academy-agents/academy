@@ -204,6 +204,9 @@ if here_mode:
 
 # simulations of semver...
 
+def post_030(v):
+    return z3.Or(v == v030, v == v031, v == v040, v == v050, v == v060, v == v070, v == v100, v == v_here)
+
 def post_040(v):
     return z3.Or(v == v040, v == v050, v == v060, v == v070, v == v100, v == v_here)
 
@@ -418,6 +421,10 @@ if here_mode:
 
 solver.push()
 
+# semver closed lower major-version-like bound
+solver.add(post_030(v1))
+solver.add(post_030(v2))
+
 count = 0
 while solver.check() == z3.sat:
     count += 1
@@ -471,6 +478,7 @@ solver.pop()
 
 solver.push()
 
+solver.add(post_030(v1))
 count = 0
 while solver.check() == z3.sat:
     count += 1

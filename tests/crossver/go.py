@@ -275,7 +275,7 @@ def run_test_pickle_handle(version_set: dict):
         pass
 
 
-AcademyVersion, (v030, v031, v040, v050, v_pr404, v_pr447, v_here) = z3.EnumSort(
+AcademyVersion, (v030, v031, v040, v050, v_pr404, v_pr447, v100, v_here) = z3.EnumSort(
     'AcademyVersion',
     [
         'academy-py==0.3.0',
@@ -284,6 +284,7 @@ AcademyVersion, (v030, v031, v040, v050, v_pr404, v_pr447, v_here) = z3.EnumSort
         'packaging academy-py==0.5.0',
         'packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1',
         'packaging git+https://github.com/academy-agents/academy@2c2127324aacf5e6402b665876b9e7e548c9506d',
+        'academy-py==1.0.0',
         'HERE',
     ],
 )
@@ -301,14 +302,14 @@ if here_mode:
 # simulations of semver...
 
 def post_040(v):
-    return z3.Or(v == v040, v == v050, v == v_pr404, v == v_pr447, v == v_here)
+    return z3.Or(v == v040, v == v050, v == v_pr404, v == v_pr447, v == v100, v == v_here)
 
 def post_050(v):
     # speaks the post-050 protocol
-    return z3.Or(           v == v050, v == v_pr404, v == v_pr447, v == v_here)
+    return z3.Or(           v == v050, v == v_pr404, v == v_pr447, v == v100, v == v_here)
 
 def post_060(v):
-    return                                                         v == v_here
+    return z3.Or(                                                  v == v100, v == v_here)
 
 def pre_060(v):
     return z3.Or(v == v030, v == v031, v == v040, v == v050)

@@ -370,7 +370,13 @@ solver.add(pre_pr447(v3))
 # client status in the old way (whatever that was?) to implementing
 # a heartbeat-based status. In order for that to work, the agent
 # must be new enough to emit heartbeats too.
-# So pr #404 should/would be a major version increment.
+
+# But not the other way round: an older client can still see status
+# from newer agents (but will have the old status semantics, not
+# heartbeat style semantics)
+
+# So pr #404 should/would be a major version increment, but this
+# implication describes more subtleties.
 
 solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
 

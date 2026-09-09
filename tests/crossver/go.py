@@ -199,7 +199,7 @@ def run_test_pickle_handle(version_set: dict):
         pass
 
 
-AcademyVersion, (v030, v031, v040, v050, v_pr404, v_pr447, v100, v_here) = z3.EnumSort(
+AcademyVersion, (v030, v031, v040, v050, v060, v_pr447, v100, v_here) = z3.EnumSort(
     'AcademyVersion',
     [
         'academy-py==0.3.0',
@@ -226,20 +226,16 @@ if here_mode:
 # simulations of semver...
 
 def post_040(v):
-    return z3.Or(v == v040, v == v050, v == v_pr404, v == v_pr447, v == v100, v == v_here)
+    return z3.Or(v == v040, v == v050, v == v060, v == v_pr447, v == v100, v == v_here)
 
 def post_050(v):
     # speaks the post-050 protocol
-    return z3.Or(           v == v050, v == v_pr404, v == v_pr447, v == v100, v == v_here)
+    return z3.Or(           v == v050, v == v060, v == v_pr447, v == v100, v == v_here)
 
-def post_pr404(v):
-    # alias for post_100, in the semantic version world
-    # but we have some more nuance because v_pr404 is a non-semver-tagged
-    # commit that is still interesting to test against so maybe it can
-    # be semvered with a negative minor number? or maybe a later one
-    # breaks things?
-    # dff0 is the "pre-release" of heartbeats, before 0.6.0
-    return z3.Or(post_100(v), v == v_pr404, v == v_pr447)
+def post_060(v):
+    # "fake" version
+    # dff0 is the "pre-release" of heartbeats, before 1.0.0
+    return z3.Or(post_100(v), v == v060, v == v_pr447)
 
 def pre_pr447(v):
     return z3.Not(post_pr447(v))
@@ -260,8 +256,8 @@ solver = z3.Solver()
 # the HTTP Exchange needs to support heartbeats.
 # From a semver perspective, this is a major-version change,
 # but this implication can express that more subtly.
-solver.add(z3.Implies(post_pr404(v2), post_pr404(v1)))
-solver.add(z3.Implies(post_pr404(v3), post_pr404(v1)))
+solver.add(z3.Implies(post_060(v2), post_060(v1)))
+solver.add(z3.Implies(post_060(v3), post_060(v1)))
 
 
 # The HTTP Exchange wire protocol changed incompatibly from 0.4.0 to 0.5.0
@@ -312,7 +308,7 @@ solver.push()
 # the agent definitely has heartbeat support.
 
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
-solver.add(post_pr404(v2))
+solver.add(post_060(v2))
 count = 0
 while solver.check() == z3.sat:
     count += 1
@@ -365,7 +361,7 @@ solver.add(pre_pr447(v3))
 # So pr #404 should/would be a major version increment, but this
 # implication describes more subtleties.
 
-solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
+solver.add(z3.Implies(post_060(v3), post_060(v2)))
 
 count = 0
 while solver.check() == z3.sat:
@@ -396,7 +392,7 @@ solver.push()
 
 # same wire-protocol constraints at the 0_5_0 test
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
-solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
+solver.add(z3.Implies(post_060(v3), post_060(v2)))
 
 # because of status Python API changes
 solver.add(post_pr447(v3))

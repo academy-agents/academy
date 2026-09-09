@@ -4,6 +4,7 @@ import pathlib
 import signal
 import subprocess
 import random
+import z3
 
 
 envs = {}
@@ -34,7 +35,11 @@ def create_env(descr: dict) -> pathlib.Path:
 
     here_path = os.getcwd()
 
-    install_target = descr['academy']
+    print(install_deps)
+    print(descr['academy'])
+    print(type(descr['academy']))
+    install_target = install_deps[descr['academy']]
+
     if install_target == 'HERE':
         install_target = here_path
 
@@ -85,4 +90,38 @@ def managed_commandline(cmdline: str, *, daemon: bool, env: str):
             p.wait()
             assert p.returncode == 0, 'process should have exited successfully'
 
+
+Version = z3.Datatype('Version')
+Version.declare('SemVer', ('major', z3.IntSort()), ('minor', z3.IntSort()), ('patch', z3.IntSort()))
+VersionSort = Version.create()
+
+v030 = VersionSort.SemVer(0,3,0)
+v031 = VersionSort.SemVer(0,3,1)
+v040 = VersionSort.SemVer(0,4,0)
+v050 = VersionSort.SemVer(0,5,0)
+v060 = VersionSort.SemVer(0,6,0)
+v070 = VersionSort.SemVer(0,7,0)
+v100 = VersionSort.SemVer(1,0,0)
+v_here = VersionSort.SemVer(1,0,1)  # this should dynamically be the latest, incremented by a relevant "next release type" parameter
+
+def valid_academy_version(v):
+  return z3.Or(v == v030,
+               v == v031,
+               v == v040,
+               v == v050,
+               v == v060,
+               v == v070,
+               v == v100,
+               v == v_here)
+
+install_deps = {}
+
+install_deps[v030] = 'academy-py==0.3.0'
+install_deps[v031] = 'academy-py==0.3.1'
+install_deps[v040] = 'academy-py==0.4.0'
+install_deps[v050] = 'packaging academy-py==0.5.0'
+install_deps[v060] = 'packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1'  # untagged
+install_deps[v070] = 'packaging git+https://github.com/academy-agents/academy@2c2127324aacf5e6402b665876b9e7e548c9506d'  # untagged
+install_deps[v100] = 'academy-py==1.0.0'
+install_deps[v_here] = 'HERE'
 

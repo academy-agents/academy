@@ -18,7 +18,8 @@ here_mode = False
 
 dry_run_mode = False
 
-from .helpers import create_env, managed_commandline
+from .helpers import VersionSort, valid_academy_version, create_env, managed_commandline
+from .helpers import *
 
 
 def run_test_1(version_set: dict):
@@ -191,23 +192,9 @@ def run_test_pickle_handle(version_set: dict):
         pass
 
 
-AcademyVersion, (v030, v031, v040, v050, v060, v070, v100, v_here) = z3.EnumSort(
-    'AcademyVersion',
-    [
-        'academy-py==0.3.0',
-        'academy-py==0.3.1',
-        'academy-py==0.4.0',
-        'packaging academy-py==0.5.0',
-        'packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1',
-        'packaging git+https://github.com/academy-agents/academy@2c2127324aacf5e6402b665876b9e7e548c9506d',
-        'academy-py==1.0.0',
-        'HERE',
-    ],
-)
-
-v1 = z3.Const('v1', AcademyVersion)
-v2 = z3.Const('v2', AcademyVersion)
-v3 = z3.Const('v3', AcademyVersion)
+v1 = z3.Const('v1', VersionSort)
+v2 = z3.Const('v2', VersionSort)
+v3 = z3.Const('v3', VersionSort)
 
 # Three-environment tests (exchange, agent, client)
 
@@ -244,6 +231,10 @@ def pre_100(v):
 
 solver = z3.Solver()
 
+solver.add(valid_academy_version(v1))
+solver.add(valid_academy_version(v2))
+solver.add(valid_academy_version(v3))
+
 # If either the client or agent has heartbeats implemented, then
 # the HTTP Exchange needs to support heartbeats.
 # From a semver perspective, this is a major-version change,
@@ -279,9 +270,9 @@ while solver.check() == z3.sat:
         z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
     )
 
-    _V1 = {'academy': str(chosen_v1)}
-    _V2 = {'academy': str(chosen_v2)}
-    _V3 = {'academy': str(chosen_v3)}
+    _V1 = {'academy': chosen_v1}
+    _V2 = {'academy': chosen_v2}
+    _V3 = {'academy': chosen_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -315,9 +306,9 @@ while solver.check() == z3.sat:
         z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
     )
 
-    _V1 = {'academy': str(chosen_v1)}
-    _V2 = {'academy': str(chosen_v2)}
-    _V3 = {'academy': str(chosen_v3)}
+    _V1 = {'academy': chosen_v1}
+    _V2 = {'academy': chosen_v2}
+    _V3 = {'academy': chosen_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -369,9 +360,9 @@ while solver.check() == z3.sat:
         z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
     )
 
-    _V1 = {'academy': str(chosen_v1)}
-    _V2 = {'academy': str(chosen_v2)}
-    _V3 = {'academy': str(chosen_v3)}
+    _V1 = {'academy': chosen_v1}
+    _V2 = {'academy': chosen_v2}
+    _V3 = {'academy': chosen_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -404,9 +395,9 @@ while solver.check() == z3.sat:
         z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
     )
 
-    _V1 = {'academy': str(chosen_v1)}
-    _V2 = {'academy': str(chosen_v2)}
-    _V3 = {'academy': str(chosen_v3)}
+    _V1 = {'academy': chosen_v1}
+    _V2 = {'academy': chosen_v2}
+    _V3 = {'academy': chosen_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -418,6 +409,9 @@ solver.pop()
 # Two-environment tests (for example, pickle/unpickle handle)
 
 solver = z3.Solver()
+
+solver.add(valid_academy_version(v1))
+solver.add(valid_academy_version(v2))
 
 if here_mode:
   solver.add(z3.Or(v1 == v_here, v2 == v_here))
@@ -436,8 +430,8 @@ while solver.check() == z3.sat:
         z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2)),
     )
 
-    _V1 = {'academy': str(chosen_v1)}
-    _V2 = {'academy': str(chosen_v2)}
+    _V1 = {'academy': chosen_v1}
+    _V2 = {'academy': chosen_v2}
     this_version_set = {'writer': _V1, 'reader': _V2}
 
     if not dry_run_mode:
@@ -449,6 +443,8 @@ solver.pop()
 # One-environment tests (for example, Python API regression tests)
 
 solver = z3.Solver()
+
+solver.add(valid_academy_version(v1))
 
 if here_mode:
     solver.add(v1 == v_here)
@@ -466,7 +462,7 @@ while solver.check() == z3.sat:
     print(m)
     chosen_v1 = m[v1] if m[v1] is not None else v040
     solver.add(z3.Not(v1 == chosen_v1))
-    _V1 = {'academy': str(chosen_v1)}
+    _V1 = {'academy': chosen_v1}
     this_version_set = {'program': _V1}
 
     if not dry_run_mode:
@@ -483,7 +479,7 @@ while solver.check() == z3.sat:
     print(m)
     chosen_v1 = m[v1] if m[v1] is not None else v040
     solver.add(z3.Not(v1 == chosen_v1))
-    _V1 = {'academy': str(chosen_v1)}
+    _V1 = {'academy': chosen_v1}
     this_version_set = {'program': _V1}
 
     if not dry_run_mode:

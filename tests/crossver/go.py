@@ -16,7 +16,7 @@ import z3
 # any way.
 here_mode = False
 
-dry_run_mode = True
+dry_run_mode = False
 
 from .helpers import create_env, managed_commandline
 
@@ -241,6 +241,9 @@ def post_pr404(v):
     # dff0 is the "pre-release" of heartbeats, before 0.6.0
     return z3.Or(post_100(v), v == v_pr404, v == v_pr447)
 
+def pre_pr447(v):
+    return z3.Not(post_pr447(v))
+
 def post_pr447(v):
     return z3.Or(post_100(v), v == v_pr447)
 
@@ -349,30 +352,27 @@ solver.pop()
 
 solver.push()
 
-# this is a requirement because... using the HTTP exchange?
+# This is a semver-style lower bound on all components.
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 
-# This test breaks in 0.6.0 post-PR#447 because of movement of
-# MailboxStatus structure to different module: this constraint
-# requires the client is not after that.
-# But is this too aggressive? We should test all the way up
-# <#447
-solver.add(pre_100(v3))
+# This is an open upper bound on the client API, not on all
+# components. If trying to be purely semver, this would be
+# an open upper bound on all components.
 
-# same as the base compatibility rules
-# although I'll probably need to add in an exclusion for an undesired incompatibility
+# Compatibility breaks at this point because MailboxStatus was moved
+# to a new source code location, so it cannot be imported any more by
+# this test's client script.
 
-# BUG:
-# This combination reports that the agent is inactive.
-# v1 = git+https://github.com/academy-agents/academy@main]
-# v2 = packaging academy-py==0.5.0,
-# v3 = packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1,
-# Here's a workaround, but it's not entirely desirable: it means, for example,
-# 0.5.0 can't talk to 0.6.0 for agent status.
+# This isn't a constraint on the wire protocol.
+solver.add(pre_pr447(v3))
 
-# Is this a wire protocol or API or exchange related constraint?
+# PR #404 switches the client API for status from asking for
+# client status in the old way (whatever that was?) to implementing
+# a heartbeat-based status. In order for that to work, the agent
+# must be new enough to emit heartbeats too.
+# So pr #404 should/would be a major version increment.
+
 solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
-
 
 count = 0
 while solver.check() == z3.sat:
@@ -401,23 +401,13 @@ solver.pop()
 
 solver.push()
 
-# because of http exchange protocol
+# same wire-protocol constraints at the 0_5_0 test
 solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
 
 # because of status Python API changes
 solver.add(post_pr447(v3))
 
-# same as the base compatibility rules
-# although I'll probably need to add in an exclusion for an undesired incompatibility
-
-# BUG:
-# This combination reports that the agent is inactive.
-# v1 = git+https://github.com/academy-agents/academy@main]
-# v2 = packaging academy-py==0.5.0,
-# v3 = packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1,
-# Here's a workaround, but it's not entirely desirable: it means, for example,
-# 0.5.0 can't talk to 0.6.0 for agent status.
-solver.add(z3.Implies(post_pr404(v3), post_pr404(v2)))
 
 count = 0
 while solver.check() == z3.sat:

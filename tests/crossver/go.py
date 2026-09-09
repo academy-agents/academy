@@ -16,6 +16,8 @@ import z3
 # any way.
 here_mode = False
 
+dry_run_mode = True
+
 from .helpers import create_env, managed_commandline
 
 
@@ -305,7 +307,8 @@ while solver.check() == z3.sat:
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-    run_test_1(this_version_set)
+    if not dry_run_mode:
+        run_test_1(this_version_set)
 
 # pops the iteration-forcing constraints and anything that is specific
 # to particular test case (nothing in this case, but different later).
@@ -340,7 +343,8 @@ while solver.check() == z3.sat:
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-    run_test_heartbeat(this_version_set)
+    if not dry_run_mode:
+        run_test_heartbeat(this_version_set)
 solver.pop()
 
 solver.push()
@@ -390,7 +394,8 @@ while solver.check() == z3.sat:
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-    run_test_entity_status_client_0_5_0(this_version_set)
+    if not dry_run_mode:
+        run_test_entity_status_client_0_5_0(this_version_set)
 solver.pop()
 
 
@@ -434,7 +439,8 @@ while solver.check() == z3.sat:
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-    run_test_entity_status_client_1_0_0(this_version_set)
+    if not dry_run_mode:
+        run_test_entity_status_client_1_0_0(this_version_set)
 solver.pop()
 
 
@@ -462,7 +468,9 @@ while solver.check() == z3.sat:
     _V1 = {'academy': str(chosen_v1)}
     _V2 = {'academy': str(chosen_v2)}
     this_version_set = {'writer': _V1, 'reader': _V2}
-    run_test_pickle_handle(this_version_set)
+
+    if not dry_run_mode:
+        run_test_pickle_handle(this_version_set)
 
 solver.pop()
 
@@ -489,7 +497,9 @@ while solver.check() == z3.sat:
     solver.add(z3.Not(v1 == chosen_v1))
     _V1 = {'academy': str(chosen_v1)}
     this_version_set = {'program': _V1}
-    run_test_api_thread_executor_logconfig(this_version_set)
+
+    if not dry_run_mode:
+        run_test_api_thread_executor_logconfig(this_version_set)
 solver.pop()
 
 solver.push()
@@ -504,5 +514,7 @@ while solver.check() == z3.sat:
     solver.add(z3.Not(v1 == chosen_v1))
     _V1 = {'academy': str(chosen_v1)}
     this_version_set = {'program': _V1}
-    run_test_api_thread_executor_nolog(this_version_set)
+
+    if not dry_run_mode:
+        run_test_api_thread_executor_nolog(this_version_set)
 solver.pop()

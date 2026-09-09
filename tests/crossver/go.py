@@ -199,7 +199,7 @@ def run_test_pickle_handle(version_set: dict):
         pass
 
 
-AcademyVersion, (v030, v031, v040, v050, v060, v_pr447, v100, v_here) = z3.EnumSort(
+AcademyVersion, (v030, v031, v040, v050, v060, v070, v100, v_here) = z3.EnumSort(
     'AcademyVersion',
     [
         'academy-py==0.3.0',
@@ -226,22 +226,22 @@ if here_mode:
 # simulations of semver...
 
 def post_040(v):
-    return z3.Or(v == v040, v == v050, v == v060, v == v_pr447, v == v100, v == v_here)
+    return z3.Or(v == v040, v == v050, v == v060, v == v070, v == v100, v == v_here)
 
 def post_050(v):
     # speaks the post-050 protocol
-    return z3.Or(           v == v050, v == v060, v == v_pr447, v == v100, v == v_here)
+    return z3.Or(           v == v050, v == v060, v == v070, v == v100, v == v_here)
 
 def post_060(v):
     # "fake" version
     # dff0 is the "pre-release" of heartbeats, before 1.0.0
-    return z3.Or(post_100(v), v == v060, v == v_pr447)
+    return z3.Or(post_100(v), v == v060, v == v070)
 
-def pre_pr447(v):
-    return z3.Not(post_pr447(v))
+def pre_070(v):
+    return z3.Not(post_070(v))
 
-def post_pr447(v):
-    return z3.Or(post_100(v), v == v_pr447)
+def post_070(v):
+    return z3.Or(post_100(v), v == v070)
 
 def post_100(v):
     return z3.Or(                                                  v == v100, v == v_here)
@@ -347,7 +347,7 @@ solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 # this test's client script.
 
 # This isn't a constraint on the wire protocol.
-solver.add(pre_pr447(v3))
+solver.add(pre_070(v3))
 
 # PR #404 switches the client API for status from asking for
 # client status in the old way (whatever that was?) to implementing
@@ -395,7 +395,7 @@ solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 solver.add(z3.Implies(post_060(v3), post_060(v2)))
 
 # because of status Python API changes
-solver.add(post_pr447(v3))
+solver.add(post_070(v3))
 
 
 count = 0

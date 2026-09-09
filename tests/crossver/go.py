@@ -230,12 +230,6 @@ def post_050(v):
     # speaks the post-050 protocol
     return z3.Or(           v == v050, v == v_pr404, v == v_pr447, v == v100, v == v_here)
 
-def post_100(v):
-    return z3.Or(                                                  v == v100, v == v_here)
-
-def pre_100(v):
-    return z3.Or(v == v030, v == v031, v == v040, v == v050)
-
 def post_pr404(v):
     # alias for post_100, in the semantic version world
     # but we have some more nuance because v_pr404 is a non-semver-tagged
@@ -247,6 +241,12 @@ def post_pr404(v):
 
 def post_pr447(v):
     return z3.Or(post_100(v), v == v_pr447)
+
+def post_100(v):
+    return z3.Or(                                                  v == v100, v == v_here)
+
+def pre_100(v):
+    return z3.Or(v == v030, v == v031, v == v040, v == v050)
 
 
 solver = z3.Solver()

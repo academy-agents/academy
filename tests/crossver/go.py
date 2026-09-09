@@ -308,23 +308,23 @@ def post_050(v):
     # speaks the post-050 protocol
     return z3.Or(           v == v050, v == v_pr404, v == v_pr447, v == v100, v == v_here)
 
-def post_060(v):
+def post_100(v):
     return z3.Or(                                                  v == v100, v == v_here)
 
-def pre_060(v):
+def pre_100(v):
     return z3.Or(v == v030, v == v031, v == v040, v == v050)
 
 def post_pr404(v):
-    # alias for post_060, in the semantic version world
+    # alias for post_100, in the semantic version world
     # but we have some more nuance because v_pr404 is a non-semver-tagged
     # commit that is still interesting to test against so maybe it can
     # be semvered with a negative minor number? or maybe a later one
     # breaks things?
     # dff0 is the "pre-release" of heartbeats, before 0.6.0
-    return z3.Or(post_060(v), v == v_pr404, v == v_pr447)
+    return z3.Or(post_100(v), v == v_pr404, v == v_pr447)
 
 def post_pr447(v):
-    return z3.Or(post_060(v), v == v_pr447)
+    return z3.Or(post_100(v), v == v_pr447)
 
 
 solver = z3.Solver()
@@ -431,7 +431,7 @@ solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
 # requires the client is not after that.
 # But is this too aggressive? We should test all the way up
 # <#447
-solver.add(pre_060(v3))
+solver.add(pre_100(v3))
 
 # same as the base compatibility rules
 # although I'll probably need to add in an exclusion for an undesired incompatibility

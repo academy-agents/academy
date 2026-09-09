@@ -130,7 +130,7 @@ port = 1234
                 pass
 
 
-def run_test_entity_status_client_0_6_0(version_set: dict):
+def run_test_entity_status_client_1_0_0(version_set: dict):
 
     v1_env = create_env(version_set['exchange'])
     v2_env = create_env(version_set['agent'])
@@ -150,13 +150,13 @@ port = 1234
 
         base = os.getcwd()
 
-        with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_6_0/agent.py', daemon=True, env=v2_env) as p2:
+        with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_1_0_0/agent.py', daemon=True, env=v2_env) as p2:
 
             time.sleep(3)
 
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-            with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_6_0/client.py', daemon=False, env=v3_env) as p3:
+            with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_1_0_0/client.py', daemon=False, env=v3_env) as p3:
                 pass
 
 
@@ -418,7 +418,7 @@ count = 0
 while solver.check() == z3.sat:
     count += 1
     m = solver.model()
-    print(f'=== test_entity_status_client_0_6_0: solution {count} ===')
+    print(f'=== test_entity_status_client_1_0_0: solution {count} ===')
     print(m)
     # when a v is not bound, force a choice. it doesn't matter what.
     chosen_v1 = m[v1] if m[v1] is not None else v040
@@ -434,7 +434,7 @@ while solver.check() == z3.sat:
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
-    run_test_entity_status_client_0_6_0(this_version_set)
+    run_test_entity_status_client_1_0_0(this_version_set)
 solver.pop()
 
 

@@ -64,10 +64,6 @@ port = 1234
             with managed_commandline(f'python3 {base}/tests/crossver/test_1/client.py', daemon=False, env=v3_env) as p3:
                 pass
 
-    print(
-        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
-    )
-
 
 def run_test_heartbeat(version_set: dict):
 
@@ -96,10 +92,6 @@ port = 1234
 
             with managed_commandline(f'python3 {base}/tests/crossver/test_heartbeat/client.py', daemon=False, env=v3_env) as p3:
                 pass
-
-    print(
-        f'return codes: p1={p1.returncode}, p2={p2.returncode}, p3={p3.returncode}',
-    )
 
 
 def run_test_entity_status_client_0_5_0(version_set: dict):

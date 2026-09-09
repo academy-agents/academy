@@ -256,34 +256,21 @@ def pre_100(v):
 
 solver = z3.Solver()
 
-# This combination causes test 1 to fail, because the 0.5.0 exchange
-# doesn't recognise heartbeats: the agent outputs background error
-# (but maybe still functions) and the client fails with a unix error,
-# which is actually what is detected.
-# [v2 = HERE, v1 = packaging academy-py==0.5.0, v3 = HERE]
-# So what is the broader constraint here?
-# probably an implication: agent or client being >= dff0
-# implies that the exchange must be >= dff0
-# that's quite subtle and not something that can be expressed
-# in semver in the presence of other similar constraints, I think.
-
+# If either the client or agent has heartbeats implemented, then
+# the HTTP Exchange needs to support heartbeats.
+# From a semver perspective, this is a major-version change,
+# but this implication can express that more subtly.
 solver.add(z3.Implies(post_pr404(v2), post_pr404(v1)))
 solver.add(z3.Implies(post_pr404(v3), post_pr404(v1)))
 
 
-# This combination fails because the wire protocol for http exchange
-# changed from 0.4.0 to 0.5.0
-# [v2 = packaging academy-py==0.5.0, v1 = packaging academy-py==0.4.0, v3 = packaging academy-py==0.4.0]
-# this is needed for the HTTP exchange protocol which changed
-# incompatibly from 0.4.0 to 0.5.0
-# but it's only needed for tests that use the HTTP exchange.
-# How to represent that?
-# "all or none" constraint between multiple versions:
+# The HTTP Exchange wire protocol changed incompatibly from 0.4.0 to 0.5.0
+# so if any component is past 0.5.0 then they must all be that way.
+# The 0.5.0 protocol should still work with academy version 1.0.0 etc
+# so there is no upper bound here.
 solver.add(z3.Implies(post_050(v1), post_050(v2)))
 solver.add(z3.Implies(post_050(v2), post_050(v3)))
 solver.add(z3.Implies(post_050(v3), post_050(v1)))
-# this will interact with the post_pr404 protocol constraint above too
-# which is not bi-directional...
 
 
 solver.push()

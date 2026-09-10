@@ -215,6 +215,15 @@ def closed_minimum_version(v, major, minor):
         z3.And(VersionSort.major(v) > major))
 
 
+def open_maximum_version(v, major, minor):
+    if isinstance(v, list):
+        return z3.And(*map(lambda v2: open_maximum_version(v2, major, minor), v))
+
+    return z3.Or(
+        z3.And(VersionSort.major(v) == major, VersionSort.minor(v) < minor),
+        z3.And(VersionSort.major(v) < major))
+
+
 def compatibility_breaks_at(vs, major, minor=None):
     # declares a breakage at specified major version that means that either:
     # all versions are pre the specified major version or
@@ -228,22 +237,6 @@ def compatibility_breaks_at(vs, major, minor=None):
         minor = 0
 
     return z3.And(*(z3.Implies(closed_minimum_version(l, major, minor), closed_minimum_version(r, major, minor)) for l, r in zip(vs, vs[1:] + [vs[0]])))
-
-
-def post_060(v):
-    return closed_minimum_version(v, 0,6)
-
-def post_070(v):
-    return closed_minimum_version(v, 0,7)
-
-def pre_070(v):
-    return z3.Not(post_070(v))
-
-def post_100(v):
-    return closed_minimum_version(v, 1,0)
-
-def pre_100(v):
-    return z3.Not(post_100(v))
 
 
 solver = z3.Solver()
@@ -270,8 +263,8 @@ solver.add(compatibility_breaks_at([v1, v2, v3], 0, 5))
 # but this implication can express that more subtly, to support
 # testing that a newer exchange will work with older clients and
 # agents.
-solver.add(z3.Implies(post_060(v2), post_060(v1)))
-solver.add(z3.Implies(post_060(v3), post_060(v1)))
+solver.add(z3.Implies(closed_minimum_version(v2, 0, 6), closed_minimum_version(v1, 0, 6)))
+solver.add(z3.Implies(closed_minimum_version(v3, 0, 6), closed_minimum_version(v1, 0, 6)))
 
 solver.push()
 
@@ -312,7 +305,7 @@ solver.push()
 # the agent definitely has heartbeat support.
 
 solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
-solver.add(post_060(v2))
+solver.add(closed_minimum_version(v2, 0, 6))
 count = 0
 while solver.check() == z3.sat:
     count += 1
@@ -351,7 +344,7 @@ solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
 # this test's client script.
 
 # This isn't a constraint on the wire protocol.
-solver.add(pre_070(v3))
+solver.add(open_maximum_version(v3, 0, 7))
 
 # PR #404 switches the client API for status from asking for
 # client status in the old way (whatever that was?) to implementing
@@ -365,7 +358,7 @@ solver.add(pre_070(v3))
 # So pr #404 should/would be a major version increment, but this
 # implication describes more subtleties.
 
-solver.add(z3.Implies(post_060(v3), post_060(v2)))
+solver.add(z3.Implies(closed_minimum_version(v3, 0, 6), closed_minimum_version(v2, 0, 6)))
 
 count = 0
 while solver.check() == z3.sat:
@@ -397,10 +390,10 @@ solver.push()
 # same wire-protocol constraints at the 0_5_0 test
 
 solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
-solver.add(z3.Implies(post_060(v3), post_060(v2)))
+solver.add(z3.Implies(closed_minimum_version(v3, 0, 6), closed_minimum_version(v2, 0, 6)))
 
 # because of status Python API changes
-solver.add(post_070(v3))
+solver.add(closed_minimum_version(v3, 0, 7))
 
 
 count = 0

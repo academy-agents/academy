@@ -230,15 +230,6 @@ def compatibility_breaks_at(vs, major, minor=None):
     return z3.And(*(z3.Implies(closed_minimum_version(l, major, minor), closed_minimum_version(r, major, minor)) for l, r in zip(vs, vs[1:] + [vs[0]])))
 
 
-def post_030(v):
-    return closed_minimum_version(v, 0,3)
-
-def post_040(v):
-    return closed_minimum_version(v, 0,4)
-
-def post_050(v):
-    return closed_minimum_version(v, 0,5)
-
 def post_060(v):
     return closed_minimum_version(v, 0,6)
 

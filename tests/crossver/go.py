@@ -204,36 +204,33 @@ if here_mode:
 
 # simulations of semver...
 
-def post_030(v):
+# this deliberately omits a patch field, because of semver
+# semantics
+def closed_minimum_version(v, major, minor):
     return z3.Or(
-        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 3),
-        z3.And(VersionSort.major(v) >= 1))
+        z3.And(VersionSort.major(v) == major, VersionSort.minor(v) >= minor),
+        z3.And(VersionSort.major(v) > major))
+
+def post_030(v):
+    return closed_minimum_version(v, 0,3)
 
 def post_040(v):
-    return z3.Or(
-        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 4),
-        z3.And(VersionSort.major(v) >= 1))
+    return closed_minimum_version(v, 0,4)
 
 def post_050(v):
-    return z3.Or(
-        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 5),
-        z3.And(VersionSort.major(v) >= 1))
+    return closed_minimum_version(v, 0,5)
 
 def post_060(v):
-    return z3.Or(
-        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 6),
-        z3.And(VersionSort.major(v) >= 1))
+    return closed_minimum_version(v, 0,6)
 
 def post_070(v):
-    return z3.Or(
-        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 7),
-        z3.And(VersionSort.major(v) >= 1))
+    return closed_minimum_version(v, 0,7)
 
 def pre_070(v):
     return z3.Not(post_070(v))
 
 def post_100(v):
-    return VersionSort.major(v) >= 1
+    return closed_minimum_version(v, 1,0)
 
 def pre_100(v):
     return z3.Not(post_100(v))

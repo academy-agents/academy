@@ -214,6 +214,22 @@ def closed_minimum_version(v, major, minor):
         z3.And(VersionSort.major(v) == major, VersionSort.minor(v) >= minor),
         z3.And(VersionSort.major(v) > major))
 
+
+def compatibility_breaks_at(vs, major, minor=None):
+    # declares a breakage at specified major version that means that either:
+    # all versions are pre the specified major version or
+    # all versions are post the major version
+    # This only accepts a major version, which means to use this constraint,
+    # you are forced to declare a new major version - in alignment with semer.
+
+    if minor is not None:
+        assert major == 0, "breakage is only permitted on major versions or dev-era minor versions"
+    else:
+        minor = 0
+
+    return z3.And(*(z3.Implies(closed_minimum_version(l, major, minor), closed_minimum_version(r, major, minor)) for l, r in zip(vs, vs[1:] + [vs[0]])))
+
+
 def post_030(v):
     return closed_minimum_version(v, 0,3)
 
@@ -245,22 +261,26 @@ solver.add(valid_academy_version(v1))
 solver.add(valid_academy_version(v2))
 solver.add(valid_academy_version(v3))
 
-# If either the client or agent has heartbeats implemented, then
-# the HTTP Exchange needs to support heartbeats.
-# From a semver perspective, this is a major-version change,
-# but this implication can express that more subtly.
-solver.add(z3.Implies(post_060(v2), post_060(v1)))
-solver.add(z3.Implies(post_060(v3), post_060(v1)))
-
 
 # The HTTP Exchange wire protocol changed incompatibly from 0.4.0 to 0.5.0
 # so if any component is past 0.5.0 then they must all be that way.
 # The 0.5.0 protocol should still work with academy version 1.0.0 etc
 # so there is no upper bound here.
-solver.add(z3.Implies(post_050(v1), post_050(v2)))
-solver.add(z3.Implies(post_050(v2), post_050(v3)))
-solver.add(z3.Implies(post_050(v3), post_050(v1)))
+# This is a "breaks at major version" declaration:
+# the python side API works before the major version change, and after
+# the major version change, but only wire/protocol compatible with
+# versions before/after
+solver.add(compatibility_breaks_at([v1, v2, v3], 0, 5))
 
+
+# If either the client or agent has heartbeats implemented, then
+# the HTTP Exchange needs to support heartbeats.
+# From a semver perspective, this is a major-version change,
+# but this implication can express that more subtly, to support
+# testing that a newer exchange will work with older clients and
+# agents.
+solver.add(z3.Implies(post_060(v2), post_060(v1)))
+solver.add(z3.Implies(post_060(v3), post_060(v1)))
 
 solver.push()
 
@@ -465,7 +485,7 @@ if here_mode:
 solver.push()
 
 # this test uses logging API changes introduced in v0.5.0
-solver.add(closed_minimum_version([v1], 0, 5))
+solver.add(closed_minimum_version(v1, 0, 5))
 
 count = 0
 while solver.check() == z3.sat:
@@ -484,7 +504,7 @@ solver.pop()
 
 solver.push()
 
-solver.add(closed_minimum_version([v1], 0, 3))
+solver.add(closed_minimum_version(v1, 0, 3))
 count = 0
 while solver.check() == z3.sat:
     count += 1

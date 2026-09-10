@@ -207,6 +207,9 @@ if here_mode:
 # this deliberately omits a patch field, because of semver
 # semantics
 def closed_minimum_version(v, major, minor):
+    if isinstance(v, list):
+        return z3.And(*map(lambda v2: closed_minimum_version(v2, major, minor), v))
+
     return z3.Or(
         z3.And(VersionSort.major(v) == major, VersionSort.minor(v) >= minor),
         z3.And(VersionSort.major(v) > major))
@@ -261,7 +264,7 @@ solver.add(z3.Implies(post_050(v3), post_050(v1)))
 
 solver.push()
 
-solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
 
 count = 0
 while solver.check() == z3.sat:
@@ -297,7 +300,7 @@ solver.push()
 # all the above constraints, plus a constraint that
 # the agent definitely has heartbeat support.
 
-solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
 solver.add(post_060(v2))
 count = 0
 while solver.check() == z3.sat:
@@ -326,7 +329,7 @@ solver.pop()
 solver.push()
 
 # This is a semver-style lower bound on all components.
-solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
 
 # This is an open upper bound on the client API, not on all
 # components. If trying to be purely semver, this would be
@@ -381,7 +384,8 @@ solver.pop()
 solver.push()
 
 # same wire-protocol constraints at the 0_5_0 test
-solver.add(z3.And(post_040(v1), post_040(v2), post_040(v3)))
+
+solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
 solver.add(z3.Implies(post_060(v3), post_060(v2)))
 
 # because of status Python API changes
@@ -425,9 +429,7 @@ if here_mode:
 
 solver.push()
 
-# semver closed lower major-version-like bound
-solver.add(post_030(v1))
-solver.add(post_030(v2))
+solver.add(closed_minimum_version([v1, v2], 0, 3))
 
 count = 0
 while solver.check() == z3.sat:
@@ -463,7 +465,7 @@ if here_mode:
 solver.push()
 
 # this test uses logging API changes introduced in v0.5.0
-solver.add(post_050(v1))
+solver.add(closed_minimum_version([v1], 0, 5))
 
 count = 0
 while solver.check() == z3.sat:
@@ -482,7 +484,7 @@ solver.pop()
 
 solver.push()
 
-solver.add(post_030(v1))
+solver.add(closed_minimum_version([v1], 0, 3))
 count = 0
 while solver.check() == z3.sat:
     count += 1

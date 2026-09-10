@@ -205,31 +205,38 @@ if here_mode:
 # simulations of semver...
 
 def post_030(v):
-    return z3.Or(v == v030, v == v031, v == v040, v == v050, v == v060, v == v070, v == v100, v == v_here)
+    return z3.Or(
+        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 3),
+        z3.And(VersionSort.major(v) >= 1))
 
 def post_040(v):
-    return z3.Or(v == v040, v == v050, v == v060, v == v070, v == v100, v == v_here)
+    return z3.Or(
+        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 4),
+        z3.And(VersionSort.major(v) >= 1))
 
 def post_050(v):
-    # speaks the post-050 protocol
-    return z3.Or(           v == v050, v == v060, v == v070, v == v100, v == v_here)
+    return z3.Or(
+        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 5),
+        z3.And(VersionSort.major(v) >= 1))
 
 def post_060(v):
-    # "fake" version
-    # dff0 is the "pre-release" of heartbeats, before 1.0.0
-    return z3.Or(post_100(v), v == v060, v == v070)
+    return z3.Or(
+        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 6),
+        z3.And(VersionSort.major(v) >= 1))
+
+def post_070(v):
+    return z3.Or(
+        z3.And(VersionSort.major(v) == 0, VersionSort.minor(v) >= 7),
+        z3.And(VersionSort.major(v) >= 1))
 
 def pre_070(v):
     return z3.Not(post_070(v))
 
-def post_070(v):
-    return z3.Or(post_100(v), v == v070)
-
 def post_100(v):
-    return z3.Or(                                                  v == v100, v == v_here)
+    return VersionSort.major(v) >= 1
 
 def pre_100(v):
-    return z3.Or(v == v030, v == v031, v == v040, v == v050)
+    return z3.Not(post_100(v))
 
 
 solver = z3.Solver()

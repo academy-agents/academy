@@ -1089,14 +1089,13 @@ async def test_runtime_action_middleware_skips_unknown_action(
     exchange_client: UserExchangeClient[LocalExchangeTransport],
 ) -> None:
     registration = await exchange_client.register_agent(EmptyAgent)
-    invoked = False
 
-    async def record(call: ActionCall, next_handler: ActionHandler) -> Any:
-        nonlocal invoked
-        invoked = True
-        return await next_handler(call)
+    async def sentinel(call: ActionCall, next_handler: ActionHandler) -> Any:
+        raise AssertionError(  # pragma: no cover
+            'Middleware must not be invoked for unknown actions.',
+        )
 
-    config = RuntimeConfig(action_middleware=(record,))
+    config = RuntimeConfig(action_middleware=(sentinel,))
     async with Runtime(
         EmptyAgent(),
         config=config,
@@ -1111,10 +1110,22 @@ async def test_runtime_action_middleware_skips_unknown_action(
                 kwargs={},
             )
 
-    assert not invoked
 
-
-def test_runtime_config_action_middleware_picklable() -> None:
+@pytest.mark.asyncio
+async def test_runtime_config_action_middleware_picklable() -> None:
     config = RuntimeConfig(action_middleware=(_passthrough_middleware,))
     recreated = pickle.loads(pickle.dumps(config))
     assert recreated.action_middleware == (_passthrough_middleware,)
+
+    async def next_handler(call: ActionCall) -> Any:
+        return call.action
+
+    call = ActionCall(
+        action='noop',
+        source_id=AgentId.new(),
+        agent_id=AgentId.new(),
+        args=(),
+        kwargs={},
+    )
+    middleware = recreated.action_middleware[0]
+    assert await middleware(call, next_handler) == 'noop'

@@ -32,7 +32,7 @@ repos:
           - aiohttp
           - culsans
           - globus-sdk>=4,<5
-          - proxystore>=1.0.0
+          - proxystore>=1,<3
           - pydantic>=2,<3
           - redis
           - types-redis

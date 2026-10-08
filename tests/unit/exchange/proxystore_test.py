@@ -32,11 +32,11 @@ except ImportError:  # pragma: no cover
 
 @pytest.fixture
 def store() -> Generator[Store[LocalConnector], None, None]:
+    # Keyword arguments are compatible with ProxyStore v1 and v2.
     with Store(
-        'proxystore-exchange-store-fixture',
-        LocalConnector(),
+        name='proxystore-exchange-store-fixture',
+        connector=LocalConnector(),
         cache_size=0,
-        register=True,
     ) as store:
         yield store
 

@@ -37,8 +37,8 @@ from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.message import UserErrorResponse
-from academy.runtime import ActionCall
-from academy.runtime import ActionHandler
+from academy.middleware import ActionCall
+from academy.middleware import ActionHandler
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import allowed_deserializers
@@ -728,7 +728,13 @@ async def test_runtime_agent_self_termination(
         exchange_factory=exchange_client.factory(),
         registration=registration,
     ) as runtime:
-        await runtime.action('end', AgentId.new(), args=(), kwargs={})
+        await runtime.action(
+            'end',
+            AgentId.new(),
+            args=(),
+            kwargs={},
+            tag=uuid.uuid4(),
+        )
         await runtime.wait_shutdown(timeout=TEST_WAIT_TIMEOUT)
 
 
@@ -759,6 +765,7 @@ async def test_runtime_agent_action_context(
             exchange_client.client_id,
             args=(exchange_client.client_id,),
             kwargs={},
+            tag=uuid.uuid4(),
         )
 
 
@@ -975,12 +982,14 @@ async def test_runtime_action_middleware_order_and_result(
             exchange_client.client_id,
             args=(2,),
             kwargs={},
+            tag=uuid.uuid4(),
         )
         result = await runtime.action(
             'count',
             exchange_client.client_id,
             args=(),
             kwargs={},
+            tag=uuid.uuid4(),
         )
 
     assert result == -1
@@ -1021,6 +1030,7 @@ async def test_runtime_action_middleware_denies_action(
                 exchange_client.client_id,
                 args=(),
                 kwargs={},
+                tag=uuid.uuid4(),
             )
 
         request = Message.create(
@@ -1077,11 +1087,11 @@ async def test_runtime_action_middleware_receives_call_metadata(
     assert len(seen) == 1
     call = seen[0]
     assert call.action == 'add'
-    assert call.source_id == exchange_client.client_id
-    assert call.agent_id == registration.agent_id
+    assert call.action_context.source_id == exchange_client.client_id
+    assert call.action_context.tag == request.tag
+    assert call.agent_context.agent_id == registration.agent_id
     assert call.args == (3,)
     assert call.kwargs == {}
-    assert call.tag == request.tag
 
 
 @pytest.mark.asyncio
@@ -1108,6 +1118,7 @@ async def test_runtime_action_middleware_skips_unknown_action(
                 exchange_client.client_id,
                 args=(),
                 kwargs={},
+                tag=uuid.uuid4(),
             )
 
 
@@ -1122,8 +1133,12 @@ async def test_runtime_config_action_middleware_picklable() -> None:
 
     call = ActionCall(
         action='noop',
-        source_id=AgentId.new(),
-        agent_id=AgentId.new(),
+        agent_context=mock.MagicMock(),
+        action_context=ActionContext(
+            AgentId.new(),
+            uuid.uuid4(),
+            mock.MagicMock(),
+        ),
         args=(),
         kwargs={},
     )

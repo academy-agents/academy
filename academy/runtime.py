@@ -34,7 +34,6 @@ from academy.exception import raise_exceptions
 from academy.exchange.client import exchange_context
 from academy.exchange.transport import AgentRegistrationT
 from academy.exchange.transport import ExchangeTransportT
-from academy.identifier import AgentId
 from academy.identifier import EntityId
 from academy.message import AcademyErrorResponse
 from academy.message import ActionRequest
@@ -49,6 +48,10 @@ from academy.message import ResponseT_co
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.message import UserErrorResponse
+from academy.middleware import _chain_middleware
+from academy.middleware import ActionCall
+from academy.middleware import ActionHandler
+from academy.middleware import ActionMiddleware
 from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
 from academy.serialize import NoPickleMixin
@@ -71,59 +74,6 @@ class _ShutdownState:
     expected_shutdown: bool = True
     # Override the termination setting of the run config
     terminate_override: bool | None = None
-
-
-@dataclasses.dataclass(frozen=True)
-class ActionCall:
-    """Description of one action invocation dispatched by a runtime.
-
-    Instances are passed to each
-    [`ActionMiddleware`][academy.runtime.ActionMiddleware] configured on the
-    [`RuntimeConfig`][academy.runtime.RuntimeConfig].
-
-    Attributes:
-        action: Name of the action being invoked.
-        source_id: ID of the entity that requested the action.
-        agent_id: ID of the agent executing the action.
-        args: Tuple of positional arguments.
-        kwargs: Dictionary of keyword arguments.
-        tag: Unique tag of the request message that initiated this
-            invocation, if the action was initiated by a message.
-    """
-
-    action: str
-    source_id: EntityId
-    agent_id: AgentId[Any]
-    args: tuple[Any, ...]
-    kwargs: dict[str, Any]
-    tag: uuid.UUID | None = None
-
-
-ActionHandler = Callable[[ActionCall], Awaitable[Any]]
-"""Signature of the next handler passed to an action middleware."""
-
-ActionMiddleware = Callable[[ActionCall, ActionHandler], Awaitable[Any]]
-"""Signature of an action middleware.
-
-A middleware is an async callable invoked with the
-[`ActionCall`][academy.runtime.ActionCall] and the next handler in the
-chain. A middleware may inspect or validate the call before awaiting the
-next handler, transform or record the result after, short-circuit by
-returning without awaiting the next handler, or deny the call by raising
-an exception. Exceptions raised by middleware propagate exactly like
-exceptions raised by the action itself (i.e., returned to a remote caller
-as a [`UserErrorResponse`][academy.message.UserErrorResponse]).
-"""
-
-
-def _chain_middleware(
-    middleware: ActionMiddleware,
-    next_handler: ActionHandler,
-) -> ActionHandler:
-    async def handler(call: ActionCall) -> Any:
-        return await middleware(call, next_handler)
-
-    return handler
 
 
 class RuntimeConfig(BaseModel):
@@ -505,14 +455,15 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         *,
         args: Any,
         kwargs: Any,
-        tag: uuid.UUID | None = None,
+        tag: uuid.UUID,
     ) -> Any:
         """Invoke an action of the agent's agent.
 
         The invocation passes through any
-        [`ActionMiddleware`][academy.runtime.ActionMiddleware] configured
+        [`ActionMiddleware`][academy.middleware.ActionMiddleware] configured
         on the [`RuntimeConfig`][academy.runtime.RuntimeConfig] before the
-        action method is called.
+        action method is called. This call requires the `runtime` to be
+        started. Otherwise, it will raise a `AgentNotInitializedError`.
 
         Args:
             action: Name of action to invoke.
@@ -520,7 +471,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             args: Tuple of positional arguments.
             kwargs: Dictionary of keyword arguments.
             tag: Unique tag of the request message that initiated this
-                invocation, if the action was initiated by a message.
+                invocation.
 
         Returns:
             Result of the action.
@@ -528,6 +479,8 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         Raises:
             AttributeError: If an action with this name is not implemented by
                 the agent's agent. Middleware is not invoked in this case.
+            AgentNotInitializedError: If this was called when the runtime
+                has not been started.
             Exception: Any exception raised by a configured middleware.
         """
         logger.debug(
@@ -543,24 +496,29 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             raise AttributeError(
                 f'{self.agent} does not have an action named "{action}".',
             )
+
+        assert self._exchange_client is not None
+        context = ActionContext(
+            source_id,
+            tag,
+            self._exchange_client,
+        )
+
         call = ActionCall(
             action=action,
-            source_id=source_id,
-            agent_id=self.agent_id,
+            agent_context=self.agent.agent_context,
+            action_context=context,
             args=tuple(args),
             kwargs=kwargs,
-            tag=tag,
         )
         return await self._action_handler(call)
 
     async def _invoke_action(self, call: ActionCall) -> Any:
         action_method = self._actions[call.action]
         if action_method._action_method_context:
-            assert self._exchange_client is not None
-            context = ActionContext(call.source_id, self._exchange_client)
             return await action_method(
                 *call.args,
-                context=context,
+                context=call.action_context,
                 **call.kwargs,
             )
         else:

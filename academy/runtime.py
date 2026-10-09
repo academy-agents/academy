@@ -48,6 +48,10 @@ from academy.message import ResponseT_co
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.message import UserErrorResponse
+from academy.middleware import _chain_middleware
+from academy.middleware import ActionCall
+from academy.middleware import ActionHandler
+from academy.middleware import ActionMiddleware
 from academy.serialize import allowed_deserializers
 from academy.serialize import default_serializer
 from academy.serialize import NoPickleMixin
@@ -76,6 +80,12 @@ class RuntimeConfig(BaseModel):
     """Agent runtime configuration.
 
     Attributes:
+        action_middleware: Ordered middleware applied around every action
+            dispatch. The first middleware is outermost: it is entered first
+            and returns last. Middleware must be picklable (such as
+            module-level functions or instances of importable classes
+            defining `async def __call__`) when agents are launched on
+            remote executors.
         cancel_actions_on_shutdown: Cancel running actions when the agent
             is shutdown, otherwise wait for the actions to finish.
         max_sync_concurrency: Maximum number of concurrent sync tasks allowed
@@ -98,6 +108,7 @@ class RuntimeConfig(BaseModel):
 
     model_config = ConfigDict(extra='forbid')
 
+    action_middleware: tuple[ActionMiddleware, ...] = ()
     cancel_actions_on_shutdown: bool = True
     max_sync_concurrency: int | None = None
     raise_loop_errors_on_shutdown: bool = True
@@ -161,6 +172,11 @@ class Runtime(Generic[AgentT], NoPickleMixin):
 
         self._actions = agent._agent_actions()
         self._loops = agent._agent_loops()
+
+        handler: ActionHandler = self._invoke_action
+        for middleware in reversed(self.config.action_middleware):
+            handler = _chain_middleware(middleware, handler)
+        self._action_handler = handler
 
         self._started_event = asyncio.Event()
         self._shutdown_event = asyncio.Event()
@@ -269,6 +285,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 request.src,
                 args=body.get_args(),
                 kwargs=body.get_kwargs(),
+                tag=invocation_id,
             )
 
             # Keep response in try/except so serialization errors are caught
@@ -438,21 +455,33 @@ class Runtime(Generic[AgentT], NoPickleMixin):
         *,
         args: Any,
         kwargs: Any,
+        tag: uuid.UUID,
     ) -> Any:
         """Invoke an action of the agent's agent.
+
+        The invocation passes through any
+        [`ActionMiddleware`][academy.middleware.ActionMiddleware] configured
+        on the [`RuntimeConfig`][academy.runtime.RuntimeConfig] before the
+        action method is called. This call requires the `runtime` to be
+        started. Otherwise, it will raise a `AgentNotInitializedError`.
 
         Args:
             action: Name of action to invoke.
             source_id: ID of the source that requested the action.
             args: Tuple of positional arguments.
             kwargs: Dictionary of keyword arguments.
+            tag: Unique tag of the request message that initiated this
+                invocation.
 
         Returns:
             Result of the action.
 
         Raises:
             AttributeError: If an action with this name is not implemented by
-                the agent's agent.
+                the agent's agent. Middleware is not invoked in this case.
+            AgentNotInitializedError: If this was called when the runtime
+                has not been started.
+            Exception: Any exception raised by a configured middleware.
         """
         logger.debug(
             'Invoking "%s" action on %s',
@@ -467,13 +496,33 @@ class Runtime(Generic[AgentT], NoPickleMixin):
             raise AttributeError(
                 f'{self.agent} does not have an action named "{action}".',
             )
-        action_method = self._actions[action]
+
+        assert self._exchange_client is not None
+        context = ActionContext(
+            source_id,
+            tag,
+            self._exchange_client,
+        )
+
+        call = ActionCall(
+            action=action,
+            agent_context=self.agent.agent_context,
+            action_context=context,
+            args=tuple(args),
+            kwargs=kwargs,
+        )
+        return await self._action_handler(call)
+
+    async def _invoke_action(self, call: ActionCall) -> Any:
+        action_method = self._actions[call.action]
         if action_method._action_method_context:
-            assert self._exchange_client is not None
-            context = ActionContext(source_id, self._exchange_client)
-            return await action_method(*args, context=context, **kwargs)
+            return await action_method(
+                *call.args,
+                context=call.action_context,
+                **call.kwargs,
+            )
         else:
-            return await action_method(*args, **kwargs)
+            return await action_method(*call.args, **call.kwargs)
 
     async def run_until_complete(self) -> None:
         """Run the agent until shutdown.

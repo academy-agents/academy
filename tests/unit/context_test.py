@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
 import pytest
@@ -18,6 +19,7 @@ async def test_action_context_agent_source(
 ) -> None:
     factory = exchange_client.factory()
     source_id: AgentId[EmptyAgent] = AgentId.new()
+    tag = uuid.uuid4()
     registration = await exchange_client.register_agent(EmptyAgent)
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
@@ -27,13 +29,15 @@ async def test_action_context_agent_source(
         registration,
         _request_handler,
     ) as agent_client:
-        context = ActionContext(source_id, agent_client)
+        context = ActionContext(source_id, tag, agent_client)
         assert context.is_agent_source()
         assert not context.is_user_source()
         handle = context.source_handle
         assert handle.agent_id == source_id
         # Check that handle.source_handle is cached
         assert context.source_handle is handle
+        # Check tag is set
+        assert context.tag == tag
 
 
 @pytest.mark.asyncio
@@ -42,6 +46,7 @@ async def test_action_context_user_source(
 ) -> None:
     factory = exchange_client.factory()
     source_id = UserId.new()
+    tag = uuid.uuid4()
     registration = await exchange_client.register_agent(EmptyAgent)
 
     async def _request_handler(_: Any) -> None:  # pragma: no cover
@@ -51,7 +56,7 @@ async def test_action_context_user_source(
         registration,
         _request_handler,
     ) as agent_client:
-        context = ActionContext(source_id, agent_client)
+        context = ActionContext(source_id, tag, agent_client)
         assert not context.is_agent_source()
         assert context.is_user_source()
 

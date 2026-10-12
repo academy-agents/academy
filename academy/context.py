@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from typing import Generic
@@ -25,9 +26,11 @@ class ActionContext:
     def __init__(
         self,
         source_id: EntityId,
+        tag: uuid.UUID,
         exchange_client: ae.AgentExchangeClient[Any, Any],
     ) -> None:
         self._source_id = source_id
+        self._tag = tag
         self._exchange_client = exchange_client
         self._source_handle: Handle[Any] | None = None
 
@@ -35,6 +38,11 @@ class ActionContext:
     def source_id(self) -> EntityId:
         """ID of the source that requested the action."""
         return self._source_id
+
+    @property
+    def tag(self) -> uuid.UUID:
+        """Unique tag of the request message invoking the action."""
+        return self._tag
 
     @property
     def source_handle(self) -> Handle[Any]:

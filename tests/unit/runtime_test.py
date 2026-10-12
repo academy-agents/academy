@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import pickle
 import sys
 import uuid
 from collections.abc import AsyncGenerator
@@ -36,6 +37,8 @@ from academy.message import PingRequest
 from academy.message import ShutdownRequest
 from academy.message import SuccessResponse
 from academy.message import UserErrorResponse
+from academy.middleware import ActionCall
+from academy.middleware import ActionHandler
 from academy.runtime import Runtime
 from academy.runtime import RuntimeConfig
 from academy.serialize import allowed_deserializers
@@ -725,7 +728,13 @@ async def test_runtime_agent_self_termination(
         exchange_factory=exchange_client.factory(),
         registration=registration,
     ) as runtime:
-        await runtime.action('end', AgentId.new(), args=(), kwargs={})
+        await runtime.action(
+            'end',
+            AgentId.new(),
+            args=(),
+            kwargs={},
+            tag=uuid.uuid4(),
+        )
         await runtime.wait_shutdown(timeout=TEST_WAIT_TIMEOUT)
 
 
@@ -756,6 +765,7 @@ async def test_runtime_agent_action_context(
             exchange_client.client_id,
             args=(exchange_client.client_id,),
             kwargs={},
+            tag=uuid.uuid4(),
         )
 
 
@@ -932,3 +942,205 @@ async def test_runtime_uses_exception_serialization(
 
         assert isinstance(body, UserErrorResponse)
         assert body.serialization == SerializationStrategy.JSON
+
+
+async def _passthrough_middleware(
+    call: ActionCall,
+    next_handler: ActionHandler,
+) -> Any:
+    return await next_handler(call)
+
+
+@pytest.mark.asyncio
+async def test_runtime_action_middleware_order_and_result(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(CounterAgent)
+    events: list[str] = []
+
+    async def outer(call: ActionCall, next_handler: ActionHandler) -> Any:
+        events.append(f'outer-before-{call.action}')
+        result = await next_handler(call)
+        events.append(f'outer-after-{call.action}')
+        return result
+
+    async def inner(call: ActionCall, next_handler: ActionHandler) -> Any:
+        events.append(f'inner-before-{call.action}')
+        result = await next_handler(call)
+        events.append(f'inner-after-{call.action}')
+        return -1 if call.action == 'count' else result
+
+    config = RuntimeConfig(action_middleware=(outer, inner))
+    async with Runtime(
+        CounterAgent(),
+        config=config,
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        await runtime.action(
+            'add',
+            exchange_client.client_id,
+            args=(2,),
+            kwargs={},
+            tag=uuid.uuid4(),
+        )
+        result = await runtime.action(
+            'count',
+            exchange_client.client_id,
+            args=(),
+            kwargs={},
+            tag=uuid.uuid4(),
+        )
+
+    assert result == -1
+    assert events == [
+        'outer-before-add',
+        'inner-before-add',
+        'inner-after-add',
+        'outer-after-add',
+        'outer-before-count',
+        'inner-before-count',
+        'inner-after-count',
+        'outer-after-count',
+    ]
+
+
+@pytest.mark.asyncio
+async def test_runtime_action_middleware_denies_action(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(CounterAgent)
+    # Cancel listener so test can intercept agent responses
+    await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
+
+    async def deny(call: ActionCall, next_handler: ActionHandler) -> Any:
+        raise PermissionError(f'Denied action "{call.action}".')
+
+    config = RuntimeConfig(action_middleware=(deny,))
+    async with Runtime(
+        CounterAgent(),
+        config=config,
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        with pytest.raises(PermissionError, match='Denied action'):
+            await runtime.action(
+                'count',
+                exchange_client.client_id,
+                args=(),
+                kwargs={},
+                tag=uuid.uuid4(),
+            )
+
+        request = Message.create(
+            src=exchange_client.client_id,
+            dest=runtime.agent_id,
+            body=ActionRequest(
+                action='count',
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(request)
+        message = await anext(listener)
+        body = message.get_body()
+        assert isinstance(body, ErrorResponse)
+        exception = body.get_exception()
+        assert isinstance(exception, PermissionError)
+        assert 'Denied action "count".' in str(exception)
+
+
+@pytest.mark.asyncio
+async def test_runtime_action_middleware_receives_call_metadata(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(CounterAgent)
+    # Cancel listener so test can intercept agent responses
+    await exchange_client._stop_listener_task()
+    listener = exchange_client._transport.listen(TEST_SLEEP_INTERVAL)
+    seen: list[ActionCall] = []
+
+    async def record(call: ActionCall, next_handler: ActionHandler) -> Any:
+        seen.append(call)
+        return await next_handler(call)
+
+    config = RuntimeConfig(action_middleware=(record,))
+    async with Runtime(
+        CounterAgent(),
+        config=config,
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        request = Message.create(
+            src=exchange_client.client_id,
+            dest=runtime.agent_id,
+            body=ActionRequest(
+                action='add',
+                pargs=(3,),
+                serialization=SerializationStrategy.PICKLE,
+            ),
+        )
+        await exchange_client.send(request)
+        message = await anext(listener)
+        assert isinstance(message.get_body(), ActionResponse)
+
+    assert len(seen) == 1
+    call = seen[0]
+    assert call.action == 'add'
+    assert call.action_context.source_id == exchange_client.client_id
+    assert call.action_context.tag == request.tag
+    assert call.agent_context.agent_id == registration.agent_id
+    assert call.args == (3,)
+    assert call.kwargs == {}
+
+
+@pytest.mark.asyncio
+async def test_runtime_action_middleware_skips_unknown_action(
+    exchange_client: UserExchangeClient[LocalExchangeTransport],
+) -> None:
+    registration = await exchange_client.register_agent(EmptyAgent)
+
+    async def sentinel(call: ActionCall, next_handler: ActionHandler) -> Any:
+        raise AssertionError(  # pragma: no cover
+            'Middleware must not be invoked for unknown actions.',
+        )
+
+    config = RuntimeConfig(action_middleware=(sentinel,))
+    async with Runtime(
+        EmptyAgent(),
+        config=config,
+        exchange_factory=exchange_client.factory(),
+        registration=registration,
+    ) as runtime:
+        with pytest.raises(AttributeError, match='does not have an action'):
+            await runtime.action(
+                'missing',
+                exchange_client.client_id,
+                args=(),
+                kwargs={},
+                tag=uuid.uuid4(),
+            )
+
+
+@pytest.mark.asyncio
+async def test_runtime_config_action_middleware_picklable() -> None:
+    config = RuntimeConfig(action_middleware=(_passthrough_middleware,))
+    recreated = pickle.loads(pickle.dumps(config))
+    assert recreated.action_middleware == (_passthrough_middleware,)
+
+    async def next_handler(call: ActionCall) -> Any:
+        return call.action
+
+    call = ActionCall(
+        action='noop',
+        agent_context=mock.MagicMock(),
+        action_context=ActionContext(
+            AgentId.new(),
+            uuid.uuid4(),
+            mock.MagicMock(),
+        ),
+        args=(),
+        kwargs={},
+    )
+    middleware = recreated.action_middleware[0]
+    assert await middleware(call, next_handler) == 'noop'

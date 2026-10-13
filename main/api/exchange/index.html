@@ -2445,6 +2445,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mypy_plugin/" class="md-nav__link">
         
   
@@ -4002,7 +4030,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -4040,7 +4070,12 @@
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">request_handler</span><span class="p">:</span> <span class="n"><span title="academy.exchange.client.RequestHandler">RequestHandler</span></span><span class="p">[</span><span class="n"><span title="academy.message.RequestT_co">RequestT_co</span></span><span class="p">],</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
 </span></code></pre></div>
 
@@ -4062,6 +4097,7 @@
   
       module-attribute
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a>]</code></p>
+
 
 
         <p>Agent exchange client.</p>
@@ -4129,7 +4165,8 @@ start_listener: Start a message listener thread.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/client.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-380">380</a></span>
 <span class="normal"><a href="#__codelineno-0-381">381</a></span>
@@ -4165,7 +4202,7 @@ start_listener: Start a message listener thread.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -4206,6 +4243,7 @@ start_listener: Start a message listener thread.</p>
     </div>
 
 </div>
+
 
 
 
@@ -4280,7 +4318,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-120">120</a></span>
 <span class="normal"><a href="#__codelineno-0-121">121</a></span>
@@ -4352,7 +4390,7 @@ agent.</p>
         <p>Get an exchange factory.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-143">143</a></span>
 <span class="normal"><a href="#__codelineno-0-144">144</a></span>
@@ -4408,7 +4446,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-149">149</a></span>
 <span class="normal"><a href="#__codelineno-0-150">150</a></span>
@@ -4506,7 +4544,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-157">157</a></span>
 <span class="normal"><a href="#__codelineno-0-158">158</a></span>
@@ -4639,7 +4677,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-183">183</a></span>
 <span class="normal"><a href="#__codelineno-0-184">184</a></span>
@@ -4790,7 +4828,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-225">225</a></span>
 <span class="normal"><a href="#__codelineno-0-226">226</a></span>
@@ -4874,7 +4912,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-243">243</a></span>
 <span class="normal"><a href="#__codelineno-0-244">244</a></span>
@@ -4973,7 +5011,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-265">265</a></span>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
@@ -5026,7 +5064,7 @@ longer be able to receive messages.</p>
         <p>Update the heartbeat timestamp for this transport's mailbox.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-279">279</a></span>
 <span class="normal"><a href="#__codelineno-0-280">280</a></span>
@@ -5101,7 +5139,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-283">283</a></span>
 <span class="normal"><a href="#__codelineno-0-284">284</a></span>
@@ -5209,7 +5247,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-296">296</a></span>
 <span class="normal"><a href="#__codelineno-0-297">297</a></span>
@@ -5261,7 +5299,7 @@ by this client. The agent's mailbox will not be terminated so the agent
 can be started again later.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-401">401</a></span>
 <span class="normal"><a href="#__codelineno-0-402">402</a></span>
@@ -5330,7 +5368,12 @@ can be started again later.</p>
   
       module-attribute
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span>
 </span></code></pre></div>
 
@@ -5342,6 +5385,7 @@ can be started again later.</p>
   
       module-attribute
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a>]</code></p>
+
 
 
         <p>Base exchange client.</p>
@@ -5388,7 +5432,8 @@ or
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/client.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-76">76</a></span>
 <span class="normal"><a href="#__codelineno-0-77">77</a></span>
@@ -5420,7 +5465,7 @@ or
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -5460,6 +5505,7 @@ or
 
 
 
+
 <div class="doc doc-object doc-function">
 
 
@@ -5481,7 +5527,7 @@ or
         <p>Close the transport.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-115">115</a></span>
 <span class="normal"><a href="#__codelineno-0-116">116</a></span>
@@ -5567,7 +5613,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-120">120</a></span>
 <span class="normal"><a href="#__codelineno-0-121">121</a></span>
@@ -5639,7 +5685,7 @@ agent.</p>
         <p>Get an exchange factory.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-143">143</a></span>
 <span class="normal"><a href="#__codelineno-0-144">144</a></span>
@@ -5695,7 +5741,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-149">149</a></span>
 <span class="normal"><a href="#__codelineno-0-150">150</a></span>
@@ -5793,7 +5839,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-157">157</a></span>
 <span class="normal"><a href="#__codelineno-0-158">158</a></span>
@@ -5926,7 +5972,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-183">183</a></span>
 <span class="normal"><a href="#__codelineno-0-184">184</a></span>
@@ -6077,7 +6123,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-225">225</a></span>
 <span class="normal"><a href="#__codelineno-0-226">226</a></span>
@@ -6161,7 +6207,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-243">243</a></span>
 <span class="normal"><a href="#__codelineno-0-244">244</a></span>
@@ -6260,7 +6306,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-265">265</a></span>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
@@ -6313,7 +6359,7 @@ longer be able to receive messages.</p>
         <p>Update the heartbeat timestamp for this transport's mailbox.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-279">279</a></span>
 <span class="normal"><a href="#__codelineno-0-280">280</a></span>
@@ -6388,7 +6434,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-283">283</a></span>
 <span class="normal"><a href="#__codelineno-0-284">284</a></span>
@@ -6496,7 +6542,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-296">296</a></span>
 <span class="normal"><a href="#__codelineno-0-297">297</a></span>
@@ -6557,7 +6603,12 @@ longer be able to receive messages.</p>
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">start_listener</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
 </span></code></pre></div>
 
@@ -6569,6 +6620,7 @@ longer be able to receive messages.</p>
   
       module-attribute
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a>]</code></p>
+
 
 
         <p>User exchange client.</p>
@@ -6631,7 +6683,8 @@ longer be able to receive messages.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/client.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-468">468</a></span>
 <span class="normal"><a href="#__codelineno-0-469">469</a></span>
@@ -6677,7 +6730,7 @@ longer be able to receive messages.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -6713,6 +6766,7 @@ longer be able to receive messages.</p>
     </div>
 
 </div>
+
 
 
 
@@ -6787,7 +6841,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-120">120</a></span>
 <span class="normal"><a href="#__codelineno-0-121">121</a></span>
@@ -6859,7 +6913,7 @@ agent.</p>
         <p>Get an exchange factory.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-143">143</a></span>
 <span class="normal"><a href="#__codelineno-0-144">144</a></span>
@@ -6915,7 +6969,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-149">149</a></span>
 <span class="normal"><a href="#__codelineno-0-150">150</a></span>
@@ -7013,7 +7067,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-157">157</a></span>
 <span class="normal"><a href="#__codelineno-0-158">158</a></span>
@@ -7146,7 +7200,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-183">183</a></span>
 <span class="normal"><a href="#__codelineno-0-184">184</a></span>
@@ -7297,7 +7351,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-225">225</a></span>
 <span class="normal"><a href="#__codelineno-0-226">226</a></span>
@@ -7381,7 +7435,7 @@ registration.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-243">243</a></span>
 <span class="normal"><a href="#__codelineno-0-244">244</a></span>
@@ -7480,7 +7534,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-265">265</a></span>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
@@ -7533,7 +7587,7 @@ longer be able to receive messages.</p>
         <p>Update the heartbeat timestamp for this transport's mailbox.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-279">279</a></span>
 <span class="normal"><a href="#__codelineno-0-280">280</a></span>
@@ -7608,7 +7662,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-283">283</a></span>
 <span class="normal"><a href="#__codelineno-0-284">284</a></span>
@@ -7716,7 +7770,7 @@ longer be able to receive messages.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-296">296</a></span>
 <span class="normal"><a href="#__codelineno-0-297">297</a></span>
@@ -7767,7 +7821,7 @@ longer be able to receive messages.</p>
 transport.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-494">494</a></span>
 <span class="normal"><a href="#__codelineno-0-495">495</a></span>
@@ -7852,13 +7906,19 @@ transport.</p>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">client_params</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">request_timeout_s</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></span> <span class="o">=</span> <span class="mi">60</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeFactory (academy.exchange.factory.ExchangeFactory)" href="factory/#academy.exchange.factory.ExchangeFactory">ExchangeFactory</a>[<a class="autorefs autorefs-internal" title="            GlobusExchangeTransport (academy.exchange.cloud.globus.GlobusExchangeTransport)" href="cloud/globus/#academy.exchange.cloud.globus.GlobusExchangeTransport">GlobusExchangeTransport</a>]</code></p>
+
 
 
         <p>Globus exchange client factory.</p>
@@ -7904,7 +7964,8 @@ the exchange.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/cloud/globus.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-836">836</a></span>
 <span class="normal"><a href="#__codelineno-0-837">837</a></span>
@@ -7938,7 +7999,8 @@ the exchange.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -8034,7 +8096,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -8200,7 +8262,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
@@ -8291,6 +8353,7 @@ already registered with the exchange.</p>
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeTransportMixin (academy.exchange.transport.ExchangeTransportMixin)" href="transport/#academy.exchange.transport.ExchangeTransportMixin">ExchangeTransportMixin</a></code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
 
 
+
         <p>Globus exchange client.</p>
 
 
@@ -8347,7 +8410,8 @@ about the connection to the service.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/cloud/globus.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-265">265</a></span>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
@@ -8397,7 +8461,7 @@ about the connection to the service.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -8452,6 +8516,7 @@ about the connection to the service.</p>
     </div>
 
 </div>
+
 
 
 
@@ -8562,7 +8627,7 @@ bound to that mailbox.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/globus.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-353">353</a></span>
 <span class="normal"><a href="#__codelineno-0-354">354</a></span>
@@ -8689,7 +8754,12 @@ bound to that mailbox.</p>
 <a href="#academy.exchange.GlobusExchangeTransport.register_agents" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">register_agents</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">agents</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#type">type</a></span><span class="p">[</span><span class="n"><span title="academy.identifier.AgentT">AgentT</span></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">]],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            GlobusAgentRegistration (academy.exchange.cloud.globus.GlobusAgentRegistration)" href="cloud/globus/#academy.exchange.cloud.globus.GlobusAgentRegistration">GlobusAgentRegistration</a></span><span class="p">[</span><span class="n"><span title="academy.identifier.AgentT">AgentT</span></span><span class="p">]]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            GlobusAgentRegistration
+
+
+  
+      pydantic-model
+   (academy.exchange.cloud.globus.GlobusAgentRegistration)" href="cloud/globus/#academy.exchange.cloud.globus.GlobusAgentRegistration">GlobusAgentRegistration</a></span><span class="p">[</span><span class="n"><span title="academy.identifier.AgentT">AgentT</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -8713,7 +8783,12 @@ bound to that mailbox.</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            GlobusAgentRegistration (academy.exchange.cloud.globus.GlobusAgentRegistration)" href="cloud/globus/#academy.exchange.cloud.globus.GlobusAgentRegistration">GlobusAgentRegistration</a>[<span title="academy.identifier.AgentT">AgentT</span>]]</code>
+              <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            GlobusAgentRegistration
+
+
+  
+      pydantic-model
+   (academy.exchange.cloud.globus.GlobusAgentRegistration)" href="cloud/globus/#academy.exchange.cloud.globus.GlobusAgentRegistration">GlobusAgentRegistration</a>[<span title="academy.identifier.AgentT">AgentT</span>]]</code>
           –
           <div class="doc-md-description">
             <p>List of agent registrations in order of input.</p>
@@ -8722,7 +8797,7 @@ bound to that mailbox.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/globus.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-657">657</a></span>
 <span class="normal"><a href="#__codelineno-0-658">658</a></span>
@@ -8936,7 +9011,12 @@ bound to that mailbox.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">request_timeout_s</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></span> <span class="o">=</span> <span class="mi">60</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">ssl_verify</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">client_timeout</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="aiohttp.ClientTimeout" href="https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientTimeout">ClientTimeout</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">retries</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">initial_retry_backoff</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></span> <span class="o">=</span> <span class="mi">1</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span>
@@ -8945,6 +9025,7 @@ bound to that mailbox.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeFactory (academy.exchange.factory.ExchangeFactory)" href="factory/#academy.exchange.factory.ExchangeFactory">ExchangeFactory</a>[<a class="autorefs autorefs-internal" title="            HttpExchangeTransport (academy.exchange.cloud.client.HttpExchangeTransport)" href="cloud/client/#academy.exchange.cloud.client.HttpExchangeTransport">HttpExchangeTransport</a>]</code></p>
+
 
 
         <p>Http exchange client factory.</p>
@@ -9052,7 +9133,8 @@ exponential from the initial amount.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/cloud/client.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-640">640</a></span>
 <span class="normal"><a href="#__codelineno-0-641">641</a></span>
@@ -9140,7 +9222,8 @@ exponential from the initial amount.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -9236,7 +9319,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -9402,7 +9485,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
@@ -9492,6 +9575,7 @@ already registered with the exchange.</p>
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeTransportMixin (academy.exchange.transport.ExchangeTransportMixin)" href="transport/#academy.exchange.transport.ExchangeTransportMixin">ExchangeTransportMixin</a></code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
 
 
+
         <p>Http exchange client.</p>
 
 
@@ -9543,7 +9627,8 @@ not an id provided, the exchange will create a new client mailbox.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/cloud/client.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
 <span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
@@ -9589,7 +9674,8 @@ not an id provided, the exchange will create a new client mailbox.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -9692,7 +9778,7 @@ bound to that mailbox.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/client.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-139">139</a></span>
 <span class="normal"><a href="#__codelineno-0-140">140</a></span>
@@ -9814,7 +9900,12 @@ bound to that mailbox.</p>
 
 
 <a href="#academy.exchange.ExchangeFactory" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ExchangeFactory</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ExchangeFactory</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9825,6 +9916,7 @@ bound to that mailbox.</p>
   
       module-attribute
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a>]</code></p>
+
 
 
         <p>Exchange client factory.</p>
@@ -9845,7 +9937,12 @@ that all entities can create clients to the same exchange.</p>
     <ul>
         <li class="doc-section-item field-body">
             <b><code>config</code></b>
-              (<code><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a> | None</code>)
+              (<code><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a> | None</code>)
           –
           <div class="doc-md-description">
             <p>Configuration for exchange client.</p>
@@ -9859,7 +9956,8 @@ that all entities can create clients to the same exchange.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/factory.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-54">54</a></span>
 <span class="normal"><a href="#__codelineno-0-55">55</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ExchangeClientConfig</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -9869,7 +9967,8 @@ that all entities can create clients to the same exchange.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -9965,7 +10064,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -10131,7 +10230,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
@@ -10211,13 +10310,19 @@ already registered with the exchange.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">interface</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">namespace</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"default"</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">ports</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeFactory (academy.exchange.factory.ExchangeFactory)" href="factory/#academy.exchange.factory.ExchangeFactory">ExchangeFactory</a>[<a class="autorefs autorefs-internal" title="            HybridExchangeTransport (academy.exchange.hybrid.HybridExchangeTransport)" href="hybrid/#academy.exchange.hybrid.HybridExchangeTransport">HybridExchangeTransport</a>]</code></p>
+
 
 
         <p>Hybrid exchange client factory.</p>
@@ -10298,7 +10403,8 @@ is greater than the length of the iterable.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/hybrid.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-578">578</a></span>
 <span class="normal"><a href="#__codelineno-0-579">579</a></span>
@@ -10354,7 +10460,8 @@ is greater than the length of the iterable.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -10450,7 +10557,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -10616,7 +10723,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
@@ -10710,6 +10817,7 @@ already registered with the exchange.</p>
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeTransportMixin (academy.exchange.transport.ExchangeTransportMixin)" href="transport/#academy.exchange.transport.ExchangeTransportMixin">ExchangeTransportMixin</a></code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
 
 
+
         <p>Hybrid exchange transport bound to a specific mailbox.</p>
 
 
@@ -10718,7 +10826,8 @@ already registered with the exchange.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/hybrid.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-88"> 88</a></span>
 <span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
@@ -10806,7 +10915,8 @@ already registered with the exchange.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -10945,7 +11055,7 @@ reachable.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/hybrid.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-145">145</a></span>
 <span class="normal"><a href="#__codelineno-0-146">146</a></span>
@@ -11146,7 +11256,7 @@ reachable.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/hybrid.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-422">422</a></span>
 <span class="normal"><a href="#__codelineno-0-423">423</a></span>
@@ -11205,13 +11315,19 @@ reachable.</p>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">LocalExchangeFactory</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">_state</span><span class="p">:</span> <span class="n"><span title="academy.exchange.local._LocalExchangeState">_LocalExchangeState</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeFactory (academy.exchange.factory.ExchangeFactory)" href="factory/#academy.exchange.factory.ExchangeFactory">ExchangeFactory</a>[<a class="autorefs autorefs-internal" title="            LocalExchangeTransport (academy.exchange.local.LocalExchangeTransport)" href="local/#academy.exchange.local.LocalExchangeTransport">LocalExchangeTransport</a>]</code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
+
 
 
         <p>Local exchange client factory.</p>
@@ -11224,7 +11340,8 @@ in a single process.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/local.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-312">312</a></span>
 <span class="normal"><a href="#__codelineno-0-313">313</a></span>
@@ -11246,7 +11363,8 @@ in a single process.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -11342,7 +11460,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -11508,7 +11626,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
@@ -11595,6 +11713,7 @@ already registered with the exchange.</p>
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeTransportMixin (academy.exchange.transport.ExchangeTransportMixin)" href="transport/#academy.exchange.transport.ExchangeTransportMixin">ExchangeTransportMixin</a></code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
 
 
+
         <p>Local exchange client bound to a specific mailbox.</p>
 
 
@@ -11603,7 +11722,8 @@ already registered with the exchange.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/local.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-82">82</a></span>
 <span class="normal"><a href="#__codelineno-0-83">83</a></span>
@@ -11623,7 +11743,8 @@ already registered with the exchange.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -11716,7 +11837,7 @@ bound to that mailbox.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/local.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
 <span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
@@ -11809,6 +11930,7 @@ bound to that mailbox.</p>
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>Exchange mailbox status.</p>
 
 
@@ -11820,7 +11942,8 @@ bound to that mailbox.</p>
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
 
 
 
@@ -11932,6 +12055,7 @@ bound to that mailbox.</p>
 
 
 
+
   </div>
 
     </div>
@@ -11958,7 +12082,12 @@ bound to that mailbox.</p>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">should_proxy</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Callable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable">Callable</a></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span><span class="p">],</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">resolve_async</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </span></code></pre></div>
 
@@ -11970,6 +12099,7 @@ bound to that mailbox.</p>
   
       module-attribute
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a>]]</code></p>
+
 
 
         <p>ProxStore exchange client factory.</p>
@@ -12028,7 +12158,8 @@ and result value.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/proxystore.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-225">225</a></span>
 <span class="normal"><a href="#__codelineno-0-226">226</a></span>
@@ -12064,7 +12195,8 @@ and result value.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -12160,7 +12292,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -12326,7 +12458,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
@@ -12422,6 +12554,7 @@ already registered with the exchange.</p>
    (academy.exchange.transport.ExchangeTransportT)" href="transport/#academy.exchange.transport.ExchangeTransportT">ExchangeTransportT</a>]</code></p>
 
 
+
         <p>ProxyStore exchange client bound to a specific mailbox.</p>
 
 
@@ -12430,7 +12563,8 @@ already registered with the exchange.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/proxystore.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-102">102</a></span>
 <span class="normal"><a href="#__codelineno-0-103">103</a></span>
@@ -12464,7 +12598,8 @@ already registered with the exchange.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -12495,7 +12630,12 @@ already registered with the exchange.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">hostname</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">port</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="o">**</span><span class="n">redis_kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
 </span></code></pre></div>
@@ -12503,6 +12643,7 @@ already registered with the exchange.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeFactory (academy.exchange.factory.ExchangeFactory)" href="factory/#academy.exchange.factory.ExchangeFactory">ExchangeFactory</a>[<a class="autorefs autorefs-internal" title="            RedisExchangeTransport (academy.exchange.redis.RedisExchangeTransport)" href="redis/#academy.exchange.redis.RedisExchangeTransport">RedisExchangeTransport</a>]</code></p>
+
 
 
         <p>Redis exchange client factory.</p>
@@ -12545,7 +12686,8 @@ already registered with the exchange.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/redis.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-430">430</a></span>
 <span class="normal"><a href="#__codelineno-0-431">431</a></span>
@@ -12571,7 +12713,8 @@ already registered with the exchange.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -12667,7 +12810,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -12833,7 +12976,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
@@ -12923,6 +13066,7 @@ already registered with the exchange.</p>
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeTransportMixin (academy.exchange.transport.ExchangeTransportMixin)" href="transport/#academy.exchange.transport.ExchangeTransportMixin">ExchangeTransportMixin</a></code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
 
 
+
         <p>Redis exchange transport bound to a specific mailbox.</p>
 
 
@@ -12931,7 +13075,8 @@ already registered with the exchange.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/redis.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-74">74</a></span>
 <span class="normal"><a href="#__codelineno-0-75">75</a></span>
@@ -12957,7 +13102,8 @@ already registered with the exchange.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -13064,7 +13210,7 @@ reachable.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/redis.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-106">106</a></span>
 <span class="normal"><a href="#__codelineno-0-107">107</a></span>
@@ -13203,7 +13349,7 @@ reachable.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/redis.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-376">376</a></span>
 <span class="normal"><a href="#__codelineno-0-377">377</a></span>
@@ -13266,6 +13412,7 @@ reachable.</p>
               Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a>[<span title="academy.exchange.transport.AgentRegistrationT_co">AgentRegistrationT_co</span>]</code></p>
 
 
+
         <p>Low-level exchange communicator.</p>
 <p>A message exchange hosts mailboxes for each entity (i.e., agent or
 user) in a multi-agent system. This transport protocol defines mechanisms
@@ -13289,7 +13436,8 @@ agent.</p>
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
 
 
 
@@ -13328,6 +13476,7 @@ agent.</p>
 
 
 
+
 <div class="doc doc-object doc-function">
 
 
@@ -13354,7 +13503,7 @@ agent.</p>
 to. I.e., the mailbox will not be terminated.</p>
 </details>
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-79">79</a></span>
 <span class="normal"><a href="#__codelineno-0-80">80</a></span>
@@ -13466,7 +13615,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-88"> 88</a></span>
 <span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
@@ -13541,7 +13690,7 @@ agent.</p>
         <p>Get an exchange factory.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-115">115</a></span>
 <span class="normal"><a href="#__codelineno-0-116">116</a></span>
@@ -13626,7 +13775,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-119">119</a></span>
 <span class="normal"><a href="#__codelineno-0-120">120</a></span>
@@ -13746,7 +13895,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-142">142</a></span>
 <span class="normal"><a href="#__codelineno-0-143">143</a></span>
@@ -13860,7 +14009,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-162">162</a></span>
 <span class="normal"><a href="#__codelineno-0-163">163</a></span>
@@ -13974,7 +14123,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-175">175</a></span>
 <span class="normal"><a href="#__codelineno-0-176">176</a></span>
@@ -14053,7 +14202,7 @@ next message or the mailbox is closed.</p>
         <p>Update the heartbeat timestamp for this transport's mailbox.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-202">202</a></span>
 <span class="normal"><a href="#__codelineno-0-203">203</a></span>
@@ -14128,7 +14277,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-206">206</a></span>
 <span class="normal"><a href="#__codelineno-0-207">207</a></span>
@@ -14236,7 +14385,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-219">219</a></span>
 <span class="normal"><a href="#__codelineno-0-220">220</a></span>

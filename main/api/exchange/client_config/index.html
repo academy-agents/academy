@@ -1419,6 +1419,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label=" ExchangeClientConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.client_config.ExchangeClientConfig.heartbeat_interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;heartbeat_interval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.client_config.ExchangeClientConfig.stale_heartbeat_threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;stale_heartbeat_threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2514,6 +2542,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../mypy_plugin/" class="md-nav__link">
         
   
@@ -2819,6 +2875,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label=" ExchangeClientConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.client_config.ExchangeClientConfig.heartbeat_interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;heartbeat_interval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#academy.exchange.client_config.ExchangeClientConfig.stale_heartbeat_threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;stale_heartbeat_threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2942,7 +3026,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -2959,6 +3045,10 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ExchangeClientConfig</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.client_config.ExchangeClientConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
@@ -2966,9 +3056,36 @@
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
 
-
         <p>Common runtime parameters for exchange clients.</p>
 
+    
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            heartbeat_interval
+
+
+  
+      pydantic-field
+   (academy.exchange.client_config.ExchangeClientConfig.heartbeat_interval)" href="#academy.exchange.client_config.ExchangeClientConfig.heartbeat_interval">heartbeat_interval</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            stale_heartbeat_threshold
+
+
+  
+      pydantic-field
+   (academy.exchange.client_config.ExchangeClientConfig.stale_heartbeat_threshold)" href="#academy.exchange.client_config.ExchangeClientConfig.stale_heartbeat_threshold">stale_heartbeat_threshold</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+        </ul>
+
+
+
+
+<div class="doc doc-children">
 
 
 
@@ -2976,14 +3093,53 @@
 
 
 
-
-
-  <div class="doc doc-children">
-
+<div class="doc doc-object doc-attribute">
 
 
 
+<h3 id="academy.exchange.client_config.ExchangeClientConfig.heartbeat_interval" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">heartbeat_interval</span>
 
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#academy.exchange.client_config.ExchangeClientConfig.heartbeat_interval" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">heartbeat_interval</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></span> <span class="o">=</span> <span class="mi">30</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Frequency to send liveness messages to the exchange</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="academy.exchange.client_config.ExchangeClientConfig.stale_heartbeat_threshold" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">stale_heartbeat_threshold</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#academy.exchange.client_config.ExchangeClientConfig.stale_heartbeat_threshold" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">stale_heartbeat_threshold</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></span> <span class="o">=</span> <span class="mi">3</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Missed heartbeats before an agent is considered inactive.</p>
+
+    </div>
+
+</div>
 
 
 

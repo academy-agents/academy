@@ -2443,6 +2443,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mypy_plugin/" class="md-nav__link">
         
   
@@ -3044,7 +3072,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3077,6 +3107,24 @@
 
 <p><span class="doc-section-title">Attributes:</span></p>
     <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="academy.runtime.RuntimeConfig.action_middleware">action_middleware</span></code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-internal" title="            ActionMiddleware
+
+
+  
+      module-attribute
+   (academy.middleware.ActionMiddleware)" href="../middleware/#academy.middleware.ActionMiddleware">ActionMiddleware</a>, ...]</code>)
+          –
+          <div class="doc-md-description">
+            <p>Ordered middleware applied around every action
+dispatch. The first middleware is outermost: it is entered first
+and returns last. Middleware must be picklable (such as
+module-level functions or instances of importable classes
+defining <code>async def __call__</code>) when agents are launched on
+remote executors.</p>
+          </div>
+        </li>
         <li class="doc-section-item field-body">
           <b><code><span title="academy.runtime.RuntimeConfig.cancel_actions_on_shutdown">cancel_actions_on_shutdown</span></code></b>
               (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>)
@@ -3167,6 +3215,15 @@ this will be inherited from the parent context.</p>
         <p>Fields:</p>
         <ul>
             <li>
+              <code><span title="academy.runtime.RuntimeConfig.action_middleware">action_middleware</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-internal" title="            ActionMiddleware
+
+
+  
+      module-attribute
+   (academy.middleware.ActionMiddleware)" href="../middleware/#academy.middleware.ActionMiddleware">ActionMiddleware</a>, ...]</code>)
+            </li>
+            <li>
               <code><span title="academy.runtime.RuntimeConfig.cancel_actions_on_shutdown">cancel_actions_on_shutdown</span></code>
                 (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>)
             </li>
@@ -3203,7 +3260,8 @@ this will be inherited from the parent context.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3257,6 +3315,7 @@ this will be inherited from the parent context.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<span title="academy.identifier.AgentT">AgentT</span>]</code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
+
 
 
         <p>Agent runtime manager.</p>
@@ -3347,20 +3406,10 @@ to shutdown if <code>shutdown_on_loop_error</code> is set in the <code>config</c
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/runtime.py</code></summary>
-                    <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-148">148</a></span>
-<span class="normal"><a href="#__codelineno-0-149">149</a></span>
-<span class="normal"><a href="#__codelineno-0-150">150</a></span>
-<span class="normal"><a href="#__codelineno-0-151">151</a></span>
-<span class="normal"><a href="#__codelineno-0-152">152</a></span>
-<span class="normal"><a href="#__codelineno-0-153">153</a></span>
-<span class="normal"><a href="#__codelineno-0-154">154</a></span>
-<span class="normal"><a href="#__codelineno-0-155">155</a></span>
-<span class="normal"><a href="#__codelineno-0-156">156</a></span>
-<span class="normal"><a href="#__codelineno-0-157">157</a></span>
-<span class="normal"><a href="#__codelineno-0-158">158</a></span>
-<span class="normal"><a href="#__codelineno-0-159">159</a></span>
+                    <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-159">159</a></span>
 <span class="normal"><a href="#__codelineno-0-160">160</a></span>
 <span class="normal"><a href="#__codelineno-0-161">161</a></span>
 <span class="normal"><a href="#__codelineno-0-162">162</a></span>
@@ -3393,57 +3442,79 @@ to shutdown if <code>shutdown_on_loop_error</code> is set in the <code>config</c
 <span class="normal"><a href="#__codelineno-0-189">189</a></span>
 <span class="normal"><a href="#__codelineno-0-190">190</a></span>
 <span class="normal"><a href="#__codelineno-0-191">191</a></span>
-<span class="normal"><a href="#__codelineno-0-192">192</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a>    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentT</span><span class="p">,</span>
-</span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="n">exchange_factory</span><span class="p">:</span> <span class="n">ae</span><span class="o">.</span><span class="n">ExchangeFactory</span><span class="p">[</span><span class="n">ExchangeTransportT</span><span class="p">],</span>
-</span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a>    <span class="n">registration</span><span class="p">:</span> <span class="n">AgentRegistrationT</span><span class="p">,</span>
-</span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a>    <span class="n">config</span><span class="p">:</span> <span class="n">RuntimeConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-155"><a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-156"><a id="__codelineno-0-156" name="__codelineno-0-156"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span> <span class="o">=</span> <span class="n">registration</span><span class="o">.</span><span class="n">agent_id</span>
-</span><span id="__span-0-157"><a id="__codelineno-0-157" name="__codelineno-0-157"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">agent</span>
-</span><span id="__span-0-158"><a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">factory</span> <span class="o">=</span> <span class="n">exchange_factory</span>
-</span><span id="__span-0-159"><a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">registration</span> <span class="o">=</span> <span class="n">registration</span>
-</span><span id="__span-0-160"><a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">RuntimeConfig</span><span class="p">()</span>
-</span><span id="__span-0-161"><a id="__codelineno-0-161" name="__codelineno-0-161"></a>
-</span><span id="__span-0-162"><a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">_agent_actions</span><span class="p">()</span>
-</span><span id="__span-0-163"><a id="__codelineno-0-163" name="__codelineno-0-163"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_loops</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">_agent_loops</span><span class="p">()</span>
-</span><span id="__span-0-164"><a id="__codelineno-0-164" name="__codelineno-0-164"></a>
-</span><span id="__span-0-165"><a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_started_event</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
-</span><span id="__span-0-166"><a id="__codelineno-0-166" name="__codelineno-0-166"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_event</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
-</span><span id="__span-0-167"><a id="__codelineno-0-167" name="__codelineno-0-167"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_options</span> <span class="o">=</span> <span class="n">_ShutdownState</span><span class="p">()</span>
-</span><span id="__span-0-168"><a id="__codelineno-0-168" name="__codelineno-0-168"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_agent_startup_called</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a>
-</span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_action_tasks</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_loop_tasks</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_loop_exceptions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>
-</span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span>
-</span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_sync_concurrency</span><span class="p">,</span>
-</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>        <span class="n">thread_name_prefix</span><span class="o">=</span><span class="s1">'agent-sync-executor-thread'</span><span class="p">,</span>
-</span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a>    <span class="p">)</span>
-</span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a>
-</span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_client</span><span class="p">:</span> <span class="p">(</span>
-</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a>        <span class="n">ae</span><span class="o">.</span><span class="n">AgentExchangeClient</span><span class="p">[</span><span class="n">AgentT</span><span class="p">,</span> <span class="n">ExchangeTransportT</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
-</span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-182"><a id="__codelineno-0-182" name="__codelineno-0-182"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_listener_task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">exchange_context_token</span><span class="p">:</span> <span class="p">(</span>
-</span><span id="__span-0-184"><a id="__codelineno-0-184" name="__codelineno-0-184"></a>        <span class="n">contextvars</span><span class="o">.</span><span class="n">Token</span><span class="p">[</span><span class="n">ae</span><span class="o">.</span><span class="n">ExchangeClient</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
-</span><span id="__span-0-185"><a id="__codelineno-0-185" name="__codelineno-0-185"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-186"><a id="__codelineno-0-186" name="__codelineno-0-186"></a>
-</span><span id="__span-0-187"><a id="__codelineno-0-187" name="__codelineno-0-187"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">allowed_deserializers_token</span><span class="p">:</span> <span class="p">(</span>
-</span><span id="__span-0-188"><a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="n">contextvars</span><span class="o">.</span><span class="n">Token</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="n">SerializationStrategy</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
-</span><span id="__span-0-189"><a id="__codelineno-0-189" name="__codelineno-0-189"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-190"><a id="__codelineno-0-190" name="__codelineno-0-190"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">default_serializer_token</span><span class="p">:</span> <span class="p">(</span>
-</span><span id="__span-0-191"><a id="__codelineno-0-191" name="__codelineno-0-191"></a>        <span class="n">contextvars</span><span class="o">.</span><span class="n">Token</span><span class="p">[</span><span class="n">SerializationStrategy</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
-</span><span id="__span-0-192"><a id="__codelineno-0-192" name="__codelineno-0-192"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="normal"><a href="#__codelineno-0-192">192</a></span>
+<span class="normal"><a href="#__codelineno-0-193">193</a></span>
+<span class="normal"><a href="#__codelineno-0-194">194</a></span>
+<span class="normal"><a href="#__codelineno-0-195">195</a></span>
+<span class="normal"><a href="#__codelineno-0-196">196</a></span>
+<span class="normal"><a href="#__codelineno-0-197">197</a></span>
+<span class="normal"><a href="#__codelineno-0-198">198</a></span>
+<span class="normal"><a href="#__codelineno-0-199">199</a></span>
+<span class="normal"><a href="#__codelineno-0-200">200</a></span>
+<span class="normal"><a href="#__codelineno-0-201">201</a></span>
+<span class="normal"><a href="#__codelineno-0-202">202</a></span>
+<span class="normal"><a href="#__codelineno-0-203">203</a></span>
+<span class="normal"><a href="#__codelineno-0-204">204</a></span>
+<span class="normal"><a href="#__codelineno-0-205">205</a></span>
+<span class="normal"><a href="#__codelineno-0-206">206</a></span>
+<span class="normal"><a href="#__codelineno-0-207">207</a></span>
+<span class="normal"><a href="#__codelineno-0-208">208</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-159"><a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="__span-0-160"><a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-161"><a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentT</span><span class="p">,</span>
+</span><span id="__span-0-162"><a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-163"><a id="__codelineno-0-163" name="__codelineno-0-163"></a>    <span class="n">exchange_factory</span><span class="p">:</span> <span class="n">ae</span><span class="o">.</span><span class="n">ExchangeFactory</span><span class="p">[</span><span class="n">ExchangeTransportT</span><span class="p">],</span>
+</span><span id="__span-0-164"><a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="n">registration</span><span class="p">:</span> <span class="n">AgentRegistrationT</span><span class="p">,</span>
+</span><span id="__span-0-165"><a id="__codelineno-0-165" name="__codelineno-0-165"></a>    <span class="n">config</span><span class="p">:</span> <span class="n">RuntimeConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-166"><a id="__codelineno-0-166" name="__codelineno-0-166"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-167"><a id="__codelineno-0-167" name="__codelineno-0-167"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span> <span class="o">=</span> <span class="n">registration</span><span class="o">.</span><span class="n">agent_id</span>
+</span><span id="__span-0-168"><a id="__codelineno-0-168" name="__codelineno-0-168"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">agent</span>
+</span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">factory</span> <span class="o">=</span> <span class="n">exchange_factory</span>
+</span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">registration</span> <span class="o">=</span> <span class="n">registration</span>
+</span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">RuntimeConfig</span><span class="p">()</span>
+</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">_agent_actions</span><span class="p">()</span>
+</span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_loops</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">_agent_loops</span><span class="p">()</span>
+</span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>    <span class="n">handler</span><span class="p">:</span> <span class="n">ActionHandler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invoke_action</span>
+</span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a>    <span class="k">for</span> <span class="n">middleware</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">action_middleware</span><span class="p">):</span>
+</span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a>        <span class="n">handler</span> <span class="o">=</span> <span class="n">_chain_middleware</span><span class="p">(</span><span class="n">middleware</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+</span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_action_handler</span> <span class="o">=</span> <span class="n">handler</span>
+</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a>
+</span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_started_event</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+</span><span id="__span-0-182"><a id="__codelineno-0-182" name="__codelineno-0-182"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_event</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+</span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_options</span> <span class="o">=</span> <span class="n">_ShutdownState</span><span class="p">()</span>
+</span><span id="__span-0-184"><a id="__codelineno-0-184" name="__codelineno-0-184"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_agent_startup_called</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-0-185"><a id="__codelineno-0-185" name="__codelineno-0-185"></a>
+</span><span id="__span-0-186"><a id="__codelineno-0-186" name="__codelineno-0-186"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_action_tasks</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-0-187"><a id="__codelineno-0-187" name="__codelineno-0-187"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_loop_tasks</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-0-188"><a id="__codelineno-0-188" name="__codelineno-0-188"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_loop_exceptions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-189"><a id="__codelineno-0-189" name="__codelineno-0-189"></a>
+</span><span id="__span-0-190"><a id="__codelineno-0-190" name="__codelineno-0-190"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span>
+</span><span id="__span-0-191"><a id="__codelineno-0-191" name="__codelineno-0-191"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_sync_concurrency</span><span class="p">,</span>
+</span><span id="__span-0-192"><a id="__codelineno-0-192" name="__codelineno-0-192"></a>        <span class="n">thread_name_prefix</span><span class="o">=</span><span class="s1">'agent-sync-executor-thread'</span><span class="p">,</span>
+</span><span id="__span-0-193"><a id="__codelineno-0-193" name="__codelineno-0-193"></a>    <span class="p">)</span>
+</span><span id="__span-0-194"><a id="__codelineno-0-194" name="__codelineno-0-194"></a>
+</span><span id="__span-0-195"><a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_client</span><span class="p">:</span> <span class="p">(</span>
+</span><span id="__span-0-196"><a id="__codelineno-0-196" name="__codelineno-0-196"></a>        <span class="n">ae</span><span class="o">.</span><span class="n">AgentExchangeClient</span><span class="p">[</span><span class="n">AgentT</span><span class="p">,</span> <span class="n">ExchangeTransportT</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-0-197"><a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-198"><a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_listener_task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-199"><a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">exchange_context_token</span><span class="p">:</span> <span class="p">(</span>
+</span><span id="__span-0-200"><a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="n">contextvars</span><span class="o">.</span><span class="n">Token</span><span class="p">[</span><span class="n">ae</span><span class="o">.</span><span class="n">ExchangeClient</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-0-201"><a id="__codelineno-0-201" name="__codelineno-0-201"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-202"><a id="__codelineno-0-202" name="__codelineno-0-202"></a>
+</span><span id="__span-0-203"><a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">allowed_deserializers_token</span><span class="p">:</span> <span class="p">(</span>
+</span><span id="__span-0-204"><a id="__codelineno-0-204" name="__codelineno-0-204"></a>        <span class="n">contextvars</span><span class="o">.</span><span class="n">Token</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="n">SerializationStrategy</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-0-205"><a id="__codelineno-0-205" name="__codelineno-0-205"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-206"><a id="__codelineno-0-206" name="__codelineno-0-206"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">default_serializer_token</span><span class="p">:</span> <span class="p">(</span>
+</span><span id="__span-0-207"><a id="__codelineno-0-207" name="__codelineno-0-207"></a>        <span class="n">contextvars</span><span class="o">.</span><span class="n">Token</span><span class="p">[</span><span class="n">SerializationStrategy</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-0-208"><a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div></td></tr></table></div>
                   </details>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3475,13 +3546,29 @@ to shutdown if <code>shutdown_on_loop_error</code> is set in the <code>config</c
    (academy.identifier.EntityId)" href="../identifier/#academy.identifier.EntityId">EntityId</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">tag</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="uuid.UUID" href="https://docs.python.org/3/library/uuid.html#uuid.UUID">UUID</a></span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Invoke an action of the agent's agent.</p>
+<p>The invocation passes through any
+<a class="autorefs autorefs-internal" title="            ActionMiddleware
+
+
+  
+      module-attribute
+  " href="../middleware/#academy.middleware.ActionMiddleware"><code>ActionMiddleware</code></a> configured
+on the <a class="autorefs autorefs-internal" title="            RuntimeConfig
+
+
+  
+      pydantic-model
+  " href="#academy.runtime.RuntimeConfig"><code>RuntimeConfig</code></a> before the
+action method is called. This call requires the <code>runtime</code> to be
+started. Otherwise, it will raise a <code>AgentNotInitializedError</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3523,6 +3610,15 @@ to shutdown if <code>shutdown_on_loop_error</code> is set in the <code>config</c
             <p>Dictionary of keyword arguments.</p>
           </div>
         </li>
+        <li class="doc-section-item field-body">
+            <b><code>tag</code></b>
+              (<code><a class="autorefs autorefs-external" title="uuid.UUID" href="https://docs.python.org/3/library/uuid.html#uuid.UUID">UUID</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>Unique tag of the request message that initiated this
+invocation.</p>
+          </div>
+        </li>
     </ul>
 
 
@@ -3545,32 +3641,30 @@ to shutdown if <code>shutdown_on_loop_error</code> is set in the <code>config</c
             –
           <div class="doc-md-description">
             <p>If an action with this name is not implemented by
-the agent's agent.</p>
+the agent's agent. Middleware is not invoked in this case.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+              <code><span title="AgentNotInitializedError">AgentNotInitializedError</span></code>
+            –
+          <div class="doc-md-description">
+            <p>If this was called when the runtime
+has not been started.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+              <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#Exception">Exception</a></code>
+            –
+          <div class="doc-md-description">
+            <p>Any exception raised by a configured middleware.</p>
           </div>
         </li>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/runtime.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-434">434</a></span>
-<span class="normal"><a href="#__codelineno-0-435">435</a></span>
-<span class="normal"><a href="#__codelineno-0-436">436</a></span>
-<span class="normal"><a href="#__codelineno-0-437">437</a></span>
-<span class="normal"><a href="#__codelineno-0-438">438</a></span>
-<span class="normal"><a href="#__codelineno-0-439">439</a></span>
-<span class="normal"><a href="#__codelineno-0-440">440</a></span>
-<span class="normal"><a href="#__codelineno-0-441">441</a></span>
-<span class="normal"><a href="#__codelineno-0-442">442</a></span>
-<span class="normal"><a href="#__codelineno-0-443">443</a></span>
-<span class="normal"><a href="#__codelineno-0-444">444</a></span>
-<span class="normal"><a href="#__codelineno-0-445">445</a></span>
-<span class="normal"><a href="#__codelineno-0-446">446</a></span>
-<span class="normal"><a href="#__codelineno-0-447">447</a></span>
-<span class="normal"><a href="#__codelineno-0-448">448</a></span>
-<span class="normal"><a href="#__codelineno-0-449">449</a></span>
-<span class="normal"><a href="#__codelineno-0-450">450</a></span>
-<span class="normal"><a href="#__codelineno-0-451">451</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-451">451</a></span>
 <span class="normal"><a href="#__codelineno-0-452">452</a></span>
 <span class="normal"><a href="#__codelineno-0-453">453</a></span>
 <span class="normal"><a href="#__codelineno-0-454">454</a></span>
@@ -3595,49 +3689,108 @@ the agent's agent.</p>
 <span class="normal"><a href="#__codelineno-0-473">473</a></span>
 <span class="normal"><a href="#__codelineno-0-474">474</a></span>
 <span class="normal"><a href="#__codelineno-0-475">475</a></span>
-<span class="normal"><a href="#__codelineno-0-476">476</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-434"><a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">action</span><span class="p">(</span>
-</span><span id="__span-0-435"><a id="__codelineno-0-435" name="__codelineno-0-435"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-436"><a id="__codelineno-0-436" name="__codelineno-0-436"></a>    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-0-437"><a id="__codelineno-0-437" name="__codelineno-0-437"></a>    <span class="n">source_id</span><span class="p">:</span> <span class="n">EntityId</span><span class="p">,</span>
-</span><span id="__span-0-438"><a id="__codelineno-0-438" name="__codelineno-0-438"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-439"><a id="__codelineno-0-439" name="__codelineno-0-439"></a>    <span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-</span><span id="__span-0-440"><a id="__codelineno-0-440" name="__codelineno-0-440"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-</span><span id="__span-0-441"><a id="__codelineno-0-441" name="__codelineno-0-441"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span id="__span-0-442"><a id="__codelineno-0-442" name="__codelineno-0-442"></a><span class="w">    </span><span class="sd">"""Invoke an action of the agent's agent.</span>
-</span><span id="__span-0-443"><a id="__codelineno-0-443" name="__codelineno-0-443"></a>
-</span><span id="__span-0-444"><a id="__codelineno-0-444" name="__codelineno-0-444"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-445"><a id="__codelineno-0-445" name="__codelineno-0-445"></a><span class="sd">        action: Name of action to invoke.</span>
-</span><span id="__span-0-446"><a id="__codelineno-0-446" name="__codelineno-0-446"></a><span class="sd">        source_id: ID of the source that requested the action.</span>
-</span><span id="__span-0-447"><a id="__codelineno-0-447" name="__codelineno-0-447"></a><span class="sd">        args: Tuple of positional arguments.</span>
-</span><span id="__span-0-448"><a id="__codelineno-0-448" name="__codelineno-0-448"></a><span class="sd">        kwargs: Dictionary of keyword arguments.</span>
-</span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a>
-</span><span id="__span-0-450"><a id="__codelineno-0-450" name="__codelineno-0-450"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="sd">        Result of the action.</span>
-</span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a>
-</span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">        AttributeError: If an action with this name is not implemented by</span>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">            the agent's agent.</span>
-</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">    """</span>
-</span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-</span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a>        <span class="s1">'Invoking "</span><span class="si">%s</span><span class="s1">" action on </span><span class="si">%s</span><span class="s1">'</span><span class="p">,</span>
-</span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a>        <span class="n">action</span><span class="p">,</span>
-</span><span id="__span-0-460"><a id="__codelineno-0-460" name="__codelineno-0-460"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
-</span><span id="__span-0-461"><a id="__codelineno-0-461" name="__codelineno-0-461"></a>        <span class="n">extra</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a>            <span class="s1">'academy.action'</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
-</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a>            <span class="s1">'academy.agent_id'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
-</span><span id="__span-0-464"><a id="__codelineno-0-464" name="__codelineno-0-464"></a>        <span class="p">},</span>
-</span><span id="__span-0-465"><a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="p">)</span>
-</span><span id="__span-0-466"><a id="__codelineno-0-466" name="__codelineno-0-466"></a>    <span class="k">if</span> <span class="n">action</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="p">:</span>
-</span><span id="__span-0-467"><a id="__codelineno-0-467" name="__codelineno-0-467"></a>        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
-</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a>            <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="si">}</span><span class="s1"> does not have an action named "</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s1">".'</span><span class="p">,</span>
-</span><span id="__span-0-469"><a id="__codelineno-0-469" name="__codelineno-0-469"></a>        <span class="p">)</span>
-</span><span id="__span-0-470"><a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">action_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="p">[</span><span class="n">action</span><span class="p">]</span>
-</span><span id="__span-0-471"><a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="k">if</span> <span class="n">action_method</span><span class="o">.</span><span class="n">_action_method_context</span><span class="p">:</span>
-</span><span id="__span-0-472"><a id="__codelineno-0-472" name="__codelineno-0-472"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</span><span id="__span-0-473"><a id="__codelineno-0-473" name="__codelineno-0-473"></a>        <span class="n">context</span> <span class="o">=</span> <span class="n">ActionContext</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_client</span><span class="p">)</span>
-</span><span id="__span-0-474"><a id="__codelineno-0-474" name="__codelineno-0-474"></a>        <span class="k">return</span> <span class="k">await</span> <span class="n">action_method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span id="__span-0-475"><a id="__codelineno-0-475" name="__codelineno-0-475"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-476"><a id="__codelineno-0-476" name="__codelineno-0-476"></a>        <span class="k">return</span> <span class="k">await</span> <span class="n">action_method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-476">476</a></span>
+<span class="normal"><a href="#__codelineno-0-477">477</a></span>
+<span class="normal"><a href="#__codelineno-0-478">478</a></span>
+<span class="normal"><a href="#__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span>
+<span class="normal"><a href="#__codelineno-0-484">484</a></span>
+<span class="normal"><a href="#__codelineno-0-485">485</a></span>
+<span class="normal"><a href="#__codelineno-0-486">486</a></span>
+<span class="normal"><a href="#__codelineno-0-487">487</a></span>
+<span class="normal"><a href="#__codelineno-0-488">488</a></span>
+<span class="normal"><a href="#__codelineno-0-489">489</a></span>
+<span class="normal"><a href="#__codelineno-0-490">490</a></span>
+<span class="normal"><a href="#__codelineno-0-491">491</a></span>
+<span class="normal"><a href="#__codelineno-0-492">492</a></span>
+<span class="normal"><a href="#__codelineno-0-493">493</a></span>
+<span class="normal"><a href="#__codelineno-0-494">494</a></span>
+<span class="normal"><a href="#__codelineno-0-495">495</a></span>
+<span class="normal"><a href="#__codelineno-0-496">496</a></span>
+<span class="normal"><a href="#__codelineno-0-497">497</a></span>
+<span class="normal"><a href="#__codelineno-0-498">498</a></span>
+<span class="normal"><a href="#__codelineno-0-499">499</a></span>
+<span class="normal"><a href="#__codelineno-0-500">500</a></span>
+<span class="normal"><a href="#__codelineno-0-501">501</a></span>
+<span class="normal"><a href="#__codelineno-0-502">502</a></span>
+<span class="normal"><a href="#__codelineno-0-503">503</a></span>
+<span class="normal"><a href="#__codelineno-0-504">504</a></span>
+<span class="normal"><a href="#__codelineno-0-505">505</a></span>
+<span class="normal"><a href="#__codelineno-0-506">506</a></span>
+<span class="normal"><a href="#__codelineno-0-507">507</a></span>
+<span class="normal"><a href="#__codelineno-0-508">508</a></span>
+<span class="normal"><a href="#__codelineno-0-509">509</a></span>
+<span class="normal"><a href="#__codelineno-0-510">510</a></span>
+<span class="normal"><a href="#__codelineno-0-511">511</a></span>
+<span class="normal"><a href="#__codelineno-0-512">512</a></span>
+<span class="normal"><a href="#__codelineno-0-513">513</a></span>
+<span class="normal"><a href="#__codelineno-0-514">514</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">action</span><span class="p">(</span>
+</span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a>    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a>    <span class="n">source_id</span><span class="p">:</span> <span class="n">EntityId</span><span class="p">,</span>
+</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a>    <span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a>    <span class="n">tag</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">,</span>
+</span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span id="__span-0-460"><a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="w">    </span><span class="sd">"""Invoke an action of the agent's agent.</span>
+</span><span id="__span-0-461"><a id="__codelineno-0-461" name="__codelineno-0-461"></a>
+</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">    The invocation passes through any</span>
+</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">    [`ActionMiddleware`][academy.middleware.ActionMiddleware] configured</span>
+</span><span id="__span-0-464"><a id="__codelineno-0-464" name="__codelineno-0-464"></a><span class="sd">    on the [`RuntimeConfig`][academy.runtime.RuntimeConfig] before the</span>
+</span><span id="__span-0-465"><a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">    action method is called. This call requires the `runtime` to be</span>
+</span><span id="__span-0-466"><a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">    started. Otherwise, it will raise a `AgentNotInitializedError`.</span>
+</span><span id="__span-0-467"><a id="__codelineno-0-467" name="__codelineno-0-467"></a>
+</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-469"><a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">        action: Name of action to invoke.</span>
+</span><span id="__span-0-470"><a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">        source_id: ID of the source that requested the action.</span>
+</span><span id="__span-0-471"><a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">        args: Tuple of positional arguments.</span>
+</span><span id="__span-0-472"><a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">        kwargs: Dictionary of keyword arguments.</span>
+</span><span id="__span-0-473"><a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">        tag: Unique tag of the request message that initiated this</span>
+</span><span id="__span-0-474"><a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">            invocation.</span>
+</span><span id="__span-0-475"><a id="__codelineno-0-475" name="__codelineno-0-475"></a>
+</span><span id="__span-0-476"><a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-477"><a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">        Result of the action.</span>
+</span><span id="__span-0-478"><a id="__codelineno-0-478" name="__codelineno-0-478"></a>
+</span><span id="__span-0-479"><a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-480"><a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">        AttributeError: If an action with this name is not implemented by</span>
+</span><span id="__span-0-481"><a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">            the agent's agent. Middleware is not invoked in this case.</span>
+</span><span id="__span-0-482"><a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">        AgentNotInitializedError: If this was called when the runtime</span>
+</span><span id="__span-0-483"><a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">            has not been started.</span>
+</span><span id="__span-0-484"><a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">        Exception: Any exception raised by a configured middleware.</span>
+</span><span id="__span-0-485"><a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    """</span>
+</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+</span><span id="__span-0-487"><a id="__codelineno-0-487" name="__codelineno-0-487"></a>        <span class="s1">'Invoking "</span><span class="si">%s</span><span class="s1">" action on </span><span class="si">%s</span><span class="s1">'</span><span class="p">,</span>
+</span><span id="__span-0-488"><a id="__codelineno-0-488" name="__codelineno-0-488"></a>        <span class="n">action</span><span class="p">,</span>
+</span><span id="__span-0-489"><a id="__codelineno-0-489" name="__codelineno-0-489"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+</span><span id="__span-0-490"><a id="__codelineno-0-490" name="__codelineno-0-490"></a>        <span class="n">extra</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-0-491"><a id="__codelineno-0-491" name="__codelineno-0-491"></a>            <span class="s1">'academy.action'</span><span class="p">:</span> <span class="n">action</span><span class="p">,</span>
+</span><span id="__span-0-492"><a id="__codelineno-0-492" name="__codelineno-0-492"></a>            <span class="s1">'academy.agent_id'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+</span><span id="__span-0-493"><a id="__codelineno-0-493" name="__codelineno-0-493"></a>        <span class="p">},</span>
+</span><span id="__span-0-494"><a id="__codelineno-0-494" name="__codelineno-0-494"></a>    <span class="p">)</span>
+</span><span id="__span-0-495"><a id="__codelineno-0-495" name="__codelineno-0-495"></a>    <span class="k">if</span> <span class="n">action</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="p">:</span>
+</span><span id="__span-0-496"><a id="__codelineno-0-496" name="__codelineno-0-496"></a>        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+</span><span id="__span-0-497"><a id="__codelineno-0-497" name="__codelineno-0-497"></a>            <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="si">}</span><span class="s1"> does not have an action named "</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s1">".'</span><span class="p">,</span>
+</span><span id="__span-0-498"><a id="__codelineno-0-498" name="__codelineno-0-498"></a>        <span class="p">)</span>
+</span><span id="__span-0-499"><a id="__codelineno-0-499" name="__codelineno-0-499"></a>
+</span><span id="__span-0-500"><a id="__codelineno-0-500" name="__codelineno-0-500"></a>    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-0-501"><a id="__codelineno-0-501" name="__codelineno-0-501"></a>    <span class="n">context</span> <span class="o">=</span> <span class="n">ActionContext</span><span class="p">(</span>
+</span><span id="__span-0-502"><a id="__codelineno-0-502" name="__codelineno-0-502"></a>        <span class="n">source_id</span><span class="p">,</span>
+</span><span id="__span-0-503"><a id="__codelineno-0-503" name="__codelineno-0-503"></a>        <span class="n">tag</span><span class="p">,</span>
+</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_client</span><span class="p">,</span>
+</span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a>    <span class="p">)</span>
+</span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a>
+</span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a>    <span class="n">call</span> <span class="o">=</span> <span class="n">ActionCall</span><span class="p">(</span>
+</span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a>        <span class="n">action</span><span class="o">=</span><span class="n">action</span><span class="p">,</span>
+</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a>        <span class="n">agent_context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">agent_context</span><span class="p">,</span>
+</span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a>        <span class="n">action_context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+</span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a>        <span class="n">args</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+</span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a>        <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+</span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a>    <span class="p">)</span>
+</span><span id="__span-0-514"><a id="__codelineno-0-514" name="__codelineno-0-514"></a>    <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_action_handler</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3723,87 +3876,87 @@ inside of control loops.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/runtime.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-478">478</a></span>
-<span class="normal"><a href="#__codelineno-0-479">479</a></span>
-<span class="normal"><a href="#__codelineno-0-480">480</a></span>
-<span class="normal"><a href="#__codelineno-0-481">481</a></span>
-<span class="normal"><a href="#__codelineno-0-482">482</a></span>
-<span class="normal"><a href="#__codelineno-0-483">483</a></span>
-<span class="normal"><a href="#__codelineno-0-484">484</a></span>
-<span class="normal"><a href="#__codelineno-0-485">485</a></span>
-<span class="normal"><a href="#__codelineno-0-486">486</a></span>
-<span class="normal"><a href="#__codelineno-0-487">487</a></span>
-<span class="normal"><a href="#__codelineno-0-488">488</a></span>
-<span class="normal"><a href="#__codelineno-0-489">489</a></span>
-<span class="normal"><a href="#__codelineno-0-490">490</a></span>
-<span class="normal"><a href="#__codelineno-0-491">491</a></span>
-<span class="normal"><a href="#__codelineno-0-492">492</a></span>
-<span class="normal"><a href="#__codelineno-0-493">493</a></span>
-<span class="normal"><a href="#__codelineno-0-494">494</a></span>
-<span class="normal"><a href="#__codelineno-0-495">495</a></span>
-<span class="normal"><a href="#__codelineno-0-496">496</a></span>
-<span class="normal"><a href="#__codelineno-0-497">497</a></span>
-<span class="normal"><a href="#__codelineno-0-498">498</a></span>
-<span class="normal"><a href="#__codelineno-0-499">499</a></span>
-<span class="normal"><a href="#__codelineno-0-500">500</a></span>
-<span class="normal"><a href="#__codelineno-0-501">501</a></span>
-<span class="normal"><a href="#__codelineno-0-502">502</a></span>
-<span class="normal"><a href="#__codelineno-0-503">503</a></span>
-<span class="normal"><a href="#__codelineno-0-504">504</a></span>
-<span class="normal"><a href="#__codelineno-0-505">505</a></span>
-<span class="normal"><a href="#__codelineno-0-506">506</a></span>
-<span class="normal"><a href="#__codelineno-0-507">507</a></span>
-<span class="normal"><a href="#__codelineno-0-508">508</a></span>
-<span class="normal"><a href="#__codelineno-0-509">509</a></span>
-<span class="normal"><a href="#__codelineno-0-510">510</a></span>
-<span class="normal"><a href="#__codelineno-0-511">511</a></span>
-<span class="normal"><a href="#__codelineno-0-512">512</a></span>
-<span class="normal"><a href="#__codelineno-0-513">513</a></span>
-<span class="normal"><a href="#__codelineno-0-514">514</a></span>
-<span class="normal"><a href="#__codelineno-0-515">515</a></span>
-<span class="normal"><a href="#__codelineno-0-516">516</a></span>
-<span class="normal"><a href="#__codelineno-0-517">517</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-478"><a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_until_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-479"><a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="w">    </span><span class="sd">"""Run the agent until shutdown.</span>
-</span><span id="__span-0-480"><a id="__codelineno-0-480" name="__codelineno-0-480"></a>
-</span><span id="__span-0-481"><a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">    Agent startup involves:</span>
-</span><span id="__span-0-482"><a id="__codelineno-0-482" name="__codelineno-0-482"></a>
-</span><span id="__span-0-483"><a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">    1. Creates a new exchange client for the agent, and sets the exchange</span>
-</span><span id="__span-0-484"><a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">       context to this agent's client for all handles.</span>
-</span><span id="__span-0-485"><a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    1. Sets the runtime context on the agent.</span>
-</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">    1. Binds all handles of the agent to this agent's exchange client.</span>
-</span><span id="__span-0-487"><a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">    1. Schedules a [`Task`][asyncio.Task] to listen for messages in the</span>
-</span><span id="__span-0-488"><a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">       agent's mailbox in the exchange. Agent requests will not start</span>
-</span><span id="__span-0-489"><a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="sd">       processing until the end of the startup sequence.</span>
-</span><span id="__span-0-490"><a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">    1. Schedules a [`Task`][asyncio.Task] for all control loops defined on</span>
-</span><span id="__span-0-491"><a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">       the agent. Each task will block until the end of the startup</span>
-</span><span id="__span-0-492"><a id="__codelineno-0-492" name="__codelineno-0-492"></a><span class="sd">       sequence before starting the loop.</span>
-</span><span id="__span-0-493"><a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">    1. Calls</span>
-</span><span id="__span-0-494"><a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">       [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup].</span>
-</span><span id="__span-0-495"><a id="__codelineno-0-495" name="__codelineno-0-495"></a>
-</span><span id="__span-0-496"><a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="sd">    After startup succeeds, this method waits for the agent to be shutdown,</span>
-</span><span id="__span-0-497"><a id="__codelineno-0-497" name="__codelineno-0-497"></a><span class="sd">    such as due to a failure in a control loop or receiving a shutdown</span>
-</span><span id="__span-0-498"><a id="__codelineno-0-498" name="__codelineno-0-498"></a><span class="sd">    message.</span>
-</span><span id="__span-0-499"><a id="__codelineno-0-499" name="__codelineno-0-499"></a>
-</span><span id="__span-0-500"><a id="__codelineno-0-500" name="__codelineno-0-500"></a><span class="sd">    Agent shutdown involves:</span>
-</span><span id="__span-0-501"><a id="__codelineno-0-501" name="__codelineno-0-501"></a>
-</span><span id="__span-0-502"><a id="__codelineno-0-502" name="__codelineno-0-502"></a><span class="sd">    1. Calls</span>
-</span><span id="__span-0-503"><a id="__codelineno-0-503" name="__codelineno-0-503"></a><span class="sd">       [`Agent.agent_on_shutdown()`][academy.agent.Agent.agent_on_shutdown].</span>
-</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">    1. Cancels running control loop tasks.</span>
-</span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">    1. Cancels the mailbox message listener task so no new requests are</span>
-</span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="sd">       received.</span>
-</span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">    1. Waits for any currently executing actions to complete.</span>
-</span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">    1. Terminates the agent's mailbox in the exchange if configured.</span>
-</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="sd">    1. Restores the exchange context and closes the exchange client.</span>
-</span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a>
-</span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">        RuntimeError: If the agent has already been shutdown.</span>
-</span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">        Exception: Any exceptions raised during startup, shutdown, or</span>
-</span><span id="__span-0-514"><a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">            inside of control loops.</span>
-</span><span id="__span-0-515"><a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">    """</span>
-</span><span id="__span-0-516"><a id="__codelineno-0-516" name="__codelineno-0-516"></a>    <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="p">:</span>
-</span><span id="__span-0-517"><a id="__codelineno-0-517" name="__codelineno-0-517"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_shutdown</span><span class="p">()</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-527">527</a></span>
+<span class="normal"><a href="#__codelineno-0-528">528</a></span>
+<span class="normal"><a href="#__codelineno-0-529">529</a></span>
+<span class="normal"><a href="#__codelineno-0-530">530</a></span>
+<span class="normal"><a href="#__codelineno-0-531">531</a></span>
+<span class="normal"><a href="#__codelineno-0-532">532</a></span>
+<span class="normal"><a href="#__codelineno-0-533">533</a></span>
+<span class="normal"><a href="#__codelineno-0-534">534</a></span>
+<span class="normal"><a href="#__codelineno-0-535">535</a></span>
+<span class="normal"><a href="#__codelineno-0-536">536</a></span>
+<span class="normal"><a href="#__codelineno-0-537">537</a></span>
+<span class="normal"><a href="#__codelineno-0-538">538</a></span>
+<span class="normal"><a href="#__codelineno-0-539">539</a></span>
+<span class="normal"><a href="#__codelineno-0-540">540</a></span>
+<span class="normal"><a href="#__codelineno-0-541">541</a></span>
+<span class="normal"><a href="#__codelineno-0-542">542</a></span>
+<span class="normal"><a href="#__codelineno-0-543">543</a></span>
+<span class="normal"><a href="#__codelineno-0-544">544</a></span>
+<span class="normal"><a href="#__codelineno-0-545">545</a></span>
+<span class="normal"><a href="#__codelineno-0-546">546</a></span>
+<span class="normal"><a href="#__codelineno-0-547">547</a></span>
+<span class="normal"><a href="#__codelineno-0-548">548</a></span>
+<span class="normal"><a href="#__codelineno-0-549">549</a></span>
+<span class="normal"><a href="#__codelineno-0-550">550</a></span>
+<span class="normal"><a href="#__codelineno-0-551">551</a></span>
+<span class="normal"><a href="#__codelineno-0-552">552</a></span>
+<span class="normal"><a href="#__codelineno-0-553">553</a></span>
+<span class="normal"><a href="#__codelineno-0-554">554</a></span>
+<span class="normal"><a href="#__codelineno-0-555">555</a></span>
+<span class="normal"><a href="#__codelineno-0-556">556</a></span>
+<span class="normal"><a href="#__codelineno-0-557">557</a></span>
+<span class="normal"><a href="#__codelineno-0-558">558</a></span>
+<span class="normal"><a href="#__codelineno-0-559">559</a></span>
+<span class="normal"><a href="#__codelineno-0-560">560</a></span>
+<span class="normal"><a href="#__codelineno-0-561">561</a></span>
+<span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span>
+<span class="normal"><a href="#__codelineno-0-565">565</a></span>
+<span class="normal"><a href="#__codelineno-0-566">566</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_until_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="w">    </span><span class="sd">"""Run the agent until shutdown.</span>
+</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a>
+</span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">    Agent startup involves:</span>
+</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a>
+</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">    1. Creates a new exchange client for the agent, and sets the exchange</span>
+</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">       context to this agent's client for all handles.</span>
+</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">    1. Sets the runtime context on the agent.</span>
+</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">    1. Binds all handles of the agent to this agent's exchange client.</span>
+</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">    1. Schedules a [`Task`][asyncio.Task] to listen for messages in the</span>
+</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">       agent's mailbox in the exchange. Agent requests will not start</span>
+</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">       processing until the end of the startup sequence.</span>
+</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="sd">    1. Schedules a [`Task`][asyncio.Task] for all control loops defined on</span>
+</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a><span class="sd">       the agent. Each task will block until the end of the startup</span>
+</span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">       sequence before starting the loop.</span>
+</span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">    1. Calls</span>
+</span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">       [`Agent.agent_on_startup()`][academy.agent.Agent.agent_on_startup].</span>
+</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a>
+</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">    After startup succeeds, this method waits for the agent to be shutdown,</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">    such as due to a failure in a control loop or receiving a shutdown</span>
+</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">    message.</span>
+</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a>
+</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">    Agent shutdown involves:</span>
+</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a>
+</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">    1. Calls</span>
+</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">       [`Agent.agent_on_shutdown()`][academy.agent.Agent.agent_on_shutdown].</span>
+</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">    1. Cancels running control loop tasks.</span>
+</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">    1. Cancels the mailbox message listener task so no new requests are</span>
+</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a><span class="sd">       received.</span>
+</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">    1. Waits for any currently executing actions to complete.</span>
+</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="sd">    1. Terminates the agent's mailbox in the exchange if configured.</span>
+</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">    1. Restores the exchange context and closes the exchange client.</span>
+</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a>
+</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="sd">        RuntimeError: If the agent has already been shutdown.</span>
+</span><span id="__span-0-562"><a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="sd">        Exception: Any exceptions raised during startup, shutdown, or</span>
+</span><span id="__span-0-563"><a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">            inside of control loops.</span>
+</span><span id="__span-0-564"><a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    """</span>
+</span><span id="__span-0-565"><a id="__codelineno-0-565" name="__codelineno-0-565"></a>    <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="p">:</span>
+</span><span id="__span-0-566"><a id="__codelineno-0-566" name="__codelineno-0-566"></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_shutdown</span><span class="p">()</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3858,53 +4011,53 @@ in the run config.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/runtime.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-701">701</a></span>
-<span class="normal"><a href="#__codelineno-0-702">702</a></span>
-<span class="normal"><a href="#__codelineno-0-703">703</a></span>
-<span class="normal"><a href="#__codelineno-0-704">704</a></span>
-<span class="normal"><a href="#__codelineno-0-705">705</a></span>
-<span class="normal"><a href="#__codelineno-0-706">706</a></span>
-<span class="normal"><a href="#__codelineno-0-707">707</a></span>
-<span class="normal"><a href="#__codelineno-0-708">708</a></span>
-<span class="normal"><a href="#__codelineno-0-709">709</a></span>
-<span class="normal"><a href="#__codelineno-0-710">710</a></span>
-<span class="normal"><a href="#__codelineno-0-711">711</a></span>
-<span class="normal"><a href="#__codelineno-0-712">712</a></span>
-<span class="normal"><a href="#__codelineno-0-713">713</a></span>
-<span class="normal"><a href="#__codelineno-0-714">714</a></span>
-<span class="normal"><a href="#__codelineno-0-715">715</a></span>
-<span class="normal"><a href="#__codelineno-0-716">716</a></span>
-<span class="normal"><a href="#__codelineno-0-717">717</a></span>
-<span class="normal"><a href="#__codelineno-0-718">718</a></span>
-<span class="normal"><a href="#__codelineno-0-719">719</a></span>
-<span class="normal"><a href="#__codelineno-0-720">720</a></span>
-<span class="normal"><a href="#__codelineno-0-721">721</a></span>
-<span class="normal"><a href="#__codelineno-0-722">722</a></span>
-<span class="normal"><a href="#__codelineno-0-723">723</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-701"><a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="k">def</span><span class="w"> </span><span class="nf">signal_shutdown</span><span class="p">(</span>
-</span><span id="__span-0-702"><a id="__codelineno-0-702" name="__codelineno-0-702"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-703"><a id="__codelineno-0-703" name="__codelineno-0-703"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-704"><a id="__codelineno-0-704" name="__codelineno-0-704"></a>    <span class="n">expected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-705"><a id="__codelineno-0-705" name="__codelineno-0-705"></a>    <span class="n">terminate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-706"><a id="__codelineno-0-706" name="__codelineno-0-706"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-707"><a id="__codelineno-0-707" name="__codelineno-0-707"></a><span class="w">    </span><span class="sd">"""Signal that the agent should exit.</span>
-</span><span id="__span-0-708"><a id="__codelineno-0-708" name="__codelineno-0-708"></a>
-</span><span id="__span-0-709"><a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">    If the agent has not started, this will cause the agent to immediately</span>
-</span><span id="__span-0-710"><a id="__codelineno-0-710" name="__codelineno-0-710"></a><span class="sd">    shutdown when next started. If the agent is shutdown, this has no</span>
-</span><span id="__span-0-711"><a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="sd">    effect.</span>
-</span><span id="__span-0-712"><a id="__codelineno-0-712" name="__codelineno-0-712"></a>
-</span><span id="__span-0-713"><a id="__codelineno-0-713" name="__codelineno-0-713"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-714"><a id="__codelineno-0-714" name="__codelineno-0-714"></a><span class="sd">        expected: If the reason for the shutdown was due to normal</span>
-</span><span id="__span-0-715"><a id="__codelineno-0-715" name="__codelineno-0-715"></a><span class="sd">            expected reasons or due to unexpected errors.</span>
-</span><span id="__span-0-716"><a id="__codelineno-0-716" name="__codelineno-0-716"></a><span class="sd">        terminate: Optionally override the mailbox termination settings</span>
-</span><span id="__span-0-717"><a id="__codelineno-0-717" name="__codelineno-0-717"></a><span class="sd">            in the run config.</span>
-</span><span id="__span-0-718"><a id="__codelineno-0-718" name="__codelineno-0-718"></a><span class="sd">    """</span>
-</span><span id="__span-0-719"><a id="__codelineno-0-719" name="__codelineno-0-719"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_options</span> <span class="o">=</span> <span class="n">_ShutdownState</span><span class="p">(</span>
-</span><span id="__span-0-720"><a id="__codelineno-0-720" name="__codelineno-0-720"></a>        <span class="n">expected_shutdown</span><span class="o">=</span><span class="n">expected</span><span class="p">,</span>
-</span><span id="__span-0-721"><a id="__codelineno-0-721" name="__codelineno-0-721"></a>        <span class="n">terminate_override</span><span class="o">=</span><span class="n">terminate</span><span class="p">,</span>
-</span><span id="__span-0-722"><a id="__codelineno-0-722" name="__codelineno-0-722"></a>    <span class="p">)</span>
-</span><span id="__span-0-723"><a id="__codelineno-0-723" name="__codelineno-0-723"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-750">750</a></span>
+<span class="normal"><a href="#__codelineno-0-751">751</a></span>
+<span class="normal"><a href="#__codelineno-0-752">752</a></span>
+<span class="normal"><a href="#__codelineno-0-753">753</a></span>
+<span class="normal"><a href="#__codelineno-0-754">754</a></span>
+<span class="normal"><a href="#__codelineno-0-755">755</a></span>
+<span class="normal"><a href="#__codelineno-0-756">756</a></span>
+<span class="normal"><a href="#__codelineno-0-757">757</a></span>
+<span class="normal"><a href="#__codelineno-0-758">758</a></span>
+<span class="normal"><a href="#__codelineno-0-759">759</a></span>
+<span class="normal"><a href="#__codelineno-0-760">760</a></span>
+<span class="normal"><a href="#__codelineno-0-761">761</a></span>
+<span class="normal"><a href="#__codelineno-0-762">762</a></span>
+<span class="normal"><a href="#__codelineno-0-763">763</a></span>
+<span class="normal"><a href="#__codelineno-0-764">764</a></span>
+<span class="normal"><a href="#__codelineno-0-765">765</a></span>
+<span class="normal"><a href="#__codelineno-0-766">766</a></span>
+<span class="normal"><a href="#__codelineno-0-767">767</a></span>
+<span class="normal"><a href="#__codelineno-0-768">768</a></span>
+<span class="normal"><a href="#__codelineno-0-769">769</a></span>
+<span class="normal"><a href="#__codelineno-0-770">770</a></span>
+<span class="normal"><a href="#__codelineno-0-771">771</a></span>
+<span class="normal"><a href="#__codelineno-0-772">772</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-750"><a id="__codelineno-0-750" name="__codelineno-0-750"></a><span class="k">def</span><span class="w"> </span><span class="nf">signal_shutdown</span><span class="p">(</span>
+</span><span id="__span-0-751"><a id="__codelineno-0-751" name="__codelineno-0-751"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-752"><a id="__codelineno-0-752" name="__codelineno-0-752"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-753"><a id="__codelineno-0-753" name="__codelineno-0-753"></a>    <span class="n">expected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-754"><a id="__codelineno-0-754" name="__codelineno-0-754"></a>    <span class="n">terminate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-755"><a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-756"><a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="w">    </span><span class="sd">"""Signal that the agent should exit.</span>
+</span><span id="__span-0-757"><a id="__codelineno-0-757" name="__codelineno-0-757"></a>
+</span><span id="__span-0-758"><a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">    If the agent has not started, this will cause the agent to immediately</span>
+</span><span id="__span-0-759"><a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="sd">    shutdown when next started. If the agent is shutdown, this has no</span>
+</span><span id="__span-0-760"><a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="sd">    effect.</span>
+</span><span id="__span-0-761"><a id="__codelineno-0-761" name="__codelineno-0-761"></a>
+</span><span id="__span-0-762"><a id="__codelineno-0-762" name="__codelineno-0-762"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-763"><a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="sd">        expected: If the reason for the shutdown was due to normal</span>
+</span><span id="__span-0-764"><a id="__codelineno-0-764" name="__codelineno-0-764"></a><span class="sd">            expected reasons or due to unexpected errors.</span>
+</span><span id="__span-0-765"><a id="__codelineno-0-765" name="__codelineno-0-765"></a><span class="sd">        terminate: Optionally override the mailbox termination settings</span>
+</span><span id="__span-0-766"><a id="__codelineno-0-766" name="__codelineno-0-766"></a><span class="sd">            in the run config.</span>
+</span><span id="__span-0-767"><a id="__codelineno-0-767" name="__codelineno-0-767"></a><span class="sd">    """</span>
+</span><span id="__span-0-768"><a id="__codelineno-0-768" name="__codelineno-0-768"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_options</span> <span class="o">=</span> <span class="n">_ShutdownState</span><span class="p">(</span>
+</span><span id="__span-0-769"><a id="__codelineno-0-769" name="__codelineno-0-769"></a>        <span class="n">expected_shutdown</span><span class="o">=</span><span class="n">expected</span><span class="p">,</span>
+</span><span id="__span-0-770"><a id="__codelineno-0-770" name="__codelineno-0-770"></a>        <span class="n">terminate_override</span><span class="o">=</span><span class="n">terminate</span><span class="p">,</span>
+</span><span id="__span-0-771"><a id="__codelineno-0-771" name="__codelineno-0-771"></a>    <span class="p">)</span>
+</span><span id="__span-0-772"><a id="__codelineno-0-772" name="__codelineno-0-772"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3958,47 +4111,47 @@ in the run config.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/runtime.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-725">725</a></span>
-<span class="normal"><a href="#__codelineno-0-726">726</a></span>
-<span class="normal"><a href="#__codelineno-0-727">727</a></span>
-<span class="normal"><a href="#__codelineno-0-728">728</a></span>
-<span class="normal"><a href="#__codelineno-0-729">729</a></span>
-<span class="normal"><a href="#__codelineno-0-730">730</a></span>
-<span class="normal"><a href="#__codelineno-0-731">731</a></span>
-<span class="normal"><a href="#__codelineno-0-732">732</a></span>
-<span class="normal"><a href="#__codelineno-0-733">733</a></span>
-<span class="normal"><a href="#__codelineno-0-734">734</a></span>
-<span class="normal"><a href="#__codelineno-0-735">735</a></span>
-<span class="normal"><a href="#__codelineno-0-736">736</a></span>
-<span class="normal"><a href="#__codelineno-0-737">737</a></span>
-<span class="normal"><a href="#__codelineno-0-738">738</a></span>
-<span class="normal"><a href="#__codelineno-0-739">739</a></span>
-<span class="normal"><a href="#__codelineno-0-740">740</a></span>
-<span class="normal"><a href="#__codelineno-0-741">741</a></span>
-<span class="normal"><a href="#__codelineno-0-742">742</a></span>
-<span class="normal"><a href="#__codelineno-0-743">743</a></span>
-<span class="normal"><a href="#__codelineno-0-744">744</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-725"><a id="__codelineno-0-725" name="__codelineno-0-725"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-726"><a id="__codelineno-0-726" name="__codelineno-0-726"></a><span class="w">    </span><span class="sd">"""Wait for agent shutdown to be signalled.</span>
-</span><span id="__span-0-727"><a id="__codelineno-0-727" name="__codelineno-0-727"></a>
-</span><span id="__span-0-728"><a id="__codelineno-0-728" name="__codelineno-0-728"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-729"><a id="__codelineno-0-729" name="__codelineno-0-729"></a><span class="sd">        timeout: Optional timeout in seconds to wait for a shutdown event.</span>
-</span><span id="__span-0-730"><a id="__codelineno-0-730" name="__codelineno-0-730"></a>
-</span><span id="__span-0-731"><a id="__codelineno-0-731" name="__codelineno-0-731"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-732"><a id="__codelineno-0-732" name="__codelineno-0-732"></a><span class="sd">        TimeoutError: If `timeout` was exceeded while waiting for agents.</span>
-</span><span id="__span-0-733"><a id="__codelineno-0-733" name="__codelineno-0-733"></a><span class="sd">    """</span>
-</span><span id="__span-0-734"><a id="__codelineno-0-734" name="__codelineno-0-734"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-735"><a id="__codelineno-0-735" name="__codelineno-0-735"></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
-</span><span id="__span-0-736"><a id="__codelineno-0-736" name="__codelineno-0-736"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_event</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span>
-</span><span id="__span-0-737"><a id="__codelineno-0-737" name="__codelineno-0-737"></a>            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
-</span><span id="__span-0-738"><a id="__codelineno-0-738" name="__codelineno-0-738"></a>        <span class="p">)</span>
-</span><span id="__span-0-739"><a id="__codelineno-0-739" name="__codelineno-0-739"></a>    <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
-</span><span id="__span-0-740"><a id="__codelineno-0-740" name="__codelineno-0-740"></a>        <span class="c1"># In Python 3.10 and older, asyncio.TimeoutError and TimeoutError</span>
-</span><span id="__span-0-741"><a id="__codelineno-0-741" name="__codelineno-0-741"></a>        <span class="c1"># are different error types.</span>
-</span><span id="__span-0-742"><a id="__codelineno-0-742" name="__codelineno-0-742"></a>        <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span>
-</span><span id="__span-0-743"><a id="__codelineno-0-743" name="__codelineno-0-743"></a>            <span class="sa">f</span><span class="s1">'Agent shutdown was not signalled within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s1"> seconds.'</span><span class="p">,</span>
-</span><span id="__span-0-744"><a id="__codelineno-0-744" name="__codelineno-0-744"></a>        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-774">774</a></span>
+<span class="normal"><a href="#__codelineno-0-775">775</a></span>
+<span class="normal"><a href="#__codelineno-0-776">776</a></span>
+<span class="normal"><a href="#__codelineno-0-777">777</a></span>
+<span class="normal"><a href="#__codelineno-0-778">778</a></span>
+<span class="normal"><a href="#__codelineno-0-779">779</a></span>
+<span class="normal"><a href="#__codelineno-0-780">780</a></span>
+<span class="normal"><a href="#__codelineno-0-781">781</a></span>
+<span class="normal"><a href="#__codelineno-0-782">782</a></span>
+<span class="normal"><a href="#__codelineno-0-783">783</a></span>
+<span class="normal"><a href="#__codelineno-0-784">784</a></span>
+<span class="normal"><a href="#__codelineno-0-785">785</a></span>
+<span class="normal"><a href="#__codelineno-0-786">786</a></span>
+<span class="normal"><a href="#__codelineno-0-787">787</a></span>
+<span class="normal"><a href="#__codelineno-0-788">788</a></span>
+<span class="normal"><a href="#__codelineno-0-789">789</a></span>
+<span class="normal"><a href="#__codelineno-0-790">790</a></span>
+<span class="normal"><a href="#__codelineno-0-791">791</a></span>
+<span class="normal"><a href="#__codelineno-0-792">792</a></span>
+<span class="normal"><a href="#__codelineno-0-793">793</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-774"><a id="__codelineno-0-774" name="__codelineno-0-774"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-775"><a id="__codelineno-0-775" name="__codelineno-0-775"></a><span class="w">    </span><span class="sd">"""Wait for agent shutdown to be signalled.</span>
+</span><span id="__span-0-776"><a id="__codelineno-0-776" name="__codelineno-0-776"></a>
+</span><span id="__span-0-777"><a id="__codelineno-0-777" name="__codelineno-0-777"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-778"><a id="__codelineno-0-778" name="__codelineno-0-778"></a><span class="sd">        timeout: Optional timeout in seconds to wait for a shutdown event.</span>
+</span><span id="__span-0-779"><a id="__codelineno-0-779" name="__codelineno-0-779"></a>
+</span><span id="__span-0-780"><a id="__codelineno-0-780" name="__codelineno-0-780"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-781"><a id="__codelineno-0-781" name="__codelineno-0-781"></a><span class="sd">        TimeoutError: If `timeout` was exceeded while waiting for agents.</span>
+</span><span id="__span-0-782"><a id="__codelineno-0-782" name="__codelineno-0-782"></a><span class="sd">    """</span>
+</span><span id="__span-0-783"><a id="__codelineno-0-783" name="__codelineno-0-783"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-784"><a id="__codelineno-0-784" name="__codelineno-0-784"></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
+</span><span id="__span-0-785"><a id="__codelineno-0-785" name="__codelineno-0-785"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_event</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span>
+</span><span id="__span-0-786"><a id="__codelineno-0-786" name="__codelineno-0-786"></a>            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+</span><span id="__span-0-787"><a id="__codelineno-0-787" name="__codelineno-0-787"></a>        <span class="p">)</span>
+</span><span id="__span-0-788"><a id="__codelineno-0-788" name="__codelineno-0-788"></a>    <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+</span><span id="__span-0-789"><a id="__codelineno-0-789" name="__codelineno-0-789"></a>        <span class="c1"># In Python 3.10 and older, asyncio.TimeoutError and TimeoutError</span>
+</span><span id="__span-0-790"><a id="__codelineno-0-790" name="__codelineno-0-790"></a>        <span class="c1"># are different error types.</span>
+</span><span id="__span-0-791"><a id="__codelineno-0-791" name="__codelineno-0-791"></a>        <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span>
+</span><span id="__span-0-792"><a id="__codelineno-0-792" name="__codelineno-0-792"></a>            <span class="sa">f</span><span class="s1">'Agent shutdown was not signalled within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s1"> seconds.'</span><span class="p">,</span>
+</span><span id="__span-0-793"><a id="__codelineno-0-793" name="__codelineno-0-793"></a>        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>

@@ -2685,6 +2685,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../mypy_plugin/" class="md-nav__link">
         
   
@@ -3284,7 +3312,8 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
 
 
 
@@ -3345,6 +3374,7 @@
 </div>
 
 
+
 <div class="doc doc-object doc-class">
 
 
@@ -3359,6 +3389,7 @@
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a>[<span title="academy.identifier.AgentT">AgentT</span>]</code></p>
+
 
 
         <p>Agent exchange registration information.</p>
@@ -3398,7 +3429,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3432,6 +3465,7 @@
               Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a>[<span title="academy.exchange.transport.AgentRegistrationT_co">AgentRegistrationT_co</span>]</code></p>
 
 
+
         <p>Low-level exchange communicator.</p>
 <p>A message exchange hosts mailboxes for each entity (i.e., agent or
 user) in a multi-agent system. This transport protocol defines mechanisms
@@ -3455,7 +3489,8 @@ agent.</p>
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
 
 
 
@@ -3494,6 +3529,7 @@ agent.</p>
 
 
 
+
 <div class="doc doc-object doc-function">
 
 
@@ -3520,7 +3556,7 @@ agent.</p>
 to. I.e., the mailbox will not be terminated.</p>
 </details>
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-79">79</a></span>
 <span class="normal"><a href="#__codelineno-0-80">80</a></span>
@@ -3632,7 +3668,7 @@ agent.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-88"> 88</a></span>
 <span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
@@ -3707,7 +3743,7 @@ agent.</p>
         <p>Get an exchange factory.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-115">115</a></span>
 <span class="normal"><a href="#__codelineno-0-116">116</a></span>
@@ -3792,7 +3828,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-119">119</a></span>
 <span class="normal"><a href="#__codelineno-0-120">120</a></span>
@@ -3912,7 +3948,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-142">142</a></span>
 <span class="normal"><a href="#__codelineno-0-143">143</a></span>
@@ -4026,7 +4062,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-162">162</a></span>
 <span class="normal"><a href="#__codelineno-0-163">163</a></span>
@@ -4140,7 +4176,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-175">175</a></span>
 <span class="normal"><a href="#__codelineno-0-176">176</a></span>
@@ -4219,7 +4255,7 @@ next message or the mailbox is closed.</p>
         <p>Update the heartbeat timestamp for this transport's mailbox.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-202">202</a></span>
 <span class="normal"><a href="#__codelineno-0-203">203</a></span>
@@ -4294,7 +4330,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-206">206</a></span>
 <span class="normal"><a href="#__codelineno-0-207">207</a></span>
@@ -4402,7 +4438,7 @@ next message or the mailbox is closed.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/transport.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-219">219</a></span>
 <span class="normal"><a href="#__codelineno-0-220">220</a></span>
@@ -4453,6 +4489,7 @@ next message or the mailbox is closed.</p>
     <div class="doc doc-contents ">
 
 
+
         <p>Magic method mixin for exchange transport implementations.</p>
 <p>Adds <code>__repr__</code>, <code>__str__</code>, and context manager support.</p>
 
@@ -4465,7 +4502,9 @@ next message or the mailbox is closed.</p>
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 

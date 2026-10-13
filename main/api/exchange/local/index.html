@@ -2598,6 +2598,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../mypy_plugin/" class="md-nav__link">
         
   
@@ -3110,7 +3138,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3127,6 +3157,10 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">LocalAgentRegistration</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.local.LocalAgentRegistration" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
@@ -3134,19 +3168,36 @@
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code>, <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<span title="academy.identifier.AgentT">AgentT</span>]</code></p>
 
-
         <p>Agent registration for local exchanges.</p>
 
+    
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            agent_id
+
+
+  
+      pydantic-field
+   (academy.exchange.local.LocalAgentRegistration.agent_id)" href="#academy.exchange.local.LocalAgentRegistration.agent_id">agent_id</a></code>
+                (<code><a class="autorefs autorefs-internal" title="            AgentId
+
+
+  
+      pydantic-model
+   (academy.identifier.AgentId)" href="../../identifier/#academy.identifier.AgentId">AgentId</a>[<span title="academy.identifier.AgentT">AgentT</span>]</code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.local.LocalAgentRegistration.exchange_type">exchange_type</span></code>
+                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;local&#39;]</code>)
+            </li>
+        </ul>
 
 
 
 
-
-
-
-
-
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -3163,7 +3214,7 @@
 
 
   <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
   </span>
 
 <a href="#academy.exchange.local.LocalAgentRegistration.agent_id" class="headerlink" title="Permanent link">&para;</a></h3>
@@ -3182,6 +3233,7 @@
     </div>
 
 </div>
+
 
 
 
@@ -3217,6 +3269,7 @@
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeTransportMixin (academy.exchange.transport.ExchangeTransportMixin)" href="../transport/#academy.exchange.transport.ExchangeTransportMixin">ExchangeTransportMixin</a></code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
 
 
+
         <p>Local exchange client bound to a specific mailbox.</p>
 
 
@@ -3225,7 +3278,8 @@
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/local.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-82">82</a></span>
 <span class="normal"><a href="#__codelineno-0-83">83</a></span>
@@ -3245,7 +3299,8 @@
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3338,7 +3393,7 @@ bound to that mailbox.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/local.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
 <span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
@@ -3427,13 +3482,19 @@ bound to that mailbox.</p>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">LocalExchangeFactory</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">_state</span><span class="p">:</span> <span class="n"><span title="academy.exchange.local._LocalExchangeState">_LocalExchangeState</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="../client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="../client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeFactory (academy.exchange.factory.ExchangeFactory)" href="../factory/#academy.exchange.factory.ExchangeFactory">ExchangeFactory</a>[<a class="autorefs autorefs-internal" title="            LocalExchangeTransport (academy.exchange.local.LocalExchangeTransport)" href="#academy.exchange.local.LocalExchangeTransport">LocalExchangeTransport</a>]</code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
+
 
 
         <p>Local exchange client factory.</p>
@@ -3446,7 +3507,8 @@ in a single process.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/local.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-312">312</a></span>
 <span class="normal"><a href="#__codelineno-0-313">313</a></span>
@@ -3468,7 +3530,8 @@ in a single process.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3564,7 +3627,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -3730,7 +3793,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>

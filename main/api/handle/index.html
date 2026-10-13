@@ -2733,6 +2733,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mypy_plugin/" class="md-nav__link">
         
   
@@ -3364,7 +3392,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3405,6 +3435,7 @@
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<span title="academy.handle.AgentT_co">AgentT_co</span>]</code></p>
+
 
 
         <p>Handle to a remote agent.</p>
@@ -3550,7 +3581,8 @@ use the same strategy as the result serializer.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/handle.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
 <span class="normal"><a href="#__codelineno-0-100">100</a></span>
@@ -3650,7 +3682,7 @@ use the same strategy as the result serializer.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -3776,6 +3808,7 @@ current context nor was one provided to the handle.</p>
 
 
 
+
 <div class="doc doc-object doc-function">
 
 
@@ -3794,7 +3827,7 @@ current context nor was one provided to the handle.</p>
 remote action.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-239">239</a></span>
 <span class="normal"><a href="#__codelineno-0-240">240</a></span>
@@ -3844,7 +3877,7 @@ remote action.</p>
         <p>Return live exchange-level metrics for the remote agent.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-266">266</a></span>
 <span class="normal"><a href="#__codelineno-0-267">267</a></span>
@@ -3877,7 +3910,7 @@ remote action.</p>
         <p>Return live status of the agent mailbox.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-270">270</a></span>
 <span class="normal"><a href="#__codelineno-0-271">271</a></span>
@@ -3997,7 +4030,7 @@ inactive (reject_on_inactive=True)</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-369">369</a></span>
 <span class="normal"><a href="#__codelineno-0-370">370</a></span>
@@ -4359,7 +4392,7 @@ typically indicates the agent shutdown for another reason
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-513">513</a></span>
 <span class="normal"><a href="#__codelineno-0-514">514</a></span>
@@ -4552,7 +4585,7 @@ typically indicates the agent shutdown for another reason
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-612">612</a></span>
 <span class="normal"><a href="#__codelineno-0-613">613</a></span>
@@ -4658,6 +4691,7 @@ typically indicates the agent shutdown for another reason
               Bases: <code><a class="autorefs autorefs-internal" title="            Handle (academy.handle.Handle)" href="#academy.handle.Handle">Handle</a>[<span title="academy.identifier.AgentT">AgentT</span>]</code></p>
 
 
+
         <p>Proxy handle.</p>
 <p>A proxy handle is thin wrapper around an
 <a class="autorefs autorefs-internal" title="            Agent" href="../agent/#academy.agent.Agent"><code>Agent</code></a> instance that is useful for testing
@@ -4670,7 +4704,8 @@ needing to spawn agents. This wrapper invokes actions synchronously.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/handle.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-660">660</a></span>
 <span class="normal"><a href="#__codelineno-0-661">661</a></span>
@@ -4686,7 +4721,7 @@ needing to spawn agents. This wrapper invokes actions synchronously.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -4812,6 +4847,7 @@ current context nor was one provided to the handle.</p>
 
 
 
+
 <div class="doc doc-object doc-function">
 
 
@@ -4898,7 +4934,7 @@ typically indicates the agent shutdown for another reason
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-694">694</a></span>
 <span class="normal"><a href="#__codelineno-0-695">695</a></span>
@@ -5018,7 +5054,7 @@ typically indicates the agent shutdown for another reason
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-717">717</a></span>
 <span class="normal"><a href="#__codelineno-0-718">718</a></span>
@@ -5121,7 +5157,7 @@ typically indicates the agent shutdown for another reason
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-738">738</a></span>
 <span class="normal"><a href="#__codelineno-0-739">739</a></span>
@@ -5180,7 +5216,7 @@ typically indicates the agent shutdown for another reason
 remote action.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-239">239</a></span>
 <span class="normal"><a href="#__codelineno-0-240">240</a></span>
@@ -5230,7 +5266,7 @@ remote action.</p>
         <p>Return live exchange-level metrics for the remote agent.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-266">266</a></span>
 <span class="normal"><a href="#__codelineno-0-267">267</a></span>
@@ -5263,7 +5299,7 @@ remote action.</p>
         <p>Return live status of the agent mailbox.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/handle.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-270">270</a></span>
 <span class="normal"><a href="#__codelineno-0-271">271</a></span>

@@ -2540,6 +2540,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../mypy_plugin/" class="md-nav__link">
         
   
@@ -2978,7 +3006,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3004,6 +3034,7 @@
               Bases: <code><a class="autorefs autorefs-external" title="concurrent.futures.Executor" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor">Executor</a></code></p>
 
 
+
         <p>Modified Executor that packs multiple agents into one event loop.</p>
 <p>This executor spends a single inner worker on a hidden host agent, then
 runs every subsequent Agent submission onto that host's own event loop.</p>
@@ -3027,7 +3058,8 @@ runs every subsequent Agent submission onto that host's own event loop.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/executor.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-60">60</a></span>
 <span class="normal"><a href="#__codelineno-0-61">61</a></span>
@@ -3067,7 +3099,8 @@ runs every subsequent Agent submission onto that host's own event loop.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3129,7 +3162,7 @@ runs every subsequent Agent submission onto that host's own event loop.</p>
         <p>Returns: Future resolving when fn finishes on host.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/executor.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-85"> 85</a></span>
 <span class="normal"><a href="#__codelineno-0-86"> 86</a></span>
@@ -3233,7 +3266,7 @@ wait: Wait for the inner executor to finish before returning.
 cancel_futures: Cancel pending futures before shutting down.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/executor.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-168">168</a></span>
 <span class="normal"><a href="#__codelineno-0-169">169</a></span>

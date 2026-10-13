@@ -2609,6 +2609,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../mypy_plugin/" class="md-nav__link">
         
   
@@ -3132,7 +3160,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3149,6 +3179,10 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">RedisAgentRegistration</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.redis.RedisAgentRegistration" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
@@ -3156,19 +3190,36 @@
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code>, <code><a class="autorefs autorefs-external" title="typing.Generic" href="https://docs.python.org/3/library/typing.html#typing.Generic">Generic</a>[<span title="academy.identifier.AgentT">AgentT</span>]</code></p>
 
-
         <p>Agent registration for redis exchanges.</p>
 
+    
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            agent_id
+
+
+  
+      pydantic-field
+   (academy.exchange.redis.RedisAgentRegistration.agent_id)" href="#academy.exchange.redis.RedisAgentRegistration.agent_id">agent_id</a></code>
+                (<code><a class="autorefs autorefs-internal" title="            AgentId
+
+
+  
+      pydantic-model
+   (academy.identifier.AgentId)" href="../../identifier/#academy.identifier.AgentId">AgentId</a>[<span title="academy.identifier.AgentT">AgentT</span>]</code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.redis.RedisAgentRegistration.exchange_type">exchange_type</span></code>
+                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;redis&#39;]</code>)
+            </li>
+        </ul>
 
 
 
 
-
-
-
-
-
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -3185,7 +3236,7 @@
 
 
   <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
   </span>
 
 <a href="#academy.exchange.redis.RedisAgentRegistration.agent_id" class="headerlink" title="Permanent link">&para;</a></h3>
@@ -3204,6 +3255,7 @@
     </div>
 
 </div>
+
 
 
 
@@ -3242,6 +3294,7 @@
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeTransportMixin (academy.exchange.transport.ExchangeTransportMixin)" href="../transport/#academy.exchange.transport.ExchangeTransportMixin">ExchangeTransportMixin</a></code>, <code><a class="autorefs autorefs-internal" title="            NoPickleMixin (academy.serialize.NoPickleMixin)" href="../../serialize/#academy.serialize.NoPickleMixin">NoPickleMixin</a></code></p>
 
 
+
         <p>Redis exchange transport bound to a specific mailbox.</p>
 
 
@@ -3250,7 +3303,8 @@
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/redis.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-74">74</a></span>
 <span class="normal"><a href="#__codelineno-0-75">75</a></span>
@@ -3276,7 +3330,8 @@
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3383,7 +3438,7 @@ reachable.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/redis.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-106">106</a></span>
 <span class="normal"><a href="#__codelineno-0-107">107</a></span>
@@ -3522,7 +3577,7 @@ reachable.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/redis.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-376">376</a></span>
 <span class="normal"><a href="#__codelineno-0-377">377</a></span>
@@ -3582,7 +3637,12 @@ reachable.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">hostname</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">port</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig (academy.exchange.client_config.ExchangeClientConfig)" href="../client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ExchangeClientConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.client_config.ExchangeClientConfig)" href="../client_config/#academy.exchange.client_config.ExchangeClientConfig">ExchangeClientConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="o">**</span><span class="n">redis_kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
 </span></code></pre></div>
@@ -3590,6 +3650,7 @@ reachable.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            ExchangeFactory (academy.exchange.factory.ExchangeFactory)" href="../factory/#academy.exchange.factory.ExchangeFactory">ExchangeFactory</a>[<a class="autorefs autorefs-internal" title="            RedisExchangeTransport (academy.exchange.redis.RedisExchangeTransport)" href="#academy.exchange.redis.RedisExchangeTransport">RedisExchangeTransport</a>]</code></p>
+
 
 
         <p>Redis exchange client factory.</p>
@@ -3632,7 +3693,8 @@ reachable.</p>
 
 
 
-                  <details class="quote">
+
+                  <details class="mkdocstrings-source">
                     <summary>Source code in <code>academy/exchange/redis.py</code></summary>
                     <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-430">430</a></span>
 <span class="normal"><a href="#__codelineno-0-431">431</a></span>
@@ -3658,7 +3720,8 @@ reachable.</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3754,7 +3817,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
 <span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
@@ -3920,7 +3983,7 @@ already registered with the exchange.</p>
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/factory.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>

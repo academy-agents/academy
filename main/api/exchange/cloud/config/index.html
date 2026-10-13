@@ -2678,6 +2678,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    academy.middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../mypy_plugin/" class="md-nav__link">
         
   
@@ -3288,7 +3316,9 @@
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3305,13 +3335,16 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">LogConfig</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.cloud.config.LogConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
-
 
         <p>Log config for exchange server.</p>
 
@@ -3368,16 +3401,45 @@
         </li>
     </ul>
 
+    
+      <p>Config:</p>
+      <ul>
+          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
+      </ul>
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="academy.exchange.cloud.config.LogConfig.level">level</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.LogConfig.logfile">logfile</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.LogConfig.logfile_level">logfile_level</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.LogConfig.rotate">rotate</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.LogConfig.rotation_interval_days">rotation_interval_days</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.LogConfig.backup_count">backup_count</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+        </ul>
 
 
 
 
+<div class="doc doc-children">
 
-
-
-
-
-  <div class="doc doc-children">
 
 
 
@@ -3403,7 +3465,7 @@
         <p>Initialize logger from this configuration.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/config.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-60"> 60</a></span>
 <span class="normal"><a href="#__codelineno-0-61"> 61</a></span>
@@ -3538,13 +3600,16 @@
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ExchangeAuthConfig</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.cloud.config.ExchangeAuthConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
-
 
         <p>Exchange authentication configuration.</p>
 
@@ -3571,16 +3636,29 @@ class because they often contain secrets.</p>
         </li>
     </ul>
 
+    
+      <p>Config:</p>
+      <ul>
+          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
+      </ul>
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeAuthConfig.method">method</span></code>
+                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;globus&#39;] | None</code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeAuthConfig.kwargs">kwargs</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
+            </li>
+        </ul>
 
 
 
 
+<div class="doc doc-children">
 
-
-
-
-
-  <div class="doc doc-children">
 
 
 
@@ -3614,6 +3692,7 @@ class because they often contain secrets.</p>
               Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a></code></p>
 
 
+
         <p>Config for backend of storing messages.</p>
 
 
@@ -3625,7 +3704,9 @@ class because they often contain secrets.</p>
 
 
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -3655,7 +3736,7 @@ class because they often contain secrets.</p>
         <p>Construct an instance of the backend from the config.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/config.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-137">137</a></span>
 <span class="normal"><a href="#__codelineno-0-138">138</a></span>
@@ -3686,13 +3767,16 @@ class because they often contain secrets.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">PythonBackendConfig</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.cloud.config.PythonBackendConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
-
 
         <p>Config for using PythonBackend.</p>
 
@@ -3710,16 +3794,29 @@ Bound by the SSE limit imposed by aiohttp.</p>
         </li>
     </ul>
 
+    
+      <p>Config:</p>
+      <ul>
+          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
+      </ul>
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="academy.exchange.cloud.config.PythonBackendConfig.message_size_limit_kb">message_size_limit_kb</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.PythonBackendConfig.kind">kind</span></code>
+                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;python&#39;]</code>)
+            </li>
+        </ul>
 
 
 
 
+<div class="doc doc-children">
 
-
-
-
-
-  <div class="doc doc-children">
 
 
 
@@ -3745,7 +3842,7 @@ Bound by the SSE limit imposed by aiohttp.</p>
         <p>Construct an instance of the backend from the config.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/config.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-157">157</a></span>
 <span class="normal"><a href="#__codelineno-0-158">158</a></span>
@@ -3778,13 +3875,16 @@ Bound by the SSE limit imposed by aiohttp.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">RedisBackendConfig</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.cloud.config.RedisBackendConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
-
 
         <p>Config for RedisBackend.</p>
 
@@ -3843,16 +3943,49 @@ After this, a mailbox may be recreated with the same id.</p>
         </li>
     </ul>
 
+    
+      <p>Config:</p>
+      <ul>
+          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
+      </ul>
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.hostname">hostname</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.port">port</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.message_size_limit_kb">message_size_limit_kb</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.mailbox_expiration_d">mailbox_expiration_d</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.gravestone_expiration_d">gravestone_expiration_d</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#float">float</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.kwargs">kwargs</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.RedisBackendConfig.kind">kind</span></code>
+                (<code><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a>[&#39;redis&#39;]</code>)
+            </li>
+        </ul>
 
 
 
 
+<div class="doc doc-children">
 
-
-
-
-
-  <div class="doc doc-children">
 
 
 
@@ -3878,7 +4011,7 @@ After this, a mailbox may be recreated with the same id.</p>
         <p>Construct an instance of the backend from the config.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/config.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-188">188</a></span>
 <span class="normal"><a href="#__codelineno-0-189">189</a></span>
@@ -3925,13 +4058,16 @@ After this, a mailbox may be recreated with the same id.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ExchangeServingConfig</span>
 
 
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
 <a href="#academy.exchange.cloud.config.ExchangeServingConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/pydantic/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
-
 
         <p>Exchange serving configuration.</p>
 
@@ -3981,7 +4117,12 @@ taken from the certfile.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="academy.exchange.cloud.config.ExchangeServingConfig.auth">auth</span></code></b>
-              (<code><a class="autorefs autorefs-internal" title="            ExchangeAuthConfig (academy.exchange.cloud.config.ExchangeAuthConfig)" href="#academy.exchange.cloud.config.ExchangeAuthConfig">ExchangeAuthConfig</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="            ExchangeAuthConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.cloud.config.ExchangeAuthConfig)" href="#academy.exchange.cloud.config.ExchangeAuthConfig">ExchangeAuthConfig</a></code>)
           –
           <div class="doc-md-description">
             <p>Authentication configuration.</p>
@@ -3997,7 +4138,12 @@ taken from the certfile.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="academy.exchange.cloud.config.ExchangeServingConfig.logger">logger</span></code></b>
-              (<code><a class="autorefs autorefs-internal" title="            LogConfig (academy.exchange.cloud.config.LogConfig)" href="#academy.exchange.cloud.config.LogConfig">LogConfig</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="            LogConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.cloud.config.LogConfig)" href="#academy.exchange.cloud.config.LogConfig">LogConfig</a></code>)
           –
           <div class="doc-md-description">
             <p>Log configuration.</p>
@@ -4005,16 +4151,63 @@ taken from the certfile.</p>
         </li>
     </ul>
 
+    
+      <p>Config:</p>
+      <ul>
+          <li><code>extra</code>: <code class="highlight language-python"><span class="n">forbid</span></code></li>
+      </ul>
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.host">host</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.port">port</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.certfile">certfile</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.keyfile">keyfile</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.listen_timeout_s">listen_timeout_s</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.auth">auth</span></code>
+                (<code><a class="autorefs autorefs-internal" title="            ExchangeAuthConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.cloud.config.ExchangeAuthConfig)" href="#academy.exchange.cloud.config.ExchangeAuthConfig">ExchangeAuthConfig</a></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.backend">backend</span></code>
+                (<code><span title="academy.exchange.cloud.config.BackendConfigT">BackendConfigT</span></code>)
+            </li>
+            <li>
+              <code><span title="academy.exchange.cloud.config.ExchangeServingConfig.logger">logger</span></code>
+                (<code><a class="autorefs autorefs-internal" title="            LogConfig
+
+
+  
+      pydantic-model
+   (academy.exchange.cloud.config.LogConfig)" href="#academy.exchange.cloud.config.LogConfig">LogConfig</a></code>)
+            </li>
+        </ul>
 
 
 
 
+<div class="doc doc-children">
 
-
-
-
-
-  <div class="doc doc-children">
 
 
 
@@ -4087,7 +4280,7 @@ optional value with a default).
 </span></code></pre></div>
 </details>
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/config.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-231">231</a></span>
 <span class="normal"><a href="#__codelineno-0-232">232</a></span>
@@ -4252,7 +4445,7 @@ optional value with a default).
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/config.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-283">283</a></span>
 <span class="normal"><a href="#__codelineno-0-284">284</a></span>
@@ -4330,7 +4523,7 @@ optional value with a default).
     </ul>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>academy/exchange/cloud/config.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-296">296</a></span>
 <span class="normal"><a href="#__codelineno-0-297">297</a></span>

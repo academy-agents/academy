@@ -19,12 +19,13 @@ class ActionCall:
 
     Attributes:
         action: Name of the action being invoked.
-        source_id: ID of the entity that requested the action.
-        agent_id: ID of the agent executing the action.
+        agent_context: Context of the agent executing the action
+            (the agent ID is `agent_context.agent_id`).
+        action_context: Context of this invocation (the requester is
+            `action_context.source_id` and the request message tag is
+            `action_context.tag`).
         args: Tuple of positional arguments.
         kwargs: Dictionary of keyword arguments.
-        tag: Unique tag of the request message that initiated this
-            invocation, if the action was initiated by a message.
     """
 
     action: str

@@ -22,7 +22,7 @@ from .helpers import VersionSort, valid_academy_version, create_env, managed_com
 from .helpers import *
 
 
-def run_test_1(version_set: dict):
+def run_test_agent_ping_via_http_exchange(version_set: dict):
     """Test agent, client and HTTP exchange from different environments.
 
 
@@ -55,14 +55,14 @@ port = 1234
 
         base = os.getcwd()
 
-        with managed_commandline(f'python3 {base}/tests/crossver/test_1/agent.py', daemon=True, env=v2_env) as p2:
+        with managed_commandline(f'python3 {base}/tests/crossver/test_agent_ping_via_http_exchange/agent.py', daemon=True, env=v2_env) as p2:
 
             time.sleep(3)
 
             # This might be the same location, if v2 = v3
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
-            with managed_commandline(f'python3 {base}/tests/crossver/test_1/client.py', daemon=False, env=v3_env) as p3:
+            with managed_commandline(f'python3 {base}/tests/crossver/test_agent_ping_via_http_exchange/client.py', daemon=False, env=v3_env) as p3:
                 pass
 
 
@@ -274,7 +274,7 @@ count = 0
 while solver.check() == z3.sat:
     count += 1
     m = solver.model()
-    print(f'=== test_1: solution {count} ===')
+    print(f'=== test_agent_ping_via_http_exchange: solution {count} ===')
     print(m)
     # when a v is not bound, force a choice. it doesn't matter what.
     chosen_v1 = m[v1] if m[v1] is not None else v040
@@ -291,7 +291,7 @@ while solver.check() == z3.sat:
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
     if not dry_run_mode:
-        run_test_1(this_version_set)
+        run_test_agent_ping_via_http_exchange(this_version_set)
 
 # pops the iteration-forcing constraints and anything that is specific
 # to particular test case (nothing in this case, but different later).

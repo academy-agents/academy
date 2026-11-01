@@ -3,6 +3,7 @@ import os
 import pathlib
 import signal
 import subprocess
+import time
 import random
 import z3
 
@@ -15,7 +16,7 @@ def create_env(descr: dict) -> pathlib.Path:
     global test_run_root
 
     if test_run_root is None:
-        test_run_root = pathlib.Path('.') / ('crossver-' + str(random.randint(0, 999999999)))
+        test_run_root = pathlib.Path('.') / ('crossver-' + str(int(time.time())))
 
     assert test_run_root is not None
 

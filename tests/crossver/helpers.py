@@ -43,9 +43,11 @@ def create_env(descr: dict) -> pathlib.Path:
     if install_target == 'HERE':
         install_target = here_path
 
-    os.system(
-        f'cd {env_path}; virtualenv ./venv; pwd; ls; . ./venv/bin/activate; which python; pip install {install_target}',
+    r = os.system(
+        f'export PATH=~/.local/bin/:$PATH ; set -e ; uv venv {env_path}/venv --seed --python=python3.14 ; . {env_path}/venv/bin/activate ; which python ; python -m pip install {install_target}',
     )
+    if r != 0:
+        raise RuntimeError(f"System call exited with exit code {r}")
 
     envs[str(descr)] = env_path
     return env_path

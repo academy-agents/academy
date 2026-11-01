@@ -54,15 +54,15 @@ dev = [
 ]
 docs = [
     "black==26.3.1",
-    "griffe==1.7.3",
-    "griffe-pydantic==1.1.4",
+    "griffe==2.3.2",
+    "griffe-pydantic==1.3.2",
     "mkdocs-autorefs==1.4.1",
     "mkdocs-gen-files==0.5.0",
     "mkdocs-literate-nav==0.6.2",
     "mkdocs-material==9.7.7",
     "mkdocs-section-index==0.3.10",
-    "mkdocstrings==0.29.1",
-    "mkdocstrings-python==1.16.10",
+    "mkdocstrings==1.0.7",
+    "mkdocstrings-python==2.0.9",
     "mike==2.1.3",
 ]
 proxystore = ["proxystore>=1,<3"]

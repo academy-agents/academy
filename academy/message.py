@@ -4,6 +4,7 @@ import sys
 import uuid
 from enum import IntEnum
 from typing import Any
+from typing import cast
 from typing import Generic
 from typing import get_args
 from typing import Literal
@@ -580,13 +581,13 @@ class Message(BaseModel, Generic[BodyT]):
                 PROTOCOL_VERSION,
             )
 
-        adapter: TypeAdapter[BodyT] = TypeAdapter(Body)
+        adapter: TypeAdapter[Body] = TypeAdapter(Body)
         body = (
             adapter.validate_json(self.body)
             if isinstance(self.body, str)
             else adapter.validate_python(self.body)
         )
-        self.body = body
+        self.body = cast(BodyT, body)
         return self.body
 
     def is_request(self) -> bool:

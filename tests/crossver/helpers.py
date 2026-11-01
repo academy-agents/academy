@@ -36,9 +36,8 @@ def create_env(descr: dict) -> pathlib.Path:
 
     here_path = os.getcwd()
 
-    print(install_deps)
-    print(descr['academy'])
-    print(type(descr['academy']))
+    print(f"Install deps: {install_deps}")
+    print(f"Academy version: {descr['academy']}")
     install_target = install_deps[descr['academy']]
 
     if install_target == 'HERE':

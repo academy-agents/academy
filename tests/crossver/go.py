@@ -14,7 +14,7 @@ import z3
 # involve the HERE version - for example, this makes sense if you are
 # contributing a pull request which does not modify the crossver tests in
 # any way.
-here_mode = False
+here_mode = True
 
 dry_run_mode = False
 
@@ -199,8 +199,6 @@ v3 = z3.Const('v3', VersionSort)
 # Three-environment tests (exchange, agent, client)
 
 
-if here_mode:
-    solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
 
 # simulations of semver...
 
@@ -245,6 +243,8 @@ solver.add(valid_academy_version(v1))
 solver.add(valid_academy_version(v2))
 solver.add(valid_academy_version(v3))
 
+if here_mode:
+    solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
 
 # The HTTP Exchange wire protocol changed incompatibly from 0.4.0 to 0.5.0
 # so if any component is past 0.5.0 then they must all be that way.

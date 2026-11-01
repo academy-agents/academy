@@ -104,7 +104,8 @@ v050 = VersionSort.SemVer(0,5,0)
 v060 = VersionSort.SemVer(0,6,0)
 v070 = VersionSort.SemVer(0,7,0)
 v100 = VersionSort.SemVer(1,0,0)
-v_here = VersionSort.SemVer(1,0,1)  # this should dynamically be the latest, incremented by a relevant "next release type" parameter
+v101 = VersionSort.SemVer(1,0,1)
+v_here = VersionSort.SemVer(1,0,2)  # this should dynamically be the latest, incremented by a relevant "next release type" parameter, or configured manually and checked that it hasn't already been released, a "candidate release" variable
 
 def valid_academy_version(v):
   return z3.Or(v == v010,
@@ -116,6 +117,7 @@ def valid_academy_version(v):
                v == v060,
                v == v070,
                v == v100,
+               v == v101, # fake for testing merge
                v == v_here)
 
 install_deps = {}
@@ -129,5 +131,5 @@ install_deps[v050] = 'packaging academy-py==0.5.0'
 install_deps[v060] = 'packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1'  # untagged
 install_deps[v070] = 'packaging git+https://github.com/academy-agents/academy@2c2127324aacf5e6402b665876b9e7e548c9506d'  # untagged
 install_deps[v100] = 'academy-py==1.0.0'
+install_deps[v101] = 'git+https://github.com/academy-agents/academy@870bf0095639f4617e0f1826bc52952c029f21f4'  # untagged
 install_deps[v_here] = 'HERE'
-

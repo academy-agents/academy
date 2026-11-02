@@ -98,12 +98,12 @@ PyVersion = z3.Datatype('PythonVersion')
 PyVersion.declare ('Python', ('minor', z3.IntSort()))
 PyVersionSort = PyVersion.create()
 
-py310 = PyVersionSort.Python(10)
+py311 = PyVersionSort.Python(11)
 # py312 = PyVersionSort.Python(12)
 py314 = PyVersionSort.Python(14)
 
 py_targets = {}
-py_targets[py310] = "python3.10"
+py_targets[py311] = "python3.11"
 # py_targets[py312] = "python3.12"
 py_targets[py314] = "python3.14"
 
@@ -114,7 +114,7 @@ def valid_python_version(v):
   # test it all. for small scale testing, test far
   # fewer versions: e.g. oldest and newest?
   # return z3.Or(v == py310, v == py312, v == py314)
-  return z3.Or(v == py310, v == py314)
+  return z3.Or(v == py311, v == py314)
 
 Version = z3.Datatype('Version')
 Version.declare('SemVer', ('major', z3.IntSort()), ('minor', z3.IntSort()), ('patch', z3.IntSort()))

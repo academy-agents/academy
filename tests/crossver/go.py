@@ -18,7 +18,7 @@ here_mode = True
 
 dry_run_mode = False
 
-from .helpers import VersionSort, valid_academy_version, create_env, managed_commandline
+from .helpers import PyVersionSort, VersionSort, valid_academy_version, valid_python_version, create_env, managed_commandline
 from .helpers import *
 
 
@@ -196,6 +196,10 @@ v1 = z3.Const('v1', VersionSort)
 v2 = z3.Const('v2', VersionSort)
 v3 = z3.Const('v3', VersionSort)
 
+pyv1 = z3.Const('pyv1', PyVersionSort)
+pyv2 = z3.Const('pyv2', PyVersionSort)
+pyv3 = z3.Const('pyv3', PyVersionSort)
+
 # Three-environment tests (exchange, agent, client)
 
 
@@ -243,6 +247,10 @@ solver.add(valid_academy_version(v1))
 solver.add(valid_academy_version(v2))
 solver.add(valid_academy_version(v3))
 
+solver.add(valid_python_version(pyv1))
+solver.add(valid_python_version(pyv2))
+solver.add(valid_python_version(pyv3))
+
 if here_mode:
     solver.add(z3.Or(v1 == v_here, v2 == v_here, v3 == v_here))
 
@@ -276,17 +284,29 @@ while solver.check() == z3.sat:
     m = solver.model()
     print(f'=== test_agent_ping_via_http_exchange: solution {count} ===')
     print(m)
-    # when a v is not bound, force a choice. it doesn't matter what.
-    chosen_v1 = m[v1] if m[v1] is not None else v040
-    chosen_v2 = m[v2] if m[v2] is not None else v040
-    chosen_v3 = m[v3] if m[v3] is not None else v040
+
+    chosen_academy_v1 = m[v1]
+    chosen_academy_v2 = m[v2]
+    chosen_academy_v3 = m[v3]
+
+    chosen_python_v1 = m[pyv1]
+    chosen_python_v2 = m[pyv2]
+    chosen_python_v3 = m[pyv3]
+
+    # don't pick this solution again in future iterations
     solver.add(
-        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+        z3.Not(z3.And(v1 == chosen_academy_v1, 
+                      v2 == chosen_academy_v2,
+                      v3 == chosen_academy_v3,
+                      pyv1 == chosen_python_v1,
+                      pyv2 == chosen_python_v2,
+                      pyv3 == chosen_python_v3,
+                      )),
     )
 
-    _V1 = {'academy': chosen_v1}
-    _V2 = {'academy': chosen_v2}
-    _V3 = {'academy': chosen_v3}
+    _V1 = {'academy': chosen_academy_v1, 'python': chosen_python_v1}
+    _V2 = {'academy': chosen_academy_v2, 'python': chosen_python_v2}
+    _V3 = {'academy': chosen_academy_v3, 'python': chosen_python_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -296,8 +316,6 @@ while solver.check() == z3.sat:
 # pops the iteration-forcing constraints and anything that is specific
 # to particular test case (nothing in this case, but different later).
 solver.pop()
-
-# TODO - test these with different constraint sets.
 
 solver.push()
 
@@ -312,17 +330,23 @@ while solver.check() == z3.sat:
     m = solver.model()
     print(f'=== test_heartbeat: solution {count} ===')
     print(m)
-    # when a v is not bound, force a choice. it doesn't matter what.
-    chosen_v1 = m[v1] if m[v1] is not None else v040
-    chosen_v2 = m[v2] if m[v2] is not None else v040
-    chosen_v3 = m[v3] if m[v3] is not None else v040
+    chosen_v1 = m[v1]
+    chosen_python_v1 = m[pyv1]
+    chosen_v2 = m[v2]
+    chosen_python_v2 = m[pyv2]
+    chosen_v3 = m[v3]
+    chosen_python_v3 = m[pyv3]
     solver.add(
-        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3,
+                      pyv1 == chosen_python_v1,
+                      pyv2 == chosen_python_v2,
+                      pyv3 == chosen_python_v3,
+                     )),
     )
 
-    _V1 = {'academy': chosen_v1}
-    _V2 = {'academy': chosen_v2}
-    _V3 = {'academy': chosen_v3}
+    _V1 = {'academy': chosen_v1, 'python': chosen_python_v1}
+    _V2 = {'academy': chosen_v2, 'python': chosen_python_v2}
+    _V3 = {'academy': chosen_v3, 'python': chosen_python_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -367,16 +391,23 @@ while solver.check() == z3.sat:
     print(f'=== test_entity_status_client_0_5_0: solution {count} ===')
     print(m)
     # when a v is not bound, force a choice. it doesn't matter what.
-    chosen_v1 = m[v1] if m[v1] is not None else v040
-    chosen_v2 = m[v2] if m[v2] is not None else v040
-    chosen_v3 = m[v3] if m[v3] is not None else v040
+    chosen_v1 = m[v1]
+    chosen_python_v1 = m[pyv1]
+    chosen_v2 = m[v2]
+    chosen_python_v2 = m[pyv2]
+    chosen_v3 = m[v3]
+    chosen_python_v3 = m[pyv3]
     solver.add(
-        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3,
+                      pyv1 == chosen_python_v1,
+                      pyv2 == chosen_python_v2,
+                      pyv3 == chosen_python_v3,
+                      )),
     )
 
-    _V1 = {'academy': chosen_v1}
-    _V2 = {'academy': chosen_v2}
-    _V3 = {'academy': chosen_v3}
+    _V1 = {'academy': chosen_v1, 'python': chosen_python_v1}
+    _V2 = {'academy': chosen_v2, 'python': chosen_python_v2}
+    _V3 = {'academy': chosen_v3, 'python': chosen_python_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -402,17 +433,23 @@ while solver.check() == z3.sat:
     m = solver.model()
     print(f'=== test_entity_status_client_1_0_0: solution {count} ===')
     print(m)
-    # when a v is not bound, force a choice. it doesn't matter what.
-    chosen_v1 = m[v1] if m[v1] is not None else v040
-    chosen_v2 = m[v2] if m[v2] is not None else v040
-    chosen_v3 = m[v3] if m[v3] is not None else v040
+    chosen_v1 = m[v1]
+    chosen_python_v1 = m[pyv1]
+    chosen_v2 = m[v2]
+    chosen_python_v2 = m[pyv2]
+    chosen_v3 = m[v3]
+    chosen_python_v3 = m[pyv3]
     solver.add(
-        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3)),
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2, v3 == chosen_v3,
+                      pyv1 == chosen_python_v1,
+                      pyv2 == chosen_python_v2,
+                      pyv3 == chosen_python_v3,
+                     )),
     )
 
-    _V1 = {'academy': chosen_v1}
-    _V2 = {'academy': chosen_v2}
-    _V3 = {'academy': chosen_v3}
+    _V1 = {'academy': chosen_v1, 'python': chosen_python_v1}
+    _V2 = {'academy': chosen_v2, 'python': chosen_python_v2}
+    _V3 = {'academy': chosen_v3, 'python': chosen_python_v3}
 
     this_version_set = {'exchange': _V1, 'agent': _V2, 'client': _V3}
 
@@ -426,7 +463,10 @@ solver.pop()
 solver = z3.Solver()
 
 solver.add(valid_academy_version(v1))
+solver.add(valid_python_version(pyv1))
+
 solver.add(valid_academy_version(v2))
+solver.add(valid_python_version(pyv2))
 
 if here_mode:
   solver.add(z3.Or(v1 == v_here, v2 == v_here))
@@ -441,14 +481,19 @@ while solver.check() == z3.sat:
     m = solver.model()
     print(f'=== test_pickle_handle: solution {count} ===')
     print(m)
-    chosen_v1 = m[v1] if m[v1] is not None else v040
-    chosen_v2 = m[v2] if m[v2] is not None else v040
+    chosen_v1 = m[v1]
+    chosen_python_v1 = m[pyv1]
+    chosen_v2 = m[v2]
+    chosen_python_v2 = m[pyv2]
     solver.add(
-        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2)),
+        z3.Not(z3.And(v1 == chosen_v1, v2 == chosen_v2,
+                      pyv1 == chosen_python_v1,
+                      pyv2 == chosen_python_v2,
+                     )),
     )
 
-    _V1 = {'academy': chosen_v1}
-    _V2 = {'academy': chosen_v2}
+    _V1 = {'academy': chosen_v1, 'python': chosen_python_v1}
+    _V2 = {'academy': chosen_v2, 'python': chosen_python_v2}
     this_version_set = {'writer': _V1, 'reader': _V2}
 
     if not dry_run_mode:
@@ -462,6 +507,7 @@ solver.pop()
 solver = z3.Solver()
 
 solver.add(valid_academy_version(v1))
+solver.add(valid_python_version(pyv1))
 
 if here_mode:
     solver.add(v1 == v_here)
@@ -477,9 +523,10 @@ while solver.check() == z3.sat:
     m = solver.model()
     print(f'=== test_api_thread_executor_logconfig: solution {count} ===')
     print(m)
-    chosen_v1 = m[v1] if m[v1] is not None else v040
-    solver.add(z3.Not(v1 == chosen_v1))
-    _V1 = {'academy': chosen_v1}
+    chosen_v1 = m[v1]
+    chosen_python_v1 = m[pyv1]
+    solver.add(z3.Not(z3.And(v1 == chosen_v1, pyv1 == chosen_python_v1)))
+    _V1 = {'academy': chosen_v1, 'python': chosen_python_v1}
     this_version_set = {'program': _V1}
 
     if not dry_run_mode:
@@ -496,8 +543,9 @@ while solver.check() == z3.sat:
     print(f'=== test_api_thread_executor_nolog: solution {count} ===')
     print(m)
     chosen_v1 = m[v1] if m[v1] is not None else v040
-    solver.add(z3.Not(v1 == chosen_v1))
-    _V1 = {'academy': chosen_v1}
+    chosen_python_v1 = m[pyv1]
+    solver.add(z3.Not(z3.And(v1 == chosen_v1, pyv1 == chosen_python_v1)))
+    _V1 = {'academy': chosen_v1, 'python': chosen_python_v1}
     this_version_set = {'program': _V1}
 
     if not dry_run_mode:

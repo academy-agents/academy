@@ -27,7 +27,7 @@ def create_env(descr: dict) -> pathlib.Path:
         return envs[str(descr)]
 
     env_path = test_run_root / (
-        'env_' + str(random.randint(0, 999999999))
+        'env_academy-' + str(random.randint(0, 999999999))
     )
 
     print(f'creating env for {descr} at {env_path}')
@@ -38,14 +38,16 @@ def create_env(descr: dict) -> pathlib.Path:
 
     print(f"Install deps: {install_deps}")
     print(f"Academy version: {descr['academy']}")
+    print(f"Python version: {descr['python']}")
     install_target = install_deps[descr['academy']]
+    py_target = py_targets[descr['python']]
 
     if install_target == 'HERE':
         install_target = here_path
 
-    r = os.system(
-        f'export PATH=~/.local/bin/:$PATH ; set -e ; uv venv {env_path}/venv --seed --python=python3.14 ; . {env_path}/venv/bin/activate ; which python ; python -m pip install {install_target}',
-    )
+    commandline = f'export PATH=~/.local/bin/:$PATH ; set -e ; uv venv {env_path}/venv --seed --python={py_target} ; . {env_path}/venv/bin/activate ; which python ; python -m pip install {install_target}'
+    print(f"Will run command line: {commandline}")
+    r = os.system(commandline)
     if r != 0:
         raise RuntimeError(f"System call exited with exit code {r}")
 
@@ -92,6 +94,27 @@ def managed_commandline(cmdline: str, *, daemon: bool, env: str):
             p.wait()
             assert p.returncode == 0, 'process should have exited successfully'
 
+PyVersion = z3.Datatype('PythonVersion')
+PyVersion.declare ('Python', ('minor', z3.IntSort()))
+PyVersionSort = PyVersion.create()
+
+py310 = PyVersionSort.Python(10)
+# py312 = PyVersionSort.Python(12)
+py314 = PyVersionSort.Python(14)
+
+py_targets = {}
+py_targets[py310] = "python3.10"
+# py_targets[py312] = "python3.12"
+py_targets[py314] = "python3.14"
+
+def valid_python_version(v):
+  # TODO: be a bit more exhaustive?
+  # but restrict heavily here because this adds in a
+  # lot of complexity and could take a few days to
+  # test it all. for small scale testing, test far
+  # fewer versions: e.g. oldest and newest?
+  # return z3.Or(v == py310, v == py312, v == py314)
+  return z3.Or(v == py310, v == py314)
 
 Version = z3.Datatype('Version')
 Version.declare('SemVer', ('major', z3.IntSort()), ('minor', z3.IntSort()), ('patch', z3.IntSort()))
@@ -106,8 +129,7 @@ v050 = VersionSort.SemVer(0,5,0)
 v060 = VersionSort.SemVer(0,6,0)
 v070 = VersionSort.SemVer(0,7,0)
 v100 = VersionSort.SemVer(1,0,0)
-v101 = VersionSort.SemVer(1,0,1)
-v_here = VersionSort.SemVer(1,0,2)  # this should dynamically be the latest, incremented by a relevant "next release type" parameter, or configured manually and checked that it hasn't already been released, a "candidate release" variable
+v_here = VersionSort.SemVer(1,0,1)  # this should dynamically be the latest, incremented by a relevant "next release type" parameter, or configured manually and checked that it hasn't already been released, a "candidate release" variable
 
 def valid_academy_version(v):
   return z3.Or(v == v010,
@@ -119,7 +141,6 @@ def valid_academy_version(v):
                v == v060,
                v == v070,
                v == v100,
-               v == v101, # fake for testing merge
                v == v_here)
 
 install_deps = {}
@@ -133,5 +154,4 @@ install_deps[v050] = 'packaging academy-py==0.5.0'
 install_deps[v060] = 'packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1'  # untagged
 install_deps[v070] = 'packaging git+https://github.com/academy-agents/academy@2c2127324aacf5e6402b665876b9e7e548c9506d'  # untagged
 install_deps[v100] = 'academy-py==1.0.0'
-install_deps[v101] = 'git+https://github.com/academy-agents/academy@870bf0095639f4617e0f1826bc52952c029f21f4'  # untagged
 install_deps[v_here] = 'HERE'

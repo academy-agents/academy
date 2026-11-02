@@ -272,7 +272,7 @@ def compatibility_breaks_at(vs, major, minor=None):
     # all versions are pre the specified major version or
     # all versions are post the major version
     # This only accepts a major version, which means to use this constraint,
-    # you are forced to declare a new major version - in alignment with semer.
+    # you are forced to declare a new major version - in alignment with SemVer.
 
     if minor is not None:
         assert major == 0, "breakage is only permitted on major versions or dev-era minor versions"

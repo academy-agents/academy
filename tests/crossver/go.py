@@ -258,13 +258,11 @@ def closed_minimum_version(v, major, minor):
         z3.And(VersionSort.major(v) > major))
 
 
-def open_maximum_version(v, major, minor):
+def open_maximum_version(v, major):
     if isinstance(v, list):
-        return z3.And(*map(lambda v2: open_maximum_version(v2, major, minor), v))
+        return z3.And(*map(lambda v2: open_maximum_version(v2, major), v))
 
-    return z3.Or(
-        z3.And(VersionSort.major(v) == major, VersionSort.minor(v) < minor),
-        z3.And(VersionSort.major(v) < major))
+    return VersionSort.major(v) < major
 
 
 def compatibility_breaks_at(vs, major, minor=None):
@@ -409,7 +407,7 @@ solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
 # this test's client script.
 
 # This isn't a constraint on the wire protocol.
-solver.add(open_maximum_version(v3, 0, 7))
+solver.add(open_maximum_version(v3, 1))
 
 # PR #404 switches the client API for status from asking for
 # client status in the old way (whatever that was?) to implementing

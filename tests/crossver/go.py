@@ -21,6 +21,8 @@ dry_run_mode = False
 from .helpers import PyVersionSort, VersionSort, valid_academy_version, valid_python_version, create_env, managed_commandline
 from .helpers import *
 
+# timeout used in startup wait/checks
+START_TIMEOUT_S = 30
 
 def run_test_agent_ping_via_http_exchange(version_set: dict):
     """Test agent, client and HTTP exchange from different environments.
@@ -48,22 +50,36 @@ port = 1234
 
     with managed_commandline(f'python3 -m academy.exchange.cloud.__main__ --config exchange_config.json', daemon=True, env=v1_env) as p1:
 
-        # this sleep and the one a few lines down is to give the daemons
-        # enough time to get started. There are probably more reliable and
-        # quicker ways to do this.
+        # This sleep is to give the exchange time to get started.
+        # There are probably more reliable and # quicker ways to do this.
         time.sleep(1)
 
         base = os.getcwd()
 
         with managed_commandline(f'python3 {base}/tests/crossver/test_agent_ping_via_http_exchange/agent.py', daemon=True, env=v2_env) as p2:
 
-            time.sleep(3)
+            t_start = time.monotonic()
+            found = False
+            d = 0.1
+            while not found and time.monotonic() - t_start < START_TIMEOUT_S:
+                if os.path.exists(f'{v2_env}/agent.handle'):
+                    print(f'Found agent.handle after {time.monotonic() - t_start} seconds')
+                    found = True
+                else:
+                    time.sleep(d)
+                    d *= 1.1
+            assert found, "timeout"  # TODO: don't do this as an assert
 
             # This might be the same location, if v2 = v3
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
             with managed_commandline(f'python3 {base}/tests/crossver/test_agent_ping_via_http_exchange/client.py', daemon=False, env=v3_env) as p3:
                 pass
+
+    # TODO: this should be handle with per-invocation working directory with
+    # read-only environments
+    r = os.system(f"rm -fv {v2_env}/agent.handle {v3_env}/agent.handle")
+    assert r == 0
 
 
 def run_test_heartbeat(version_set: dict):

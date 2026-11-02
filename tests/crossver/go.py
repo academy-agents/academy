@@ -14,7 +14,7 @@ import z3
 # involve the HERE version - for example, this makes sense if you are
 # contributing a pull request which does not modify the crossver tests in
 # any way.
-here_mode = True
+here_mode = False
 
 dry_run_mode = False
 

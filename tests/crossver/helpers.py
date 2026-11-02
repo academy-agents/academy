@@ -126,8 +126,6 @@ v030 = VersionSort.SemVer(0,3,0)
 v031 = VersionSort.SemVer(0,3,1)
 v040 = VersionSort.SemVer(0,4,0)
 v050 = VersionSort.SemVer(0,5,0)
-v060 = VersionSort.SemVer(0,6,0)
-v070 = VersionSort.SemVer(0,7,0)
 v100 = VersionSort.SemVer(1,0,0)
 v_here = VersionSort.SemVer(1,0,1)  # this should dynamically be the latest, incremented by a relevant "next release type" parameter, or configured manually and checked that it hasn't already been released, a "candidate release" variable
 
@@ -138,8 +136,6 @@ def valid_academy_version(v):
                v == v031,
                v == v040,
                v == v050,
-               v == v060,
-               v == v070,
                v == v100,
                v == v_here)
 
@@ -151,7 +147,5 @@ install_deps[v030] = 'academy-py==0.3.0'
 install_deps[v031] = 'academy-py==0.3.1'
 install_deps[v040] = 'academy-py==0.4.0'
 install_deps[v050] = 'packaging academy-py==0.5.0'
-install_deps[v060] = 'packaging git+https://github.com/academy-agents/academy@dff06fc3bdfe1b906cc9adb9490cc2e22d1406b1'  # untagged
-install_deps[v070] = 'packaging git+https://github.com/academy-agents/academy@2c2127324aacf5e6402b665876b9e7e548c9506d'  # untagged
 install_deps[v100] = 'academy-py==1.0.0'
 install_deps[v_here] = 'HERE'

@@ -5,7 +5,6 @@ import os
 import pathlib
 import random
 import signal
-import socket
 import subprocess
 import time
 
@@ -213,6 +212,7 @@ pyv3 = z3.Const('pyv3', PyVersionSort)
 # this deliberately omits a patch field, because of semver
 # semantics
 def closed_minimum_version(v, major, minor):
+
     if isinstance(v, list):
         return z3.And(*map(lambda v2: closed_minimum_version(v2, major, minor), v))
 
@@ -273,8 +273,8 @@ solver.add(compatibility_breaks_at([v1, v2, v3], 0, 5))
 # but this implication can express that more subtly, to support
 # testing that a newer exchange will work with older clients and
 # agents.
-solver.add(z3.Implies(closed_minimum_version(v2, 0, 6), closed_minimum_version(v1, 0, 6)))
-solver.add(z3.Implies(closed_minimum_version(v3, 0, 6), closed_minimum_version(v1, 0, 6)))
+solver.add(z3.Implies(closed_minimum_version(v2, 1, 0), closed_minimum_version(v1, 1, 0)))
+solver.add(z3.Implies(closed_minimum_version(v3, 1, 0), closed_minimum_version(v1, 1, 0)))
 
 solver.push()
 
@@ -325,7 +325,7 @@ solver.push()
 # the agent definitely has heartbeat support.
 
 solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
-solver.add(closed_minimum_version(v2, 0, 6))
+solver.add(closed_minimum_version(v2, 1, 0))
 count = 0
 while solver.check() == z3.sat:
     count += 1
@@ -372,20 +372,6 @@ solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
 # This isn't a constraint on the wire protocol.
 solver.add(open_maximum_version(v3, 1))
 
-# PR #404 switches the client API for status from asking for
-# client status in the old way (whatever that was?) to implementing
-# a heartbeat-based status. In order for that to work, the agent
-# must be new enough to emit heartbeats too.
-
-# But not the other way round: an older client can still see status
-# from newer agents (but will have the old status semantics, not
-# heartbeat style semantics)
-
-# So pr #404 should/would be a major version increment, but this
-# implication describes more subtleties.
-
-solver.add(z3.Implies(closed_minimum_version(v3, 0, 6), closed_minimum_version(v2, 0, 6)))
-
 count = 0
 while solver.check() == z3.sat:
     count += 1
@@ -423,10 +409,10 @@ solver.push()
 # same wire-protocol constraints at the 0_5_0 test
 
 solver.add(closed_minimum_version([v1, v2, v3], 0, 4))
-solver.add(z3.Implies(closed_minimum_version(v3, 0, 6), closed_minimum_version(v2, 0, 6)))
+solver.add(z3.Implies(closed_minimum_version(v3, 1, 0), closed_minimum_version(v2, 1, 0)))
 
 # because of status Python API changes
-solver.add(closed_minimum_version(v3, 0, 7))
+solver.add(closed_minimum_version(v3, 1, 0))
 
 
 count = 0

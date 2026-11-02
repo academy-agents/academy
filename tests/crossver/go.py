@@ -24,6 +24,20 @@ from .helpers import *
 # timeout used in startup wait/checks
 START_TIMEOUT_S = 30
 
+def wait_for_file(fn):
+    t_start = time.monotonic()
+    found = False
+    d = 0.1
+    while not found and time.monotonic() - t_start < START_TIMEOUT_S:
+        if os.path.exists(fn):
+            print(f'Found {fn} after {time.monotonic() - t_start} seconds')
+            found = True
+        else:
+            time.sleep(d)
+            d *= 1.1
+    assert found, f"timeout waiting for {fn}"  # TODO: don't do this as an assert
+
+
 def run_test_agent_ping_via_http_exchange(version_set: dict):
     """Test agent, client and HTTP exchange from different environments.
 
@@ -57,19 +71,7 @@ port = 1234
         base = os.getcwd()
 
         with managed_commandline(f'python3 {base}/tests/crossver/test_agent_ping_via_http_exchange/agent.py', daemon=True, env=v2_env) as p2:
-
-            t_start = time.monotonic()
-            found = False
-            d = 0.1
-            while not found and time.monotonic() - t_start < START_TIMEOUT_S:
-                if os.path.exists(f'{v2_env}/agent.handle'):
-                    print(f'Found agent.handle after {time.monotonic() - t_start} seconds')
-                    found = True
-                else:
-                    time.sleep(d)
-                    d *= 1.1
-            assert found, "timeout"  # TODO: don't do this as an assert
-
+            wait_for_file(f'{v2_env}/agent.handle')
             # This might be the same location, if v2 = v3
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
@@ -78,8 +80,7 @@ port = 1234
 
     # TODO: this should be handle with per-invocation working directory with
     # read-only environments
-    r = os.system(f"rm -fv {v2_env}/agent.handle {v3_env}/agent.handle")
-    assert r == 0
+    os.system(f"rm -fv {v2_env}/agent.handle {v3_env}/agent.handle")
 
 
 def run_test_heartbeat(version_set: dict):
@@ -103,12 +104,14 @@ port = 1234
 
         with managed_commandline(f'python3 {base}/tests/crossver/test_heartbeat/agent.py', daemon=True, env=v2_env) as p2:
 
-            time.sleep(3)
+            wait_for_file(f'{v2_env}/agent.handle')
 
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
             with managed_commandline(f'python3 {base}/tests/crossver/test_heartbeat/client.py', daemon=False, env=v3_env) as p3:
                 pass
+
+    os.system(f"rm -fv {v2_env}/agent.handle {v3_env}/agent.handle")
 
 
 def run_test_entity_status_client_0_5_0(version_set: dict):
@@ -133,12 +136,14 @@ port = 1234
 
         with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_5_0/agent.py', daemon=True, env=v2_env) as p2:
 
-            time.sleep(3)
+            wait_for_file(f'{v2_env}/agent.handle')
 
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
             with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_0_5_0/client.py', daemon=False, env=v3_env) as p3:
                 pass
+
+    os.system(f"rm -fv {v2_env}/agent.handle {v3_env}/agent.handle")
 
 
 def run_test_entity_status_client_1_0_0(version_set: dict):
@@ -163,12 +168,14 @@ port = 1234
 
         with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_1_0_0/agent.py', daemon=True, env=v2_env) as p2:
 
-            time.sleep(3)
+            wait_for_file(f'{v2_env}/agent.handle')
 
             os.system(f'cp {v2_env}/agent.handle {v3_env}/agent.handle')
 
             with managed_commandline(f'python3 {base}/tests/crossver/test_entity_status_client_1_0_0/client.py', daemon=False, env=v3_env) as p3:
                 pass
+
+    os.system(f"rm -fv {v2_env}/agent.handle {v3_env}/agent.handle")
 
 
 def run_test_api_thread_executor_logconfig(version_set: dict):

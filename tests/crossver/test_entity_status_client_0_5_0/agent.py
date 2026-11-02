@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import pickle
 
 from academy.agent import Agent
@@ -25,9 +26,9 @@ async def async_main():
         agent_h = await manager.launch(TestAgent)
         print(f'Agent handle is: {agent_h}')
 
-        # TODO: are handles expected to be pickleable across minor versions?
-        with open('agent.handle', 'wb') as f:
+        with open('agent.handle.tmp', 'wb') as f:
             pickle.dump(agent_h, f)
+        os.rename('agent.handle.tmp', 'agent.handle')
 
         await agent_h.ping()
         while True:

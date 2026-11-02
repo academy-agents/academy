@@ -22,43 +22,6 @@ dry_run_mode = False
 from .helpers import PyVersionSort, VersionSort, valid_academy_version, valid_python_version, create_env, managed_commandline
 from .helpers import *
 
-# timeout used in startup wait/checks
-START_TIMEOUT_S = 30
-
-def wait_for_socket(port):
-    t_start = time.monotonic()
-    found = False
-    d = 0.05
-    while not found and time.monotonic() - t_start < START_TIMEOUT_S:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect(("127.0.0.1", port))
-            found = True
-        except ConnectionRefusedError:
-            pass
-
-        if found:
-            print(f'Found port {port} open after {time.monotonic() - t_start} seconds')
-        else:
-            time.sleep(d)
-            d *= 1.05
-    assert found, f"timeout waiting for {fn}"  # TODO: don't do this as an assert
-
-
-def wait_for_file(fn):
-    t_start = time.monotonic()
-    found = False
-    d = 0.05
-    while not found and time.monotonic() - t_start < START_TIMEOUT_S:
-        if os.path.exists(fn):
-            print(f'Found {fn} after {time.monotonic() - t_start} seconds')
-            found = True
-        else:
-            time.sleep(d)
-            d *= 1.05
-    assert found, f"timeout waiting for {fn}"  # TODO: don't do this as an assert
-
-
 def run_test_agent_ping_via_http_exchange(version_set: dict):
     """Test agent, client and HTTP exchange from different environments.
 

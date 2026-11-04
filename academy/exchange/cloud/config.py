@@ -6,17 +6,14 @@ import abc
 import logging
 import pathlib
 import sys
+import tomllib
 from logging.handlers import TimedRotatingFileHandler
 from typing import Any
 from typing import BinaryIO
 from typing import Literal
 from typing import Protocol
+from typing import Self
 from typing import TypeVar
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -27,12 +24,6 @@ from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
 from academy.logging.helpers import _Formatter
 from academy.logging.helpers import _os_thread_filter
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    import tomllib
-else:  # pragma: <3.11 cover
-    import tomli as tomllib  # type: ignore[import-not-found,unused-ignore]
-
 
 BaseModelT = TypeVar('BaseModelT', bound=BaseModel)
 

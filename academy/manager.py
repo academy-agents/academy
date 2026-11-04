@@ -4,7 +4,6 @@ import asyncio
 import contextlib
 import dataclasses
 import logging
-import sys
 import warnings
 from collections.abc import Iterable
 from collections.abc import MutableMapping
@@ -12,12 +11,8 @@ from concurrent.futures import Executor
 from types import TracebackType
 from typing import Any
 from typing import Generic
+from typing import Self
 from typing import TYPE_CHECKING
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 import academy.exchange as ae
 from academy.debug import set_academy_debug

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 from collections.abc import Iterable
 from typing import Any
 
@@ -267,8 +266,8 @@ def raise_exceptions(
     """Raise exceptions as a group.
 
     Raises a set of exceptions as an [`ExceptionGroup`][ExceptionGroup]
-    in Python 3.11 and later. If only one exception is provided, it is raised
-    directly. In Python 3.10 and older, only one exception is raised.
+    if multiple exceptions are provided. If only one exception is provided,
+    it is raised directly.
 
     This is a no-op if the size of `exceptions` is zero.
 
@@ -280,13 +279,13 @@ def raise_exceptions(
     if len(excs) == 0:
         return
 
-    if sys.version_info >= (3, 11) and len(excs) > 1:  # pragma: >=3.11 cover
+    if len(excs) > 1:
         message = (
             message if message is not None else 'Caught multiple exceptions!'
         )
         # Note that BaseExceptionGroup will return ExceptionGroup if all
         # of the errors are Exception, rather than BaseException, so that this
         # can be caught by "except Exception".
-        raise BaseExceptionGroup(message, excs)  # noqa: F821
-    else:  # pragma: <3.11 cover
+        raise BaseExceptionGroup(message, excs)
+    else:
         raise excs[0]

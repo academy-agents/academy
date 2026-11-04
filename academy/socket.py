@@ -14,13 +14,9 @@ from collections.abc import Awaitable
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from types import TracebackType
+from typing import Self
 
 from academy.task import spawn_guarded_background_task
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +88,7 @@ class SimpleSocket:
         try:
             coro = asyncio.open_connection(host, port)
             reader, writer = await asyncio.wait_for(coro, timeout)
-        except (OSError, asyncio.TimeoutError) as e:
+        except (TimeoutError, OSError) as e:
             raise SocketOpenError() from e
 
         return cls(reader, writer, timeout=timeout)

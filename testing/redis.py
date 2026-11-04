@@ -53,7 +53,7 @@ class MockRedis:
                         self.events[key].wait(),
                         timeout=None if timeout == 0 else timeout,
                     )
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     return None
                 else:
                     item = self.lists[key].pop(0)

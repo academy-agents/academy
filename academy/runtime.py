@@ -5,7 +5,6 @@ import contextlib
 import contextvars
 import dataclasses
 import logging
-import sys
 import uuid
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -13,13 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 from types import TracebackType
 from typing import Any
 from typing import Generic
+from typing import Self
 from typing import TYPE_CHECKING
 from typing import TypeVar
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -785,9 +780,7 @@ class Runtime(Generic[AgentT], NoPickleMixin):
                 self._shutdown_event.wait(),
                 timeout=timeout,
             )
-        except asyncio.TimeoutError:
-            # In Python 3.10 and older, asyncio.TimeoutError and TimeoutError
-            # are different error types.
+        except TimeoutError:
             raise TimeoutError(
                 f'Agent shutdown was not signalled within {timeout} seconds.',
             ) from None

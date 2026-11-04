@@ -70,11 +70,10 @@ def create_self_signed_cert() -> tuple[Certificate, RSAPrivateKey]:
         .issuer_name(issuer)
         .public_key(key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
+        .not_valid_before(datetime.datetime.now(datetime.UTC))
         .not_valid_after(
             # Our certificate will be valid for 10 days
-            datetime.datetime.now(datetime.timezone.utc)
-            + datetime.timedelta(days=10),
+            datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=10),
         )
         .add_extension(
             x509.SubjectAlternativeName([x509.DNSName('localhost')]),

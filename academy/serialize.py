@@ -6,7 +6,7 @@ import logging
 import pickle
 import traceback
 from contextvars import ContextVar
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from typing import Protocol
 
@@ -115,7 +115,7 @@ class PickleSerializer:
         return pickle.loads(base64.b64decode(data))
 
 
-class SerializationStrategy(str, Enum):
+class SerializationStrategy(StrEnum):
     """Enum for different serialization strategies."""
 
     PICKLE = 'pickle'

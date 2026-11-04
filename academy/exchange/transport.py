@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import sys
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -9,13 +8,9 @@ from types import TracebackType
 from typing import Any
 from typing import Protocol
 from typing import runtime_checkable
+from typing import Self
 from typing import TYPE_CHECKING
 from typing import TypeVar
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 from academy.exception import MailboxTerminatedError
 from academy.identifier import AgentId

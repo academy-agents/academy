@@ -13,12 +13,8 @@ from collections.abc import Iterable
 from typing import Any
 from typing import Generic
 from typing import Literal
+from typing import Self
 from typing import TYPE_CHECKING
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 if sys.version_info >= (3, 13):  # pragma: >=3.13 cover
     from asyncio import Queue
@@ -294,7 +290,7 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                 self._messages.get(),
                 timeout=timeout,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise TimeoutError(
                 f'Timeout waiting for next message for {self.mailbox_id} '
                 f'after {timeout} seconds.',

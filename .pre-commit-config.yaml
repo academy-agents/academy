@@ -36,4 +36,3 @@ repos:
           - pydantic>=2,<3
           - redis
           - types-redis
-          - "tomli ; python_version<'3.11'"

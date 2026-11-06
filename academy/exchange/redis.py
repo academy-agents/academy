@@ -128,11 +128,16 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             redis.exceptions.ConnectionError: If the Redis server is not
                 reachable.
         """
+        kwargs = {
+            'socket_timeout': None,
+            **redis_info.kwargs,
+        }
+
         client: redis.asyncio.Redis[bytes] = redis.asyncio.Redis(
             host=redis_info.hostname,
             port=redis_info.port,
             decode_responses=False,
-            **redis_info.kwargs,
+            **kwargs,
         )
         # Ensure the redis server is reachable else fail early
         p = client.ping()

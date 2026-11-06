@@ -172,6 +172,9 @@ class RedisBackendConfig(BaseModel):
         mailbox_expiration_d: Time till messages expire from mailbox.
         gravestone_expiration_d: Time till mailbox status is removed.
             After this, a mailbox may be recreated with the same id.
+        socket_timeout: Time till connection to redis is automatically
+            closed. Must be greater than `listen_timeout_s` in
+            `ExchangeServingConfig`.
         kwargs: Any additional args to Redis
     """
 
@@ -182,11 +185,13 @@ class RedisBackendConfig(BaseModel):
     message_size_limit_kb: int = Field(default=512, gt=0, le=512)
     mailbox_expiration_d: float = Field(default=7, gt=0)
     gravestone_expiration_d: float = Field(default=365, gt=0)
+    socket_timeout: float | None = Field(default=90, gt=0)
     kwargs: dict[str, Any] = Field(default_factory=dict, repr=False)
     kind: Literal['redis'] = Field(default='redis', repr=False)
 
     def get_backend(self) -> MailboxBackend:
         """Construct an instance of the backend from the config."""
+        self.kwargs.setdefault('socket_timeout', self.socket_timeout)
         return RedisBackend(
             self.hostname,
             self.port,

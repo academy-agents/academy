@@ -181,11 +181,16 @@ class HybridExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         )
         port = port if port is not None else open_port()
 
+        kwargs = {
+            'socket_timeout': None,
+            **redis_info.kwargs,
+        }
+
         client: redis.asyncio.Redis[bytes] = redis.asyncio.Redis(
             host=redis_info.hostname,
             port=redis_info.port,
             decode_responses=False,
-            **redis_info.kwargs,
+            **kwargs,
         )
         # Ensure the redis server is reachable else fail early
         p = client.ping()

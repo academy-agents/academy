@@ -5,7 +5,6 @@ import asyncio
 import dataclasses
 import functools
 import logging
-import sys
 import threading
 import time
 import uuid
@@ -18,13 +17,8 @@ from typing import ClassVar
 from typing import Generic
 from typing import Literal
 from typing import NamedTuple
+from typing import Self
 from typing import TYPE_CHECKING
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
-
 
 import globus_sdk
 from globus_sdk import AuthClient
@@ -493,7 +487,7 @@ class GlobusExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
                         'seconds.',
                     )
                     pass
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.debug(
                     f'Failed to receive response in {internal_timeout} '
                     'seconds.',

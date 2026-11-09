@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import pickle
-import sys
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -230,21 +229,14 @@ async def test_runtime_loop_error_causes_shutdown(
             runtime.run_until_complete(),
             timeout=TEST_WAIT_TIMEOUT,
         )
-    elif sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-        # In Python 3.11 and later, all exceptions are raised in a group.
-        with pytest.raises(ExceptionGroup) as exc_info:  # noqa: F821
+    else:
+        # All exceptions are raised in a group.
+        with pytest.raises(ExceptionGroup) as exc_info:
             await asyncio.wait_for(
                 runtime.run_until_complete(),
                 timeout=TEST_WAIT_TIMEOUT,
             )
         assert len(exc_info.value.exceptions) == 2  # noqa: PLR2004
-    else:  # pragma: <3.11 cover
-        # In Python 3.10 and older, only the first error will be raised.
-        with pytest.raises(RuntimeError, match='Loop failure'):
-            await asyncio.wait_for(
-                runtime.run_until_complete(),
-                timeout=TEST_WAIT_TIMEOUT,
-            )
 
 
 @pytest.mark.asyncio
@@ -271,15 +263,10 @@ async def test_runtime_loop_error_without_shutdown(
     runtime.signal_shutdown()
 
     # Loop errors raised on shutdown
-    if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-        # In Python 3.11 and later, all exceptions are raised in a group.
-        with pytest.raises(ExceptionGroup) as exc_info:  # noqa: F821
-            await task
-        assert len(exc_info.value.exceptions) == 2  # noqa: PLR2004
-    else:  # pragma: <3.11 cover
-        # In Python 3.10 and older, only the first error will be raised.
-        with pytest.raises(RuntimeError, match='Loop failure'):
-            await task
+    # All exceptions are raised in a group.
+    with pytest.raises(ExceptionGroup) as exc_info:
+        await task
+    assert len(exc_info.value.exceptions) == 2  # noqa: PLR2004
 
 
 @pytest.mark.asyncio

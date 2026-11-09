@@ -8,7 +8,7 @@ authors = [{name = "Globus Labs"}]
 description = "Build and deploy stateful agents across federated resources."
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
@@ -27,9 +27,7 @@ dependencies = [
     "packaging>=25.0",
     "pydantic>=2,<3",
     "redis",
-    "tomli ; python_version<'3.11'",
     "tomli-w>=1.2.0",
-    "typing-extensions>=4.3.0 ; python_version<'3.11'",
 ]
 
 [project.urls]
@@ -125,7 +123,7 @@ markers = [
 
 [tool.ruff]
 line-length = 79
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.format]
 indent-style = "space"

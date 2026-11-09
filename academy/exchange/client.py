@@ -12,16 +12,11 @@ from contextvars import ContextVar
 from types import TracebackType
 from typing import Any
 from typing import Generic
+from typing import Self
 from typing import TYPE_CHECKING
 from typing import TypeAlias
 from typing import TypeVar
 from weakref import WeakValueDictionary
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
-
 
 from academy.exception import BadEntityIdError
 from academy.exception import MailboxTerminatedError

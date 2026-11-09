@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import uuid
 from enum import IntEnum
 from typing import Any
@@ -10,16 +9,11 @@ from typing import get_args
 from typing import Literal
 from typing import Protocol
 from typing import runtime_checkable
+from typing import Self
 from typing import TypeVar
 
 from packaging.version import parse
 from packaging.version import Version
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
-
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field

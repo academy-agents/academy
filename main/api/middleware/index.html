@@ -3146,19 +3146,27 @@ the <a class="autorefs autorefs-internal" title="            RuntimeConfig
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><span title="academy.middleware.ActionCall.source_id">source_id</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>)
+          <b><code><span title="academy.middleware.ActionCall.agent_context">agent_context</span></code></b>
+              (<code><a class="autorefs autorefs-internal" title="            AgentContext
+
+
+  
+      dataclass
+   (academy.context.AgentContext)" href="../context/#academy.context.AgentContext">AgentContext</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
           –
           <div class="doc-md-description">
-            <p>ID of the entity that requested the action.</p>
+            <p>Context of the agent executing the action
+(the agent ID is <code>agent_context.agent_id</code>).</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><span title="academy.middleware.ActionCall.agent_id">agent_id</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>)
+          <b><code><span title="academy.middleware.ActionCall.action_context">action_context</span></code></b>
+              (<code><a class="autorefs autorefs-internal" title="            ActionContext (academy.context.ActionContext)" href="../context/#academy.context.ActionContext">ActionContext</a></code>)
           –
           <div class="doc-md-description">
-            <p>ID of the agent executing the action.</p>
+            <p>Context of this invocation (the requester is
+<code>action_context.source_id</code> and the request message tag is
+<code>action_context.tag</code>).</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -3175,15 +3183,6 @@ the <a class="autorefs autorefs-internal" title="            RuntimeConfig
           –
           <div class="doc-md-description">
             <p>Dictionary of keyword arguments.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-          <b><code><span title="academy.middleware.ActionCall.tag">tag</span></code></b>
-              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>]</code>)
-          –
-          <div class="doc-md-description">
-            <p>Unique tag of the request message that initiated this
-invocation, if the action was initiated by a message.</p>
           </div>
         </li>
     </ul>

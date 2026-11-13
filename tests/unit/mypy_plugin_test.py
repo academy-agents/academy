@@ -1,12 +1,7 @@
 from __future__ import annotations
 
-import sys
 from collections.abc import Coroutine
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import assert_type
-else:  # pragma: <3.11 cover
-    from typing_extensions import assert_type
+from typing import assert_type
 
 import pytest
 

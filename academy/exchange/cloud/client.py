@@ -5,7 +5,6 @@ import asyncio
 import contextlib
 import logging
 import multiprocessing
-import sys
 import time
 import uuid
 from collections.abc import AsyncGenerator
@@ -14,13 +13,9 @@ from typing import Any
 from typing import Generic
 from typing import Literal
 from typing import NamedTuple
+from typing import Self
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 import aiohttp
 from aiohttp import ClientResponse
@@ -760,12 +755,8 @@ def _is_transient_error(exc: BaseException) -> bool:
         (
             aiohttp.ClientConnectionError,
             aiohttp.ClientPayloadError,
+            # Also covers TimeoutError (subclass of OSError).
             OSError,
-            # ``asyncio.TimeoutError`` is an alias of the builtin
-            # ``TimeoutError`` on Python >= 3.11 which is covered in
-            # OSError; list both so the predicate behaves the same
-            # on 3.10.
-            asyncio.TimeoutError,
         ),
     ):
         return True

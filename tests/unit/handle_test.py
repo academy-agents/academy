@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import pickle
-import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest import mock
@@ -44,11 +43,6 @@ from testing.agents import ErrorAgent
 from testing.agents import IdentityAgent
 from testing.agents import SleepAgent
 from testing.constant import TEST_SLEEP_INTERVAL
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    pass
-else:  # pragma: <3.11 cover
-    pass
 
 
 @pytest.mark.asyncio

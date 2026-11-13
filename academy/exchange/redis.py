@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import enum
 import logging
-import sys
 import uuid
 from collections.abc import AsyncGenerator
 from collections.abc import Awaitable
@@ -11,12 +10,8 @@ from typing import Any
 from typing import Generic
 from typing import Literal
 from typing import NamedTuple
+from typing import Self
 from typing import TYPE_CHECKING
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 import redis.asyncio
 from pydantic import BaseModel
@@ -128,11 +123,16 @@ class RedisExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
             redis.exceptions.ConnectionError: If the Redis server is not
                 reachable.
         """
+        kwargs = {
+            'socket_timeout': None,
+            **redis_info.kwargs,
+        }
+
         client: redis.asyncio.Redis[bytes] = redis.asyncio.Redis(
             host=redis_info.hostname,
             port=redis_info.port,
             decode_responses=False,
-            **redis_info.kwargs,
+            **kwargs,
         )
         # Ensure the redis server is reachable else fail early
         p = client.ping()

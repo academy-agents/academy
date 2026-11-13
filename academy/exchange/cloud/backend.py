@@ -555,9 +555,7 @@ class PythonBackend:
             return await asyncio.wait_for(queue.get(), timeout=timeout)
         except QueueShutDown:
             raise MailboxTerminatedError(uid) from None
-        except asyncio.TimeoutError:
-            # In Python 3.10 and older, asyncio.TimeoutError and TimeoutError
-            # are different error types.
+        except TimeoutError:
             raise TimeoutError(
                 f'No message retrieved within {timeout} seconds.',
             ) from None

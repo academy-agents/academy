@@ -6,17 +6,14 @@ import abc
 import logging
 import pathlib
 import sys
+import tomllib
 from logging.handlers import TimedRotatingFileHandler
 from typing import Any
 from typing import BinaryIO
 from typing import Literal
 from typing import Protocol
+from typing import Self
 from typing import TypeVar
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -27,12 +24,6 @@ from academy.exchange.cloud.backend import PythonBackend
 from academy.exchange.cloud.backend import RedisBackend
 from academy.logging.helpers import _Formatter
 from academy.logging.helpers import _os_thread_filter
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    import tomllib
-else:  # pragma: <3.11 cover
-    import tomli as tomllib  # type: ignore[import-not-found,unused-ignore]
-
 
 BaseModelT = TypeVar('BaseModelT', bound=BaseModel)
 
@@ -172,6 +163,9 @@ class RedisBackendConfig(BaseModel):
         mailbox_expiration_d: Time till messages expire from mailbox.
         gravestone_expiration_d: Time till mailbox status is removed.
             After this, a mailbox may be recreated with the same id.
+        socket_timeout: Time till connection to redis is automatically
+            closed. Must be greater than `listen_timeout_s` in
+            `ExchangeServingConfig`.
         kwargs: Any additional args to Redis
     """
 
@@ -182,11 +176,13 @@ class RedisBackendConfig(BaseModel):
     message_size_limit_kb: int = Field(default=512, gt=0, le=512)
     mailbox_expiration_d: float = Field(default=7, gt=0)
     gravestone_expiration_d: float = Field(default=365, gt=0)
+    socket_timeout: float | None = Field(default=90, gt=0)
     kwargs: dict[str, Any] = Field(default_factory=dict, repr=False)
     kind: Literal['redis'] = Field(default='redis', repr=False)
 
     def get_backend(self) -> MailboxBackend:
         """Construct an instance of the backend from the config."""
+        self.kwargs.setdefault('socket_timeout', self.socket_timeout)
         return RedisBackend(
             self.hostname,
             self.port,

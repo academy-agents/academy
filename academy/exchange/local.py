@@ -3,19 +3,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import sys
 import time
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 from typing import Generic
 from typing import Literal
+from typing import Self
 from typing import TYPE_CHECKING
-
-if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
-    from typing import Self
-else:  # pragma: <3.11 cover
-    from typing_extensions import Self
 
 from aiologic import Lock
 from culsans import AsyncQueue
@@ -155,7 +150,7 @@ class LocalExchangeTransport(ExchangeTransportMixin, NoPickleMixin):
         queue = self._state.queues[self.mailbox_id]
         try:
             return await asyncio.wait_for(queue.get(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise TimeoutError(
                 f'Timeout waiting for next message for {self.mailbox_id} '
                 f'after {timeout} seconds.',

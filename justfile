@@ -1,5 +1,3 @@
-venv := ".venv"
-
 # Print this help message.
 help:
     @just --list

@@ -181,7 +181,15 @@ class EventLoopExecutor(Executor):
 
         if cancel_futures:
             for future in list(self._pending_futures):
-                future.cancel()
+                # Defer to the loop thread so this is ordered after
+                # run_coroutine_threadsafe's Task-wrapping callback below.
+                self._loop.call_soon_threadsafe(future.cancel)
+
+        # Wait for callbacks already queued via call_soon_threadsafe (the
+        # cancels above, and submit()'s coroutine-to-Task wrapping) to run,
+        # so a submitted coroutine is never dropped unwrapped when the loop
+        # stops below.
+        asyncio.run_coroutine_threadsafe(asyncio.sleep(0), self._loop).result()
 
         if self._host is not None:
             future_host = asyncio.run_coroutine_threadsafe(

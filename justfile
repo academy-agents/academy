@@ -9,9 +9,13 @@ install:
     .venv/bin/pip install -e '.[dev,docs]'
     pre-commit install
 
-# Run the test suite; pass a python minor version (e.g. `just test 13`) to test only that version.
-test pyversion='':
-    tox run --color=yes {{ if pyversion != '' { '-e py3' + pyversion } else { '' } }}
+# Run the test suite against every supported python version.
+test-all:
+    tox run --color=yes
+
+# Run the test suite against a single python minor version.
+test pyversion='13':
+    tox run --color=yes -e py3{{pyversion}}
 
 # Run standard linting against the codebase.
 lint:

@@ -13,6 +13,10 @@ install:
 test pyversion='':
     tox run --color=yes {{ if pyversion != '' { '-e py3' + pyversion } else { '' } }}
 
+# Run standard linting against the codebase.
+lint:
+  pre-commit run --all-files
+
 # Remove generated build artifacts.
 clean:
     rm -rf .venv

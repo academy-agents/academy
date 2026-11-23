@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import gc
+import warnings
+
 import pytest
 
 from academy.exchange import LocalExchangeTransport
@@ -124,13 +127,27 @@ async def test_cancel_future(
         submit_kwargs={},
     )
 
-    future = executor.submit(_run_agent_on_worker, spec)
+    # Regression test: a cancelled-before-wrapped future used to leak an
+    # unawaited coroutine. Scoped tightly, with a forced gc.collect(), to
+    # avoid catching unrelated GC noise from other tests.
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
 
-    assert future in executor._pending_futures
+        future = executor.submit(_run_agent_on_worker, spec)
 
-    executor.shutdown(wait=True, cancel_futures=True)
+        assert future in executor._pending_futures
 
-    assert future.cancelled()
+        executor.shutdown(wait=True, cancel_futures=True)
+
+        assert future.cancelled()
+
+        gc.collect()
+
+    assert not any(
+        issubclass(w.category, RuntimeWarning)
+        and '_submit_async' in str(w.message)
+        for w in caught
+    )
 
     await client.close()
 
